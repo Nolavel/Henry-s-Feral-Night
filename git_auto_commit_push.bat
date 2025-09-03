@@ -1,24 +1,24 @@
 @echo off
-:: === Авто-коммит и пуш в GitHub ===
+:: === Auto-commit and push to GitHub ===
 
-:: Формируем дату и время для коммита
+:: Generate commit message with date and time
 for /f "tokens=1-3 delims=. " %%a in ('date /t') do set DATE=%%c-%%b-%%a
 for /f "tokens=1-2 delims=: " %%a in ('time /t') do set TIME=%%a-%%b
 
 set MESSAGE=Auto-commit on %DATE%_%TIME%
 
 echo =====================================
-echo Добавляем изменения...
+echo Adding changes...
 git add .
 
 echo =====================================
-echo Создаём коммит: "%MESSAGE%"
+echo Creating commit: "%MESSAGE%"
 git commit -m "%MESSAGE%"
 
 echo =====================================
-echo Отправляем на GitHub (ветка master)...
-git push origin master
+echo Pushing to GitHub (branch prototype)...
+git push origin prototype
 
 echo =====================================
-echo Готово!
+echo Done!
 pause
