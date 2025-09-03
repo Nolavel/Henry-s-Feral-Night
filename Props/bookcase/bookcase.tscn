@@ -1,0 +1,16 @@
+[gd_scene load_steps=4 format=3 uid="uid://cib7gcndo1say"]
+
+[ext_resource type="PackedScene" uid="uid://bnwkylw8vi30c" path="res://Props/bookcase/bookcase.glb" id="1_twwko"]
+[ext_resource type="Texture2D" uid="uid://cmxp7ph74qkd7" path="res://Props/Ladder_wooden/Ladder_mat.png" id="2_n1g6y"]
+
+[sub_resource type="StandardMaterial3D" id="StandardMaterial3D_8pdft"]
+albedo_texture = ExtResource("2_n1g6y")
+
+[node name="bookcase" instance=ExtResource("1_twwko")]
+
+[node name="Skeleton3D" parent="Bookcase" index="0"]
+bones/0/rotation = Quaternion(0, 0.707107, 0.707107, 0)
+bones/1/rotation = Quaternion(-0.707107, 0, 0, 0.707107)
+
+[node name="Mesh" parent="Bookcase/Skeleton3D" index="0"]
+material_override = SubResource("StandardMaterial3D_8pdft")

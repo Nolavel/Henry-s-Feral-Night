@@ -1,0 +1,56 @@
+[gd_scene load_steps=6 format=3 uid="uid://f1d2yyke8vmp"]
+
+[ext_resource type="Script" path="res://WeaponBase.gd" id="1_iueaf"]
+[ext_resource type="PackedScene" uid="uid://crbmjel3iq0gh" path="res://Bullet.tscn" id="2_5qfnl"]
+
+[sub_resource type="BoxShape3D" id="BoxShape3D_3cyhx"]
+size = Vector3(2, 2, 2)
+
+[sub_resource type="BoxMesh" id="BoxMesh_wllgp"]
+size = Vector3(1, 0.3, 0.1)
+
+[sub_resource type="CylinderMesh" id="CylinderMesh_0tj43"]
+top_radius = 0.01
+bottom_radius = 0.1
+height = 0.5
+
+[node name="Weapon" type="Area3D" groups=["Weapons", "weapons"]]
+script = ExtResource("1_iueaf")
+fire_rate = 5.0
+bullet_scene = ExtResource("2_5qfnl")
+
+[node name="CollisionShape3D" type="CollisionShape3D" parent="."]
+shape = SubResource("BoxShape3D_3cyhx")
+
+[node name="ShootTimer" type="Timer" parent="."]
+wait_time = 0.001
+one_shot = true
+
+[node name="WeaponVisuals" type="Node3D" parent="."]
+
+[node name="WeaponMesh" type="MeshInstance3D" parent="WeaponVisuals"]
+mesh = SubResource("BoxMesh_wllgp")
+skeleton = NodePath("")
+
+[node name="MuzzleFlashPoint" type="Node3D" parent="WeaponVisuals"]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, -0.222656, 0, 0)
+
+[node name="Mesh_Muzzle_Effect" type="MeshInstance3D" parent="WeaponVisuals/MuzzleFlashPoint"]
+transform = Transform3D(-4.37114e-08, -1, 0, 1, -4.37114e-08, 0, 0, 0, 1, -0.279175, 0, 0)
+visible = false
+mesh = SubResource("CylinderMesh_0tj43")
+
+[node name="ShootAudio" type="AudioStreamPlayer" parent="."]
+mix_target = 1
+bus = &"SFX"
+
+[node name="ReloadAudio" type="AudioStreamPlayer" parent="."]
+volume_db = 15.0
+bus = &"SFX"
+
+[node name="EmptyClipAudio" type="AudioStreamPlayer" parent="."]
+bus = &"SFX"
+
+[node name="WeaponActionAudio" type="AudioStreamPlayer" parent="."]
+mix_target = 1
+bus = &"SFX"

@@ -1,0 +1,14 @@
+[gd_scene load_steps=3 format=3 uid="uid://d3sjrqvm71j0s"]
+
+[ext_resource type="PackedScene" uid="uid://dwkgeem0dhihe" path="res://Enemy/Enemy_Capsule/Enemy.tscn" id="1_1m2b8"]
+[ext_resource type="PackedScene" uid="uid://bbpx18txkxxvi" path="res://Enemy/Demo_Zombie/Toxic/Zombie_Toxic_Demo.glb" id="2_fwcyv"]
+
+[node name="EnemyBase" node_paths=PackedStringArray("zombie_model_node") instance=ExtResource("1_1m2b8")]
+transform = Transform3D(1.25, 0, 0, 0, 1.25, 0, 0, 0, 1.25, 0, 0, 0)
+zombie_model_node = NodePath("Zombie_Toxic_Demo")
+
+[node name="MeshInstance3D" parent="." index="0"]
+visible = false
+
+[node name="Zombie_Toxic_Demo" parent="." index="2" instance=ExtResource("2_fwcyv")]
+transform = Transform3D(3.715, 0, 0, 0, 3.715, 0, 0, 0, 3.715, 0, 0, 0)

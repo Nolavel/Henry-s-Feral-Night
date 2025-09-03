@@ -1,0 +1,137 @@
+[gd_scene load_steps=11 format=3 uid="uid://uenax1d6t6e8"]
+
+[ext_resource type="PackedScene" uid="uid://barvft8cnhe18" path="res://Props/Doors/Wooden_Door/door for house.glb" id="1_m6svs"]
+[ext_resource type="Script" path="res://door_for_house.gd" id="1_wgak3"]
+[ext_resource type="AudioStream" uid="uid://d1f0302d1dts7" path="res://Sounds/SFX/Door_sound/Wooden_Door/Close_door.mp3" id="3_uyp38"]
+[ext_resource type="AudioStream" uid="uid://bsn2sgrg6lwji" path="res://Sounds/SFX/Door_sound/Wooden_Door/Open_door_wooden.mp3" id="4_gltq8"]
+
+[sub_resource type="ConvexPolygonShape3D" id="ConvexPolygonShape3D_oellr"]
+points = PackedVector3Array(-0.0739525, 0.0265845, 0.0374944, -0.158045, -0.259275, -0.0213702, 0.111014, -0.191986, -0.0297804, -0.158045, 0.270606, -0.0213702, 0.153045, 0.262122, 0.0206665, 0.144638, -0.250844, 0.0206665, 0.153045, 0.270606, -0.0213702, -0.158045, -0.259275, 0.0206665, -0.158045, 0.270606, 0.0206665, -0.116014, 0.00977549, -0.0382056, 0.153045, -0.259275, -0.0213702, 0.0773891, 0.228451, -0.0297804, -0.107608, -0.015359, 0.0374944, -0.0907953, 0.228451, -0.0297804, -0.0235154, -0.267706, 0.0122562, 0.127826, -0.175177, -0.0297804, 0.153045, -0.259275, 0.0122562, 0.144638, 0.270606, 0.0206665, -0.0992014, -0.015359, -0.0382056, 0.153045, -0.133128, 0.0206665, -0.107608, 0.0350154, 0.0374944, -0.0823891, -0.0237372, 0.0374944, -0.149638, -0.267706, 0.0122562, -0.116014, -0.015359, -0.0382056, -0.0992014, 0.00977549, -0.0382056, -0.0739525, -0.015359, 0.0374944, -0.12442, -0.259275, 0.0206665, 0.127826, -0.191986, -0.0297804, -0.0823891, 0.0350154, 0.0374944, 0.153045, 0.270606, 0.0122562, -0.0992014, -0.0237372, 0.0374944)
+
+[sub_resource type="ConvexPolygonShape3D" id="ConvexPolygonShape3D_4wdug"]
+points = PackedVector3Array(-0.0739525, 0.0265845, 0.0374944, -0.158045, -0.259275, -0.0213702, 0.111014, -0.191986, -0.0297804, -0.158045, 0.270606, -0.0213702, 0.153045, 0.262122, 0.0206665, 0.144638, -0.250844, 0.0206665, 0.153045, 0.270606, -0.0213702, -0.158045, -0.259275, 0.0206665, -0.158045, 0.270606, 0.0206665, -0.116014, 0.00977549, -0.0382056, 0.153045, -0.259275, -0.0213702, 0.0773891, 0.228451, -0.0297804, -0.107608, -0.015359, 0.0374944, -0.0907953, 0.228451, -0.0297804, -0.0235154, -0.267706, 0.0122562, 0.127826, -0.175177, -0.0297804, 0.153045, -0.259275, 0.0122562, 0.144638, 0.270606, 0.0206665, -0.0992014, -0.015359, -0.0382056, 0.153045, -0.133128, 0.0206665, -0.107608, 0.0350154, 0.0374944, -0.0823891, -0.0237372, 0.0374944, -0.149638, -0.267706, 0.0122562, -0.116014, -0.015359, -0.0382056, -0.0992014, 0.00977549, -0.0382056, -0.0739525, -0.015359, 0.0374944, -0.12442, -0.259275, 0.0206665, 0.127826, -0.191986, -0.0297804, -0.0823891, 0.0350154, 0.0374944, 0.153045, 0.270606, 0.0122562, -0.0992014, -0.0237372, 0.0374944)
+
+[sub_resource type="Animation" id="Animation_jict2"]
+resource_name = "Close"
+tracks/0/type = "value"
+tracks/0/imported = false
+tracks/0/enabled = true
+tracks/0/path = NodePath("door for house:position")
+tracks/0/interp = 1
+tracks/0/loop_wrap = true
+tracks/0/keys = {
+"times": PackedFloat32Array(0, 1),
+"transitions": PackedFloat32Array(1, 1),
+"update": 0,
+"values": [Vector3(0.147827, 0, 0.12793), Vector3(0, 0, 0)]
+}
+tracks/1/type = "value"
+tracks/1/imported = false
+tracks/1/enabled = true
+tracks/1/path = NodePath("door for house:rotation")
+tracks/1/interp = 1
+tracks/1/loop_wrap = true
+tracks/1/keys = {
+"times": PackedFloat32Array(0, 1),
+"transitions": PackedFloat32Array(1, 1),
+"update": 0,
+"values": [Vector3(0, 1.5708, 0), Vector3(0, 0, 0)]
+}
+
+[sub_resource type="Animation" id="Animation_etd3v"]
+resource_name = "Open"
+tracks/0/type = "value"
+tracks/0/imported = false
+tracks/0/enabled = true
+tracks/0/path = NodePath("door for house:rotation")
+tracks/0/interp = 1
+tracks/0/loop_wrap = true
+tracks/0/keys = {
+"times": PackedFloat32Array(0, 1),
+"transitions": PackedFloat32Array(1, 1),
+"update": 0,
+"values": [Vector3(0, 0, 0), Vector3(0, 1.5708, 0)]
+}
+tracks/1/type = "value"
+tracks/1/imported = false
+tracks/1/enabled = true
+tracks/1/path = NodePath("door for house:position")
+tracks/1/interp = 1
+tracks/1/loop_wrap = true
+tracks/1/keys = {
+"times": PackedFloat32Array(0, 1),
+"transitions": PackedFloat32Array(1, 1),
+"update": 0,
+"values": [Vector3(0, 0, 0), Vector3(0.147827, 0, 0.12793)]
+}
+
+[sub_resource type="Animation" id="Animation_s5do0"]
+length = 0.001
+tracks/0/type = "value"
+tracks/0/imported = false
+tracks/0/enabled = true
+tracks/0/path = NodePath("door for house:rotation")
+tracks/0/interp = 1
+tracks/0/loop_wrap = true
+tracks/0/keys = {
+"times": PackedFloat32Array(0),
+"transitions": PackedFloat32Array(1),
+"update": 0,
+"values": [Vector3(0, 0, 0)]
+}
+tracks/1/type = "value"
+tracks/1/imported = false
+tracks/1/enabled = true
+tracks/1/path = NodePath("door for house:position")
+tracks/1/interp = 1
+tracks/1/loop_wrap = true
+tracks/1/keys = {
+"times": PackedFloat32Array(0),
+"transitions": PackedFloat32Array(1),
+"update": 0,
+"values": [Vector3(0, 0, 0)]
+}
+
+[sub_resource type="AnimationLibrary" id="AnimationLibrary_gupqi"]
+_data = {
+"Close": SubResource("Animation_jict2"),
+"Open": SubResource("Animation_etd3v"),
+"RESET": SubResource("Animation_s5do0")
+}
+
+[node name="Door" type="Area3D" groups=["interactable_objects"]]
+collision_layer = 17
+collision_mask = 17
+script = ExtResource("1_wgak3")
+
+[node name="door for house" parent="." instance=ExtResource("1_m6svs")]
+
+[node name="geometry_0" parent="door for house/world" index="0"]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, -0.00695801, 0, 0)
+
+[node name="StaticBody3D" type="StaticBody3D" parent="door for house/world/geometry_0" index="0"]
+
+[node name="CollisionShape3D" type="CollisionShape3D" parent="door for house/world/geometry_0/StaticBody3D"]
+shape = SubResource("ConvexPolygonShape3D_oellr")
+
+[node name="CollisionDoor" type="CollisionShape3D" parent="." groups=["interactable_objects"]]
+shape = SubResource("ConvexPolygonShape3D_4wdug")
+
+[node name="Anima_Door_Open_Close" type="AnimationPlayer" parent="."]
+libraries = {
+"": SubResource("AnimationLibrary_gupqi")
+}
+
+[node name="Close_Door" type="AudioStreamPlayer" parent="."]
+stream = ExtResource("3_uyp38")
+pitch_scale = 0.55
+mix_target = 1
+bus = &"SFX"
+
+[node name="Open_Door" type="AudioStreamPlayer" parent="."]
+stream = ExtResource("4_gltq8")
+volume_db = 2.0
+mix_target = 1
+bus = &"SFX"
+
+[editable path="door for house"]

@@ -1,0 +1,12 @@
+[gd_scene load_steps=4 format=3 uid="uid://b0fh8sah1m1tu"]
+
+[ext_resource type="PackedScene" uid="uid://oacypcdnv2ki" path="res://Props/Barbed_wire_horizontal/Barbed_wire_horizontal.glb" id="1_nfmfb"]
+[ext_resource type="Texture2D" uid="uid://uvay1qsaa6dd" path="res://Props/Barbed_wire_spiral/Iron Mat.png" id="2_r62t0"]
+
+[sub_resource type="StandardMaterial3D" id="StandardMaterial3D_475c0"]
+albedo_texture = ExtResource("2_r62t0")
+
+[node name="Barbed_wire_horizontal" instance=ExtResource("1_nfmfb")]
+
+[node name="barbed_wire_spiral_horizontal" parent="." index="0"]
+material_override = SubResource("StandardMaterial3D_475c0")

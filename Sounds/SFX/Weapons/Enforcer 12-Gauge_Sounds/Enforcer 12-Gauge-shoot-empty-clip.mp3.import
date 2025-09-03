@@ -1,0 +1,19 @@
+[remap]
+
+importer="mp3"
+type="AudioStreamMP3"
+uid="uid://dnsfe8dw1upqs"
+path="res://.godot/imported/Enforcer 12-Gauge-shoot-empty-clip.mp3-2d44c5eed6fdf2839a3d4a0a7a328d93.mp3str"
+
+[deps]
+
+source_file="res://Sounds/SFX/Weapons/Enforcer 12-Gauge_Sounds/Enforcer 12-Gauge-shoot-empty-clip.mp3"
+dest_files=["res://.godot/imported/Enforcer 12-Gauge-shoot-empty-clip.mp3-2d44c5eed6fdf2839a3d4a0a7a328d93.mp3str"]
+
+[params]
+
+loop=false
+loop_offset=0
+bpm=0
+beat_count=0
+bar_beats=4

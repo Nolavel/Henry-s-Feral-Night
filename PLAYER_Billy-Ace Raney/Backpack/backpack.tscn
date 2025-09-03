@@ -1,0 +1,5 @@
+[gd_scene load_steps=2 format=3 uid="uid://dwcti6l56avhf"]
+
+[ext_resource type="PackedScene" uid="uid://btuf6g5s0ew3y" path="res://PLAYER_Billy-Ace Raney/Backpack/Backpack.glb" id="1_watss"]
+
+[node name="Backpack" instance=ExtResource("1_watss")]

@@ -1,0 +1,14 @@
+[gd_scene load_steps=3 format=3 uid="uid://c0ycv3f8wxrcr"]
+
+[ext_resource type="PackedScene" uid="uid://dwkgeem0dhihe" path="res://Enemy/Enemy_Capsule/Enemy.tscn" id="1_raauu"]
+[ext_resource type="PackedScene" uid="uid://dktgxu8nlgxe" path="res://Enemy/Demo_Zombie/Clanker/Zombie_Clanker_Demo.glb" id="2_3xqou"]
+
+[node name="EnemyBase" node_paths=PackedStringArray("zombie_model_node") instance=ExtResource("1_raauu")]
+transform = Transform3D(1.2, 0, 0, 0, 1.2, 0, 0, 0, 1.2, 0, 0, 0)
+zombie_model_node = NodePath("Zombie_Clanker_Demo")
+
+[node name="MeshInstance3D" parent="." index="0"]
+visible = false
+
+[node name="Zombie_Clanker_Demo" parent="." index="2" instance=ExtResource("2_3xqou")]
+transform = Transform3D(3.47, 0, 0, 0, 3.47, 0, 0, 0, 3.47, 0, 0, 0)

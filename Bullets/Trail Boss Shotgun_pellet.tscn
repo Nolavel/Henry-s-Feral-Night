@@ -1,0 +1,7 @@
+[gd_scene load_steps=2 format=3 uid="uid://ckk0h6s0gpfvu"]
+
+[ext_resource type="PackedScene" uid="uid://crbmjel3iq0gh" path="res://Bullet.tscn" id="1_hw1sb"]
+
+[node name="Trail Boss Shotgun" instance=ExtResource("1_hw1sb")]
+damage = 50.0
+bullet_type = "Trail Boss Shotgun"

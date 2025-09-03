@@ -1,0 +1,33 @@
+[gd_scene load_steps=9 format=3 uid="uid://detr12ee7jwhp"]
+
+[ext_resource type="Script" path="res://physics_test_object.gd" id="1_54gcc"]
+[ext_resource type="PackedScene" uid="uid://dxt1s7kxuqfjq" path="res://Props/barrel/barrel.glb" id="2_ljipj"]
+[ext_resource type="AudioStream" uid="uid://b43083mm5jos6" path="res://Sounds/SFX/barrel_hit_sounds/hit_sounds_barrel_1.mp3" id="2_uaw3j"]
+[ext_resource type="AudioStream" uid="uid://cs7a7cq2wgwco" path="res://Sounds/SFX/barrel_hit_sounds/hit_sounds_barrel_2.mp3" id="3_vt7tq"]
+[ext_resource type="AudioStream" uid="uid://iarxnr2vwxb8" path="res://Sounds/SFX/barrel_hit_sounds/hit_sounds_barrel_3.mp3" id="4_d3lp1"]
+[ext_resource type="AudioStream" uid="uid://dsgafvfxtb5xy" path="res://Sounds/SFX/Explosions/explosion_barrel.mp3" id="5_702v8"]
+
+[sub_resource type="PhysicsMaterial" id="PhysicsMaterial_c6ghf"]
+
+[sub_resource type="CylinderShape3D" id="CylinderShape3D_ww1v6"]
+
+[node name="PhysicsTestObject" type="RigidBody3D" groups=["physics_objects"]]
+physics_material_override = SubResource("PhysicsMaterial_c6ghf")
+script = ExtResource("1_54gcc")
+hit_sounds = Array[AudioStream]([ExtResource("2_uaw3j"), ExtResource("3_vt7tq"), ExtResource("4_d3lp1")])
+explosion_sound = ExtResource("5_702v8")
+
+[node name="barrel" parent="." instance=ExtResource("2_ljipj")]
+
+[node name="CollisionShape3D" type="CollisionShape3D" parent="."]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 0, 0.849731, 0)
+shape = SubResource("CylinderShape3D_ww1v6")
+
+[node name="hit_audio_player" type="AudioStreamPlayer" parent="."]
+mix_target = 1
+bus = &"SFX"
+
+[node name="explosion_audio_player" type="AudioStreamPlayer" parent="."]
+stream = ExtResource("5_702v8")
+mix_target = 1
+bus = &"SFX"

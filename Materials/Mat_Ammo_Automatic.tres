@@ -1,0 +1,4 @@
+[gd_resource type="StandardMaterial3D" format=3 uid="uid://bmasgplkkriti"]
+
+[resource]
+albedo_color = Color(0.0064, 0.00696001, 0.04, 1)

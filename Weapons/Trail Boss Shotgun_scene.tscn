@@ -1,0 +1,50 @@
+[gd_scene load_steps=11 format=3 uid="uid://juaoyyhnqkub"]
+
+[ext_resource type="PackedScene" uid="uid://f1d2yyke8vmp" path="res://Weapons/Weapon.tscn" id="1_ahahc"]
+[ext_resource type="PackedScene" uid="uid://ckk0h6s0gpfvu" path="res://Bullets/Trail Boss Shotgun_pellet.tscn" id="2_42ips"]
+[ext_resource type="AudioStream" uid="uid://cu3e0jtsrfvgl" path="res://Sounds/SFX/Weapons/Trail Boss Shotgun_Sounds/Trail Boss Shotgun_sooting.mp3" id="3_v0t8u"]
+[ext_resource type="AudioStream" uid="uid://c2pnc61ietb5f" path="res://Sounds/SFX/Weapons/Trail Boss Shotgun_Sounds/Trail Boss Shotgun_Reload.mp3" id="4_66ell"]
+[ext_resource type="AudioStream" uid="uid://6whf4rpuwt43" path="res://Sounds/SFX/Weapons/Trail Boss Shotgun_Sounds/Trail Boss Shotgun_empty_clip.mp3" id="5_ofo72"]
+[ext_resource type="AudioStream" uid="uid://bkr4qel3xdjed" path="res://Sounds/SFX/Weapons/Trail Boss Shotgun_Sounds/Trail Boss Shotgun_Activate.mp3" id="6_xc2ic"]
+[ext_resource type="AudioStream" uid="uid://spyk217ouvse" path="res://Sounds/SFX/Weapons/Trail Boss Shotgun_Sounds/Trail Boss Shotgun_Deactivate.mp3" id="7_j3bxk"]
+[ext_resource type="Texture2D" uid="uid://de5frm8huwbxm" path="res://UI/textures/icons/icon_weapon/Pump-Action Shotgun_icon.png" id="8_3mq4l"]
+[ext_resource type="PackedScene" uid="uid://cnhbkx1t16164" path="res://Weapons/weapons_mesh/Pump-Action Shotgun/Trail Boss Shotgun_mesh.glb" id="8_8ndxi"]
+[ext_resource type="Texture2D" uid="uid://lt5ih2va7yc4" path="res://UI/textures/icons/icons_category/weapon_icon.png" id="9_6kwle"]
+
+[node name="Trail Boss Shotgun" instance=ExtResource("1_ahahc")]
+weapon_type = "Trail Boss Shotgun"
+damage = 35.0
+fire_rate = 0.5
+bullet_speed = 95.0
+clip_size = 8
+reload_time = 4.0
+bullet_scene = ExtResource("2_42ips")
+pellets_per_shot = 3
+spread_angle = 6.0
+weapon_color = Color(1, 0.02, 0.02, 1)
+blast_line_length = 3.0
+flash_cone_scale = 1.2
+muzzle_flash_color = 1
+shoot_sound = ExtResource("3_v0t8u")
+reload_sound = ExtResource("4_66ell")
+empty_clip_sound = ExtResource("5_ofo72")
+activate_sound = ExtResource("6_xc2ic")
+deactivate_sound = ExtResource("7_j3bxk")
+item_image = ExtResource("8_3mq4l")
+category_image = ExtResource("9_6kwle")
+item_image_path = "res://UI/textures/icons/icon_weapon/Pump-Action Shotgun_icon.png"
+category_image_path = "res://UI/textures/icons/icons_category/weapon_icon.png"
+weapon_weight = 3.8
+special_marks_text = "Caliber 20 GAUGE
+"
+
+[node name="WeaponMesh" parent="WeaponVisuals" index="0"]
+visible = false
+
+[node name="Trail Boss Shotgun_mesh" parent="WeaponVisuals" index="1" instance=ExtResource("8_8ndxi")]
+transform = Transform3D(-7.21238e-08, 0, 1.65, 0, 1.65, 0, -1.65, 0, -7.21238e-08, 0.0532837, -0.0632324, 0)
+
+[node name="MuzzleFlashPoint" parent="WeaponVisuals" index="2"]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, -0.481842, 0, 0)
+
+[editable path="WeaponVisuals/Trail Boss Shotgun_mesh"]

@@ -1,0 +1,47 @@
+[gd_scene load_steps=11 format=3 uid="uid://g7udpsliwe7v"]
+
+[ext_resource type="PackedScene" uid="uid://f1d2yyke8vmp" path="res://Weapons/Weapon.tscn" id="1_u4dbj"]
+[ext_resource type="PackedScene" uid="uid://htq4kd5nahsf" path="res://Bullets/Enforcer 12-Gauge_bullet.tscn" id="2_lonp1"]
+[ext_resource type="AudioStream" uid="uid://dvwn1sq2cj2lh" path="res://Sounds/SFX/Weapons/Enforcer 12-Gauge_Sounds/Enforcer 12-Gauge-shooting.mp3" id="3_yhgtm"]
+[ext_resource type="AudioStream" uid="uid://bn0ki86kwhfqy" path="res://Sounds/SFX/Weapons/Enforcer 12-Gauge_Sounds/Enforcer 12-Gauge-shoot-Reload.mp3" id="4_nga01"]
+[ext_resource type="AudioStream" uid="uid://dnsfe8dw1upqs" path="res://Sounds/SFX/Weapons/Enforcer 12-Gauge_Sounds/Enforcer 12-Gauge-shoot-empty-clip.mp3" id="5_c18en"]
+[ext_resource type="AudioStream" uid="uid://df3o8odm3wsyd" path="res://Sounds/SFX/Weapons/Enforcer 12-Gauge_Sounds/Enforcer 12-Gauge-shoot-Activate.mp3" id="6_h1bnk"]
+[ext_resource type="AudioStream" uid="uid://cix7p4lk7ltqu" path="res://Sounds/SFX/Weapons/Enforcer 12-Gauge_Sounds/Enforcer 12-Gauge-shoot-Deactivate.mp3" id="7_6sbef"]
+[ext_resource type="Texture2D" uid="uid://bvoj056bvwq2h" path="res://UI/textures/icons/icon_weapon/Lever-Action Shotgun_icon.png" id="8_3t3pv"]
+[ext_resource type="PackedScene" uid="uid://7c1wjf7w5kll" path="res://Weapons/weapons_mesh/Lever-Action Shotgun/Enforcer 12-Gauge_mesh.glb" id="8_rsxmn"]
+[ext_resource type="Texture2D" uid="uid://lt5ih2va7yc4" path="res://UI/textures/icons/icons_category/weapon_icon.png" id="9_ld0c2"]
+
+[node name="Enforcer 12-Gauge" instance=ExtResource("1_u4dbj")]
+weapon_type = "Enforcer 12-Gauge"
+damage = 60.0
+fire_rate = 1.0
+bullet_speed = 110.0
+clip_size = 5
+reload_time = 3.0
+bullet_scene = ExtResource("2_lonp1")
+weapon_color = Color(0.0313726, 1, 0.0313726, 1)
+blast_line_length = 3.0
+muzzle_flash_color = 1
+shoot_sound = ExtResource("3_yhgtm")
+reload_sound = ExtResource("4_nga01")
+empty_clip_sound = ExtResource("5_c18en")
+activate_sound = ExtResource("6_h1bnk")
+deactivate_sound = ExtResource("7_6sbef")
+item_image = ExtResource("8_3t3pv")
+category_image = ExtResource("9_ld0c2")
+item_image_path = "res://UI/textures/icons/icon_weapon/Lever-Action Shotgun_icon.png"
+category_image_path = "res://UI/textures/icons/icons_category/weapon_icon.png"
+weapon_weight = 3.2
+special_marks_text = "Caliber 12 GAUGE"
+burst_shots = 1
+
+[node name="WeaponMesh" parent="WeaponVisuals" index="0"]
+visible = false
+
+[node name="Enforcer 12-Gauge_mesh" parent="WeaponVisuals" index="1" instance=ExtResource("8_rsxmn")]
+transform = Transform3D(-1.74, 0, -2.62733e-07, 0, 1.74, 0, 2.62733e-07, 0, -1.74, 0.113, -0.0661621, 0)
+
+[node name="MuzzleFlashPoint" parent="WeaponVisuals" index="2"]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, -0.460802, 0, 0)
+
+[editable path="WeaponVisuals/Enforcer 12-Gauge_mesh"]

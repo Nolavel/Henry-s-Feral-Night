@@ -1,0 +1,19 @@
+[remap]
+
+importer="mp3"
+type="AudioStreamMP3"
+uid="uid://c2pnc61ietb5f"
+path="res://.godot/imported/Trail Boss Shotgun_Reload.mp3-6274d898d2a826139e1bbe6ed62f6cd4.mp3str"
+
+[deps]
+
+source_file="res://Sounds/SFX/Weapons/Trail Boss Shotgun_Sounds/Trail Boss Shotgun_Reload.mp3"
+dest_files=["res://.godot/imported/Trail Boss Shotgun_Reload.mp3-6274d898d2a826139e1bbe6ed62f6cd4.mp3str"]
+
+[params]
+
+loop=false
+loop_offset=0
+bpm=0
+beat_count=0
+bar_beats=4

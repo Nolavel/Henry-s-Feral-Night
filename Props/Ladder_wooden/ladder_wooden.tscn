@@ -1,0 +1,12 @@
+[gd_scene load_steps=4 format=3 uid="uid://c6djoshvmbd23"]
+
+[ext_resource type="PackedScene" uid="uid://bv7bbtju3cdv0" path="res://Props/Ladder_wooden/ladder.glb" id="1_53210"]
+[ext_resource type="Texture2D" uid="uid://cmxp7ph74qkd7" path="res://Props/Ladder_wooden/Ladder_mat.png" id="2_33u4v"]
+
+[sub_resource type="StandardMaterial3D" id="StandardMaterial3D_gbu33"]
+albedo_texture = ExtResource("2_33u4v")
+
+[node name="ladder" instance=ExtResource("1_53210")]
+
+[node name="Cube" parent="." index="0"]
+material_override = SubResource("StandardMaterial3D_gbu33")

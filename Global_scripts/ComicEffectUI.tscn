@@ -1,0 +1,46 @@
+[gd_scene load_steps=13 format=3 uid="uid://fcugk4q4fvld"]
+
+[ext_resource type="Script" path="res://Global_scripts/ComicEffectUI.gd" id="1_mdl1u"]
+[ext_resource type="AudioStream" uid="uid://brgxpxah7wv7" path="res://Sounds/Voice/pain_1.mp3" id="2_bsq1w"]
+[ext_resource type="FontFile" uid="uid://bqpcqvgry6qsq" path="res://UI/fonts/SHORTCUT.TTF" id="2_xvypr"]
+[ext_resource type="AudioStream" uid="uid://csosscjr4ff6x" path="res://Sounds/Voice/pain_2.mp3" id="3_3g175"]
+[ext_resource type="AudioStream" uid="uid://u6liovr1nglu" path="res://Sounds/Voice/pain_3.mp3" id="4_chyf6"]
+[ext_resource type="AudioStream" uid="uid://cox5y8xwym54a" path="res://Sounds/Voice/pain_4.mp3" id="5_hviwe"]
+[ext_resource type="AudioStream" uid="uid://dtbakeo3i0d2t" path="res://Sounds/Voice/pain_5.mp3" id="6_iy17d"]
+[ext_resource type="AudioStream" uid="uid://bt0nt2k2uexsj" path="res://Sounds/Voice/pain_6.mp3" id="7_xn5x0"]
+[ext_resource type="AudioStream" uid="uid://c08o38kvby6cf" path="res://Sounds/Voice/pain_7.mp3" id="8_6c7kx"]
+[ext_resource type="AudioStream" uid="uid://jvxrndwm4jbp" path="res://Sounds/Voice/pain_8.mp3" id="9_g617s"]
+
+[sub_resource type="ShaderMaterial" id="ShaderMaterial_vin4i"]
+
+[sub_resource type="LabelSettings" id="LabelSettings_u217c"]
+font = ExtResource("2_xvypr")
+font_size = 22
+
+[node name="ComicEffect" type="Control"]
+layout_mode = 3
+anchors_preset = 0
+script = ExtResource("1_mdl1u")
+player_hit_sounds = Array[AudioStream]([ExtResource("2_bsq1w"), ExtResource("3_3g175"), ExtResource("4_chyf6"), ExtResource("5_hviwe"), ExtResource("6_iy17d"), ExtResource("7_xn5x0"), ExtResource("8_6c7kx"), ExtResource("9_g617s")])
+
+[node name="Label" type="Label" parent="."]
+material = SubResource("ShaderMaterial_vin4i")
+layout_mode = 1
+anchors_preset = 8
+anchor_left = 0.5
+anchor_top = 0.5
+anchor_right = 0.5
+anchor_bottom = 0.5
+offset_left = -132.0
+offset_top = -47.0
+offset_right = 101.0
+offset_bottom = 20.0
+grow_horizontal = 2
+grow_vertical = 2
+text = "TEST"
+label_settings = SubResource("LabelSettings_u217c")
+horizontal_alignment = 1
+vertical_alignment = 1
+
+[node name="Sound_Voice_HIT_Damage" type="AudioStreamPlayer" parent="."]
+volume_db = -1.0

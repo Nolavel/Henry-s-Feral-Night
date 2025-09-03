@@ -1,0 +1,19 @@
+[remap]
+
+importer="mp3"
+type="AudioStreamMP3"
+uid="uid://spyk217ouvse"
+path="res://.godot/imported/Trail Boss Shotgun_Deactivate.mp3-5e4f159983a37d77da2dc95638e4d216.mp3str"
+
+[deps]
+
+source_file="res://Sounds/SFX/Weapons/Trail Boss Shotgun_Sounds/Trail Boss Shotgun_Deactivate.mp3"
+dest_files=["res://.godot/imported/Trail Boss Shotgun_Deactivate.mp3-5e4f159983a37d77da2dc95638e4d216.mp3str"]
+
+[params]
+
+loop=false
+loop_offset=0
+bpm=0
+beat_count=0
+bar_beats=4

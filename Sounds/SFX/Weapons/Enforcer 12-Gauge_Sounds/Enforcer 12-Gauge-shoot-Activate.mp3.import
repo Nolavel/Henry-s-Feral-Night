@@ -1,0 +1,19 @@
+[remap]
+
+importer="mp3"
+type="AudioStreamMP3"
+uid="uid://df3o8odm3wsyd"
+path="res://.godot/imported/Enforcer 12-Gauge-shoot-Activate.mp3-b862524236d3d8bbc6a67f366891f251.mp3str"
+
+[deps]
+
+source_file="res://Sounds/SFX/Weapons/Enforcer 12-Gauge_Sounds/Enforcer 12-Gauge-shoot-Activate.mp3"
+dest_files=["res://.godot/imported/Enforcer 12-Gauge-shoot-Activate.mp3-b862524236d3d8bbc6a67f366891f251.mp3str"]
+
+[params]
+
+loop=false
+loop_offset=0
+bpm=0
+beat_count=0
+bar_beats=4

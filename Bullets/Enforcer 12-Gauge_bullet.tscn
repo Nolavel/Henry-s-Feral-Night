@@ -1,0 +1,7 @@
+[gd_scene load_steps=2 format=3 uid="uid://htq4kd5nahsf"]
+
+[ext_resource type="PackedScene" uid="uid://crbmjel3iq0gh" path="res://Bullet.tscn" id="1_eqj66"]
+
+[node name="Enforcer 12-Gauge" instance=ExtResource("1_eqj66")]
+damage = 75.0
+bullet_type = "Enforcer 12-Gauge"

@@ -1,0 +1,19 @@
+[remap]
+
+importer="mp3"
+type="AudioStreamMP3"
+uid="uid://diyatsvgheh2k"
+path="res://.godot/imported/reload_pistol.mp3-7298f308ce79bf4bd74c71d2166d7692.mp3str"
+
+[deps]
+
+source_file="res://Sounds/SFX/Weapons/Desert-Eagle Pistol_Sounds/reload_pistol.mp3"
+dest_files=["res://.godot/imported/reload_pistol.mp3-7298f308ce79bf4bd74c71d2166d7692.mp3str"]
+
+[params]
+
+loop=false
+loop_offset=0
+bpm=0
+beat_count=0
+bar_beats=4

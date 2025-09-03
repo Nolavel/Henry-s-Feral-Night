@@ -1,0 +1,26 @@
+[gd_scene load_steps=5 format=3 uid="uid://brfr8ih4tfi6y"]
+
+[ext_resource type="PackedScene" uid="uid://c7w0sghwr4vgu" path="res://PLAYER_Billy-Ace Raney/test/БезГОловы.glb" id="2_yg520"]
+[ext_resource type="PackedScene" uid="uid://x5b2hbrj2wyi" path="res://PLAYER_Billy-Ace Raney/test_Head/Голова.glb" id="3_85j3v"]
+
+[sub_resource type="CapsuleMesh" id="CapsuleMesh_8l6ph"]
+
+[sub_resource type="CapsuleShape3D" id="CapsuleShape3D_eegux"]
+
+[node name="Billy-Ace Raney" type="CharacterBody3D"]
+
+[node name="MeshInstance3D" type="MeshInstance3D" parent="."]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 0, 1, 0)
+visible = false
+mesh = SubResource("CapsuleMesh_8l6ph")
+
+[node name="CollisionShape3D" type="CollisionShape3D" parent="."]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 0, 1, 0)
+shape = SubResource("CapsuleShape3D_eegux")
+
+[node name="Billy-Ace Raney_player" parent="." instance=ExtResource("2_yg520")]
+transform = Transform3D(-1.31134e-07, 0, 3, 0, 3, 0, -3, 0, -1.31134e-07, 0, 0.891007, 0)
+
+[node name="Голова" parent="." instance=ExtResource("3_85j3v")]
+transform = Transform3D(0.142318, 0, 0.989821, 0, 1, 0, -0.989821, 0, 0.142318, -0.01, 1.695, 0)
+visible = false

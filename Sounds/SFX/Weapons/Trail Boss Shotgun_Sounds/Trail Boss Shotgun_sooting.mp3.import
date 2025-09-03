@@ -1,0 +1,19 @@
+[remap]
+
+importer="mp3"
+type="AudioStreamMP3"
+uid="uid://cu3e0jtsrfvgl"
+path="res://.godot/imported/Trail Boss Shotgun_sooting.mp3-f9fee729fb9632769777db91a5c2573f.mp3str"
+
+[deps]
+
+source_file="res://Sounds/SFX/Weapons/Trail Boss Shotgun_Sounds/Trail Boss Shotgun_sooting.mp3"
+dest_files=["res://.godot/imported/Trail Boss Shotgun_sooting.mp3-f9fee729fb9632769777db91a5c2573f.mp3str"]
+
+[params]
+
+loop=false
+loop_offset=0
+bpm=0
+beat_count=0
+bar_beats=4

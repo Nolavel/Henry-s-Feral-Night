@@ -1,0 +1,38 @@
+[gd_scene load_steps=11 format=3 uid="uid://ckq6uhcb4a2i3"]
+
+[ext_resource type="PackedScene" uid="uid://ccf1reb3cepp4" path="res://Props/barrel_toxic/barrel_Toxic.glb" id="1_s4qrd"]
+[ext_resource type="Texture2D" uid="uid://dv6qi1oaupyn5" path="res://Props/barrel_toxic/barrel_DIF.jpg" id="2_86axn"]
+[ext_resource type="Texture2D" uid="uid://dqft73615t5yk" path="res://Props/barrel_toxic/barrel_AO.png" id="3_imc4d"]
+[ext_resource type="Texture2D" uid="uid://xkudrb8v544h" path="res://Props/barrel_toxic/toxic.png" id="4_4a0sc"]
+
+[sub_resource type="StandardMaterial3D" id="StandardMaterial3D_0carg"]
+albedo_texture = ExtResource("2_86axn")
+
+[sub_resource type="StandardMaterial3D" id="StandardMaterial3D_7bqui"]
+albedo_texture = ExtResource("2_86axn")
+
+[sub_resource type="StandardMaterial3D" id="StandardMaterial3D_e1guw"]
+albedo_texture = ExtResource("3_imc4d")
+
+[sub_resource type="StandardMaterial3D" id="StandardMaterial3D_s3mot"]
+albedo_texture = ExtResource("2_86axn")
+
+[sub_resource type="StandardMaterial3D" id="StandardMaterial3D_nhoyo"]
+albedo_texture = ExtResource("4_4a0sc")
+
+[sub_resource type="PlaneMesh" id="PlaneMesh_kbjlt"]
+material = SubResource("StandardMaterial3D_nhoyo")
+size = Vector2(1, 1)
+
+[node name="barrel_Toxic" instance=ExtResource("1_s4qrd")]
+
+[node name="Circle_003" parent="." index="0"]
+transform = Transform3D(0.78383, 0, -0.620976, 0, 1, 0, 0.620976, 0, 0.78383, 0.551309, 2.0258, 0.564726)
+material_override = SubResource("StandardMaterial3D_0carg")
+material_overlay = SubResource("StandardMaterial3D_7bqui")
+surface_material_override/0 = SubResource("StandardMaterial3D_e1guw")
+surface_material_override/1 = SubResource("StandardMaterial3D_s3mot")
+
+[node name="MeshInstance3D" type="MeshInstance3D" parent="Circle_003" index="0"]
+transform = Transform3D(-0.501158, -0.111296, 0.858169, 0.0207115, 0.989868, 0.140471, -0.865108, 0.0881722, -0.493776, -0.132807, 1.79547, 0.105214)
+mesh = SubResource("PlaneMesh_kbjlt")

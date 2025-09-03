@@ -1,0 +1,269 @@
+[gd_scene load_steps=16 format=3 uid="uid://d1rr0t83sbbxw"]
+
+[ext_resource type="Texture2D" uid="uid://b53hqwqwhbh63" path="res://UI/textures/Devop/develop.png" id="1_hc3ab"]
+[ext_resource type="Script" path="res://CameraSystemScenes/ui_tactical_hub.gd" id="1_r5mr7"]
+[ext_resource type="FontFile" uid="uid://bqpcqvgry6qsq" path="res://UI/fonts/SHORTCUT.TTF" id="2_1y4os"]
+[ext_resource type="Shader" path="res://shaders/2D-perspective.gdshader" id="4_456r7"]
+[ext_resource type="Texture2D" uid="uid://mvk88gbian8f" path="res://UI/textures/MAP_example.png" id="5_nw25q"]
+[ext_resource type="Texture2D" uid="uid://cg75ufjayt4yo" path="res://UI/textures/unit.png" id="6_jqxjm"]
+[ext_resource type="Texture2D" uid="uid://c8nahrbd145dp" path="res://UI/textures/health indicator_.png" id="7_yyqh6"]
+[ext_resource type="Shader" path="res://Scan Lines Effect .gdshader" id="8_ct82g"]
+
+[sub_resource type="ShaderMaterial" id="ShaderMaterial_6qu0s"]
+shader = ExtResource("8_ct82g")
+shader_parameter/progress = 0.105
+shader_parameter/line_density = 100.0
+shader_parameter/line_width = 0.3
+shader_parameter/fade_color = Color(0.05, 0.08, 0.1, 0.9)
+shader_parameter/scan_speed = 1.5
+shader_parameter/horizontal = true
+shader_parameter/glow_strength = 0.4
+shader_parameter/flicker_strength = 0.2
+shader_parameter/noise_scale = 2.0
+
+[sub_resource type="CanvasTexture" id="CanvasTexture_beshi"]
+
+[sub_resource type="ShaderMaterial" id="ShaderMaterial_2hyss"]
+shader = ExtResource("4_456r7")
+shader_parameter/fov = 90.0
+shader_parameter/cull_back = true
+shader_parameter/y_rot = 0.0
+shader_parameter/x_rot = 20.0
+shader_parameter/inset = 0.0
+shader_parameter/use_rect_size = true
+shader_parameter/rect_size = Vector2(100, 100)
+shader_parameter/progress = -1.5
+shader_parameter/noiseForce = 0.4
+shader_parameter/burnColor = Color(1, 0.5, 0, 1)
+shader_parameter/borderWidth = 0.1
+shader_parameter/direction = 180.0
+shader_parameter/enable_3d_effect = true
+shader_parameter/enable_burn_effect = false
+
+[sub_resource type="StyleBoxTexture" id="StyleBoxTexture_pc58e"]
+texture = ExtResource("1_hc3ab")
+expand_margin_left = 25.0
+expand_margin_top = 15.0
+expand_margin_right = 25.0
+expand_margin_bottom = 15.0
+
+[sub_resource type="LabelSettings" id="LabelSettings_m48aa"]
+font = ExtResource("2_1y4os")
+
+[sub_resource type="LabelSettings" id="LabelSettings_dvk63"]
+font = ExtResource("2_1y4os")
+
+[sub_resource type="LabelSettings" id="LabelSettings_pmwuw"]
+font = ExtResource("2_1y4os")
+
+[node name="Mode_TacticalHub" type="Node3D"]
+
+[node name="UI_Effects_TacticalHub" type="CanvasLayer" parent="."]
+layer = -50
+
+[node name="CameraStateEffect" type="TextureRect" parent="UI_Effects_TacticalHub"]
+material = SubResource("ShaderMaterial_6qu0s")
+anchors_preset = 15
+anchor_right = 1.0
+anchor_bottom = 1.0
+grow_horizontal = 2
+grow_vertical = 2
+texture = SubResource("CanvasTexture_beshi")
+
+[node name="UI_TacticalHub" type="CanvasLayer" parent="." node_paths=PackedStringArray("texture_rect_fov", "texture_rect_scan_line")]
+layer = 100
+script = ExtResource("1_r5mr7")
+texture_rect_fov = NodePath("MapViewer/DisplayMap")
+texture_rect_scan_line = NodePath("../UI_Effects_TacticalHub/CameraStateEffect")
+
+[node name="MapViewer" type="Control" parent="UI_TacticalHub"]
+layout_mode = 3
+anchors_preset = 5
+anchor_left = 0.5
+anchor_right = 0.5
+offset_left = -960.0
+offset_right = 960.0
+offset_bottom = 405.0
+grow_horizontal = 2
+size_flags_horizontal = 3
+
+[node name="DisplayMap" type="TextureRect" parent="UI_TacticalHub/MapViewer"]
+material = SubResource("ShaderMaterial_2hyss")
+layout_mode = 1
+anchors_preset = 5
+anchor_left = 0.5
+anchor_right = 0.5
+offset_left = -960.0
+offset_right = 960.0
+offset_bottom = 405.0
+grow_horizontal = 2
+texture = ExtResource("5_nw25q")
+expand_mode = 1
+flip_h = true
+
+[node name="Label_DEV" type="Label" parent="UI_TacticalHub/MapViewer"]
+layout_mode = 1
+anchors_preset = 8
+anchor_left = 0.5
+anchor_top = 0.5
+anchor_right = 0.5
+anchor_bottom = 0.5
+offset_left = -85.5
+offset_top = -11.5
+offset_right = 85.5
+offset_bottom = 11.5
+grow_horizontal = 2
+grow_vertical = 2
+theme_override_styles/normal = SubResource("StyleBoxTexture_pc58e")
+text = "Place for Scene Map"
+label_settings = SubResource("LabelSettings_m48aa")
+horizontal_alignment = 1
+vertical_alignment = 1
+
+[node name="VBoxContainer_CharacterOverview" type="VBoxContainer" parent="UI_TacticalHub"]
+offset_right = 121.0
+offset_bottom = 44.0
+
+[node name="HBoxContainer_1_CO" type="HBoxContainer" parent="UI_TacticalHub/VBoxContainer_CharacterOverview"]
+layout_mode = 2
+alignment = 1
+
+[node name="TextureRect_CharacterOverview" type="TextureRect" parent="UI_TacticalHub/VBoxContainer_CharacterOverview/HBoxContainer_1_CO"]
+layout_mode = 2
+texture = ExtResource("6_jqxjm")
+expand_mode = 2
+
+[node name="Label_CharacterOverview" type="Label" parent="UI_TacticalHub/VBoxContainer_CharacterOverview/HBoxContainer_1_CO"]
+layout_mode = 2
+text = "Info Character
+"
+label_settings = SubResource("LabelSettings_dvk63")
+horizontal_alignment = 1
+vertical_alignment = 1
+
+[node name="HBoxContainer_2_CO" type="HBoxContainer" parent="UI_TacticalHub/VBoxContainer_CharacterOverview"]
+layout_mode = 2
+alignment = 1
+
+[node name="TextureRect_CharacterOverview_Secondary" type="TextureRect" parent="UI_TacticalHub/VBoxContainer_CharacterOverview/HBoxContainer_2_CO"]
+layout_mode = 2
+texture = ExtResource("7_yyqh6")
+expand_mode = 2
+
+[node name="Label_CharacterOverview_Secondary" type="Label" parent="UI_TacticalHub/VBoxContainer_CharacterOverview/HBoxContainer_2_CO"]
+layout_mode = 2
+text = "Info Character 2"
+label_settings = SubResource("LabelSettings_pmwuw")
+horizontal_alignment = 1
+vertical_alignment = 1
+
+[node name="VBoxContainer_Health" type="VBoxContainer" parent="UI_TacticalHub"]
+offset_right = 121.0
+offset_bottom = 44.0
+
+[node name="HBoxContainer_H1" type="HBoxContainer" parent="UI_TacticalHub/VBoxContainer_Health"]
+layout_mode = 2
+alignment = 1
+
+[node name="TextureRect_Health" type="TextureRect" parent="UI_TacticalHub/VBoxContainer_Health/HBoxContainer_H1"]
+layout_mode = 2
+texture = ExtResource("6_jqxjm")
+expand_mode = 2
+
+[node name="Label_Health" type="Label" parent="UI_TacticalHub/VBoxContainer_Health/HBoxContainer_H1"]
+layout_mode = 2
+text = "Info Health
+"
+label_settings = SubResource("LabelSettings_dvk63")
+horizontal_alignment = 1
+vertical_alignment = 1
+
+[node name="HBoxContainer_H2" type="HBoxContainer" parent="UI_TacticalHub/VBoxContainer_Health"]
+layout_mode = 2
+alignment = 1
+
+[node name="TextureRect_Health_Secondary" type="TextureRect" parent="UI_TacticalHub/VBoxContainer_Health/HBoxContainer_H2"]
+layout_mode = 2
+texture = ExtResource("7_yyqh6")
+expand_mode = 2
+
+[node name="Label_Health_Secondary" type="Label" parent="UI_TacticalHub/VBoxContainer_Health/HBoxContainer_H2"]
+layout_mode = 2
+text = "Info Health 2"
+label_settings = SubResource("LabelSettings_pmwuw")
+horizontal_alignment = 1
+vertical_alignment = 1
+
+[node name="VBoxContainer_Inventory" type="VBoxContainer" parent="UI_TacticalHub"]
+offset_right = 121.0
+offset_bottom = 44.0
+
+[node name="HBoxContainer_I1" type="HBoxContainer" parent="UI_TacticalHub/VBoxContainer_Inventory"]
+layout_mode = 2
+alignment = 1
+
+[node name="TextureRect_Inventory" type="TextureRect" parent="UI_TacticalHub/VBoxContainer_Inventory/HBoxContainer_I1"]
+layout_mode = 2
+texture = ExtResource("6_jqxjm")
+expand_mode = 2
+
+[node name="Label_Inventory" type="Label" parent="UI_TacticalHub/VBoxContainer_Inventory/HBoxContainer_I1"]
+layout_mode = 2
+text = "Info Inventory
+"
+label_settings = SubResource("LabelSettings_dvk63")
+horizontal_alignment = 1
+vertical_alignment = 1
+
+[node name="HBoxContainer_I2" type="HBoxContainer" parent="UI_TacticalHub/VBoxContainer_Inventory"]
+layout_mode = 2
+alignment = 1
+
+[node name="TextureRect_Inventory_Secondary" type="TextureRect" parent="UI_TacticalHub/VBoxContainer_Inventory/HBoxContainer_I2"]
+layout_mode = 2
+texture = ExtResource("7_yyqh6")
+expand_mode = 2
+
+[node name="Label_Inventory_Secondary" type="Label" parent="UI_TacticalHub/VBoxContainer_Inventory/HBoxContainer_I2"]
+layout_mode = 2
+text = "Info Inventory 2"
+label_settings = SubResource("LabelSettings_pmwuw")
+horizontal_alignment = 1
+vertical_alignment = 1
+
+[node name="VBoxContainer_Crafting" type="VBoxContainer" parent="UI_TacticalHub"]
+offset_right = 121.0
+offset_bottom = 44.0
+
+[node name="HBoxContainer_C1" type="HBoxContainer" parent="UI_TacticalHub/VBoxContainer_Crafting"]
+layout_mode = 2
+alignment = 1
+
+[node name="TextureRect_Crafting" type="TextureRect" parent="UI_TacticalHub/VBoxContainer_Crafting/HBoxContainer_C1"]
+layout_mode = 2
+texture = ExtResource("6_jqxjm")
+expand_mode = 2
+
+[node name="Label_Crafting" type="Label" parent="UI_TacticalHub/VBoxContainer_Crafting/HBoxContainer_C1"]
+layout_mode = 2
+text = "Info Inventory
+"
+label_settings = SubResource("LabelSettings_dvk63")
+horizontal_alignment = 1
+vertical_alignment = 1
+
+[node name="HBoxContainer_C2" type="HBoxContainer" parent="UI_TacticalHub/VBoxContainer_Crafting"]
+layout_mode = 2
+alignment = 1
+
+[node name="TextureRect_Crafting_Secondary" type="TextureRect" parent="UI_TacticalHub/VBoxContainer_Crafting/HBoxContainer_C2"]
+layout_mode = 2
+texture = ExtResource("7_yyqh6")
+expand_mode = 2
+
+[node name="Label_Crafting_Secondary" type="Label" parent="UI_TacticalHub/VBoxContainer_Crafting/HBoxContainer_C2"]
+layout_mode = 2
+text = "Info Inventory 2"
+label_settings = SubResource("LabelSettings_pmwuw")
+horizontal_alignment = 1
+vertical_alignment = 1

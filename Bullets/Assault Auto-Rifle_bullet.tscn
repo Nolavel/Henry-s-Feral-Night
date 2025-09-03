@@ -1,0 +1,7 @@
+[gd_scene load_steps=2 format=3 uid="uid://becod544afdb6"]
+
+[ext_resource type="PackedScene" uid="uid://crbmjel3iq0gh" path="res://Bullet.tscn" id="1_10a4c"]
+
+[node name="automatic_bullet" instance=ExtResource("1_10a4c")]
+damage = 20.0
+bullet_type = "automatic"

@@ -1,0 +1,53 @@
+[gd_scene load_steps=13 format=3 uid="uid://7ujyrmfht8t5"]
+
+[ext_resource type="PackedScene" uid="uid://f1d2yyke8vmp" path="res://Weapons/Weapon.tscn" id="1_u5jv8"]
+[ext_resource type="PackedScene" uid="uid://btmp6hl6ja2sb" path="res://Bullets/Wasteland Eagle_bullet.tscn" id="2_hf42t"]
+[ext_resource type="AudioStream" uid="uid://cc1vpursm8s8o" path="res://Sounds/SFX/Weapons/Desert-Eagle Pistol_Sounds/s_pistol.mp3" id="3_kmq60"]
+[ext_resource type="AudioStream" uid="uid://diyatsvgheh2k" path="res://Sounds/SFX/Weapons/Desert-Eagle Pistol_Sounds/reload_pistol.mp3" id="4_pyjeo"]
+[ext_resource type="AudioStream" uid="uid://c5pj5xko1glat" path="res://Sounds/SFX/Weapons/Desert-Eagle Pistol_Sounds/empty_magazine_pistol.mp3" id="5_wnsqv"]
+[ext_resource type="AudioStream" uid="uid://c52sxhn7n44q5" path="res://Sounds/SFX/Weapons/Desert-Eagle Pistol_Sounds/Pistol_activate.mp3" id="6_rxf23"]
+[ext_resource type="AudioStream" uid="uid://8r33mjkll1ig" path="res://Sounds/SFX/Weapons/Desert-Eagle Pistol_Sounds/Fall down gun.mp3" id="7_u3h6j"]
+[ext_resource type="Texture2D" uid="uid://b5uccumeihlq8" path="res://UI/textures/icons/icon_weapon/Desert-Eagle Pistol_icon.png" id="8_g58pt"]
+[ext_resource type="PackedScene" uid="uid://cuumn7uru55q" path="res://Weapons/weapons_mesh/PISTOL/Wasteland Eagle_mesh.glb" id="8_uwuf6"]
+[ext_resource type="Texture2D" uid="uid://lt5ih2va7yc4" path="res://UI/textures/icons/icons_category/weapon_icon.png" id="9_22mmg"]
+[ext_resource type="Script" path="res://Weapons/ItemDataTransfer.gd" id="11_ggahg"]
+
+[sub_resource type="ConvexPolygonShape3D" id="ConvexPolygonShape3D_6o0ju"]
+points = PackedVector3Array(0.0763653, -0.140833, -0.020416, 0.182793, 0.151767, 0.0238922, 0.191625, 0.142859, 0.0327615, -0.287133, 0.098551, 0.0327615, -0.278246, 0.0807934, -0.0381545, 0.182793, -0.105347, 0.0505, 0.165018, 0.107401, -0.0470333, 0.218232, -0.105347, -0.0381545, -0.260526, 0.0276064, 0.0327615, 0.280333, 0.0453641, 0.0238922, -0.269358, 0.142859, -0.00268698, 0.165018, 0.107401, 0.0505, 0.120692, -0.105347, -0.0470333, 0.0852528, -0.140833, 0.0327615, 0.280333, 0.0453641, -0.020416, 0.227119, -0.131926, 0.0238922, -0.278246, 0.0630644, 0.0416307, -0.260526, 0.0276064, -0.0292948, 0.182793, 0.142859, -0.0292948, 0.200512, -0.140833, -0.0292948, -0.278246, 0.125159, 0.0238922, 0.253726, 0.107401, -0.0115563, 0.120692, -0.105347, 0.0505, 0.191625, -0.140833, 0.0416307, -0.278246, 0.134009, -0.0115563, 0.0852528, -0.140833, -0.0292948, 0.227119, -0.131926, -0.020416, 0.120692, 0.107401, 0.0505, 0.129579, 0.107401, -0.0470333, -0.278246, 0.0630644, -0.0381545, 0.218232, -0.114226, 0.0416307, -0.278246, 0.0807934, 0.0416307)
+
+[node name="Wasteland Eagle" instance=ExtResource("1_u5jv8")]
+weapon_type = "Wasteland Eagle"
+fire_rate = 0.15
+bullet_speed = 150.0
+clip_size = 12
+reload_time = 3.0
+bullet_scene = ExtResource("2_hf42t")
+weapon_color = Color(0, 0, 1, 1)
+flash_cone_scale = 0.5
+muzzle_flash_color = 4
+shoot_sound = ExtResource("3_kmq60")
+reload_sound = ExtResource("4_pyjeo")
+empty_clip_sound = ExtResource("5_wnsqv")
+activate_sound = ExtResource("6_rxf23")
+deactivate_sound = ExtResource("7_u3h6j")
+item_image = ExtResource("8_g58pt")
+category_image = ExtResource("9_22mmg")
+item_image_path = "res://UI/textures/icons/icon_weapon/Desert-Eagle Pistol_icon.png"
+category_image_path = "res://UI/textures/icons/icons_category/weapon_icon.png"
+weapon_weight = 1.8
+special_marks_text = "Caliber .50 AE"
+burst_shots = 1
+
+[node name="WeaponMesh" parent="WeaponVisuals" index="0"]
+visible = false
+
+[node name="Wasteland Eagle_mesh" parent="WeaponVisuals" index="1" instance=ExtResource("8_uwuf6")]
+transform = Transform3D(0.55, 0, 0, 0, 0.55, 0, 0, 0, 0.55, 0.0292644, -0.0776501, -0.00479192)
+
+[node name="StaticBody3D" type="StaticBody3D" parent="WeaponVisuals/Wasteland Eagle_mesh/world/geometry_0" index="0" groups=["inventory_items"]]
+script = ExtResource("11_ggahg")
+
+[node name="CollisionShape3D" type="CollisionShape3D" parent="WeaponVisuals/Wasteland Eagle_mesh/world/geometry_0/StaticBody3D" index="0"]
+shape = SubResource("ConvexPolygonShape3D_6o0ju")
+
+[editable path="WeaponVisuals/Wasteland Eagle_mesh"]

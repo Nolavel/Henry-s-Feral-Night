@@ -1,0 +1,19 @@
+[gd_scene load_steps=6 format=3 uid="uid://c4rq44d0u3u4s"]
+
+[ext_resource type="PackedScene" uid="uid://djnnr6hqxycck" path="res://Props/WindMill/WindMill.fbx" id="1_0uurj"]
+[ext_resource type="Texture2D" uid="uid://bk357tey8qlob" path="res://Props/WindMill/Roof_Diffuse.png" id="1_5xvn2"]
+[ext_resource type="Texture2D" uid="uid://dte4b3do0omc3" path="res://Props/WindMill/Wood7_DG.png" id="2_rupvg"]
+
+[sub_resource type="StandardMaterial3D" id="StandardMaterial3D_htt6j"]
+albedo_texture = ExtResource("1_5xvn2")
+
+[sub_resource type="StandardMaterial3D" id="StandardMaterial3D_issa1"]
+albedo_texture = ExtResource("2_rupvg")
+
+[node name="WindMill" instance=ExtResource("1_0uurj")]
+
+[node name="roof" parent="." index="0"]
+material_override = SubResource("StandardMaterial3D_htt6j")
+
+[node name="wood" parent="." index="1"]
+material_override = SubResource("StandardMaterial3D_issa1")

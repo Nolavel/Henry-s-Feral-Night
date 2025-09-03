@@ -1,0 +1,36 @@
+[gd_scene load_steps=7 format=3 uid="uid://drsgctosl8oyj"]
+
+[ext_resource type="Script" path="res://PLAYER_Billy-Ace Raney/Backpack/backpack_pickup.gd" id="1_2o7f3"]
+[ext_resource type="Texture2D" uid="uid://c6n47vfj7l4ve" path="res://UI/textures/icons/icons_equipment/Backpack_icon.png" id="2_wf7fo"]
+[ext_resource type="PackedScene" uid="uid://dwcti6l56avhf" path="res://PLAYER_Billy-Ace Raney/Backpack/backpack.tscn" id="2_x85uh"]
+[ext_resource type="Texture2D" uid="uid://b3d34qjcvnbug" path="res://UI/textures/icons/icons_category/equipment_icon.png" id="3_6ux3w"]
+[ext_resource type="AudioStream" uid="uid://cod306jfrjsfo" path="res://Sounds/SFX/Backpack_sounds/backpack_pickup.mp3" id="3_domhr"]
+
+[sub_resource type="BoxShape3D" id="BoxShape3D_6gr8l"]
+size = Vector3(2.31375, 0.985703, 1.31305)
+
+[node name="BackpackPickup" type="Area3D"]
+collision_layer = 16
+collision_mask = 16
+script = ExtResource("1_2o7f3")
+item_image = ExtResource("2_wf7fo")
+category_image = ExtResource("3_6ux3w")
+item_image_path = "res://UI/textures/icons/icons_equipment/Backpack_icon.png"
+category_image_path = "res://UI/textures/icons/icons_category/equipment_icon.png"
+
+[node name="CollisionShape3D" type="CollisionShape3D" parent="."]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, -0.0014807, -0.0846484, -0.158477)
+shape = SubResource("BoxShape3D_6gr8l")
+
+[node name="Backpack" parent="CollisionShape3D" groups=["inventory_items"] instance=ExtResource("2_x85uh")]
+
+[node name="Backpack_Pickup" type="AudioStreamPlayer" parent="."]
+stream = ExtResource("3_domhr")
+volume_db = 3.0
+mix_target = 1
+bus = &"SFX"
+
+[connection signal="body_entered" from="." to="." method="_on_body_entered"]
+[connection signal="body_exited" from="." to="." method="_on_body_exited"]
+
+[editable path="CollisionShape3D/Backpack"]

@@ -1,0 +1,39 @@
+[remap]
+
+importer="texture"
+type="CompressedTexture2D"
+uid="uid://e4mdiat5ah3m"
+path.s3tc="res://.godot/imported/Trail Boss Shotgun_mesh_0.jpg-f20a17864ddfb271962de544509684c6.s3tc.ctex"
+path.etc2="res://.godot/imported/Trail Boss Shotgun_mesh_0.jpg-f20a17864ddfb271962de544509684c6.etc2.ctex"
+metadata={
+"imported_formats": ["s3tc_bptc", "etc2_astc"],
+"vram_texture": true
+}
+generator_parameters={
+"md5": "fd51b4ee66cb4869270ce6870700eb12"
+}
+
+[deps]
+
+source_file="res://Weapons/weapons_mesh/Pump-Action Shotgun/Trail Boss Shotgun_mesh_0.jpg"
+dest_files=["res://.godot/imported/Trail Boss Shotgun_mesh_0.jpg-f20a17864ddfb271962de544509684c6.s3tc.ctex", "res://.godot/imported/Trail Boss Shotgun_mesh_0.jpg-f20a17864ddfb271962de544509684c6.etc2.ctex"]
+
+[params]
+
+compress/mode=2
+compress/high_quality=false
+compress/lossy_quality=0.7
+compress/hdr_compression=1
+compress/normal_map=0
+compress/channel_pack=0
+mipmaps/generate=true
+mipmaps/limit=-1
+roughness/mode=0
+roughness/src_normal=""
+process/fix_alpha_border=true
+process/premult_alpha=false
+process/normal_map_invert_y=false
+process/hdr_as_srgb=false
+process/hdr_clamp_exposure=false
+process/size_limit=0
+detect_3d/compress_to=0

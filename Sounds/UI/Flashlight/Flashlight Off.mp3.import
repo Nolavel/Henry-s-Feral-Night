@@ -1,0 +1,19 @@
+[remap]
+
+importer="mp3"
+type="AudioStreamMP3"
+uid="uid://cjpbd8rpggs8i"
+path="res://.godot/imported/Flashlight Off.mp3-30c33ad86b8481eae896a45766f7877e.mp3str"
+
+[deps]
+
+source_file="res://Sounds/UI/Flashlight/Flashlight Off.mp3"
+dest_files=["res://.godot/imported/Flashlight Off.mp3-30c33ad86b8481eae896a45766f7877e.mp3str"]
+
+[params]
+
+loop=false
+loop_offset=0
+bpm=0
+beat_count=0
+bar_beats=4

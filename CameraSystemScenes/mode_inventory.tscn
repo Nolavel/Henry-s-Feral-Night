@@ -1,0 +1,92 @@
+[gd_scene load_steps=11 format=3 uid="uid://dsiptg25jfx84"]
+
+[ext_resource type="Script" path="res://CameraSystemScenes/mode_inventory.gd" id="1_x54ar"]
+[ext_resource type="FontFile" uid="uid://bqpcqvgry6qsq" path="res://UI/fonts/SHORTCUT.TTF" id="2_iyx21"]
+[ext_resource type="Script" path="res://CameraSystemScenes/ui_inventory.gd" id="2_qkosa"]
+[ext_resource type="Shader" path="res://Edge_Strips.gdshader" id="3_35nls"]
+[ext_resource type="Texture2D" uid="uid://jn3leha6pira" path="res://UI/textures/panel_bg.png" id="4_hsoyj"]
+
+[sub_resource type="LabelSettings" id="LabelSettings_crg4o"]
+font = ExtResource("2_iyx21")
+
+[sub_resource type="ShaderMaterial" id="ShaderMaterial_qi80f"]
+shader = ExtResource("3_35nls")
+shader_parameter/progress = 0.0
+shader_parameter/strip_width = 0.25
+shader_parameter/fade_color = Color(0, 0, 0, 0.8)
+shader_parameter/edge_softness = 0.05
+
+[sub_resource type="CanvasTexture" id="CanvasTexture_ukulf"]
+
+[sub_resource type="StyleBoxTexture" id="StyleBoxTexture_ysc7e"]
+texture = ExtResource("4_hsoyj")
+expand_margin_left = 25.0
+expand_margin_top = 125.0
+expand_margin_right = 20.0
+expand_margin_bottom = 125.0
+modulate_color = Color(0.2, 0.2, 0.2, 0.0784314)
+
+[sub_resource type="LabelSettings" id="LabelSettings_28n0h"]
+font = ExtResource("2_iyx21")
+font_size = 36
+font_color = Color(1, 1, 1, 0.686275)
+
+[node name="Mode_Inventory" type="Node3D"]
+script = ExtResource("1_x54ar")
+
+[node name="UI_Inventory" type="CanvasLayer" parent="."]
+script = ExtResource("2_qkosa")
+
+[node name="Label_Item_Hovered" type="Label" parent="UI_Inventory"]
+anchors_preset = 4
+anchor_top = 0.5
+anchor_bottom = 0.5
+offset_top = -25.0
+offset_right = 199.0
+offset_bottom = 25.0
+grow_vertical = 2
+text = "Item Hovered"
+label_settings = SubResource("LabelSettings_crg4o")
+horizontal_alignment = 1
+vertical_alignment = 1
+
+[node name="Background_effect" type="TextureRect" parent="UI_Inventory"]
+z_index = -5
+material = SubResource("ShaderMaterial_qi80f")
+anchors_preset = 15
+anchor_right = 1.0
+anchor_bottom = 1.0
+grow_horizontal = 2
+grow_vertical = 2
+texture = SubResource("CanvasTexture_ukulf")
+
+[node name="Active_Holder" type="Panel" parent="UI_Inventory"]
+anchors_preset = 3
+anchor_left = 1.0
+anchor_top = 1.0
+anchor_right = 1.0
+anchor_bottom = 1.0
+offset_left = -400.0
+offset_top = -300.0
+grow_horizontal = 0
+grow_vertical = 0
+theme_override_styles/panel = SubResource("StyleBoxTexture_ysc7e")
+
+[node name="Label" type="Label" parent="UI_Inventory/Active_Holder"]
+layout_mode = 1
+anchors_preset = -1
+anchor_left = 0.5
+anchor_top = 0.5
+anchor_right = 0.5
+anchor_bottom = 0.5
+offset_left = -56.0
+offset_top = 27.0
+offset_right = 57.0
+offset_bottom = 72.0
+grow_horizontal = 2
+grow_vertical = 2
+rotation = -0.741765
+text = "Active"
+label_settings = SubResource("LabelSettings_28n0h")
+horizontal_alignment = 1
+vertical_alignment = 1

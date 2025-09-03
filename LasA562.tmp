@@ -1,0 +1,1839 @@
+[gd_scene load_steps=187 format=3 uid="uid://c5lvscpltlbj7"]
+
+[ext_resource type="Script" path="res://game.gd" id="1_koq35"]
+[ext_resource type="Script" path="res://CameraFollow.gd" id="1_lg8mh"]
+[ext_resource type="PackedScene" uid="uid://brfr8ih4tfi6y" path="res://Player.tscn" id="1_v2pgu"]
+[ext_resource type="Script" path="res://player.gd" id="2_i1bh0"]
+[ext_resource type="AudioStream" uid="uid://t8k2mpj4wqry" path="res://Music/Unkind_.mp3" id="2_thuhr"]
+[ext_resource type="Script" path="res://head.gd" id="3_1a80d"]
+[ext_resource type="Script" path="res://minimap_camera.gd" id="4_kbhf7"]
+[ext_resource type="AudioStream" uid="uid://cuxy7e4ylpieg" path="res://Sounds/UI/Camera/transition_camera.mp3" id="4_yq034"]
+[ext_resource type="Script" path="res://flashlight.gd" id="5_1wlod"]
+[ext_resource type="AudioStream" uid="uid://bx6cs8i46afdh" path="res://Sounds/UI/Camera/camera_zoom.mp3" id="5_uwpyo"]
+[ext_resource type="AudioStream" uid="uid://coqrciwuymrml" path="res://Sounds/UI/Camera/LimitReachedSound.mp3" id="6_8uj12"]
+[ext_resource type="Script" path="res://minimap_display.gd" id="6_m1iwh"]
+[ext_resource type="Script" path="res://AimDot.gd" id="6_yfnqr"]
+[ext_resource type="AudioStream" uid="uid://nj2lllxckhnm" path="res://Sounds/UI/Flashlight/Flashlight On.mp3" id="7_s7juo"]
+[ext_resource type="AudioStream" uid="uid://cjpbd8rpggs8i" path="res://Sounds/UI/Flashlight/Flashlight Off.mp3" id="8_fhoxg"]
+[ext_resource type="Script" path="res://fade.gd" id="8_mmvbg"]
+[ext_resource type="Script" path="res://compass_container.gd" id="8_v5khs"]
+[ext_resource type="Shader" path="res://shaders/2D-perspective.gdshader" id="9_uvqvg"]
+[ext_resource type="Texture2D" uid="uid://b7t2m0jakc1p2" path="res://UI/Weapons_Textures/Lever-Action Shotgun.png" id="10_2gajh"]
+[ext_resource type="Script" path="res://WeaponTextureDisplay.gd" id="10_84ecc"]
+[ext_resource type="PackedScene" uid="uid://x5b2hbrj2wyi" path="res://PLAYER_Billy-Ace Raney/test_Head/Голова.glb" id="10_n0c5j"]
+[ext_resource type="Script" path="res://time_ui.gd" id="11_aw8kq"]
+[ext_resource type="Script" path="res://weapon_holder.gd" id="14_mqp0k"]
+[ext_resource type="Script" path="res://ammo.gd" id="14_n4dqk"]
+[ext_resource type="Texture2D" uid="uid://bpj8jmgamqypb" path="res://UI/textures/preference.png" id="14_ojnvc"]
+[ext_resource type="Script" path="res://crosshair_ui.gd" id="14_xdiqq"]
+[ext_resource type="PackedScene" uid="uid://berjlhplqtj1o" path="res://Props/Old Car/Old Car.glb" id="15_hwu3f"]
+[ext_resource type="PackedScene" uid="uid://c1cn0hor8kubl" path="res://Props/Old Car 2/Old Car 2.glb" id="16_nk0u4"]
+[ext_resource type="PackedScene" uid="uid://btuf6g5s0ew3y" path="res://PLAYER_Billy-Ace Raney/Backpack/Backpack.glb" id="17_1ih2t"]
+[ext_resource type="FontFile" uid="uid://bqpcqvgry6qsq" path="res://UI/fonts/SHORTCUT.TTF" id="17_cb8ud"]
+[ext_resource type="PackedScene" uid="uid://cpyqeeqtdqytm" path="res://Props/Windows/Window-2/Window-2.glb" id="18_cbtp4"]
+[ext_resource type="Script" path="res://player_indicators.gd" id="18_hyy5w"]
+[ext_resource type="Texture2D" uid="uid://cvixb6l77njox" path="res://UI/textures/player_indicator/Selection Ring (Player Info) .png" id="18_riax2"]
+[ext_resource type="PackedScene" uid="uid://c1gqdi2o68vgk" path="res://Props/Windows/Window-3/Window-3.glb" id="19_kyy3l"]
+[ext_resource type="PackedScene" uid="uid://cc7ff3ixc3ujx" path="res://Props/Tree/Trank_1/Tree_Trank.glb" id="20_jejhw"]
+[ext_resource type="Texture2D" uid="uid://cc0tpb40eb7c" path="res://UI/textures/player_indicator/Navigation Arrow.png" id="20_mpr6x"]
+[ext_resource type="Script" path="res://interaction_manager.gd" id="21_7kols"]
+[ext_resource type="Texture2D" uid="uid://c3thi0afryui7" path="res://UI/Weapons_Textures/Desert-Eagle Pistol.png" id="21_fr7bk"]
+[ext_resource type="Script" path="res://WeaponSlot.gd" id="21_tack5"]
+[ext_resource type="PackedScene" uid="uid://n62e4pg00hmu" path="res://Props/Monument/base_basic_shaded.glb" id="22_0r3to"]
+[ext_resource type="Shader" path="res://shaders/weapon_glow.gdshader" id="22_gjn6m"]
+[ext_resource type="Script" path="res://player_movement_controller.gd" id="22_s3itw"]
+[ext_resource type="Texture2D" uid="uid://dcua80qqiyvwi" path="res://UI/Weapons_Textures/Pump-Action Shotgun.png" id="22_t243r"]
+[ext_resource type="Texture2D" uid="uid://cauxug0c8ogey" path="res://UI/Weapons_Textures/M16A2_Automatic_Gun.png" id="23_ooxm0"]
+[ext_resource type="Script" path="res://player_sprint_system.gd" id="23_v0unu"]
+[ext_resource type="Texture2D" uid="uid://6dkh6cj38wwe" path="res://Weapons/black-paper-frame-dark.jpg" id="24_6t5ry"]
+[ext_resource type="Script" path="res://player_health_system.gd" id="24_gpkuu"]
+[ext_resource type="Texture2D" uid="uid://d0whtgjvljwms" path="res://UI/Weapons_Textures/Machine_Gun.png" id="24_i80u0"]
+[ext_resource type="PackedScene" uid="uid://ddxyqpxwprgmm" path="res://Props/Walls_Building/Wall_1/Wall_1.glb" id="24_o3neu"]
+[ext_resource type="Texture2D" uid="uid://dgss4d52ck4r7" path="res://UI/Weapons_Textures/Grenade.png" id="25_6aiys"]
+[ext_resource type="PackedScene" uid="uid://dgonr6ym05a1b" path="res://Props/Walls_Building/Wall_2/Wall_2.glb" id="25_hvitw"]
+[ext_resource type="Script" path="res://player_inventory_manager.gd" id="25_r1jed"]
+[ext_resource type="Script" path="res://pickup_handler.gd" id="26_3y172"]
+[ext_resource type="Script" path="res://BackpackUI.gd" id="29_l7eua"]
+[ext_resource type="Texture2D" uid="uid://b4qddy5vfs26g" path="res://UI/textures/backpack/Backpack_image.png" id="29_n64vf"]
+[ext_resource type="PackedScene" uid="uid://7ujyrmfht8t5" path="res://Weapons/Wasteland Eagle_scene.tscn" id="31_y3vvg"]
+[ext_resource type="PackedScene" uid="uid://g7udpsliwe7v" path="res://Weapons/Enforcer 12-Gauge_scene.tscn" id="32_1ubve"]
+[ext_resource type="Texture2D" uid="uid://burx1gl8a1ewm" path="res://UI/textures/bg_swicher_settings.png" id="32_dpd8c"]
+[ext_resource type="PackedScene" uid="uid://juaoyyhnqkub" path="res://Weapons/Trail Boss Shotgun_scene.tscn" id="33_dk6as"]
+[ext_resource type="PackedScene" uid="uid://ma5fbxfmjnqn" path="res://ammo_pickup.tscn" id="33_r1cwu"]
+[ext_resource type="PackedScene" uid="uid://detr12ee7jwhp" path="res://PhysicsTestObject.tscn" id="34_21r2e"]
+[ext_resource type="Script" path="res://SurvivalUI.gd" id="36_iknay"]
+[ext_resource type="PackedScene" uid="uid://5qml6ogpg8us" path="res://Weapons/Assault Auto-Rifle_scene.tscn" id="36_n5owg"]
+[ext_resource type="Texture2D" uid="uid://bes173nifk7sc" path="res://UI/textures/StaminaIndicatorUI/SurvivalBG.png" id="37_wtsly"]
+[ext_resource type="Shader" path="res://shaders/health_bar.gdshader" id="38_jberk"]
+[ext_resource type="Texture2D" uid="uid://f0cc01sms0sw" path="res://UI/textures/StaminaIndicatorUI/FillStamina.png" id="39_uqo6q"]
+[ext_resource type="Shader" path="res://shaders/Stamina - Lightning Bolt.gdshader" id="40_6yasq"]
+[ext_resource type="Shader" path="res://shaders/Thirst - Water Drop.gdshader" id="41_f2oko"]
+[ext_resource type="Shader" path="res://Sleep - Moon & Stars.gdshader" id="42_mtet6"]
+[ext_resource type="Shader" path="res://BG_indicatorSURV.gdshader" id="42_pb4mf"]
+[ext_resource type="Shader" path="res://shaders/Hunger.gdshader" id="43_ltca6"]
+[ext_resource type="Texture2D" uid="uid://cs3mwyafj4meu" path="res://UI/textures/StaminaIndicatorUI/Hunger_Bar_Image.png" id="44_ks0d8"]
+[ext_resource type="PackedScene" uid="uid://dywhn3wfrlrrs" path="res://Props/trass-can/trashcan.tscn" id="48_8a4ur"]
+[ext_resource type="Script" path="res://PickupUISystem.gd" id="52_7wcef"]
+[ext_resource type="Texture2D" uid="uid://jn3leha6pira" path="res://UI/textures/panel_bg.png" id="53_pb0c3"]
+[ext_resource type="Texture2D" uid="uid://b152gvt1eojr8" path="res://UI/textures/ImageWeight.png" id="54_0u037"]
+[ext_resource type="PackedScene" uid="uid://cp3xx5ywl0h5o" path="res://Props/Gasoline_Can/Gasoline_can.glb" id="54_bjjnp"]
+[ext_resource type="PackedScene" uid="uid://bv7bbtju3cdv0" path="res://Props/Ladder_wooden/ladder.glb" id="54_ipbk1"]
+[ext_resource type="Shader" path="res://shaders/Double sided transparent gradient.gdshader" id="54_ok6wc"]
+[ext_resource type="Texture2D" uid="uid://b36h716603hop" path="res://Props/Gasoline_Can/Gascan.png" id="55_n4xbv"]
+[ext_resource type="Texture2D" uid="uid://cmxp7ph74qkd7" path="res://Props/Ladder_wooden/Ladder_mat.png" id="55_r8n1l"]
+[ext_resource type="Shader" path="res://shaders/Shine 2D.gdshader" id="57_1nfb0"]
+[ext_resource type="PackedScene" uid="uid://beoyw1ygqqaqa" path="res://Props/Barbed_wire_spiral/barbed_wire_spiral.tscn" id="58_f5drx"]
+[ext_resource type="Script" path="res://pickup_prompt_label_manager.gd" id="59_b8lvk"]
+[ext_resource type="Script" path="res://pickup_notifier.gd" id="60_8oolq"]
+[ext_resource type="PackedScene" uid="uid://bmhj064q6b62l" path="res://Props/Fan/fan.glb" id="61_7xinn"]
+[ext_resource type="Texture2D" uid="uid://235y0esgniht" path="res://UI/textures/Pickup.png" id="61_uauwn"]
+[ext_resource type="Texture2D" uid="uid://bujnlxwfga847" path="res://Props/Fan/fan.png" id="62_oxqwu"]
+[ext_resource type="PackedScene" uid="uid://cib7gcndo1say" path="res://Props/bookcase/bookcase.tscn" id="63_tgbjw"]
+[ext_resource type="PackedScene" uid="uid://de1qfwhu2qenb" path="res://Props/PaletteEuro_Wooden/PalleteEuro_Wooden.glb" id="64_u8hog"]
+[ext_resource type="Texture2D" uid="uid://cw4f80xur0ui7" path="res://Props/PaletteEuro_Wooden/palette_euro_01.png" id="65_611al"]
+[ext_resource type="PackedScene" uid="uid://ckq6uhcb4a2i3" path="res://Props/barrel_toxic/barrel_toxic.tscn" id="67_srgkm"]
+[ext_resource type="PackedScene" uid="uid://djtwb0o338dy1" path="res://Props/file_cabinet_metal/file_cabinet_metal.tscn" id="68_jgwyw"]
+[ext_resource type="PackedScene" uid="uid://c4rq44d0u3u4s" path="res://Props/WindMill/wind_mill.tscn" id="69_knwld"]
+[ext_resource type="Texture2D" uid="uid://c1cdw5r1fe628" path="res://UI/textures/icons/icon_ammo/pistol_ammo_icon.png" id="74_2bich"]
+[ext_resource type="Texture2D" uid="uid://u1wuw68thn8s" path="res://UI/textures/icons/icon_ammo/12Gauge_ammo_icon.png" id="75_osr0r"]
+[ext_resource type="Texture2D" uid="uid://deonq0opbqrm6" path="res://UI/textures/icons/icon_ammo/20Gauge_ammo_icon.png" id="76_amdxe"]
+[ext_resource type="PackedScene" uid="uid://uenax1d6t6e8" path="res://door_for_house.tscn" id="82_x5fxg"]
+[ext_resource type="PackedScene" uid="uid://drsgctosl8oyj" path="res://PLAYER_Billy-Ace Raney/Backpack/Backpack_pickup.tscn" id="89_nykvn"]
+[ext_resource type="PackedScene" uid="uid://cxtpi5feuujfw" path="res://Enemy/Demo_Zombie_Scene/enemy_Mutant_1.tscn" id="97_dqco2"]
+[ext_resource type="PackedScene" uid="uid://d3sjrqvm71j0s" path="res://Enemy/Demo_Zombie_Scene/enemy_toxic.tscn" id="98_vj8qc"]
+[ext_resource type="PackedScene" uid="uid://fdxdvnjjddsl" path="res://Enemy/Demo_Zombie_Scene/enemy_whisperer.tscn" id="99_pj1e3"]
+[ext_resource type="PackedScene" uid="uid://dkjxaxtodbhl4" path="res://Enemy/Demo_Zombie_Scene/enemy_rotter.tscn" id="100_m86ty"]
+[ext_resource type="PackedScene" uid="uid://c0ycv3f8wxrcr" path="res://Enemy/Demo_Zombie_Scene/enemy_clanker.tscn" id="101_xxrbr"]
+[ext_resource type="PackedScene" uid="uid://ccd3cs3e8nxj0" path="res://Enemy/Demo_Zombie_Scene/enemy_creeper.tscn" id="104_1c7wn"]
+
+[sub_resource type="PhysicsMaterial" id="PhysicsMaterial_38am6"]
+
+[sub_resource type="BoxShape3D" id="BoxShape3D_q8bmm"]
+size = Vector3(1, 10, 220)
+
+[sub_resource type="PlaneMesh" id="PlaneMesh_xwygj"]
+size = Vector2(200, 200)
+
+[sub_resource type="StandardMaterial3D" id="StandardMaterial3D_a1ms4"]
+albedo_color = Color(0.666667, 1, 0.670588, 1)
+
+[sub_resource type="PhysicsMaterial" id="PhysicsMaterial_kcfba"]
+
+[sub_resource type="BoxShape3D" id="BoxShape3D_gum43"]
+size = Vector3(200, 0.1, 200)
+
+[sub_resource type="BoxMesh" id="BoxMesh_s5mco"]
+
+[sub_resource type="StandardMaterial3D" id="StandardMaterial3D_11qh4"]
+albedo_color = Color(1, 0.917647, 0.498039, 1)
+
+[sub_resource type="PhysicsMaterial" id="PhysicsMaterial_27xs3"]
+
+[sub_resource type="BoxShape3D" id="BoxShape3D_ljlxa"]
+
+[sub_resource type="BoxMesh" id="BoxMesh_ei0do"]
+
+[sub_resource type="StandardMaterial3D" id="StandardMaterial3D_grnkb"]
+albedo_color = Color(0.188235, 0.368627, 0, 1)
+
+[sub_resource type="PhysicsMaterial" id="PhysicsMaterial_3fral"]
+
+[sub_resource type="BoxShape3D" id="BoxShape3D_mlony"]
+
+[sub_resource type="BoxMesh" id="BoxMesh_frft3"]
+size = Vector3(0.2, 0.1, 0.1)
+
+[sub_resource type="StandardMaterial3D" id="StandardMaterial3D_jcrbq"]
+albedo_color = Color(0.02, 0.02, 0.02, 1)
+
+[sub_resource type="SphereMesh" id="SphereMesh_qgyge"]
+height = 0.01
+
+[sub_resource type="StandardMaterial3D" id="StandardMaterial3D_x7ewa"]
+albedo_color = Color(0.361, 1, 0.29, 1)
+
+[sub_resource type="BoxShape3D" id="BoxShape3D_ktlec"]
+size = Vector3(2.5, 2, 2)
+
+[sub_resource type="ShaderMaterial" id="ShaderMaterial_ycefn"]
+shader = ExtResource("9_uvqvg")
+shader_parameter/fov = 1.0
+shader_parameter/cull_back = true
+shader_parameter/y_rot = -27.887
+shader_parameter/x_rot = 6.59601
+shader_parameter/inset = 0.835
+shader_parameter/use_rect_size = false
+shader_parameter/rect_size = Vector2(100, 100)
+shader_parameter/progress = -1.5
+shader_parameter/noiseForce = 0.7
+shader_parameter/burnColor = Color(1, 0.5, 0, 1)
+shader_parameter/borderWidth = 0.153
+shader_parameter/direction = 180.0
+shader_parameter/enable_3d_effect = true
+shader_parameter/enable_burn_effect = false
+shader_parameter/noiseTexture = ExtResource("24_6t5ry")
+
+[sub_resource type="Shader" id="Shader_xxo7u"]
+code = "shader_type canvas_item;
+
+uniform float radius : hint_range(0.0, 1.0) = 0.5;
+uniform vec2 center = vec2(0.5, 0.5);
+uniform float smoothness : hint_range(0.0, 0.1) = 0.01;
+
+void fragment() {
+    vec2 uv = UV;
+    float distance = length(uv - center);
+    float alpha = 1.0 - smoothstep(radius - smoothness, radius + smoothness, distance);
+
+    COLOR = texture(TEXTURE, uv);
+    COLOR.a *= alpha;
+}"
+
+[sub_resource type="ShaderMaterial" id="ShaderMaterial_80ih1"]
+shader = SubResource("Shader_xxo7u")
+shader_parameter/radius = 0.5
+shader_parameter/center = Vector2(0.5, 0.5)
+shader_parameter/smoothness = 0.01
+
+[sub_resource type="ViewportTexture" id="ViewportTexture_ijtty"]
+viewport_path = NodePath("GAME/MinimapViewport")
+
+[sub_resource type="LabelSettings" id="LabelSettings_k1sfn"]
+font = ExtResource("17_cb8ud")
+
+[sub_resource type="LabelSettings" id="LabelSettings_gdkxl"]
+font = ExtResource("17_cb8ud")
+
+[sub_resource type="LabelSettings" id="LabelSettings_dgpms"]
+font = ExtResource("17_cb8ud")
+
+[sub_resource type="ShaderMaterial" id="ShaderMaterial_os5lu"]
+shader = ExtResource("22_gjn6m")
+shader_parameter/glow_intensity = 2.0
+shader_parameter/glow_color = Color(0, 1, 1, 1)
+shader_parameter/pulse_speed = 3.0
+shader_parameter/pulse_strength = 0.5
+shader_parameter/enable_pulse = true
+
+[sub_resource type="ShaderMaterial" id="ShaderMaterial_p4f2k"]
+
+[sub_resource type="LabelSettings" id="LabelSettings_vfux1"]
+font = ExtResource("17_cb8ud")
+font_color = Color(1, 1, 0, 1)
+
+[sub_resource type="LabelSettings" id="LabelSettings_671en"]
+line_spacing = 1.0
+font = ExtResource("17_cb8ud")
+font_size = 11
+
+[sub_resource type="LabelSettings" id="LabelSettings_5fp2r"]
+line_spacing = 1.0
+font = ExtResource("17_cb8ud")
+font_size = 39
+
+[sub_resource type="LabelSettings" id="LabelSettings_ae8ch"]
+font = ExtResource("17_cb8ud")
+font_size = 20
+font_color = Color(1, 1, 0.486275, 1)
+
+[sub_resource type="FontFile" id="FontFile_oru5c"]
+cache/0/16/0/ascent = 0.0
+cache/0/16/0/descent = 0.0
+cache/0/16/0/underline_position = 0.0
+cache/0/16/0/underline_thickness = 0.0
+cache/0/16/0/scale = 1.0
+cache/0/20/0/ascent = 0.0
+cache/0/20/0/descent = 0.0
+cache/0/20/0/underline_position = 0.0
+cache/0/20/0/underline_thickness = 0.0
+cache/0/20/0/scale = 1.0
+
+[sub_resource type="LabelSettings" id="LabelSettings_56x35"]
+font = SubResource("FontFile_oru5c")
+font_size = 20
+
+[sub_resource type="LabelSettings" id="LabelSettings_tktk1"]
+font = ExtResource("17_cb8ud")
+font_size = 20
+font_color = Color(0.03, 0.03, 0.03, 1)
+
+[sub_resource type="ShaderMaterial" id="ShaderMaterial_fd72h"]
+shader = ExtResource("38_jberk")
+shader_parameter/progress = 1.0
+shader_parameter/full_stamina_color = Color(0.8, 0.9, 0.3, 1)
+shader_parameter/low_stamina_color = Color(0.9, 0.2, 0.2, 1)
+shader_parameter/bar_height = 0.8
+shader_parameter/bar_roundness = 0.1
+shader_parameter/border_width = 0.048
+shader_parameter/border_color = Color(0.4, 0.3, 0.2, 1)
+shader_parameter/wave_amplitude = 0.015
+shader_parameter/wave_frequency = 8.0
+shader_parameter/wave_speed = 2.0
+shader_parameter/enable_particles = true
+shader_parameter/particle_count = 12
+shader_parameter/particle_speed = 0.178
+shader_parameter/particle_size = 0.015
+shader_parameter/particle_lifetime = 2.5
+shader_parameter/enable_glow = true
+shader_parameter/glow_intensity = 0.6
+shader_parameter/glow_size = 0.086
+
+[sub_resource type="ShaderMaterial" id="ShaderMaterial_erud3"]
+shader = ExtResource("40_6yasq")
+shader_parameter/progress = 1.0
+shader_parameter/full_color = Color(0.93, 1, 0.3, 0.2)
+shader_parameter/mid_color = Color(0.8, 0.9, 1, 1)
+shader_parameter/low_color = Color(1, 0.8, 0.2, 1)
+shader_parameter/critical_color = Color(1, 0.3, 0.3, 1)
+shader_parameter/empty_color = Color(0.4, 0.4, 0.4, 0.2)
+shader_parameter/bolt_base_thickness = 0.045
+shader_parameter/bolt_flicker_intensity = 2.5
+shader_parameter/energy_pulse_normal = 3.0
+shader_parameter/energy_pulse_panic = 15.0
+shader_parameter/jagged_intensity = 0.2
+shader_parameter/segment_count = 10.0
+shader_parameter/branch_probability = 0.4
+shader_parameter/enable_sparks = true
+shader_parameter/enable_electric_field = true
+shader_parameter/enable_panic_flicker = true
+shader_parameter/glow_intensity = 2.2
+
+[sub_resource type="CanvasTexture" id="CanvasTexture_cy323"]
+
+[sub_resource type="ShaderMaterial" id="ShaderMaterial_lprup"]
+shader = ExtResource("41_f2oko")
+shader_parameter/progress = 0.625
+shader_parameter/full_color = Color(0.2, 0.6, 1, 0.9)
+shader_parameter/mid_color = Color(0.3, 0.8, 0.9, 0.8)
+shader_parameter/low_color = Color(0.6, 0.5, 0.3, 0.7)
+shader_parameter/empty_color = Color(0.5, 0.4, 0.3, 0.4)
+shader_parameter/drop_size = 0.5
+shader_parameter/drop_roundness = 0.8
+shader_parameter/wave_amplitude = 0.03
+shader_parameter/wave_frequency = 6.0
+shader_parameter/wave_speed = 2.0
+shader_parameter/ripple_intensity = 1.0
+shader_parameter/enable_waves = true
+shader_parameter/enable_bubbles = true
+shader_parameter/enable_reflection = true
+shader_parameter/bubble_count = 8.0
+shader_parameter/bubble_speed = 0.4
+
+[sub_resource type="CanvasTexture" id="CanvasTexture_nf12t"]
+
+[sub_resource type="ShaderMaterial" id="ShaderMaterial_i7suk"]
+shader = ExtResource("42_pb4mf")
+shader_parameter/fade_start = 0.3
+shader_parameter/fade_end = 0.8
+shader_parameter/base_color = Color(0, 0, 0, 0.403922)
+shader_parameter/fade_direction = 1
+shader_parameter/corner_radius = 0.118
+shader_parameter/fade_curve = 0.649
+
+[sub_resource type="CanvasTexture" id="CanvasTexture_lv546"]
+
+[sub_resource type="ShaderMaterial" id="ShaderMaterial_ttvdj"]
+shader = ExtResource("43_ltca6")
+shader_parameter/progress = 1.0
+shader_parameter/full_tint = Color(1, 1, 1, 1)
+shader_parameter/mid_tint = Color(0.9, 0.9, 0.8, 1)
+shader_parameter/low_tint = Color(0.8, 0.6, 0.4, 1)
+shader_parameter/empty_tint = Color(0.5, 0.5, 0.5, 0.8)
+shader_parameter/enable_shine = true
+shader_parameter/shine_intensity = 1.8
+shader_parameter/enable_food_particles = true
+shader_parameter/particle_intensity = 1.5
+shader_parameter/enable_rust_spots = true
+shader_parameter/rust_intensity = 1.2
+shader_parameter/enable_crumbs = true
+shader_parameter/crumb_intensity = 1.3
+shader_parameter/enable_grease_shine = true
+shader_parameter/grease_amount = 0.258
+
+[sub_resource type="ShaderMaterial" id="ShaderMaterial_2exyn"]
+shader = ExtResource("42_mtet6")
+shader_parameter/progress = 1.0
+shader_parameter/full_color = Color(0.9, 0.9, 0.7, 1)
+shader_parameter/mid_color = Color(0.7, 0.7, 0.9, 0.9)
+shader_parameter/low_color = Color(0.4, 0.3, 0.5, 0.8)
+shader_parameter/empty_color = Color(0.2, 0.2, 0.2, 0.6)
+shader_parameter/moon_size = 0.4
+shader_parameter/crescent_depth = 0.3
+shader_parameter/enable_stars = false
+shader_parameter/star_count = 3.0
+shader_parameter/star_twinkle_speed = 0.5
+shader_parameter/shooting_star_chance = 0.0
+shader_parameter/enable_zzz_particles = true
+shader_parameter/zzz_speed = 1.0
+shader_parameter/enable_dream_wisps = true
+shader_parameter/dream_intensity = 1.2
+shader_parameter/enable_tiredness_shadow = true
+shader_parameter/shadow_intensity = 0.8
+
+[sub_resource type="CanvasTexture" id="CanvasTexture_el2xn"]
+
+[sub_resource type="ShaderMaterial" id="ShaderMaterial_1njnh"]
+shader = ExtResource("54_ok6wc")
+shader_parameter/divide = 0.065
+shader_parameter/blur = 0.385
+shader_parameter/fade_width = 0.995
+
+[sub_resource type="StyleBoxTexture" id="StyleBoxTexture_geetf"]
+texture = ExtResource("53_pb0c3")
+expand_margin_left = 15.0
+expand_margin_top = 105.0
+expand_margin_right = 15.0
+expand_margin_bottom = 105.0
+
+[sub_resource type="ShaderMaterial" id="ShaderMaterial_2rato"]
+shader = ExtResource("54_ok6wc")
+shader_parameter/divide = 0.065
+shader_parameter/blur = 0.385
+shader_parameter/fade_width = 0.995
+
+[sub_resource type="LabelSettings" id="LabelSettings_krw55"]
+font = ExtResource("17_cb8ud")
+font_size = 14
+
+[sub_resource type="ShaderMaterial" id="ShaderMaterial_r78kh"]
+shader = ExtResource("54_ok6wc")
+shader_parameter/divide = 0.065
+shader_parameter/blur = 0.385
+shader_parameter/fade_width = 0.995
+
+[sub_resource type="LabelSettings" id="LabelSettings_6l7jm"]
+font = ExtResource("17_cb8ud")
+font_size = 12
+
+[sub_resource type="ImageTexture" id="ImageTexture_elo8h"]
+
+[sub_resource type="ShaderMaterial" id="ShaderMaterial_fujcl"]
+shader = ExtResource("54_ok6wc")
+shader_parameter/divide = 0.065
+shader_parameter/blur = 0.385
+shader_parameter/fade_width = 0.995
+
+[sub_resource type="ShaderMaterial" id="ShaderMaterial_k3w35"]
+shader = ExtResource("57_1nfb0")
+shader_parameter/shine_color = Color(1, 1, 1, 0.494118)
+shader_parameter/shine_angle = 45.0
+shader_parameter/shine_speed = 0.3
+shader_parameter/shine_delay = 1.0
+shader_parameter/shine_reverse = false
+shader_parameter/Line_Width = 0.04
+shader_parameter/Line_Smoothness = 0.031
+shader_parameter/Brightness = 1.93
+shader_parameter/Distortion = 1.517
+shader_parameter/LensStrength = 0.05
+
+[sub_resource type="ImageTexture" id="ImageTexture_yymro"]
+
+[sub_resource type="ShaderMaterial" id="ShaderMaterial_vqkdy"]
+shader = ExtResource("54_ok6wc")
+shader_parameter/divide = 0.065
+shader_parameter/blur = 0.385
+shader_parameter/fade_width = 0.995
+
+[sub_resource type="LabelSettings" id="LabelSettings_kkhxx"]
+font = ExtResource("17_cb8ud")
+font_size = 14
+
+[sub_resource type="ShaderMaterial" id="ShaderMaterial_ekssn"]
+shader = ExtResource("54_ok6wc")
+shader_parameter/divide = 0.065
+shader_parameter/blur = 0.385
+shader_parameter/fade_width = 0.995
+
+[sub_resource type="LabelSettings" id="LabelSettings_0ao0d"]
+font = ExtResource("17_cb8ud")
+font_size = 14
+
+[sub_resource type="Animation" id="Animation_qnb5b"]
+length = 0.001
+tracks/0/type = "value"
+tracks/0/imported = false
+tracks/0/enabled = true
+tracks/0/path = NodePath(".:modulate")
+tracks/0/interp = 1
+tracks/0/loop_wrap = true
+tracks/0/keys = {
+"times": PackedFloat32Array(0),
+"transitions": PackedFloat32Array(1),
+"update": 0,
+"values": [Color(1, 1, 1, 0)]
+}
+
+[sub_resource type="Animation" id="Animation_hd6pb"]
+resource_name = "pulse"
+tracks/0/type = "value"
+tracks/0/imported = false
+tracks/0/enabled = true
+tracks/0/path = NodePath(".:modulate")
+tracks/0/interp = 1
+tracks/0/loop_wrap = true
+tracks/0/keys = {
+"times": PackedFloat32Array(0, 0.0666667, 1),
+"transitions": PackedFloat32Array(1, 1, 1),
+"update": 0,
+"values": [Color(1, 1, 1, 0), Color(1, 1, 1, 1), Color(1, 1, 1, 0)]
+}
+
+[sub_resource type="AnimationLibrary" id="AnimationLibrary_dattd"]
+_data = {
+"RESET": SubResource("Animation_qnb5b"),
+"pulse": SubResource("Animation_hd6pb")
+}
+
+[sub_resource type="ConvexPolygonShape3D" id="ConvexPolygonShape3D_4yjls"]
+points = PackedVector3Array(-0.491533, 0.105308, -1.39924, 0.555521, 0.121881, -1.13022, 0.555521, -0.179429, -1.13022, -0.42016, 0.34675, -0.0269759, -0.416041, -0.427865, -0.0360668, 0.41733, 0.347883, -0.0240776, 0.41506, -0.431027, -0.0290891, -0.0439121, -0.167141, -1.84256, 0.163634, 0.121881, -1.88387, -0.559664, -0.179429, -1.13022, -0.0773922, 0.423362, 0.0146954, 0.40477, -0.450873, -0.316713, -0.408913, -0.450873, -0.316713, -0.137649, 0.121881, -1.91408, 0.434899, 0.363031, -0.316713, -0.439041, 0.363031, -0.286688, -0.512583, -0.16544, -1.41858, 0.149776, -0.165573, -1.80574, -0.559664, 0.121881, -1.13022, 0.0431211, 0.423362, -0.0455436, -0.153273, -0.164927, -1.82967, -0.439041, -0.450873, -0.226449, 0.0431211, 0.423362, 0.0146954, -0.0472639, 0.423362, -0.0455436, 0.434899, -0.450873, -0.256474, -0.167777, 0.121881, -1.88387, 0.509639, -0.165796, -1.22611, -0.408913, 0.363031, -0.316713)
+
+[sub_resource type="ConvexPolygonShape3D" id="ConvexPolygonShape3D_t82w4"]
+points = PackedVector3Array(-0.205478, -0.205766, -0.0890473, 0.20591, 0.205734, 0.0807378, 0.20591, -0.133866, 0.0807378, -0.212025, 0.0946823, 0.087283, 0.20591, -0.18615, -0.0890659, -0.212025, -0.173099, 0.0546313, -0.205478, 0.205734, 0.067666, 0.179804, 0.14036, 0.0284876, -0.179373, -0.00327856, 0.100355, 0.20591, -0.173099, 0.0546127, -0.212025, -0.18615, -0.0890473, -0.205478, -0.127381, 0.087283, 0.20591, -0.205766, -0.0759941, -0.0552688, 0.0750659, 0.100355, -0.212025, 0.205734, 0.0807378, -0.0291632, -0.1992, -0.0237254, 0.199404, 0.205734, 0.067666, -0.0618566, 0.00324679, 0.100355, -0.179373, 0.0750659, 0.100355, -0.205478, -0.205766, -0.0759755, 0.20591, -0.205766, -0.0890659, 0.199404, -0.166573, 0.0611393, 0.166751, 0.14036, 0.0284876, 0.20591, 0.199168, 0.067666, -0.212025, -0.133866, 0.0807378, 0.173257, 0.153451, 0.0350328, -0.212025, 0.205734, 0.0741926, -0.212025, -0.1992, -0.0759755, -0.212025, -0.00327856, 0.087283)
+
+[sub_resource type="ConvexPolygonShape3D" id="ConvexPolygonShape3D_5rbro"]
+points = PackedVector3Array(0.0122657, 0.164796, 0.267582, 0.0122657, 0.164796, -0.261482, -0.0373277, 0.164796, -0.253196, -0.0373277, -0.157646, 0.259296, 0.0288054, -0.165934, 0.259296, -0.0373277, 0.164796, 0.259296, 0.0288054, -0.141071, -0.253196, -0.0373277, -0.157646, -0.253196, 0.0205323, 0.164796, 0.259296, 0.0205323, 0.164796, -0.253196, -0.029061, -0.165934, -0.253196, 0.0288054, -0.165934, -0.253196, -0.0373277, -0.116305, -0.261482, -0.029061, -0.157646, 0.267582, -0.029061, -0.165934, 0.259296, 0.0122657, -0.157646, 0.267582, 0.0288054, -0.141071, 0.259296, -0.0373277, 0.139933, -0.261482)
+
+[sub_resource type="ConvexPolygonShape3D" id="ConvexPolygonShape3D_r7lrj"]
+points = PackedVector3Array(-0.205478, -0.205766, -0.0890473, 0.20591, 0.205734, 0.0807378, 0.20591, -0.133866, 0.0807378, -0.212025, 0.0946823, 0.087283, 0.20591, -0.18615, -0.0890659, -0.212025, -0.173099, 0.0546313, -0.205478, 0.205734, 0.067666, 0.179804, 0.14036, 0.0284876, -0.179373, -0.00327856, 0.100355, 0.20591, -0.173099, 0.0546127, -0.212025, -0.18615, -0.0890473, -0.205478, -0.127381, 0.087283, 0.20591, -0.205766, -0.0759941, -0.0552688, 0.0750659, 0.100355, -0.212025, 0.205734, 0.0807378, -0.0291632, -0.1992, -0.0237254, 0.199404, 0.205734, 0.067666, -0.0618566, 0.00324679, 0.100355, -0.179373, 0.0750659, 0.100355, -0.205478, -0.205766, -0.0759755, 0.20591, -0.205766, -0.0890659, 0.199404, -0.166573, 0.0611393, 0.166751, 0.14036, 0.0284876, 0.20591, 0.199168, 0.067666, -0.212025, -0.133866, 0.0807378, 0.173257, 0.153451, 0.0350328, -0.212025, 0.205734, 0.0741926, -0.212025, -0.1992, -0.0759755, -0.212025, -0.00327856, 0.087283)
+
+[sub_resource type="ConvexPolygonShape3D" id="ConvexPolygonShape3D_koxi0"]
+points = PackedVector3Array(-0.205478, -0.205766, -0.0890473, 0.20591, 0.205734, 0.0807378, 0.20591, -0.133866, 0.0807378, -0.212025, 0.0946823, 0.087283, 0.20591, -0.18615, -0.0890659, -0.212025, -0.173099, 0.0546313, -0.205478, 0.205734, 0.067666, 0.179804, 0.14036, 0.0284876, -0.179373, -0.00327856, 0.100355, 0.20591, -0.173099, 0.0546127, -0.212025, -0.18615, -0.0890473, -0.205478, -0.127381, 0.087283, 0.20591, -0.205766, -0.0759941, -0.0552688, 0.0750659, 0.100355, -0.212025, 0.205734, 0.0807378, -0.0291632, -0.1992, -0.0237254, 0.199404, 0.205734, 0.067666, -0.0618566, 0.00324679, 0.100355, -0.179373, 0.0750659, 0.100355, -0.205478, -0.205766, -0.0759755, 0.20591, -0.205766, -0.0890659, 0.199404, -0.166573, 0.0611393, 0.166751, 0.14036, 0.0284876, 0.20591, 0.199168, 0.067666, -0.212025, -0.133866, 0.0807378, 0.173257, 0.153451, 0.0350328, -0.212025, 0.205734, 0.0741926, -0.212025, -0.1992, -0.0759755, -0.212025, -0.00327856, 0.087283)
+
+[sub_resource type="ConvexPolygonShape3D" id="ConvexPolygonShape3D_rcl47"]
+points = PackedVector3Array(-0.205478, -0.205766, -0.0890473, 0.20591, 0.205734, 0.0807378, 0.20591, -0.133866, 0.0807378, -0.212025, 0.0946823, 0.087283, 0.20591, -0.18615, -0.0890659, -0.212025, -0.173099, 0.0546313, -0.205478, 0.205734, 0.067666, 0.179804, 0.14036, 0.0284876, -0.179373, -0.00327856, 0.100355, 0.20591, -0.173099, 0.0546127, -0.212025, -0.18615, -0.0890473, -0.205478, -0.127381, 0.087283, 0.20591, -0.205766, -0.0759941, -0.0552688, 0.0750659, 0.100355, -0.212025, 0.205734, 0.0807378, -0.0291632, -0.1992, -0.0237254, 0.199404, 0.205734, 0.067666, -0.0618566, 0.00324679, 0.100355, -0.179373, 0.0750659, 0.100355, -0.205478, -0.205766, -0.0759755, 0.20591, -0.205766, -0.0890659, 0.199404, -0.166573, 0.0611393, 0.166751, 0.14036, 0.0284876, 0.20591, 0.199168, 0.067666, -0.212025, -0.133866, 0.0807378, 0.173257, 0.153451, 0.0350328, -0.212025, 0.205734, 0.0741926, -0.212025, -0.1992, -0.0759755, -0.212025, -0.00327856, 0.087283)
+
+[sub_resource type="ConvexPolygonShape3D" id="ConvexPolygonShape3D_pxe1o"]
+points = PackedVector3Array(-0.000830336, 0.0950798, 0.28585, -0.0536719, -0.116305, -0.27785, -0.0624918, -0.107481, -0.27785, -0.00963727, 0.121552, -0.27785, 0.0696252, -0.116305, -0.207332, -0.0624918, -0.107481, 0.277021, -0.0624918, 0.0950798, 0.277021, 0.0519983, -0.116305, 0.277021, -0.0624918, 0.0950798, -0.27785, 0.0167706, 0.112728, 0.1713, 0.0696252, -0.0986797, -0.242591, 0.0696252, -0.0986797, 0.162527, -0.044865, 0.121552, 0.277021, 0.00796367, 0.121552, -0.154527, -0.0536719, 0.121552, -0.198559, -0.0536719, -0.116305, 0.277021, 0.0255775, -0.116305, -0.269021, -0.000830336, 0.121552, 0.259419, 0.00796367, 0.103927, -0.269021, -0.0536719, -0.0810546, 0.28585, 0.00796367, 0.103927, 0.259419, 0.0343845, -0.116305, 0.28585, 0.0519983, -0.0986797, 0.277021, 0.0696252, -0.116305, 0.162527, -0.044865, 0.112728, 0.28585, -0.0624918, -0.116305, -0.251419, -0.000830336, 0.112728, -0.27785, -0.0272511, -0.107481, -0.27785, -0.0360581, 0.121552, -0.269021, -0.0536719, 0.112728, 0.277021, 0.00796367, 0.121552, 0.180128, 0.0167706, 0.112728, 0.153698)
+
+[sub_resource type="ConvexPolygonShape3D" id="ConvexPolygonShape3D_gotgp"]
+points = PackedVector3Array(-0.000830336, 0.0950798, 0.28585, -0.0536719, -0.116305, -0.27785, -0.0624918, -0.107481, -0.27785, -0.00963727, 0.121552, -0.27785, 0.0696252, -0.116305, -0.207332, -0.0624918, -0.107481, 0.277021, -0.0624918, 0.0950798, 0.277021, 0.0519983, -0.116305, 0.277021, -0.0624918, 0.0950798, -0.27785, 0.0167706, 0.112728, 0.1713, 0.0696252, -0.0986797, -0.242591, 0.0696252, -0.0986797, 0.162527, -0.044865, 0.121552, 0.277021, 0.00796367, 0.121552, -0.154527, -0.0536719, 0.121552, -0.198559, -0.0536719, -0.116305, 0.277021, 0.0255775, -0.116305, -0.269021, -0.000830336, 0.121552, 0.259419, 0.00796367, 0.103927, -0.269021, -0.0536719, -0.0810546, 0.28585, 0.00796367, 0.103927, 0.259419, 0.0343845, -0.116305, 0.28585, 0.0519983, -0.0986797, 0.277021, 0.0696252, -0.116305, 0.162527, -0.044865, 0.112728, 0.28585, -0.0624918, -0.116305, -0.251419, -0.000830336, 0.112728, -0.27785, -0.0272511, -0.107481, -0.27785, -0.0360581, 0.121552, -0.269021, -0.0536719, 0.112728, 0.277021, 0.00796367, 0.121552, 0.180128, 0.0167706, 0.112728, 0.153698)
+
+[sub_resource type="ConvexPolygonShape3D" id="ConvexPolygonShape3D_6c0qd"]
+points = PackedVector3Array(-0.000830336, 0.0950798, 0.28585, -0.0536719, -0.116305, -0.27785, -0.0624918, -0.107481, -0.27785, -0.00963727, 0.121552, -0.27785, 0.0696252, -0.116305, -0.207332, -0.0624918, -0.107481, 0.277021, -0.0624918, 0.0950798, 0.277021, 0.0519983, -0.116305, 0.277021, -0.0624918, 0.0950798, -0.27785, 0.0167706, 0.112728, 0.1713, 0.0696252, -0.0986797, -0.242591, 0.0696252, -0.0986797, 0.162527, -0.044865, 0.121552, 0.277021, 0.00796367, 0.121552, -0.154527, -0.0536719, 0.121552, -0.198559, -0.0536719, -0.116305, 0.277021, 0.0255775, -0.116305, -0.269021, -0.000830336, 0.121552, 0.259419, 0.00796367, 0.103927, -0.269021, -0.0536719, -0.0810546, 0.28585, 0.00796367, 0.103927, 0.259419, 0.0343845, -0.116305, 0.28585, 0.0519983, -0.0986797, 0.277021, 0.0696252, -0.116305, 0.162527, -0.044865, 0.112728, 0.28585, -0.0624918, -0.116305, -0.251419, -0.000830336, 0.112728, -0.27785, -0.0272511, -0.107481, -0.27785, -0.0360581, 0.121552, -0.269021, -0.0536719, 0.112728, 0.277021, 0.00796367, 0.121552, 0.180128, 0.0167706, 0.112728, 0.153698)
+
+[sub_resource type="ConvexPolygonShape3D" id="ConvexPolygonShape3D_jq8te"]
+points = PackedVector3Array(-0.000830336, 0.0950798, 0.28585, -0.0536719, -0.116305, -0.27785, -0.0624918, -0.107481, -0.27785, -0.00963727, 0.121552, -0.27785, 0.0696252, -0.116305, -0.207332, -0.0624918, -0.107481, 0.277021, -0.0624918, 0.0950798, 0.277021, 0.0519983, -0.116305, 0.277021, -0.0624918, 0.0950798, -0.27785, 0.0167706, 0.112728, 0.1713, 0.0696252, -0.0986797, -0.242591, 0.0696252, -0.0986797, 0.162527, -0.044865, 0.121552, 0.277021, 0.00796367, 0.121552, -0.154527, -0.0536719, 0.121552, -0.198559, -0.0536719, -0.116305, 0.277021, 0.0255775, -0.116305, -0.269021, -0.000830336, 0.121552, 0.259419, 0.00796367, 0.103927, -0.269021, -0.0536719, -0.0810546, 0.28585, 0.00796367, 0.103927, 0.259419, 0.0343845, -0.116305, 0.28585, 0.0519983, -0.0986797, 0.277021, 0.0696252, -0.116305, 0.162527, -0.044865, 0.112728, 0.28585, -0.0624918, -0.116305, -0.251419, -0.000830336, 0.112728, -0.27785, -0.0272511, -0.107481, -0.27785, -0.0360581, 0.121552, -0.269021, -0.0536719, 0.112728, 0.277021, 0.00796367, 0.121552, 0.180128, 0.0167706, 0.112728, 0.153698)
+
+[sub_resource type="ConvexPolygonShape3D" id="ConvexPolygonShape3D_s5xhc"]
+points = PackedVector3Array(-0.000830336, 0.0950798, 0.28585, -0.0536719, -0.116305, -0.27785, -0.0624918, -0.107481, -0.27785, -0.00963727, 0.121552, -0.27785, 0.0696252, -0.116305, -0.207332, -0.0624918, -0.107481, 0.277021, -0.0624918, 0.0950798, 0.277021, 0.0519983, -0.116305, 0.277021, -0.0624918, 0.0950798, -0.27785, 0.0167706, 0.112728, 0.1713, 0.0696252, -0.0986797, -0.242591, 0.0696252, -0.0986797, 0.162527, -0.044865, 0.121552, 0.277021, 0.00796367, 0.121552, -0.154527, -0.0536719, 0.121552, -0.198559, -0.0536719, -0.116305, 0.277021, 0.0255775, -0.116305, -0.269021, -0.000830336, 0.121552, 0.259419, 0.00796367, 0.103927, -0.269021, -0.0536719, -0.0810546, 0.28585, 0.00796367, 0.103927, 0.259419, 0.0343845, -0.116305, 0.28585, 0.0519983, -0.0986797, 0.277021, 0.0696252, -0.116305, 0.162527, -0.044865, 0.112728, 0.28585, -0.0624918, -0.116305, -0.251419, -0.000830336, 0.112728, -0.27785, -0.0272511, -0.107481, -0.27785, -0.0360581, 0.121552, -0.269021, -0.0536719, 0.112728, 0.277021, 0.00796367, 0.121552, 0.180128, 0.0167706, 0.112728, 0.153698)
+
+[sub_resource type="ConvexPolygonShape3D" id="ConvexPolygonShape3D_de5sx"]
+points = PackedVector3Array(-0.000830336, 0.0950798, 0.28585, -0.0536719, -0.116305, -0.27785, -0.0624918, -0.107481, -0.27785, -0.00963727, 0.121552, -0.27785, 0.0696252, -0.116305, -0.207332, -0.0624918, -0.107481, 0.277021, -0.0624918, 0.0950798, 0.277021, 0.0519983, -0.116305, 0.277021, -0.0624918, 0.0950798, -0.27785, 0.0167706, 0.112728, 0.1713, 0.0696252, -0.0986797, -0.242591, 0.0696252, -0.0986797, 0.162527, -0.044865, 0.121552, 0.277021, 0.00796367, 0.121552, -0.154527, -0.0536719, 0.121552, -0.198559, -0.0536719, -0.116305, 0.277021, 0.0255775, -0.116305, -0.269021, -0.000830336, 0.121552, 0.259419, 0.00796367, 0.103927, -0.269021, -0.0536719, -0.0810546, 0.28585, 0.00796367, 0.103927, 0.259419, 0.0343845, -0.116305, 0.28585, 0.0519983, -0.0986797, 0.277021, 0.0696252, -0.116305, 0.162527, -0.044865, 0.112728, 0.28585, -0.0624918, -0.116305, -0.251419, -0.000830336, 0.112728, -0.27785, -0.0272511, -0.107481, -0.27785, -0.0360581, 0.121552, -0.269021, -0.0536719, 0.112728, 0.277021, 0.00796367, 0.121552, 0.180128, 0.0167706, 0.112728, 0.153698)
+
+[sub_resource type="Environment" id="Environment_0bl5f"]
+
+[sub_resource type="StandardMaterial3D" id="StandardMaterial3D_1myo0"]
+albedo_color = Color(0.57, 0.57, 0.57, 1)
+
+[sub_resource type="PlaneMesh" id="PlaneMesh_b5ivf"]
+size = Vector2(20, 20)
+
+[sub_resource type="StandardMaterial3D" id="StandardMaterial3D_x1yde"]
+albedo_texture = ExtResource("55_n4xbv")
+
+[sub_resource type="StandardMaterial3D" id="StandardMaterial3D_nqnac"]
+albedo_texture = ExtResource("55_r8n1l")
+
+[sub_resource type="StandardMaterial3D" id="StandardMaterial3D_ku50y"]
+albedo_texture = ExtResource("62_oxqwu")
+
+[sub_resource type="StandardMaterial3D" id="StandardMaterial3D_ims2n"]
+albedo_texture = ExtResource("65_611al")
+
+[node name="Last Man Breathing" type="Node3D"]
+
+[node name="MAIN_MENU" type="Node2D" parent="."]
+
+[node name="GAME" type="Node3D" parent="."]
+script = ExtResource("1_koq35")
+
+[node name="Intro_for_inspiration" type="AudioStreamPlayer" parent="GAME"]
+stream = ExtResource("2_thuhr")
+volume_db = -7.0
+bus = &"Music"
+
+[node name="WestWall" type="StaticBody3D" parent="GAME" groups=["Walls"]]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 1.33639, 0, 0)
+disable_mode = 1
+physics_material_override = SubResource("PhysicsMaterial_38am6")
+
+[node name="CollisionShape3D" type="CollisionShape3D" parent="GAME/WestWall" groups=["Walls"]]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, -100.644, 0, -4.737)
+shape = SubResource("BoxShape3D_q8bmm")
+
+[node name="EastWall" type="StaticBody3D" parent="GAME" groups=["Walls"]]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 87.463, 0, 0)
+disable_mode = 1
+physics_material_override = SubResource("PhysicsMaterial_38am6")
+
+[node name="CollisionShape3D" type="CollisionShape3D" parent="GAME/EastWall" groups=["Walls"]]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 11.4004, 1.68994, -4.15096)
+shape = SubResource("BoxShape3D_q8bmm")
+
+[node name="SoutWall" type="StaticBody3D" parent="GAME" groups=["Walls"]]
+transform = Transform3D(-4.37114e-08, 0, 1, 0, 1, 0, -1, 0, -4.37114e-08, -0.443325, 0, -8.82988)
+disable_mode = 1
+physics_material_override = SubResource("PhysicsMaterial_38am6")
+
+[node name="CollisionShape3D" type="CollisionShape3D" parent="GAME/SoutWall" groups=["Walls"]]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, -106.263, -2.36564, -4.73742)
+shape = SubResource("BoxShape3D_q8bmm")
+
+[node name="NortWall" type="StaticBody3D" parent="GAME" groups=["Walls"]]
+transform = Transform3D(-4.37114e-08, 0, 1, 0, 1, 0, -1, 0, -4.37114e-08, 1.127, 0, -144.946)
+disable_mode = 1
+physics_material_override = SubResource("PhysicsMaterial_38am6")
+
+[node name="CollisionShape3D" type="CollisionShape3D" parent="GAME/NortWall" groups=["Walls"]]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, -45.532, 0, -3.5058)
+shape = SubResource("BoxShape3D_q8bmm")
+
+[node name="Plane" type="MeshInstance3D" parent="GAME"]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, -0.148325, -0.0187988, 0.146774)
+mesh = SubResource("PlaneMesh_xwygj")
+surface_material_override/0 = SubResource("StandardMaterial3D_a1ms4")
+
+[node name="StaticBody3D" type="StaticBody3D" parent="GAME/Plane"]
+physics_material_override = SubResource("PhysicsMaterial_kcfba")
+
+[node name="CollisionShape3D" type="CollisionShape3D" parent="GAME/Plane/StaticBody3D"]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 0, 0.000311341, 0)
+shape = SubResource("BoxShape3D_gum43")
+
+[node name="HazardCube" type="MeshInstance3D" parent="GAME" groups=["tracking_objects"]]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 7.0855, 1, 0)
+mesh = SubResource("BoxMesh_s5mco")
+surface_material_override/0 = SubResource("StandardMaterial3D_11qh4")
+
+[node name="HazardCube" type="StaticBody3D" parent="GAME/HazardCube" groups=["HazardCubes", "tracking_objects"]]
+physics_material_override = SubResource("PhysicsMaterial_27xs3")
+
+[node name="CollisionShape3D" type="CollisionShape3D" parent="GAME/HazardCube/HazardCube"]
+shape = SubResource("BoxShape3D_ljlxa")
+
+[node name="TopDownCamera" type="Camera3D" parent="GAME" groups=["game_camera_group"]]
+transform = Transform3D(-0.707107, 0.707107, 3.09086e-08, 0, -4.37114e-08, 1, 0.707107, 0.707107, 3.09086e-08, 25, 5, -10)
+current = true
+script = ExtResource("1_lg8mh")
+target_path = NodePath("../Billy-Ace Raney")
+min_isometric_size = 10.0
+enable_dead_zone = true
+show_dead_zone_debug = true
+auto_center_delay = 1.0
+dead_zone_smoothing = 1.0
+sprint_zoom_out = 3.0
+size_transition_speed = 5.0
+
+[node name="TransitionCameraSound" type="AudioStreamPlayer" parent="GAME/TopDownCamera"]
+stream = ExtResource("4_yq034")
+volume_db = -5.0
+bus = &"SFX"
+
+[node name="ZoomCameraSound" type="AudioStreamPlayer" parent="GAME/TopDownCamera"]
+stream = ExtResource("5_uwpyo")
+volume_db = -2.0
+pitch_scale = 1.25
+mix_target = 1
+bus = &"SFX"
+
+[node name="LimitReachedSound" type="AudioStreamPlayer" parent="GAME/TopDownCamera"]
+stream = ExtResource("6_8uj12")
+volume_db = 5.0
+mix_target = 1
+bus = &"SFX"
+
+[node name="ObjectivePointer" type="MeshInstance3D" parent="GAME" groups=["objective_pointer"]]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 21.2404, 0.466919, -8.29886)
+visible = false
+mesh = SubResource("BoxMesh_ei0do")
+surface_material_override/0 = SubResource("StandardMaterial3D_grnkb")
+
+[node name="ObjectivePointer" type="StaticBody3D" parent="GAME/ObjectivePointer" groups=["objective_pointer"]]
+physics_material_override = SubResource("PhysicsMaterial_3fral")
+
+[node name="CollisionShape3D" type="CollisionShape3D" parent="GAME/ObjectivePointer/ObjectivePointer"]
+shape = SubResource("BoxShape3D_mlony")
+
+[node name="Billy-Ace Raney" parent="GAME" groups=["player"] instance=ExtResource("1_v2pgu")]
+script = ExtResource("2_i1bh0")
+
+[node name="Head" type="Node3D" parent="GAME/Billy-Ace Raney"]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 0, 2.2, 0)
+script = ExtResource("3_1a80d")
+body_rotation_delay = 0.1
+instant_head_snap = true
+ultra_fast_body_speed = 600.0
+fast_head_speed = 15.0
+
+[node name="HeadMess" type="MeshInstance3D" parent="GAME/Billy-Ace Raney/Head"]
+visible = false
+mesh = SubResource("BoxMesh_frft3")
+skeleton = NodePath("../..")
+surface_material_override/0 = SubResource("StandardMaterial3D_jcrbq")
+
+[node name="Голова" parent="GAME/Billy-Ace Raney/Head" instance=ExtResource("10_n0c5j")]
+transform = Transform3D(-4.37114e-08, 0, 1, 0, 1, 0, -1, 0, -4.37114e-08, 0, -0.533626, 0.0163739)
+
+[node name="Flashlight" type="Node3D" parent="GAME/Billy-Ace Raney/Head"]
+script = ExtResource("5_1wlod")
+flashlight_on_sound = ExtResource("7_s7juo")
+flashlight_off_sound = ExtResource("8_fhoxg")
+
+[node name="FlashlightSpot" type="SpotLight3D" parent="GAME/Billy-Ace Raney/Head/Flashlight"]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 0, 1, -1)
+spot_range = 8.0
+
+[node name="FlashlightArea" type="OmniLight3D" parent="GAME/Billy-Ace Raney/Head/Flashlight"]
+omni_range = 3.0
+
+[node name="FlashlightAudioOn" type="AudioStreamPlayer" parent="GAME/Billy-Ace Raney/Head/Flashlight"]
+stream = ExtResource("7_s7juo")
+volume_db = -5.0
+
+[node name="FlashlightAudioOff" type="AudioStreamPlayer" parent="GAME/Billy-Ace Raney/Head/Flashlight"]
+stream = ExtResource("8_fhoxg")
+volume_db = -5.0
+
+[node name="AimDotVisual" type="Node3D" parent="GAME/Billy-Ace Raney/Head" groups=["aim_dot_group"]]
+script = ExtResource("6_yfnqr")
+
+[node name="MeshInstance3D" type="MeshInstance3D" parent="GAME/Billy-Ace Raney/Head/AimDotVisual" groups=["aim_dot_group"]]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 0, 0.1, -2)
+mesh = SubResource("SphereMesh_qgyge")
+surface_material_override/0 = SubResource("StandardMaterial3D_x7ewa")
+
+[node name="WeaponHolder" type="Node3D" parent="GAME/Billy-Ace Raney/Head"]
+transform = Transform3D(-4.37114e-08, 0, -1, 0, 1, 0, 1, 0, -4.37114e-08, 0.0420654, -0.8, -0.575064)
+script = ExtResource("14_mqp0k")
+max_weapon_turn_degrees = 20.0
+weapon_follows_cursor = false
+show_debug_info = true
+
+[node name="MeshInstance3D" type="MeshInstance3D" parent="GAME/Billy-Ace Raney/Head/WeaponHolder"]
+
+[node name="ReloadTimer" type="Timer" parent="GAME/Billy-Ace Raney/Head/WeaponHolder"]
+wait_time = 2.0
+one_shot = true
+
+[node name="CrosshairUI" type="Control" parent="GAME/Billy-Ace Raney"]
+layout_mode = 3
+anchors_preset = 0
+offset_right = 40.0
+offset_bottom = 40.0
+script = ExtResource("14_xdiqq")
+dead_zone_radius = 35.0
+dead_zone_color = Color(1, 0.833333, 0, 0.2)
+zone_pulse_when_active = false
+head_rotation_speed = 20.0
+
+[node name="Backpack" parent="GAME/Billy-Ace Raney" instance=ExtResource("17_1ih2t")]
+transform = Transform3D(-6.33815e-08, 0, -1.45, 0, 1.45, 0, 1.45, 0, -6.33815e-08, 0, 1.344, 0.251)
+visible = false
+
+[node name="PlayerIndicators" type="Node3D" parent="GAME/Billy-Ace Raney" node_paths=PackedStringArray("hover_sprite", "movement_spring_arm", "movement_sprite")]
+script = ExtResource("18_hyy5w")
+hover_sprite = NodePath("Selection Ring (Player Info)")
+movement_spring_arm = NodePath("MovementSpringArm (SpringArm3D)")
+movement_sprite = NodePath("MovementSpringArm (SpringArm3D)/Navigation Arrow")
+movement_scale = Vector3(0.1, 0.1, 0.1)
+
+[node name="Selection Ring (Player Info)" type="Sprite3D" parent="GAME/Billy-Ace Raney/PlayerIndicators"]
+transform = Transform3D(0.25, 0, 0, 0, 0.25, 0, 0, 0, 0.25, 0, 0, 0)
+axis = 1
+texture = ExtResource("18_riax2")
+
+[node name="MovementSpringArm (SpringArm3D)" type="SpringArm3D" parent="GAME/Billy-Ace Raney/PlayerIndicators"]
+spring_length = 2.0
+
+[node name="Navigation Arrow" type="Sprite3D" parent="GAME/Billy-Ace Raney/PlayerIndicators/MovementSpringArm (SpringArm3D)"]
+transform = Transform3D(0.2, 0, 0, 0, 0.2, 0, 0, 0, 0.2, 0, 0, 0)
+texture = ExtResource("20_mpr6x")
+
+[node name="Interaction_Manager" type="Node3D" parent="GAME/Billy-Ace Raney"]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 0, 1.5, -2)
+script = ExtResource("21_7kols")
+
+[node name="Cast_Zone_Player" type="ShapeCast3D" parent="GAME/Billy-Ace Raney/Interaction_Manager"]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 0, 0.495118, 0)
+shape = SubResource("BoxShape3D_ktlec")
+collision_mask = 16
+collide_with_areas = true
+
+[node name="PlayerMovementController" type="Node" parent="GAME/Billy-Ace Raney"]
+script = ExtResource("22_s3itw")
+
+[node name="PlayerSprintSystem" type="Node" parent="GAME/Billy-Ace Raney"]
+script = ExtResource("23_v0unu")
+
+[node name="PlayerHealthSystem" type="Node" parent="GAME/Billy-Ace Raney"]
+script = ExtResource("24_gpkuu")
+
+[node name="PlayerInventoryManager" type="Node" parent="GAME/Billy-Ace Raney"]
+script = ExtResource("25_r1jed")
+
+[node name="PickupHandler" type="Node" parent="GAME/Billy-Ace Raney"]
+script = ExtResource("26_3y172")
+
+[node name="MinimapViewport" type="SubViewport" parent="GAME"]
+transparent_bg = true
+msaa_3d = 2
+size = Vector2i(256, 256)
+render_target_clear_mode = 1
+render_target_update_mode = 4
+
+[node name="MinimapCamera" type="Camera3D" parent="GAME/MinimapViewport"]
+transform = Transform3D(1, 0, 0, 0, -4.37114e-08, 1, 0, -1, -4.37114e-08, 0, 100, 0)
+projection = 1
+size = 50.0
+script = ExtResource("4_kbhf7")
+player_node_path = NodePath("../../Billy-Ace Raney")
+
+[node name="UI" type="CanvasLayer" parent="GAME"]
+
+[node name="TextureWeapon" type="TextureRect" parent="GAME/UI" groups=["ammo_ui"]]
+material = SubResource("ShaderMaterial_ycefn")
+anchors_preset = 3
+anchor_left = 1.0
+anchor_top = 1.0
+anchor_right = 1.0
+anchor_bottom = 1.0
+offset_left = -303.08
+offset_top = -106.975
+offset_right = -169.08
+offset_bottom = -28.975
+grow_horizontal = 0
+grow_vertical = 0
+scale = Vector2(1.25, 1.25)
+expand_mode = 1
+script = ExtResource("10_84ecc")
+
+[node name="MinimapDisplay" type="TextureRect" parent="GAME/UI"]
+material = SubResource("ShaderMaterial_80ih1")
+anchors_preset = 2
+anchor_top = 1.0
+anchor_bottom = 1.0
+offset_left = 10.0
+offset_top = -168.575
+offset_right = 266.0
+offset_bottom = 87.425
+grow_vertical = 0
+scale = Vector2(0.631, 0.631)
+texture = SubResource("ViewportTexture_ijtty")
+script = ExtResource("6_m1iwh")
+
+[node name="CyrcleMenuImg" type="Sprite2D" parent="GAME/UI/MinimapDisplay"]
+modulate = Color(1, 1, 1, 0.466667)
+position = Vector2(131.238, 128.466)
+scale = Vector2(1.09537, 1.51643)
+texture = ExtResource("14_ojnvc")
+
+[node name="CompassContainer" type="Control" parent="GAME/UI/MinimapDisplay"]
+top_level = true
+layout_mode = 1
+anchors_preset = 2
+anchor_top = 1.0
+anchor_bottom = 1.0
+offset_left = 8.0
+offset_top = -174.0
+offset_right = 322.0
+offset_bottom = 136.0
+grow_vertical = 0
+scale = Vector2(0.540732, 0.541393)
+script = ExtResource("8_v5khs")
+player_node_path = NodePath("../../../Billy-Ace Raney")
+player_head_node_path = NodePath("../../../Billy-Ace Raney/Head")
+player_marker_radius = 8.0
+arrow_head_size = 10.0
+movement_arrow_color = Color(0, 0.01, 0.01, 0.486275)
+compass_font_size_min = 16.0
+compass_font_size_max = 24.0
+compass_lerp_speed = 6.0
+
+[node name="Fade" type="ColorRect" parent="GAME/UI"]
+visible = false
+anchors_preset = 15
+anchor_right = 1.0
+anchor_bottom = 1.0
+grow_horizontal = 2
+grow_vertical = 2
+color = Color(0, 0, 0, 1)
+script = ExtResource("8_mmvbg")
+
+[node name="TimeUI" type="Control" parent="GAME/UI"]
+layout_mode = 3
+anchors_preset = 5
+anchor_left = 0.5
+anchor_right = 0.5
+offset_left = -310.0
+offset_right = 90.0
+offset_bottom = 200.0
+grow_horizontal = 2
+scale = Vector2(1.55, 1.55)
+script = ExtResource("11_aw8kq")
+
+[node name="TimeLabel" type="Label" parent="GAME/UI/TimeUI"]
+layout_mode = 1
+offset_right = 40.0
+offset_bottom = 23.0
+text = "Time
+"
+label_settings = SubResource("LabelSettings_k1sfn")
+
+[node name="PeriodLabel" type="Label" parent="GAME/UI/TimeUI"]
+layout_mode = 1
+anchors_preset = 5
+anchor_left = 0.5
+anchor_right = 0.5
+offset_left = -20.0
+offset_right = 20.0
+offset_bottom = 23.0
+grow_horizontal = 2
+text = "Period
+"
+label_settings = SubResource("LabelSettings_gdkxl")
+
+[node name="DayLabel" type="Label" parent="GAME/UI/TimeUI"]
+layout_mode = 1
+anchors_preset = 1
+anchor_left = 1.0
+anchor_right = 1.0
+offset_left = -40.0
+offset_bottom = 23.0
+grow_horizontal = 0
+text = "Day
+"
+label_settings = SubResource("LabelSettings_dgpms")
+
+[node name="Ammo" type="Control" parent="GAME/UI"]
+layout_mode = 3
+anchors_preset = 3
+anchor_left = 1.0
+anchor_top = 1.0
+anchor_right = 1.0
+anchor_bottom = 1.0
+offset_left = -315.0
+offset_top = -210.0
+offset_right = -68.0
+offset_bottom = -46.0
+grow_horizontal = 0
+grow_vertical = 0
+scale = Vector2(1.25, 1.25)
+script = ExtResource("14_n4dqk")
+animation_duration = 0.55
+animation_type = 4
+
+[node name="BackpackUI" type="Control" parent="GAME/UI/Ammo" node_paths=PackedStringArray("backpack_image") groups=["backpack_ui"]]
+layout_mode = 1
+anchors_preset = 3
+anchor_left = 1.0
+anchor_top = 1.0
+anchor_right = 1.0
+anchor_bottom = 1.0
+offset_left = -69.0
+offset_top = -101.0
+grow_horizontal = 0
+grow_vertical = 0
+script = ExtResource("29_l7eua")
+backpack_image = NodePath("BackpackImage")
+
+[node name="BackpackImage" type="Sprite2D" parent="GAME/UI/Ammo/BackpackUI"]
+position = Vector2(29.355, 59.335)
+scale = Vector2(0.092, 0.092)
+texture = ExtResource("29_n64vf")
+
+[node name="CyrcleMenuImg" type="Sprite2D" parent="GAME/UI/Ammo"]
+modulate = Color(1, 1, 1, 0.392157)
+position = Vector2(127.435, 94)
+scale = Vector2(0.315, 0.253247)
+texture = ExtResource("32_dpd8c")
+
+[node name="Arsenal" type="Control" parent="GAME/UI/Ammo"]
+modulate = Color(0.38, 0.38, 0.38, 1)
+clip_contents = true
+layout_mode = 1
+anchors_preset = 3
+anchor_left = 1.0
+anchor_top = 1.0
+anchor_right = 1.0
+anchor_bottom = 1.0
+offset_left = -236.0
+offset_top = -125.0
+offset_right = 94.0
+offset_bottom = -41.0
+grow_horizontal = 0
+grow_vertical = 0
+scale = Vector2(0.6, 0.6)
+script = ExtResource("21_tack5")
+outline_shader_material = SubResource("ShaderMaterial_os5lu")
+
+[node name="Desert-Eagle Pistol" type="TextureRect" parent="GAME/UI/Ammo/Arsenal"]
+material = SubResource("ShaderMaterial_p4f2k")
+layout_mode = 2
+offset_left = -1.0
+offset_top = 35.0
+offset_right = 511.0
+offset_bottom = 658.0
+rotation = -1.29154
+scale = Vector2(0.075, 0.075)
+texture = ExtResource("21_fr7bk")
+flip_h = true
+
+[node name="Lever-Action Shotgun" type="TextureRect" parent="GAME/UI/Ammo/Arsenal"]
+layout_mode = 2
+offset_left = 65.0
+offset_right = 1089.0
+offset_bottom = 1024.0
+scale = Vector2(0.05, 0.05)
+texture = ExtResource("10_2gajh")
+
+[node name="Pump-Action Shotgun" type="TextureRect" parent="GAME/UI/Ammo/Arsenal"]
+layout_mode = 2
+offset_left = 118.0
+offset_right = 1142.0
+offset_bottom = 1024.0
+scale = Vector2(0.05, 0.05)
+texture = ExtResource("22_t243r")
+
+[node name="M16A2_Automatic_Gun" type="TextureRect" parent="GAME/UI/Ammo/Arsenal"]
+layout_mode = 2
+offset_left = 170.0
+offset_right = 1194.0
+offset_bottom = 1024.0
+scale = Vector2(0.05, 0.05)
+texture = ExtResource("23_ooxm0")
+
+[node name="Machine_Gun" type="TextureRect" parent="GAME/UI/Ammo/Arsenal"]
+layout_mode = 2
+offset_left = 226.667
+offset_top = -8.33331
+offset_right = 1250.67
+offset_bottom = 1015.67
+rotation = 0.0855211
+scale = Vector2(0.055, 0.055)
+texture = ExtResource("24_i80u0")
+
+[node name="Grenade" type="TextureRect" parent="GAME/UI/Ammo/Arsenal"]
+layout_mode = 2
+offset_left = 293.333
+offset_top = 11.6667
+offset_right = 1317.33
+offset_bottom = 1035.67
+scale = Vector2(0.025, 0.025)
+texture = ExtResource("25_6aiys")
+
+[node name="FireModeLabel" type="Label" parent="GAME/UI/Ammo"]
+z_index = 5
+layout_mode = 2
+offset_top = 74.0
+offset_right = 107.0
+offset_bottom = 155.0
+size_flags_vertical = 2
+label_settings = SubResource("LabelSettings_vfux1")
+horizontal_alignment = 1
+vertical_alignment = 1
+
+[node name="WeaponNameLabel" type="Label" parent="GAME/UI/Ammo"]
+layout_mode = 2
+offset_left = 24.0
+offset_top = 24.0
+offset_right = 183.0
+offset_bottom = 38.0
+text = "weapon
+"
+label_settings = SubResource("LabelSettings_671en")
+horizontal_alignment = 1
+
+[node name="CurrentAmmoLabel" type="Label" parent="GAME/UI/Ammo"]
+layout_mode = 1
+anchors_preset = 3
+anchor_left = 1.0
+anchor_top = 1.0
+anchor_right = 1.0
+anchor_bottom = 1.0
+offset_left = -188.0
+offset_top = -58.0
+offset_right = 13.0
+offset_bottom = -9.0
+grow_horizontal = 0
+grow_vertical = 0
+text = "000
+"
+label_settings = SubResource("LabelSettings_5fp2r")
+horizontal_alignment = 1
+
+[node name="TotalAmmoLabel" type="Label" parent="GAME/UI/Ammo"]
+layout_mode = 1
+anchors_preset = 3
+anchor_left = 1.0
+anchor_top = 1.0
+anchor_right = 1.0
+anchor_bottom = 1.0
+offset_left = -179.0
+offset_top = -73.0
+offset_right = -70.0
+offset_bottom = -48.0
+grow_horizontal = 0
+grow_vertical = 0
+text = "000
+"
+label_settings = SubResource("LabelSettings_ae8ch")
+horizontal_alignment = 2
+
+[node name="camera_mode_label" type="Label" parent="GAME/UI" groups=["game_camera_group"]]
+anchors_preset = 6
+anchor_left = 1.0
+anchor_top = 0.5
+anchor_right = 1.0
+anchor_bottom = 0.5
+offset_left = -95.0
+offset_top = -11.0
+offset_bottom = 16.0
+grow_horizontal = 0
+grow_vertical = 2
+label_settings = SubResource("LabelSettings_56x35")
+
+[node name="FlashlightUI" type="Control" parent="GAME/UI"]
+layout_mode = 3
+anchors_preset = 3
+anchor_left = 1.0
+anchor_top = 1.0
+anchor_right = 1.0
+anchor_bottom = 1.0
+offset_left = -177.0
+offset_top = -328.0
+offset_bottom = -214.0
+grow_horizontal = 0
+grow_vertical = 0
+
+[node name="switcher_flashlight_label" type="Label" parent="GAME/UI/FlashlightUI"]
+z_index = 100
+layout_mode = 1
+anchors_preset = 6
+anchor_left = 1.0
+anchor_top = 0.5
+anchor_right = 1.0
+anchor_bottom = 0.5
+offset_left = -133.0
+offset_top = -70.0
+offset_right = -3.0
+offset_bottom = -25.0
+grow_horizontal = 0
+grow_vertical = 2
+text = "ON
+"
+label_settings = SubResource("LabelSettings_tktk1")
+
+[node name="visual_ammo_container" type="Control" parent="GAME/UI"]
+layout_mode = 3
+anchors_preset = 7
+anchor_left = 0.5
+anchor_top = 1.0
+anchor_right = 0.5
+anchor_bottom = 1.0
+offset_left = -260.0
+offset_top = -117.0
+offset_right = -248.0
+grow_horizontal = 2
+grow_vertical = 0
+rotation = -1.5708
+scale = Vector2(2, 2)
+
+[node name="SurvivalUI" type="Control" parent="GAME/UI" node_paths=PackedStringArray("health_bar", "hunger_bar", "thirst_bar", "sleep_bar", "stamina_bar")]
+layout_mode = 3
+anchors_preset = 7
+anchor_left = 0.5
+anchor_top = 1.0
+anchor_right = 0.5
+anchor_bottom = 1.0
+offset_left = -60.0
+offset_top = -40.0
+offset_right = 120.0
+grow_horizontal = 2
+grow_vertical = 0
+scale = Vector2(1, 0.767)
+script = ExtResource("36_iknay")
+health_bar = NodePath("health_bar_Image")
+hunger_bar = NodePath("Hunger_Bar")
+thirst_bar = NodePath("Thirst _bar")
+sleep_bar = NodePath("Sleep_bar")
+stamina_bar = NodePath("Stamina_bar")
+
+[node name="health_bar_Image" type="Sprite2D" parent="GAME/UI/SurvivalUI"]
+material = SubResource("ShaderMaterial_fd72h")
+position = Vector2(71, -25.7705)
+scale = Vector2(0.333984, 0.237833)
+texture = ExtResource("39_uqo6q")
+
+[node name="Survival_Bg" type="Sprite2D" parent="GAME/UI/SurvivalUI"]
+modulate = Color(1, 1, 1, 0.298039)
+position = Vector2(72, -26)
+scale = Vector2(0.356445, 0.337891)
+texture = ExtResource("37_wtsly")
+
+[node name="Stamina_bar" type="Sprite2D" parent="GAME/UI/SurvivalUI"]
+material = SubResource("ShaderMaterial_erud3")
+position = Vector2(71.6981, -24.5902)
+scale = Vector2(288, 77.553)
+texture = SubResource("CanvasTexture_cy323")
+
+[node name="Thirst _bar" type="Sprite2D" parent="GAME/UI/SurvivalUI"]
+material = SubResource("ShaderMaterial_lprup")
+position = Vector2(-122.013, -49.1803)
+scale = Vector2(85, 85)
+texture = SubResource("CanvasTexture_nf12t")
+
+[node name="BG_indicator2" type="Sprite2D" parent="GAME/UI/SurvivalUI/Thirst _bar"]
+material = SubResource("ShaderMaterial_i7suk")
+position = Vector2(-0.192379, -0.0385725)
+scale = Vector2(1.17647, 0.600028)
+skew = 0.118682
+texture = SubResource("CanvasTexture_lv546")
+
+[node name="Hunger_Bar" type="Sprite2D" parent="GAME/UI/SurvivalUI"]
+material = SubResource("ShaderMaterial_ttvdj")
+position = Vector2(-122.013, 3.27869)
+scale = Vector2(0.0890723, 0.101148)
+texture = ExtResource("44_ks0d8")
+
+[node name="BG_indicator3" type="Sprite2D" parent="GAME/UI/SurvivalUI/Hunger_Bar"]
+material = SubResource("ShaderMaterial_i7suk")
+position = Vector2(-193.513, -6.88791)
+scale = Vector2(1081.92, 526.907)
+skew = 0.118133
+texture = SubResource("CanvasTexture_lv546")
+
+[node name="Sleep_bar" type="Sprite2D" parent="GAME/UI/SurvivalUI"]
+material = SubResource("ShaderMaterial_2exyn")
+position = Vector2(269.182, 1.63928)
+rotation = 3.14159
+scale = Vector2(75, 75)
+texture = SubResource("CanvasTexture_el2xn")
+
+[node name="BG_indicator" type="Sprite2D" parent="GAME/UI/SurvivalUI/Sleep_bar"]
+material = SubResource("ShaderMaterial_i7suk")
+position = Vector2(-0.234801, 0)
+scale = Vector2(1.33333, 0.680032)
+skew = -0.118682
+texture = SubResource("CanvasTexture_lv546")
+
+[node name="PickupUI" type="Control" parent="GAME/UI"]
+layout_mode = 3
+anchors_preset = 15
+anchor_right = 1.0
+anchor_bottom = 1.0
+grow_horizontal = 2
+grow_vertical = 2
+mouse_filter = 2
+script = ExtResource("52_7wcef")
+
+[node name="MainPanel" type="Panel" parent="GAME/UI/PickupUI"]
+material = SubResource("ShaderMaterial_1njnh")
+layout_mode = 0
+offset_right = 200.0
+offset_bottom = 150.0
+theme_override_styles/panel = SubResource("StyleBoxTexture_geetf")
+
+[node name="TOP_ROW_CONTAINER" type="HBoxContainer" parent="GAME/UI/PickupUI/MainPanel"]
+layout_mode = 0
+offset_right = 200.0
+offset_bottom = 40.0
+
+[node name="NAME_BOX" type="Panel" parent="GAME/UI/PickupUI/MainPanel/TOP_ROW_CONTAINER"]
+material = SubResource("ShaderMaterial_2rato")
+layout_mode = 2
+size_flags_horizontal = 3
+
+[node name="LABEL NAME ITEM" type="Label" parent="GAME/UI/PickupUI/MainPanel/TOP_ROW_CONTAINER/NAME_BOX"]
+layout_mode = 1
+anchors_preset = 8
+anchor_left = 0.5
+anchor_top = 0.5
+anchor_right = 0.5
+anchor_bottom = 0.5
+offset_left = -25.0
+offset_top = -11.5
+offset_right = 25.0
+offset_bottom = 11.5
+grow_horizontal = 2
+grow_vertical = 2
+text = "NAME ITEM
+"
+label_settings = SubResource("LabelSettings_krw55")
+horizontal_alignment = 1
+vertical_alignment = 1
+
+[node name="CATEGORY_BOX" type="Panel" parent="GAME/UI/PickupUI/MainPanel/TOP_ROW_CONTAINER"]
+material = SubResource("ShaderMaterial_r78kh")
+layout_mode = 2
+size_flags_horizontal = 3
+
+[node name="LABEL CATEGORY" type="Label" parent="GAME/UI/PickupUI/MainPanel/TOP_ROW_CONTAINER/CATEGORY_BOX"]
+layout_mode = 1
+anchors_preset = 8
+anchor_left = 0.5
+anchor_top = 0.5
+anchor_right = 0.5
+anchor_bottom = 0.5
+offset_left = -23.5
+offset_top = -11.5
+offset_right = 23.5
+offset_bottom = 11.5
+grow_horizontal = 2
+grow_vertical = 2
+text = "CATEGORY
+"
+label_settings = SubResource("LabelSettings_6l7jm")
+horizontal_alignment = 1
+vertical_alignment = 1
+
+[node name="BOX_SPRITE" type="Control" parent="GAME/UI/PickupUI/MainPanel/TOP_ROW_CONTAINER/CATEGORY_BOX"]
+layout_mode = 1
+anchors_preset = 6
+anchor_left = 1.0
+anchor_top = 0.5
+anchor_right = 1.0
+anchor_bottom = 0.5
+offset_left = -40.0
+offset_top = -20.0
+offset_bottom = 20.0
+grow_horizontal = 0
+grow_vertical = 2
+
+[node name="SPRITE 2D CATEGORY" type="Sprite2D" parent="GAME/UI/PickupUI/MainPanel/TOP_ROW_CONTAINER/CATEGORY_BOX/BOX_SPRITE"]
+position = Vector2(40, -4)
+scale = Vector2(0.5, 0.5)
+texture = SubResource("ImageTexture_elo8h")
+
+[node name="CENTER_BOX" type="Panel" parent="GAME/UI/PickupUI/MainPanel"]
+material = SubResource("ShaderMaterial_fujcl")
+layout_mode = 1
+anchors_preset = 8
+anchor_left = 0.5
+anchor_top = 0.5
+anchor_right = 0.5
+anchor_bottom = 0.5
+offset_left = -90.0
+offset_top = -31.0
+offset_right = 90.0
+offset_bottom = 29.0
+grow_horizontal = 2
+grow_vertical = 2
+pivot_offset = Vector2(90, 30)
+
+[node name="IMAGE ITEM" type="Sprite2D" parent="GAME/UI/PickupUI/MainPanel/CENTER_BOX"]
+material = SubResource("ShaderMaterial_k3w35")
+position = Vector2(90, 30)
+texture = SubResource("ImageTexture_yymro")
+
+[node name="BOTTOM_ROW_CONTAINER" type="HBoxContainer" parent="GAME/UI/PickupUI/MainPanel"]
+layout_mode = 1
+anchors_preset = 7
+anchor_left = 0.5
+anchor_top = 1.0
+anchor_right = 0.5
+anchor_bottom = 1.0
+offset_left = -100.0
+offset_top = -45.0
+offset_right = 100.0
+offset_bottom = -5.0
+grow_horizontal = 2
+grow_vertical = 0
+
+[node name="SPECIAL_BOX" type="Panel" parent="GAME/UI/PickupUI/MainPanel/BOTTOM_ROW_CONTAINER"]
+material = SubResource("ShaderMaterial_vqkdy")
+layout_mode = 2
+size_flags_horizontal = 3
+
+[node name="LABEL SPECIAL MARKS" type="Label" parent="GAME/UI/PickupUI/MainPanel/BOTTOM_ROW_CONTAINER/SPECIAL_BOX"]
+layout_mode = 1
+anchors_preset = 8
+anchor_left = 0.5
+anchor_top = 0.5
+anchor_right = 0.5
+anchor_bottom = 0.5
+offset_left = -37.0
+offset_top = -11.5
+offset_right = 37.0
+offset_bottom = 11.5
+grow_horizontal = 2
+grow_vertical = 2
+text = "SPECIAL MARKS"
+label_settings = SubResource("LabelSettings_kkhxx")
+horizontal_alignment = 1
+vertical_alignment = 1
+
+[node name="WEIGHT_BOX" type="Panel" parent="GAME/UI/PickupUI/MainPanel/BOTTOM_ROW_CONTAINER"]
+material = SubResource("ShaderMaterial_ekssn")
+layout_mode = 2
+size_flags_horizontal = 3
+
+[node name="IMAGE OF WEIGHT" type="Sprite2D" parent="GAME/UI/PickupUI/MainPanel/BOTTOM_ROW_CONTAINER/WEIGHT_BOX"]
+modulate = Color(0.55, 0.55, 0.55, 0.658824)
+position = Vector2(13.05, 20)
+scale = Vector2(0.07, 0.06)
+texture = ExtResource("54_0u037")
+
+[node name="LABEL WEIGHT" type="Label" parent="GAME/UI/PickupUI/MainPanel/BOTTOM_ROW_CONTAINER/WEIGHT_BOX"]
+layout_mode = 1
+anchors_preset = 6
+anchor_left = 1.0
+anchor_top = 0.5
+anchor_right = 1.0
+anchor_bottom = 0.5
+offset_left = -38.745
+offset_top = -11.33
+offset_right = 1.255
+offset_bottom = 11.67
+grow_horizontal = 0
+grow_vertical = 2
+text = "KG"
+label_settings = SubResource("LabelSettings_0ao0d")
+horizontal_alignment = 1
+vertical_alignment = 1
+
+[node name="PickupNotifier" type="Control" parent="GAME/UI"]
+layout_mode = 3
+anchors_preset = 8
+anchor_left = 0.5
+anchor_top = 0.5
+anchor_right = 0.5
+anchor_bottom = 0.5
+offset_left = -20.0
+offset_top = -20.0
+offset_right = 20.0
+offset_bottom = 20.0
+grow_horizontal = 2
+grow_vertical = 2
+script = ExtResource("60_8oolq")
+
+[node name="Pickup_spritePN" type="TextureRect" parent="GAME/UI/PickupNotifier"]
+modulate = Color(1, 1, 1, 0)
+layout_mode = 1
+anchors_preset = 8
+anchor_left = 0.5
+anchor_top = 0.5
+anchor_right = 0.5
+anchor_bottom = 0.5
+offset_left = -40.0
+offset_top = -40.0
+grow_horizontal = 2
+grow_vertical = 2
+scale = Vector2(0.95, 0.95)
+texture = ExtResource("61_uauwn")
+expand_mode = 1
+stretch_mode = 4
+
+[node name="Anima_spritePN" type="AnimationPlayer" parent="GAME/UI/PickupNotifier/Pickup_spritePN"]
+libraries = {
+"": SubResource("AnimationLibrary_dattd")
+}
+
+[node name="InteractionHintUI" type="Control" parent="GAME/UI"]
+layout_mode = 3
+anchors_preset = 8
+anchor_left = 0.5
+anchor_top = 0.5
+anchor_right = 0.5
+anchor_bottom = 0.5
+offset_left = -76.625
+offset_top = -13.295
+offset_right = 83.375
+offset_bottom = 26.705
+grow_horizontal = 2
+grow_vertical = 2
+script = ExtResource("59_b8lvk")
+font_file = ExtResource("17_cb8ud")
+
+[node name="Old Car" parent="GAME" instance=ExtResource("15_hwu3f")]
+transform = Transform3D(7.06198, 0, 8.43377, 0, 3, 0, -8.43377, 0, 7.06198, -97.2494, 0.802191, 98.1125)
+visible = false
+
+[node name="Old Car 2" parent="GAME" instance=ExtResource("16_nk0u4")]
+transform = Transform3D(-6.0293, 0, -9.20041, 0, 4, 0, 9.20041, 0, -6.0293, 97.6401, 0.514594, 39.3323)
+visible = false
+
+[node name="Window-2" parent="GAME" instance=ExtResource("18_cbtp4")]
+transform = Transform3D(7, 0, 0, 0, 4, 0, 0, 0, 5, 14.1647, 1.68034, -8.6894)
+visible = false
+
+[node name="Window-3" parent="GAME" instance=ExtResource("19_kyy3l")]
+transform = Transform3D(4, 0, 0, 0, 8, 0, 0, 0, 7, 29.0047, 2.23849, -13.776)
+visible = false
+
+[node name="Tree_Trank" parent="GAME" instance=ExtResource("20_jejhw")]
+transform = Transform3D(4.87673, 0, 1.54476, 0, 3, 0, -1.1034, 0, 6.82742, -99.1792, 0.34809, 87.234)
+visible = false
+
+[node name="Monument" parent="GAME" instance=ExtResource("22_0r3to")]
+transform = Transform3D(-4.37114e-08, 0, 1, 0, 1, 0, -1, 0, -4.37114e-08, 36.494, 0.0502381, -8.37316)
+visible = false
+
+[node name="model" parent="GAME/Monument" index="0"]
+transform = Transform3D(-1, -8.74228e-08, 3.82137e-15, 0, -4.37114e-08, -1, 8.74228e-08, -1, 4.37114e-08, 0, 0, 0)
+
+[node name="StaticBody3D" type="StaticBody3D" parent="GAME/Monument/model" index="0"]
+
+[node name="CollisionShape3D" type="CollisionShape3D" parent="GAME/Monument/model/StaticBody3D"]
+shape = SubResource("ConvexPolygonShape3D_4yjls")
+
+[node name="Wall_8" parent="GAME" instance=ExtResource("24_o3neu")]
+transform = Transform3D(-4.37114e-07, 0, -10, 0, 10, 0, 10, 0, -4.37114e-07, 29.7194, -0.685264, -13.7474)
+visible = false
+
+[node name="StaticBody3D" type="StaticBody3D" parent="GAME/Wall_8/world/geometry_0" index="0"]
+
+[node name="CollisionShape3D" type="CollisionShape3D" parent="GAME/Wall_8/world/geometry_0/StaticBody3D"]
+shape = SubResource("ConvexPolygonShape3D_t82w4")
+
+[node name="Window-4" parent="GAME" instance=ExtResource("19_kyy3l")]
+transform = Transform3D(4, 0, 0, 0, 8, 0, 0, 0, 7, 29.0047, 2.23849, -2.78254)
+visible = false
+
+[node name="StaticBody3D" type="StaticBody3D" parent="GAME/Window-4/world/geometry_0" index="0"]
+
+[node name="CollisionShape3D" type="CollisionShape3D" parent="GAME/Window-4/world/geometry_0/StaticBody3D"]
+shape = SubResource("ConvexPolygonShape3D_5rbro")
+
+[node name="Wall_11" parent="GAME" instance=ExtResource("24_o3neu")]
+transform = Transform3D(-4.37114e-07, 0, -10, 0, 10, 0, 10, 0, -4.37114e-07, 29.7194, -0.685264, -2.75394)
+visible = false
+
+[node name="StaticBody3D" type="StaticBody3D" parent="GAME/Wall_11/world/geometry_0" index="0"]
+
+[node name="CollisionShape3D" type="CollisionShape3D" parent="GAME/Wall_11/world/geometry_0/StaticBody3D"]
+shape = SubResource("ConvexPolygonShape3D_r7lrj")
+
+[node name="Wall_9" parent="GAME" instance=ExtResource("24_o3neu")]
+transform = Transform3D(-4.37114e-07, 0, -10, 0, 10, 0, 10, 0, -4.37114e-07, 29.7194, 1.53401, -10.0314)
+visible = false
+
+[node name="StaticBody3D" type="StaticBody3D" parent="GAME/Wall_9/world/geometry_0" index="0"]
+
+[node name="CollisionShape3D" type="CollisionShape3D" parent="GAME/Wall_9/world/geometry_0/StaticBody3D"]
+shape = SubResource("ConvexPolygonShape3D_koxi0")
+
+[node name="Wall_10" parent="GAME" instance=ExtResource("24_o3neu")]
+transform = Transform3D(-1.57361e-07, 0, -10, 0, 10, 0, 3.6, 0, -4.37114e-07, 29.6161, 1.54557, -5.17248)
+visible = false
+
+[node name="StaticBody3D" type="StaticBody3D" parent="GAME/Wall_10/world/geometry_0" index="0"]
+
+[node name="CollisionShape3D" type="CollisionShape3D" parent="GAME/Wall_10/world/geometry_0/StaticBody3D"]
+shape = SubResource("ConvexPolygonShape3D_rcl47")
+
+[node name="Wall_2" parent="GAME" instance=ExtResource("25_hvitw")]
+transform = Transform3D(15, 0, 0, 0, 15, 0, 0, 0, 15, 14.924, 1.64144, -12.2955)
+visible = false
+
+[node name="StaticBody3D" type="StaticBody3D" parent="GAME/Wall_2/world/geometry_0" index="0"]
+
+[node name="CollisionShape3D" type="CollisionShape3D" parent="GAME/Wall_2/world/geometry_0/StaticBody3D"]
+shape = SubResource("ConvexPolygonShape3D_pxe1o")
+
+[node name="Wall_5" parent="GAME" instance=ExtResource("25_hvitw")]
+transform = Transform3D(15, 0, 0, 0, 15, 0, 0, 0, 15, 14.924, 1.64144, -4.92103)
+visible = false
+
+[node name="StaticBody3D" type="StaticBody3D" parent="GAME/Wall_5/world/geometry_0" index="0"]
+
+[node name="CollisionShape3D" type="CollisionShape3D" parent="GAME/Wall_5/world/geometry_0/StaticBody3D"]
+shape = SubResource("ConvexPolygonShape3D_gotgp")
+
+[node name="Wall_6" parent="GAME" instance=ExtResource("25_hvitw")]
+transform = Transform3D(-6.55671e-07, 0, 15, 0, 15, 0, -15, 0, -6.55671e-07, 18.2728, 1.64144, -1.46767)
+visible = false
+
+[node name="StaticBody3D" type="StaticBody3D" parent="GAME/Wall_6/world/geometry_0" index="0"]
+
+[node name="CollisionShape3D" type="CollisionShape3D" parent="GAME/Wall_6/world/geometry_0/StaticBody3D"]
+shape = SubResource("ConvexPolygonShape3D_6c0qd")
+
+[node name="Wall_7" parent="GAME" instance=ExtResource("25_hvitw")]
+transform = Transform3D(-6.55671e-07, 0, 15, 0, 15, 0, -15, 0, -6.55671e-07, 26.2526, 1.64144, -1.45854)
+visible = false
+
+[node name="StaticBody3D" type="StaticBody3D" parent="GAME/Wall_7/world/geometry_0" index="0"]
+
+[node name="CollisionShape3D" type="CollisionShape3D" parent="GAME/Wall_7/world/geometry_0/StaticBody3D"]
+shape = SubResource("ConvexPolygonShape3D_jq8te")
+
+[node name="Wall_3" parent="GAME" instance=ExtResource("25_hvitw")]
+transform = Transform3D(-6.55671e-07, 0, -15, 0, 15, 0, 15, 0, -6.55671e-07, 18.5974, 1.64144, -15.5241)
+visible = false
+
+[node name="geometry_0" parent="GAME/Wall_3/world" index="0"]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 0, 0, -0.00269842)
+
+[node name="StaticBody3D" type="StaticBody3D" parent="GAME/Wall_3/world/geometry_0" index="0"]
+
+[node name="CollisionShape3D" type="CollisionShape3D" parent="GAME/Wall_3/world/geometry_0/StaticBody3D"]
+shape = SubResource("ConvexPolygonShape3D_s5xhc")
+
+[node name="Wall_4" parent="GAME" instance=ExtResource("25_hvitw")]
+transform = Transform3D(-6.55671e-07, 0, -15, 0, 15, 0, 15, 0, -6.55671e-07, 26.4386, 1.64144, -15.5036)
+visible = false
+
+[node name="StaticBody3D" type="StaticBody3D" parent="GAME/Wall_4/world/geometry_0" index="0"]
+
+[node name="CollisionShape3D" type="CollisionShape3D" parent="GAME/Wall_4/world/geometry_0/StaticBody3D"]
+shape = SubResource("ConvexPolygonShape3D_de5sx")
+
+[node name="WorldEnvironment" type="WorldEnvironment" parent="GAME" groups=["world_environment"]]
+environment = SubResource("Environment_0bl5f")
+
+[node name="SunLight" type="DirectionalLight3D" parent="GAME" groups=["sun_light"]]
+transform = Transform3D(0.707107, -0.5, 0.5, 0, 0.707107, 0.707107, -0.707107, -0.5, 0.5, 0, 250, 0)
+light_energy = 0.5
+
+[node name="trashcan2" parent="GAME" instance=ExtResource("48_8a4ur")]
+transform = Transform3D(0.75, 0, 0, 0, 0.75, 0, 0, 0, 0.75, 18.4624, 0, 0.821427)
+visible = false
+
+[node name="trashcan3" parent="GAME" instance=ExtResource("48_8a4ur")]
+transform = Transform3D(-0.597516, 0, -0.453293, 0, 0.75, 0, 0.453293, 0, -0.597516, 15.3784, 0, 1.13989)
+visible = false
+
+[node name="Area_Weapon_Review" type="Node3D" parent="GAME"]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 0, 0, -15.9861)
+
+[node name="MeshAreaWeapon&Ammo&Backpack" type="MeshInstance3D" parent="GAME/Area_Weapon_Review"]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, -0.247941, 0, -2.00355)
+material_overlay = SubResource("StandardMaterial3D_1myo0")
+mesh = SubResource("PlaneMesh_b5ivf")
+
+[node name="Wasteland Eagle" parent="GAME/Area_Weapon_Review/MeshAreaWeapon&Ammo&Backpack" instance=ExtResource("31_y3vvg")]
+transform = Transform3D(1, 0, 0, 0, 2.98023e-08, -1, 0, 1, 2.98023e-08, 0.475801, 0.0315127, 4.2761)
+
+[node name="Assault Auto-Rifle" parent="GAME/Area_Weapon_Review/MeshAreaWeapon&Ammo&Backpack" instance=ExtResource("36_n5owg")]
+transform = Transform3D(1, 0, 0, 0, -4.37114e-08, -1, 0, 1, -4.37114e-08, 8.11445, 0.0315127, -6.19604)
+
+[node name="Enforcer 12-Gauge" parent="GAME/Area_Weapon_Review/MeshAreaWeapon&Ammo&Backpack" instance=ExtResource("32_1ubve")]
+transform = Transform3D(1, 0, 0, 0, -0.109648, -0.993971, 0, 0.993971, -0.109648, -7.82755, 0.102619, 3.95234)
+
+[node name="Trail Boss Shotgun" parent="GAME/Area_Weapon_Review/MeshAreaWeapon&Ammo&Backpack" instance=ExtResource("33_dk6as")]
+transform = Transform3D(1, 0, 0, 0, 0.0243798, -0.999703, 0, 0.999703, 0.0243798, -8.27569, 0.0793032, -6.49454)
+
+[node name="AmmoPickupAutomatic" parent="GAME/Area_Weapon_Review/MeshAreaWeapon&Ammo&Backpack" instance=ExtResource("33_r1cwu")]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 8.22678, 0.0315127, -9.04289)
+ammo_type = "Assault Auto-Rifle"
+ammo_amount = 30
+
+[node name="AmmoPickupPistol" parent="GAME/Area_Weapon_Review/MeshAreaWeapon&Ammo&Backpack" instance=ExtResource("33_r1cwu")]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 0.492305, 0.0315614, 0.0698872)
+ammo_type = "Wasteland Eagle"
+ammo_amount = 12
+item_image = ExtResource("74_2bich")
+item_image_path = "res://UI/textures/icons/icon_ammo/pistol_ammo_icon.png"
+
+[node name="AmmoPickupPistol2" parent="GAME/Area_Weapon_Review/MeshAreaWeapon&Ammo&Backpack" instance=ExtResource("33_r1cwu")]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 0.492305, 0.0315614, -1.72072)
+ammo_type = "Wasteland Eagle"
+ammo_amount = 12
+item_image = ExtResource("74_2bich")
+item_image_path = "res://UI/textures/icons/icon_ammo/pistol_ammo_icon.png"
+
+[node name="AmmoPickup12Gauge" parent="GAME/Area_Weapon_Review/MeshAreaWeapon&Ammo&Backpack" instance=ExtResource("33_r1cwu")]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, -7.72134, 0.0315614, -0.114162)
+ammo_type = "Enforcer 12-Gauge"
+ammo_amount = 5
+item_image = ExtResource("75_osr0r")
+item_image_path = "res://UI/textures/icons/icon_ammo/12Gauge_ammo_icon.png"
+
+[node name="AmmoPickup12Gauge2" parent="GAME/Area_Weapon_Review/MeshAreaWeapon&Ammo&Backpack" instance=ExtResource("33_r1cwu")]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, -7.72134, 0.0315614, -1.8359)
+ammo_type = "Enforcer 12-Gauge"
+ammo_amount = 5
+item_image = ExtResource("75_osr0r")
+item_image_path = "res://UI/textures/icons/icon_ammo/12Gauge_ammo_icon.png"
+
+[node name="AmmoPickup20Gauge" parent="GAME/Area_Weapon_Review/MeshAreaWeapon&Ammo&Backpack" instance=ExtResource("33_r1cwu")]
+transform = Transform3D(1, 0, 0, 0, 0.999938, 0.0111001, 0, -0.0111001, 0.999938, -8.17805, 0.0315614, -9.03166)
+ammo_type = "Trail Boss Shotgun"
+ammo_amount = 8
+item_image = ExtResource("76_amdxe")
+item_image_path = "res://UI/textures/icons/icon_ammo/20Gauge_ammo_icon.png"
+
+[node name="AmmoPickup20Gauge2" parent="GAME/Area_Weapon_Review/MeshAreaWeapon&Ammo&Backpack" instance=ExtResource("33_r1cwu")]
+transform = Transform3D(1, 0, 0, 0, 0.999938, 0.0111001, 0, -0.0111001, 0.999938, -4.73458, 0.0315614, -9.03166)
+ammo_type = "Trail Boss Shotgun"
+ammo_amount = 8
+item_image = ExtResource("76_amdxe")
+item_image_path = "res://UI/textures/icons/icon_ammo/20Gauge_ammo_icon.png"
+
+[node name="Pistol" type="Label3D" parent="GAME/Area_Weapon_Review/MeshAreaWeapon&Ammo&Backpack"]
+transform = Transform3D(3, 0, 0, 0, -1.31134e-07, 3, 0, -3, -1.31134e-07, 0.0723, 0, 1.71109)
+text = "Pistol
+"
+font = ExtResource("17_cb8ud")
+outline_size = 0
+
+[node name="Backpack" type="Label3D" parent="GAME/Area_Weapon_Review/MeshAreaWeapon&Ammo&Backpack"]
+transform = Transform3D(3, 0, 0, 0, -1.31134e-07, 3, 0, -3, -1.31134e-07, 8.30833, 0, 2.25243)
+text = "Backpack
+
+"
+font = ExtResource("17_cb8ud")
+outline_size = 0
+
+[node name="Lever-Action Shotgun" type="Label3D" parent="GAME/Area_Weapon_Review/MeshAreaWeapon&Ammo&Backpack"]
+transform = Transform3D(3, 0, 0, 0, -1.31134e-07, 3, 0, -3, -1.31134e-07, -7.20646, 0, 1.71109)
+text = "Lever-Action Shotgun
+"
+font = ExtResource("17_cb8ud")
+outline_size = 0
+
+[node name="Pump-Action Shotgun" type="Label3D" parent="GAME/Area_Weapon_Review/MeshAreaWeapon&Ammo&Backpack"]
+transform = Transform3D(3, 0, 0, 0, -1.31134e-07, 3, 0, -3, -1.31134e-07, -7.20646, 0, -8.04103)
+text = "Pump-Action Shotgun
+"
+font = ExtResource("17_cb8ud")
+outline_size = 0
+
+[node name="Assault Auto-Rifle2" type="Label3D" parent="GAME/Area_Weapon_Review/MeshAreaWeapon&Ammo&Backpack"]
+transform = Transform3D(3, 0, 0, 0, -1.31134e-07, 3, 0, -3, -1.31134e-07, 7.20311, 0, -8.04103)
+text = "Assault Auto-Rifle
+"
+font = ExtResource("17_cb8ud")
+outline_size = 0
+
+[node name="BackpackPickup" parent="GAME/Area_Weapon_Review/MeshAreaWeapon&Ammo&Backpack" groups=["Backpacks"] instance=ExtResource("89_nykvn")]
+transform = Transform3D(-0.0579125, -0.998322, 0, 0.998322, -0.0579125, 0, 0, 0, 1, 8.27275, 0.111961, 3.40538)
+
+[node name="Barrels" type="Node3D" parent="GAME"]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 0, 0, 0.0329046)
+visible = false
+
+[node name="PhysicsTestObject" parent="GAME/Barrels" instance=ExtResource("34_21r2e")]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, -12.5731, 0, -10.8336)
+mass = 100.0
+
+[node name="PhysicsTestObject2" parent="GAME/Barrels" instance=ExtResource("34_21r2e")]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, -12.5731, 0, -9.05824)
+mass = 100.0
+
+[node name="PhysicsTestObject3" parent="GAME/Barrels" instance=ExtResource("34_21r2e")]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, -13.582, 0, -26.8964)
+mass = 100.0
+
+[node name="PhysicsTestObject4" parent="GAME/Barrels" instance=ExtResource("34_21r2e")]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, -13.582, 0, -25.121)
+mass = 100.0
+
+[node name="PhysicsTestObject5" parent="GAME/Barrels" instance=ExtResource("34_21r2e")]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 12.4654, 0, -26.7892)
+mass = 100.0
+
+[node name="PhysicsTestObject6" parent="GAME/Barrels" instance=ExtResource("34_21r2e")]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 12.5165, 0, -25.0479)
+mass = 100.0
+
+[node name="Gasoline_can" parent="." instance=ExtResource("54_bjjnp")]
+transform = Transform3D(0.0117204, 0, -0.299771, 0, 0.3, 0, 0.299771, 0, 0.0117204, 24.6108, 0.353705, -0.426621)
+visible = false
+
+[node name="Cube" parent="Gasoline_can" index="0"]
+transform = Transform3D(1, 0, -3.72529e-09, 0, 1, 0, 3.72529e-09, 0, 1, 4.8782, 0.892538, 3.87437)
+material_override = SubResource("StandardMaterial3D_x1yde")
+
+[node name="ladder" parent="." instance=ExtResource("54_ipbk1")]
+transform = Transform3D(-4.31732e-08, -8.88936e-09, 1, -0.156434, 1.28399, 0, -0.987688, -0.203365, -4.37114e-08, 27, 0, -0.1362)
+visible = false
+
+[node name="Cube" parent="ladder" index="0"]
+material_override = SubResource("StandardMaterial3D_nqnac")
+
+[node name="Barbed_wire_spiral" parent="." instance=ExtResource("58_f5drx")]
+transform = Transform3D(-0.00510635, 0, -0.199739, 0, 0.1, 0, 0.0998695, 0, -0.0102127, 25.4447, 2.67725, -1.61588)
+visible = false
+
+[node name="fan" parent="." instance=ExtResource("61_7xinn")]
+transform = Transform3D(1.25, 0, 0, 0, 1.25, 0, 0, 0, 1.25, 16.9176, 0.0315003, -14.1731)
+visible = false
+
+[node name="Cylinder_001" parent="fan" index="3"]
+transform = Transform3D(-0.163518, 0, 0.081463, 0, 0.182687, 0, -0.081463, 0, -0.163518, -0.0335655, 0.965639, 0)
+material_override = SubResource("StandardMaterial3D_ku50y")
+
+[node name="bookcase" parent="." instance=ExtResource("63_tgbjw")]
+transform = Transform3D(-0.199942, 0, -0.00481662, 0, 0.2, 0, 0.00481662, 0, -0.199942, 15.7974, 0.0315003, -5.66838)
+visible = false
+
+[node name="PalleteEuro_Wooden" parent="." instance=ExtResource("64_u8hog")]
+transform = Transform3D(2, 0, 0, 0, 2, 0, 0, 0, 2, 28, 0.0247803, 8)
+visible = false
+
+[node name="palette_euro_1200x800" parent="PalleteEuro_Wooden" index="0"]
+transform = Transform3D(1, 0, 0, 0, 0, -1, 0, 1, 0, -2.49902, 0, -3.56779)
+surface_material_override/0 = SubResource("StandardMaterial3D_ims2n")
+
+[node name="barrel_Toxic" parent="." instance=ExtResource("67_srgkm")]
+transform = Transform3D(0.5, 0, 0, 0, 0.5, 0, 0, 0, 0.5, 34.1839, 0.0315003, -18.5553)
+visible = false
+
+[node name="file_cabinet_metal" parent="." instance=ExtResource("68_jgwyw")]
+transform = Transform3D(-8.74228e-08, 0, 2, 0, 2, 0, -2, 0, -8.74228e-08, 16.7705, 0.0315003, -7.15666)
+visible = false
+
+[node name="WindMill2" parent="." instance=ExtResource("69_knwld")]
+transform = Transform3D(0.192, 0, 0, 0, 0.192, 0, 0, 0, 0.192, -19.21, 0, 12.3723)
+visible = false
+
+[node name="Door" parent="." instance=ExtResource("82_x5fxg")]
+transform = Transform3D(-2.62268e-07, 0, 6, 0, 6, 0, -6, 0, -2.62268e-07, 29.0464, 1.65278, -7.11513)
+visible = false
+
+[node name="geometry_0" parent="Door/door for house/world" index="0"]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 0, 0, 0)
+
+[node name="Enemy_Creeper" parent="." instance=ExtResource("104_1c7wn")]
+transform = Transform3D(-4.37114e-08, 0, -1, 0, 1, 0, 1, 0, -4.37114e-08, -71.8493, 1, -2)
+visible = false
+is_active = false
+spawn_disabled = true
+
+[node name="EnemyBase" parent="." instance=ExtResource("97_dqco2")]
+transform = Transform3D(1.25, 0, 0, 0, 1.25, 0, 0, 0, 1.25, -52.7028, 0.0315614, -28.3584)
+visible = false
+is_active = false
+spawn_disabled = true
+
+[node name="EnemyBase2" parent="." instance=ExtResource("98_vj8qc")]
+transform = Transform3D(1.25, 0, 0, 0, 1.25, 0, 0, 0, 1.25, -2.67962, 0.0315614, 69.6099)
+visible = false
+is_active = false
+spawn_disabled = true
+
+[node name="EnemyBase3" parent="." instance=ExtResource("99_pj1e3")]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 77.0997, 0.0315614, 37.1574)
+visible = false
+is_active = false
+spawn_disabled = true
+
+[node name="EnemyBase4" parent="." instance=ExtResource("100_m86ty")]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, -56.0981, 0.0315614, 52.2968)
+visible = false
+is_active = false
+spawn_disabled = true
+
+[node name="EnemyBase5" parent="." instance=ExtResource("101_xxrbr")]
+transform = Transform3D(1.2, 0, 0, 0, 1.2, 0, 0, 0, 1.2, 67.3464, 0.0315614, 70.0565)
+
+[editable path="GAME/Monument"]
+[editable path="GAME/Wall_8"]
+[editable path="GAME/Window-4"]
+[editable path="GAME/Wall_11"]
+[editable path="GAME/Wall_9"]
+[editable path="GAME/Wall_10"]
+[editable path="GAME/Wall_2"]
+[editable path="GAME/Wall_5"]
+[editable path="GAME/Wall_6"]
+[editable path="GAME/Wall_7"]
+[editable path="GAME/Wall_3"]
+[editable path="GAME/Wall_4"]
+[editable path="Gasoline_can"]
+[editable path="ladder"]
+[editable path="Barbed_wire_spiral"]
+[editable path="fan"]
+[editable path="PalleteEuro_Wooden"]
+[editable path="Door"]
+[editable path="Door/door for house"]
