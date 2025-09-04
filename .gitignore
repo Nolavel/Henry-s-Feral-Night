@@ -1,3 +1,25 @@
-# Godot 4+ specific ignores
+# Godot-specific
 .godot/
+.import/
+.export/
+mono/
+data_*/
+
+# OS garbage
+.DS_Store
+Thumbs.db
+
+bin/
+obj/
+.vs/
+.vscode/
+.idea/
+
+# Android/iOS export
 /android/
+/ios/
+
+# Logs
+*.log
+*.tmp
+*.bak
