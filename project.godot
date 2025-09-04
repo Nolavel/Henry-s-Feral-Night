@@ -1,0 +1,50 @@
+; Engine configuration file.
+; It's best edited using the editor UI and not directly,
+; since the parameters that go here are not all obvious.
+;
+; Format:
+;   [section] ; section goes between []
+;   param=value ; assign values to parameters
+
+config_version=5
+
+[application]
+
+config/name="Сrimson Flow"
+config/features=PackedStringArray("4.3", "Forward Plus")
+config/icon="res://icon.svg"
+
+[display]
+
+window/size/viewport_width=1920
+window/size/viewport_height=1080
+window/size/borderless=true
+window/stretch/mode="viewport"
+
+[editor]
+
+version_control/plugin_name="GitPlugin"
+version_control/autoload_on_startup=true
+
+[file_customization]
+
+folder_colors={
+"res://assets/": "yellow",
+"res://autoloads/": "purple",
+"res://components/": "orange",
+"res://docs/": "blue",
+"res://levels/": "gray",
+"res://scenes/": "green",
+"res://scripts/": "orange",
+"res://tests/": "pink"
+}
+
+[gui]
+
+theme/custom_font="res://assets/fonts/IM Fell English SC/IMFellEnglishSC-Regular.ttf"
+
+[rendering]
+
+anti_aliasing/quality/msaa_2d=1
+anti_aliasing/quality/msaa_3d=1
+anti_aliasing/quality/screen_space_aa=1
