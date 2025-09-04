@@ -1,24 +1,22 @@
 @echo off
-:: ===============================
-:: Git cleanup + commit + push (prototype only)
-:: ===============================
+REM ===============================
+REM Cleanup temporary Godot/system files
+REM ===============================
 
-echo.
-echo === Removing cached files (respecting .gitignore) ===
-git rm -r --cached .
+REM Remove Godot cache and temp files
+del /s /q "%USERPROFILE%\.godot\*.log"
+del /s /q "%USERPROFILE%\.godot\*.import"
+del /s /q "%USERPROFILE%\.godot\*.tmp"
+del /s /q "%USERPROFILE%\.godot\*.swap"
 
-echo.
-echo === Adding all files ===
+REM Remove local .import folder in project
+if exist ".import" rmdir /s /q ".import"
+
+REM Git add & commit cleanup
 git add .
-
-echo.
-echo === Commit changes ===
-git commit -m "Cleanup: removed temp files, updated .gitignore and README"
-
-echo.
-echo === Pushing to branch: prototype ===
+git commit -m "Cleanup: remove temporary Godot/system files"
 git push origin prototype
 
-echo.
-echo === Done! Press any key to exit ===
-pause >nul
+echo ===============================
+echo Cleanup and push completed!
+pause
