@@ -1,45 +1,36 @@
-<<<<<<< HEAD
-# Godot-specific
+# Игнорируемые файлы, специфичные для Godot 4+
 .godot/
+.nomedia
+
+# Игнорируемые файлы, специфичные для Godot
 .import/
 .export/
-mono/
+export.cfg
+export_credentials.cfg
+
+# Игнорируемые файлы, специфичные для Mono (C#)
+.mono/
 data_*/
+mono_crash.*.json
 
-# OS garbage
-.DS_Store
-Thumbs.db
-
+# Игнорируемые файлы редакторов (IDE) и сборок
 bin/
 obj/
 .vs/
 .vscode/
 .idea/
 
-# Android/iOS export
+# Игнорируемые папки экспорта для Android/iOS
 /android/
 /ios/
 
-# Logs
+# Автоматически созданные файлы переводов
+*.translation
+
+# Временные и системные файлы
+.DS_Store
+Thumbs.db
 *.log
 *.tmp
 *.bak
 *.bat
-=======
-# Godot 4+ specific ignores
-.godot/
-.nomedia
-
-# Godot-specific ignores
-.import/
-export.cfg
-export_credentials.cfg
-
-# Imported translations (automatically generated from CSV files)
-*.translation
-
-# Mono-specific ignores
-.mono/
-data_*/
-mono_crash.*.json
->>>>>>> main
