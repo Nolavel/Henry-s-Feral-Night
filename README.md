@@ -1,6 +1,6 @@
 # Henry`s Feral Night
-[ENG] Henry`s Feral Night: Hardcore top-down/isometric survival shooter in a nuclear winter. Preserve humanity or perish.
-[RUS] Henry`s Feral Night: Хардкорный шутер-выживач в условиях ядерной зимы. Сохрани человечность или умри.
+[ENG] Henry-s Feral Night: Hardcore top-down/isometric survival shooter in a nuclear winter. Preserve humanity or perish.
+[RUS] Henry-s Feral Night: Хардкорный шутер-выживач в условиях ядерной зимы. Сохрани человечность или умри.
 
 ## 📂 Repository Structure / Структура репозитория
 
