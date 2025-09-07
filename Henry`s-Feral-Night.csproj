@@ -4,6 +4,6 @@
     <TargetFramework Condition=" '$(GodotTargetPlatform)' == 'android' ">net7.0</TargetFramework>
     <TargetFramework Condition=" '$(GodotTargetPlatform)' == 'ios' ">net8.0</TargetFramework>
     <EnableDynamicLoading>true</EnableDynamicLoading>
-    <RootNamespace>СrimsonFlow</RootNamespace>
+    <RootNamespace>Henry`s Feral Night</RootNamespace>
   </PropertyGroup>
 </Project>
