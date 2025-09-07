@@ -1,6 +1,6 @@
-# Crimson-Flow-or-Last-Man-Breathing
-[ENG] Crimson Flow or Last Man Breathing: Hardcore top-down/isometric survival shooter in a nuclear winter. Preserve humanity or perish.
-[RUS] Crimson Flow: Хардкорный шутер-выживач в условиях ядерной зимы. Сохрани человечность или умри.
+# Henry`s Feral Night
+[ENG] Henry`s Feral Night: Hardcore top-down/isometric survival shooter in a nuclear winter. Preserve humanity or perish.
+[RUS] Henry`s Feral Night: Хардкорный шутер-выживач в условиях ядерной зимы. Сохрани человечность или умри.
 
 ## 📂 Repository Structure / Структура репозитория
 
