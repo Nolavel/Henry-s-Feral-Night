@@ -3,9 +3,9 @@
 [ext_resource type="Script" path="res://scripts/systems/world/WorldEnvironmentController.gd" id="1_tiy4q"]
 [ext_resource type="Script" path="res://scripts/systems/world/DayNightManager.gd" id="2_n3v7b"]
 [ext_resource type="Script" path="res://scripts/systems/world/TimeAccelerator.gd" id="3_6seis"]
-[ext_resource type="Script" path="res://scripts/systems/world/debug_accelerator.gd" id="4_12hek"]
+[ext_resource type="Script" path="res://scripts/systems/world/Debug_Accelerator.gd" id="4_12hek"]
 [ext_resource type="Script" path="res://scripts/systems/world/WeatherController.gd" id="4_n0ipa"]
-[ext_resource type="Script" path="res://scripts/systems/world/day_night_settings.gd" id="5_prwu1"]
+[ext_resource type="Script" path="res://scripts/systems/world/DayNightSettings.gd" id="5_prwu1"]
 
 [sub_resource type="Environment" id="Environment_himop"]
 

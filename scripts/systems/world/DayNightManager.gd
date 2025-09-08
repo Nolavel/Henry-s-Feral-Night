@@ -13,18 +13,14 @@ signal time_update(current_hour: float)
 @export var world_environment_node: WorldEnvironment
 @export var time_accelerator: TimeAccelerator
 
-
-# Внутренние переменные
 var total_game_time_hours: float = 6.0
 var current_day: int = 1
 var is_day: bool = true
 var last_game_minute: int = -1
 
-# Кешированные ресурсы
 var sky_resource: Sky
 var sky_material: ProceduralSkyMaterial
 
-# UI компоненты
 @export_group("Debug-Visual Component")
 @export var time_label: Label
 @export var day_label: Label
@@ -47,7 +43,6 @@ func _ready():
 func setup_default_settings():
 	if settings == null:
 		settings = DayNightSettings.new()
-		print("Создан DayNightSettings по умолчанию. Рекомендуется создать .tres файл")
 
 func initialize_sky():
 	if not world_environment_node or not world_environment_node.environment:

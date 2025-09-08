@@ -36,9 +36,6 @@ func _process(delta):
 	else:
 		start_button.disabled = false
 		stop_button.disabled = true
-	#else:
-		#elapsed_label.text = "⏳ Прошло: 0.00 сек"
-		#consumed_label.text = "🕒 Период: --"
 
 func _on_start_pressed():
 	accelerator.start_acceleration(base_game_hours_per_second)
@@ -57,11 +54,9 @@ func _on_time_update(current_hour: float):
 		if acceleration_start_time == 0.0:
 			acceleration_start_time = current_hour
 		
-		# ПРАВИЛЬНЫЙ РАСЧЕТ:
 		var time_diff = current_hour - acceleration_start_time
 		var minutes_passed = time_diff * 60.0
 		
-		# Обработка перехода через полночь (24 часа)
 		if minutes_passed < 0:
 			minutes_passed += 24 * 60.0  # добавить сутки
 		
