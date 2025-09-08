@@ -1,7 +1,40 @@
-[gd_scene load_steps=2 format=3 uid="uid://bcxsh1dufbls3"]
+[gd_scene load_steps=9 format=3 uid="uid://bcxsh1dufbls3"]
 
 [ext_resource type="PackedScene" uid="uid://cnhshfsm2gpjs" path="res://tools/ScanFolderFiles/ScanFolderFiles.tscn" id="1_gjffg"]
+[ext_resource type="PackedScene" uid="uid://cvv8y27vmgjfi" path="res://scenes/game/systems/world/WorldEnvironmentSystem.tscn" id="2_2ompc"]
+[ext_resource type="PackedScene" uid="uid://dputwp1am8vfu" path="res://scenes/game/systems/camera/PlayerCamera.tscn" id="3_4vd7y"]
+
+[sub_resource type="StandardMaterial3D" id="StandardMaterial3D_mbw63"]
+
+[sub_resource type="PlaneMesh" id="PlaneMesh_33h6p"]
+material = SubResource("StandardMaterial3D_mbw63")
+size = Vector2(80, 80)
+
+[sub_resource type="ConvexPolygonShape3D" id="ConvexPolygonShape3D_qxt5c"]
+points = PackedVector3Array(-40, 0, -40, -40, 0, 40, 40, 0, -40, 40, 0, 40)
+
+[sub_resource type="StandardMaterial3D" id="StandardMaterial3D_7oi43"]
+albedo_color = Color(0.05, 0.05, 0.05, 1)
+
+[sub_resource type="BoxMesh" id="BoxMesh_efhgp"]
+material = SubResource("StandardMaterial3D_7oi43")
 
 [node name="TestScene" type="Node3D"]
 
 [node name="ProjectStats_AND_ExitTrigger" parent="." instance=ExtResource("1_gjffg")]
+
+[node name="MeshPlane" type="MeshInstance3D" parent="."]
+mesh = SubResource("PlaneMesh_33h6p")
+
+[node name="StaticBody3D" type="StaticBody3D" parent="MeshPlane"]
+
+[node name="CollisionShape3D" type="CollisionShape3D" parent="MeshPlane/StaticBody3D"]
+shape = SubResource("ConvexPolygonShape3D_qxt5c")
+
+[node name="WorldEnvironmentSystem" parent="." instance=ExtResource("2_2ompc")]
+
+[node name="PlayerCamera" parent="." instance=ExtResource("3_4vd7y")]
+
+[node name="MeshInstance3D" type="MeshInstance3D" parent="."]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 0, 0.587775, 0)
+mesh = SubResource("BoxMesh_efhgp")

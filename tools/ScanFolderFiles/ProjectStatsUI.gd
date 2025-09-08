@@ -1,4 +1,4 @@
-# ProjectStatsUI.gd
+# ✅ Script: ProjectStatsUI.gd
 @tool
 extends Control
 

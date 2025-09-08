@@ -1,0 +1,147 @@
+[gd_scene load_steps=8 format=3 uid="uid://cvv8y27vmgjfi"]
+
+[ext_resource type="Script" path="res://scripts/systems/world/WorldEnvironmentController.gd" id="1_tiy4q"]
+[ext_resource type="Script" path="res://scripts/systems/world/DayNightManager.gd" id="2_n3v7b"]
+[ext_resource type="Script" path="res://scripts/systems/world/TimeAccelerator.gd" id="3_6seis"]
+[ext_resource type="Script" path="res://scripts/systems/world/debug_accelerator.gd" id="4_12hek"]
+[ext_resource type="Script" path="res://scripts/systems/world/WeatherController.gd" id="4_n0ipa"]
+[ext_resource type="Script" path="res://scripts/systems/world/day_night_settings.gd" id="5_prwu1"]
+
+[sub_resource type="Environment" id="Environment_himop"]
+
+[node name="WorldEnvironmentSystem" type="Node3D" node_paths=PackedStringArray("day_night_manager", "weather_controller", "time_accelerator", "world_environment", "sun_light")]
+script = ExtResource("1_tiy4q")
+day_night_manager = NodePath("DayNightManager")
+weather_controller = NodePath("WeatherController")
+time_accelerator = NodePath("TimeAccelerator")
+world_environment = NodePath("Environment/WorldEnvironment")
+sun_light = NodePath("Lighting/SunLight")
+
+[node name="Lighting" type="Node3D" parent="."]
+
+[node name="SunLight" type="DirectionalLight3D" parent="Lighting"]
+transform = Transform3D(0.707107, -0.5, 0.5, 0, 0.707107, 0.707107, -0.707107, -0.5, 0.5, 0, 250, 0)
+light_energy = 2.751
+sky_mode = 1
+
+[node name="MoonLight" type="DirectionalLight3D" parent="Lighting"]
+
+[node name="Environment" type="Node3D" parent="."]
+
+[node name="WorldEnvironment" type="WorldEnvironment" parent="Environment"]
+environment = SubResource("Environment_himop")
+
+[node name="WeatherController" type="Node" parent="."]
+script = ExtResource("4_n0ipa")
+
+[node name="TimeAccelerator" type="Node" parent="."]
+script = ExtResource("3_6seis")
+acceleration_factor = 10.0
+duration_seconds = 10.0
+
+[node name="DebugAccelerator" type="Control" parent="TimeAccelerator" node_paths=PackedStringArray("accelerator", "day_night_manager", "duration_label", "factor_label", "elapsed_label", "consumed_label", "start_button", "stop_button")]
+layout_mode = 3
+anchors_preset = 6
+anchor_left = 1.0
+anchor_top = 0.5
+anchor_right = 1.0
+anchor_bottom = 0.5
+offset_left = -160.0
+offset_top = -75.0
+offset_right = -10.0
+offset_bottom = 75.0
+grow_horizontal = 0
+grow_vertical = 2
+script = ExtResource("4_12hek")
+accelerator = NodePath("..")
+day_night_manager = NodePath("../../DayNightManager")
+duration_label = NodePath("VBoxContainer/duration_label")
+factor_label = NodePath("VBoxContainer/factor_label")
+elapsed_label = NodePath("VBoxContainer/elapsed_label")
+consumed_label = NodePath("VBoxContainer/consumed_label")
+start_button = NodePath("VBoxContainer/start_button")
+stop_button = NodePath("VBoxContainer/stop_button")
+
+[node name="VBoxContainer" type="VBoxContainer" parent="TimeAccelerator/DebugAccelerator"]
+layout_mode = 0
+offset_right = 40.0
+offset_bottom = 40.0
+
+[node name="duration_label" type="Label" parent="TimeAccelerator/DebugAccelerator/VBoxContainer"]
+layout_mode = 2
+text = "Duration"
+
+[node name="factor_label" type="Label" parent="TimeAccelerator/DebugAccelerator/VBoxContainer"]
+layout_mode = 2
+text = "Factor"
+
+[node name="elapsed_label" type="Label" parent="TimeAccelerator/DebugAccelerator/VBoxContainer"]
+layout_mode = 2
+text = "Elapsed"
+
+[node name="consumed_label" type="Label" parent="TimeAccelerator/DebugAccelerator/VBoxContainer"]
+layout_mode = 2
+text = "Consumed"
+
+[node name="start_button" type="Button" parent="TimeAccelerator/DebugAccelerator/VBoxContainer"]
+layout_mode = 2
+focus_mode = 0
+text = "Start Timer"
+
+[node name="stop_button" type="Button" parent="TimeAccelerator/DebugAccelerator/VBoxContainer"]
+layout_mode = 2
+focus_mode = 0
+text = "Stop Timer"
+
+[node name="DayNightManager" type="Node" parent="." node_paths=PackedStringArray("settings", "directional_light", "world_environment_node", "time_accelerator", "time_label", "day_label", "day_and_night_duration_label", "current_day_label")]
+script = ExtResource("2_n3v7b")
+settings = NodePath("DayNightSettings")
+directional_light = NodePath("../Lighting/SunLight")
+world_environment_node = NodePath("../Environment/WorldEnvironment")
+time_accelerator = NodePath("../TimeAccelerator")
+time_label = NodePath("DebugTime/VBoxContainer/TimeLabel")
+day_label = NodePath("DebugTime/VBoxContainer/DayLabel")
+day_and_night_duration_label = NodePath("DebugTime/VBoxContainer/Day_and_Night_DurationLabel")
+current_day_label = NodePath("DebugTime/VBoxContainer/CurrentDayLabel")
+
+[node name="DayNightSettings" type="Node" parent="DayNightManager"]
+script = ExtResource("5_prwu1")
+
+[node name="DebugTime" type="Control" parent="DayNightManager"]
+layout_mode = 3
+anchors_preset = 5
+anchor_left = 0.5
+anchor_right = 0.5
+offset_left = -50.0
+offset_right = 50.0
+offset_bottom = 100.0
+grow_horizontal = 2
+
+[node name="VBoxContainer" type="VBoxContainer" parent="DayNightManager/DebugTime"]
+layout_mode = 0
+offset_right = 40.0
+offset_bottom = 40.0
+
+[node name="TimeLabel" type="Label" parent="DayNightManager/DebugTime/VBoxContainer"]
+layout_mode = 2
+text = "Time"
+horizontal_alignment = 1
+vertical_alignment = 1
+
+[node name="DayLabel" type="Label" parent="DayNightManager/DebugTime/VBoxContainer"]
+layout_mode = 2
+text = "Day"
+horizontal_alignment = 1
+vertical_alignment = 1
+
+[node name="CurrentDayLabel" type="Label" parent="DayNightManager/DebugTime/VBoxContainer"]
+layout_mode = 2
+text = "Current Day"
+horizontal_alignment = 1
+vertical_alignment = 1
+
+[node name="Day_and_Night_DurationLabel" type="Label" parent="DayNightManager/DebugTime/VBoxContainer"]
+layout_mode = 2
+text = "Duration"
+horizontal_alignment = 1
+vertical_alignment = 1
