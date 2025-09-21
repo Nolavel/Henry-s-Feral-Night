@@ -3,7 +3,8 @@ class_name PlayerCamera
 
 @export var player: CharacterBody3D
 
-# === Базовые параметры ===
+# === Базовые параметры камеры ===
+@export_group("Base Camera Settings")
 @export var base_follow_distance: float = 8.0
 @export var height: float = 6.0
 @export var look_at_height: float = 1.5
@@ -13,44 +14,59 @@ class_name PlayerCamera
 @export var follow_speed_max: float = 8.0
 @export var yaw_deadzone_deg: float = 2.0
 
-# === Эффект спринта ===
+# === Эффекты движения ===
+@export_group("Sprint Effects")
 @export var sprint_zoom_distance: float = 2.5
 @export var sprint_zoom_speed: float = 5.0
-@export var sprint_tilt_amount: float = 15.0      # roll в градусах в сторону движения
+@export var sprint_tilt_amount: float = 15.0
 @export var sprint_tilt_speed: float = 5.0
-@export var sprint_height_offset: float = -2.5   # опустить камеру при спринте
-@export var sprint_pitch_up: float = -25.0        # поднять взгляд вверх при спринте
+@export var sprint_height_offset: float = -2.5
+@export var sprint_pitch_up: float = -25.0
 @export var sprint_transition_speed: float = 5.0
 
-# === Эффект прыжка ===
-@export var jump_tilt_amount: float = 15.0        # pitch в градусах
+@export_group("Jump Effects")
+@export var jump_tilt_amount: float = 15.0
 @export var jump_tilt_speed: float = 8.0
 var _jump_tilt_angle: float = 0.0
 var _was_on_floor: bool = true
 
-# === Орбитальный поворот ===
+# === Орбитальный режим ===
+@export_group("Orbit Settings")
 @export var orbit_angle_max: float = 180.0
 @export var orbit_speed: float = 6.0
 var _orbit_offset: float = 0.0
 var _orbit_active: bool = false
 
-# === Новые параметры ===
+# === Сглаживание и кинематографичность ===
+@export_group("Smoothing & Cinematic")
+@export var yaw_smooth_time: float = 0.95
+@export var fov_smooth_time: float = 0.45
+@export var position_smooth_time: float = 0.6
+var _pos_velocity := Vector3.ZERO
+
+@export var turn_tilt_amount: float = 10.0
+@export var turn_tilt_speed: float = 5.0
+var _turn_tilt: float = 0.0
+
+# === Параметры FOV ===
+@export_group("FOV Settings")
 @export var base_fov: float = 75.0
 @export var sprint_fov: float = 90.0
 @export var fov_change_speed: float = 5.0
 
+# === Коллизии камеры ===
+@export_group("Collision Settings")
 @export var collision_margin: float = 0.2
 
+# === Автофокус и дыхание ===
+@export_group("Idle Autofocus")
 @export var idle_time_before_autofocus: float = 1.0
 @export var autofocus_breath_amp: float = 0.05
 @export var autofocus_breath_speed: float = 0.25
 var _idle_timer: float = 0.0
+var _breath_time: float = 0.0
 
-var _current_pivot_offset: Vector3 = Vector3.ZERO
-var _breath_time: float = 0.0  # Для оптимизации дыхания
-var _collision_raycast: RayCast3D = null
-
-# === Параметры прозрачности ===
+# === Прозрачность объектов ===
 @export_group("Transparency System")
 @export var transparency_enabled: bool = true
 @export var transparency_distance: float = 2.0
@@ -64,6 +80,12 @@ var _current_follow_distance: float
 var _current_height_offset: float = 0.0
 var _current_pitch_offset: float = 0.0
 var _sprint_tilt_angle: float = 0.0
+var _yaw_velocity: float = 0.0
+var _fov_velocity: float = 0.0
+var _current_pivot_offset: Vector3 = Vector3.ZERO
+var _collision_raycast: RayCast3D = null
+
+
 
 func _ready() -> void:
 	if player:
@@ -74,7 +96,6 @@ func _ready() -> void:
 		push_warning("PlayerCamera: No player assigned!")
 	_current_follow_distance = base_follow_distance
 	fov = base_fov
-	
 	# Создаем RayCast для коллизий
 	_collision_raycast = RayCast3D.new()
 	add_child(_collision_raycast)
@@ -125,7 +146,11 @@ func _physics_process(delta: float) -> void:
 	var target_fov: float = base_fov
 	if is_sprinting:
 		target_fov = sprint_fov
-	fov = smooth_damp(fov, target_fov, fov_change_speed, delta)
+	var fov_result = _smooth_damp(fov, target_fov, _fov_velocity, fov_smooth_time, delta)
+	fov = fov_result[0]
+	_fov_velocity = fov_result[1]
+
+
 
 	# Дистанция
 	var target_distance: float = sprint_zoom_distance if is_sprinting else base_follow_distance
@@ -160,11 +185,21 @@ func _physics_process(delta: float) -> void:
 	_jump_tilt_angle = lerp(_jump_tilt_angle, 0.0, clamp(jump_tilt_speed * delta, 0.0, 1.0))
 
 	# === Базовое слежение с лагом ===
+	#var facing_yaw: float = player.rotation.y
+	# === Базовое слежение с лагом (инерция) ===
+	#var facing_yaw: float = player.rotation.y
+	#current_yaw = _smooth_damp_angle(current_yaw, facing_yaw, _yaw_velocity, 0.25, delta)
+#
+	#var angle_err: float = _angle_diff(current_yaw, facing_yaw)
+	#var speed_factor: float = clamp(angle_err / deg_to_rad(yaw_deadzone_deg), 0.0, 1.0)
+	#if angle_err > deg_to_rad(yaw_deadzone_deg):
+		#current_yaw = lerp_angle(current_yaw, facing_yaw, rotation_lag_speed * delta * speed_factor)
 	var facing_yaw: float = player.rotation.y
-	var angle_err: float = _angle_diff(current_yaw, facing_yaw)
-	var speed_factor: float = clamp(angle_err / deg_to_rad(yaw_deadzone_deg), 0.0, 1.0)
-	if angle_err > deg_to_rad(yaw_deadzone_deg):
-		current_yaw = lerp_angle(current_yaw, facing_yaw, rotation_lag_speed * delta * speed_factor)
+	#current_yaw = lerp_angle(current_yaw, facing_yaw, clamp(1.0 * delta, 0.0, 1.0)) # 2.0 — скорость догонки
+	var yaw_result = _smooth_damp_angle(current_yaw, facing_yaw, _yaw_velocity, yaw_smooth_time, delta)
+	current_yaw = yaw_result[0]
+	_yaw_velocity = yaw_result[1]
+
 
 	# Горизонтальный оффсет с учётом орбиты
 	var forward_dir: Vector3 = Vector3.FORWARD.rotated(Vector3.UP, current_yaw + _orbit_offset)
@@ -182,7 +217,11 @@ func _physics_process(delta: float) -> void:
 	target_pos.y = player_pos.y + height + _current_height_offset
 	
 	var final_pos = _check_camera_collision(player_pos, target_pos, delta)
-	global_transform.origin = global_transform.origin.lerp(final_pos, dyn_follow_speed * delta)
+	#global_transform.origin = global_transform.origin.lerp(final_pos, dyn_follow_speed * delta)
+	var pos_result = _smooth_damp_vec3(global_transform.origin, final_pos, _pos_velocity, position_smooth_time, delta)
+	global_transform.origin = pos_result[0]
+	_pos_velocity = pos_result[1]
+
 	
 	# === Auto‑focus ===
 	var is_camera_colliding = _collision_raycast and _collision_raycast.is_colliding()
@@ -196,14 +235,27 @@ func _physics_process(delta: float) -> void:
 		_idle_timer = 0.0
 		_breath_time = 0.0
 
+	## === Применяем наклоны ===
+	#rotation_degrees.x = _jump_tilt_angle + _current_pitch_offset
+	#rotation_degrees.z = _sprint_tilt_angle
 	# === Применяем наклоны ===
 	rotation_degrees.x = _jump_tilt_angle + _current_pitch_offset
-	rotation_degrees.z = _sprint_tilt_angle
+
+	# Вычисляем наклон при повороте
+	var yaw_delta = wrapf(facing_yaw - current_yaw, -PI, PI)
+	var target_turn_tilt = clamp(yaw_delta * turn_tilt_amount, -turn_tilt_amount, turn_tilt_amount)
+	_turn_tilt = lerp(_turn_tilt, target_turn_tilt, clamp(turn_tilt_speed * delta, 0.0, 1.0))
+
+	# Суммируем наклон от спринта и от поворота
+	rotation_degrees.z = _sprint_tilt_angle + _turn_tilt
+
 
 	# Смотрим на игрока
 	var look_point: Vector3 = player_pos + Vector3.UP * look_at_height
 	if global_position.distance_to(look_point) > 0.01:
 		look_at(look_point, Vector3.UP)
+		
+
 
 func _angle_diff(a: float, b: float) -> float:
 	return absf(atan2(sin(b - a), cos(b - a)))
@@ -211,13 +263,51 @@ func _angle_diff(a: float, b: float) -> float:
 #func smooth_damp(current: float, target: float, speed: float, delta: float) -> float:
 	#return lerp(current, target, 1.0 - exp(-speed * delta))
 	
-func smooth_damp(current: float, target: float, speed: float, delta: float) -> float:
-	if is_nan(current) or is_nan(target):
-		push_error("NaN detected in smooth_damp")
-		return target
+#func smooth_damp(current: float, target: float, speed: float, delta: float) -> float:
+	#if is_nan(current) or is_nan(target):
+		#push_error("NaN detected in smooth_damp")
+		#return target
+	#
+	#var factor = 1.0 - exp(-speed * delta)
+	#return lerp(current, target, clamp(factor, 0.0, 1.0))
 	
-	var factor = 1.0 - exp(-speed * delta)
-	return lerp(current, target, clamp(factor, 0.0, 1.0))
+# Плавное сглаживание угла с учётом перехода через 360°
+func _smooth_damp_angle(current: float, target: float, velocity: float, smooth_time: float, delta: float) -> Array:
+	var num = fmod((target - current + PI), TAU)
+	if num < 0.0:
+		num += TAU
+	num -= PI
+	target = current + num
+	return _smooth_damp(current, target, velocity, smooth_time, delta)
+
+
+# Плавное сглаживание значения с инерцией (возвращает [новое_значение, новая_скорость])
+func _smooth_damp(current: float, target: float, velocity: float, smooth_time: float, delta: float) -> Array:
+	smooth_time = max(0.0001, smooth_time)
+	var omega = 2.0 / smooth_time
+	var x = omega * delta
+	var exp = 1.0 / (1.0 + x + 0.48 * x * x + 0.235 * x * x * x)
+	var change = current - target
+	var temp = (velocity + omega * change) * delta
+	velocity = (velocity - omega * temp) * exp
+	var output = target + (change + temp) * exp
+	return [output, velocity]
+
+func _smooth_damp_vec3(current: Vector3, target: Vector3, velocity: Vector3, smooth_time: float, delta: float) -> Array:
+	return [
+		Vector3(
+			_smooth_damp(current.x, target.x, velocity.x, smooth_time, delta)[0],
+			_smooth_damp(current.y, target.y, velocity.y, smooth_time, delta)[0],
+			_smooth_damp(current.z, target.z, velocity.z, smooth_time, delta)[0]
+		),
+		Vector3(
+			_smooth_damp(current.x, target.x, velocity.x, smooth_time, delta)[1],
+			_smooth_damp(current.y, target.y, velocity.y, smooth_time, delta)[1],
+			_smooth_damp(current.z, target.z, velocity.z, smooth_time, delta)[1]
+		)
+	]
+
+
 
 func _check_camera_collision(from: Vector3, to: Vector3, delta: float) -> Vector3:
 	if not _collision_raycast:
