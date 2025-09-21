@@ -1,10 +1,16 @@
-[gd_scene load_steps=9 format=3 uid="uid://bcxsh1dufbls3"]
+[gd_scene load_steps=16 format=3 uid="uid://bcxsh1dufbls3"]
 
 [ext_resource type="PackedScene" uid="uid://cnhshfsm2gpjs" path="res://tools/ScanFolderFiles/ScanFolderFiles.tscn" id="1_gjffg"]
 [ext_resource type="PackedScene" uid="uid://cvv8y27vmgjfi" path="res://scenes/game/systems/world/WorldEnvironmentSystem.tscn" id="2_2ompc"]
+[ext_resource type="PackedScene" uid="uid://duxn5rqcau5dw" path="res://tools/StatsDisplay/StatsDisplay.tscn" id="2_h763q"]
 [ext_resource type="PackedScene" uid="uid://dputwp1am8vfu" path="res://scenes/game/systems/camera/PlayerCamera.tscn" id="3_4vd7y"]
+[ext_resource type="PackedScene" uid="uid://cvuw2ef72te81" path="res://tools/InputDebugger/InputDebugger.tscn" id="3_v0fra"]
+[ext_resource type="PackedScene" uid="uid://ciy301x7wh6ie" path="res://scenes/actors/player/player.tscn" id="4_vhdnb"]
+[ext_resource type="PackedScene" uid="uid://wxp413rki005" path="res://scenes/ui/hud/dynamic_cursor/mouse_cursor_ui.tscn" id="6_y43q7"]
+[ext_resource type="PackedScene" uid="uid://btnxy5t02bhtw" path="res://scenes/environment/interactive/InteractiveArea.tscn" id="8_loucq"]
 
 [sub_resource type="StandardMaterial3D" id="StandardMaterial3D_mbw63"]
+albedo_color = Color(0.04, 0.04, 0.04, 1)
 
 [sub_resource type="PlaneMesh" id="PlaneMesh_33h6p"]
 material = SubResource("StandardMaterial3D_mbw63")
@@ -19,9 +25,19 @@ albedo_color = Color(0.05, 0.05, 0.05, 1)
 [sub_resource type="BoxMesh" id="BoxMesh_efhgp"]
 material = SubResource("StandardMaterial3D_7oi43")
 
+[sub_resource type="BoxMesh" id="BoxMesh_sofqw"]
+size = Vector3(5, 5, 1)
+
+[sub_resource type="ConvexPolygonShape3D" id="ConvexPolygonShape3D_swxfl"]
+points = PackedVector3Array(-2.35782, -2.35735, -0.5, 2.53919, 2.53869, 0.571429, 2.53919, -2.53869, 0.571429, -2.53919, 2.53869, 0.571429, 2.35782, 2.35735, -0.5, -2.53919, -2.53869, 0.571429, 2.35782, -2.35735, -0.5, -2.35782, 2.35735, -0.5)
+
 [node name="TestScene" type="Node3D"]
 
 [node name="ProjectStats_AND_ExitTrigger" parent="." instance=ExtResource("1_gjffg")]
+
+[node name="StatsDisplay" parent="." instance=ExtResource("2_h763q")]
+
+[node name="InputDebugger" parent="." instance=ExtResource("3_v0fra")]
 
 [node name="MeshPlane" type="MeshInstance3D" parent="."]
 mesh = SubResource("PlaneMesh_33h6p")
@@ -33,8 +49,53 @@ shape = SubResource("ConvexPolygonShape3D_qxt5c")
 
 [node name="WorldEnvironmentSystem" parent="." instance=ExtResource("2_2ompc")]
 
-[node name="PlayerCamera" parent="." instance=ExtResource("3_4vd7y")]
+[node name="PlayerCamera" parent="." node_paths=PackedStringArray("player") instance=ExtResource("3_4vd7y")]
+player = NodePath("../Player")
 
 [node name="MeshInstance3D" type="MeshInstance3D" parent="."]
-transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 0, 0.587775, 0)
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 0, 0.587775, -1)
 mesh = SubResource("BoxMesh_efhgp")
+
+[node name="Player" parent="." instance=ExtResource("4_vhdnb")]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 0, 1, 0)
+yaw_sector_deg = 60.0
+
+[node name="MouseCursorUI" parent="Player" node_paths=PackedStringArray("player") instance=ExtResource("6_y43q7")]
+player = NodePath("..")
+
+[node name="DebugVisuals" type="MeshInstance3D" parent="."]
+
+[node name="MeshWall" type="MeshInstance3D" parent="."]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 0, 2.52639, -10)
+mesh = SubResource("BoxMesh_sofqw")
+
+[node name="StaticBody3D" type="StaticBody3D" parent="MeshWall"]
+
+[node name="CollisionShape3D" type="CollisionShape3D" parent="MeshWall/StaticBody3D"]
+shape = SubResource("ConvexPolygonShape3D_swxfl")
+
+[node name="MeshWall2" type="MeshInstance3D" parent="."]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, -0.116871, 2.52639, -6.11405)
+mesh = SubResource("BoxMesh_sofqw")
+
+[node name="StaticBody3D" type="StaticBody3D" parent="MeshWall2"]
+
+[node name="CollisionShape3D" type="CollisionShape3D" parent="MeshWall2/StaticBody3D"]
+shape = SubResource("ConvexPolygonShape3D_swxfl")
+
+[node name="MeshWall3" type="MeshInstance3D" parent="."]
+transform = Transform3D(1, 0, 0, 0, -4.37114e-08, 1, 0, -1, -4.37114e-08, -0.116871, 4.75054, -8.17044)
+mesh = SubResource("BoxMesh_sofqw")
+
+[node name="StaticBody3D" type="StaticBody3D" parent="MeshWall3"]
+
+[node name="CollisionShape3D" type="CollisionShape3D" parent="MeshWall3/StaticBody3D"]
+shape = SubResource("ConvexPolygonShape3D_swxfl")
+
+[node name="InteractiveArea" parent="." instance=ExtResource("8_loucq")]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, -3.295, 0.1, -1.239)
+interaction_type = 1
+pickup_subtype = 5
+item_name = "Фонарик нагрудный"
+description = "Светит долго, почти сутки без перерыва."
+highlight_color = Color(1, 1, 0, 0.0470588)

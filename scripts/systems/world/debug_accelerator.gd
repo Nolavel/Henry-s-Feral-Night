@@ -62,7 +62,7 @@ func _on_time_update(current_hour: float):
 		
 		if minutes_passed >= 60.0:
 			var hours = int(minutes_passed / 60.0)
-			var mins = int(minutes_passed % 60.0)
+			var mins = int(fmod(minutes_passed, 60.0))
 			consumed_label.text = "🕒 %dч %dм" % [hours, mins]
 		else:
 			consumed_label.text = "🕒 %dм" % int(minutes_passed)

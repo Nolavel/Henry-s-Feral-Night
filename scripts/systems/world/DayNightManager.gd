@@ -35,30 +35,53 @@ func _ready():
 	initialize_sky()
 	add_child(calculator)
 
-	$DebugTime.visible = perfomance_visible_display
+	# Обязательно проверяем наличие DebugTime перед обращением
+	if has_node("DebugTime"):
+		$DebugTime.visible = perfomance_visible_display
+	
 	set_process(true)
-	update_environment_visuals(get_current_hour_float())
+	
+	# Принудительно обновляем визуалы в _ready()
+	call_deferred("_force_update_visuals")
 
+func _force_update_visuals():
+	update_environment_visuals(get_current_hour_float())
+	update_time_display()
 
 func setup_default_settings():
 	if settings == null:
 		settings = DayNightSettings.new()
 
 func initialize_sky():
-	if not world_environment_node or not world_environment_node.environment:
-		print("WorldEnvironment не найден!")
+	if not world_environment_node:
+		print("ОШИБКА: WorldEnvironment не назначен в DayNightManager!")
 		return
-
+	
+	if not world_environment_node.environment:
+		print("ОШИБКА: Environment отсутствует в WorldEnvironment!")
+		world_environment_node.environment = Environment.new()
+	
 	var env = world_environment_node.environment
 
-	if env.sky != null and env.sky.sky_material is ProceduralSkyMaterial:
-		sky_resource = env.sky
-		sky_material = env.sky.sky_material as ProceduralSkyMaterial
-	else:
+	# Проверяем и создаем Sky, если его нет
+	if env.sky == null:
+
 		sky_resource = Sky.new()
 		sky_material = ProceduralSkyMaterial.new()
 		sky_resource.sky_material = sky_material
 		env.sky = sky_resource
+	else:
+		sky_resource = env.sky
+		
+		# Проверяем материал неба
+		if env.sky.sky_material == null:
+			sky_material = ProceduralSkyMaterial.new()
+			sky_resource.sky_material = sky_material
+		elif env.sky.sky_material is ProceduralSkyMaterial:
+			sky_material = env.sky.sky_material as ProceduralSkyMaterial
+		else:
+			sky_material = ProceduralSkyMaterial.new()
+			sky_resource.sky_material = sky_material
 
 func _process(delta: float) -> void:
 	var old_total_hours := total_game_time_hours
@@ -84,7 +107,6 @@ func _process(delta: float) -> void:
 		last_game_minute = game_minute
 		on_game_minute_changed(game_hour_float)
 
-
 func on_game_minute_changed(game_hour_float: float):
 	var new_hour = int(game_hour_float)
 	var new_day = int(floor(total_game_time_hours / 24.0)) + 1
@@ -102,43 +124,104 @@ func on_game_minute_changed(game_hour_float: float):
 	elif not was_day and is_day:
 		day_started.emit(current_day)
 
+	# КРИТИЧЕСКИ ВАЖНО: обновляем визуалы КАЖДУЮ минуту
 	update_environment_visuals(game_hour_float)
 	emit_time_signals(game_hour_float)
 	update_time_display()
 	time_update.emit(game_hour_float)
 
 func update_environment_visuals(game_hour_float: float):
-	if not directional_light or not world_environment_node or not world_environment_node.environment:
+	# Проверка корректности ссылок
+	if not directional_light:
+		print("ОШИБКА: DirectionalLight3D не назначен!")
+		return
+	
+	if not world_environment_node or not world_environment_node.environment:
+		print("ОШИБКА: WorldEnvironment или Environment недоступны!")
 		return
 
-	var day_night_progress = calculator.CalculateDayNightProgress(game_hour_float)
-	directional_light.light_energy = calculator.InterpolateLightEnergy(settings.night_light_energy, settings.day_light_energy, day_night_progress)
-	directional_light.rotation_degrees.x = calculator.CalculateSunRotation(game_hour_float)
+	if not sky_material:
+		print("ОШИБКА: ProceduralSkyMaterial недоступен!")
+		initialize_sky()  # Пытаемся переинициализировать
+		if not sky_material:
+			return
 
+	# Получаем прогресс дня/ночи
+	var day_night_progress = calculator.CalculateDayNightProgress(game_hour_float)
+
+	# Обновляем DirectionalLight
+	directional_light.light_energy = calculator.InterpolateLightEnergy(
+		settings.night_light_energy, 
+		settings.day_light_energy, 
+		day_night_progress
+	)
+	
+	directional_light.rotation_degrees.x = calculator.CalculateSunRotation(game_hour_float)
+	
 	var env = world_environment_node.environment
 
+	# Обновляем цвета неба
 	if sky_material:
-		sky_material.sky_top_color = calculator.InterpolateSkyColor(settings.night_sky_top_color, settings.day_sky_top_color, day_night_progress)
-		sky_material.sky_horizon_color = calculator.InterpolateSkyColor(settings.night_sky_horizon_color, settings.day_sky_horizon_color, day_night_progress)
-		sky_material.ground_bottom_color = calculator.InterpolateSkyColor(settings.night_ground_color, settings.day_ground_color, day_night_progress)
-		sky_material.ground_horizon_color = calculator.InterpolateSkyColor(settings.night_ground_color, settings.day_ground_color, day_night_progress)
-		sky_material.ground_energy_multiplier = calculator.InterpolateLightEnergy(settings.night_sky_energy, settings.day_sky_energy, day_night_progress)
+		sky_material.sky_top_color = calculator.InterpolateSkyColor(
+			settings.night_sky_top_color, 
+			settings.day_sky_top_color, 
+			day_night_progress
+		)
+		sky_material.sky_horizon_color = calculator.InterpolateSkyColor(
+			settings.night_sky_horizon_color, 
+			settings.day_sky_horizon_color, 
+			day_night_progress
+		)
+		sky_material.ground_bottom_color = calculator.InterpolateSkyColor(
+			settings.night_ground_color, 
+			settings.day_ground_color, 
+			day_night_progress
+		)
+		sky_material.ground_horizon_color = calculator.InterpolateSkyColor(
+			settings.night_ground_color, 
+			settings.day_ground_color, 
+			day_night_progress
+		)
+		sky_material.ground_energy_multiplier = calculator.InterpolateLightEnergy(
+			settings.night_sky_energy, 
+			settings.day_sky_energy, 
+			day_night_progress
+		)
 
+	# Обновляем окружающее освещение
 	env.ambient_light_source = Environment.AMBIENT_SOURCE_SKY
-	env.ambient_light_color = calculator.InterpolateSkyColor(settings.night_ambient_color, settings.day_ambient_color, day_night_progress)
-	env.ambient_light_energy = calculator.InterpolateLightEnergy(settings.night_sky_energy, settings.day_sky_energy, day_night_progress)
+	env.ambient_light_color = calculator.InterpolateSkyColor(
+		settings.night_ambient_color, 
+		settings.day_ambient_color, 
+		day_night_progress
+	)
+	env.ambient_light_energy = calculator.InterpolateLightEnergy(
+		settings.night_sky_energy, 
+		settings.day_sky_energy, 
+		day_night_progress
+	)
 
+	# Применяем критическую ночь, если нужно
 	if current_day == settings.critical_night_day and not is_day:
 		apply_critical_night_effect(game_hour_float, day_night_progress)
 
 func apply_critical_night_effect(game_hour_float: float, base_progress: float):
-	var critical_factor = calculator.CalculateCriticalNightFactor(game_hour_float, current_day, settings.critical_night_day)
+	var critical_factor = calculator.CalculateCriticalNightFactor(
+		game_hour_float, 
+		current_day, 
+		settings.critical_night_day
+	)
 
+	# Затемняем основной свет
 	directional_light.light_energy *= lerp(1.0, 0.2, critical_factor)
 
+	# Затемняем окружающее освещение
 	var env = world_environment_node.environment
 	env.ambient_light_energy *= lerp(1.0, 0.1, critical_factor)
-	env.ambient_light_color = env.ambient_light_color.lerp(Color.BLACK, critical_factor * settings.critical_night_darkness_factor)
+	env.ambient_light_color = env.ambient_light_color.lerp(
+		Color.BLACK, 
+		critical_factor * settings.critical_night_darkness_factor
+	)
 
 func emit_time_signals(game_hour_float: float):
 	var formatted_time = calculator.FormatTime(game_hour_float)
@@ -148,11 +231,16 @@ func emit_time_signals(game_hour_float: float):
 	time_changed.emit(formatted_time, is_day, current_day, period_description)
 
 func update_time_display():
-	if time_label and day_label:
+	if time_label:
 		time_label.text = calculator.FormatTime(get_current_hour_float())
+	
+	if day_label:
 		var time_of_day = calculator.CalculateTimeOfDay(get_current_hour_float())
 		day_label.text = calculator.GetTimeDescriptionEn(time_of_day)
+	
+	if day_and_night_duration_label:
 		day_and_night_duration_label.text = "%d sec Day + %d sec Night" % [settings.day_duration, settings.night_duration]
+	
 	if current_day_label:
 		current_day_label.text = "Day: %d" % current_day
 
@@ -168,6 +256,11 @@ func is_night_time() -> bool:
 func is_critical_night() -> bool:
 	return current_day == settings.critical_night_day and not is_day
 
+# Новая функция для ручного принудительного обновления (для отладки)
+func force_update_lighting():
+	print("Принудительное обновление освещения...")
+	update_environment_visuals(get_current_hour_float())
+
 func get_save_data() -> Dictionary:
 	return {
 		"total_game_time_hours": total_game_time_hours,
@@ -180,5 +273,8 @@ func load_save_data(data: Dictionary):
 	current_day = data.get("current_day", 1)
 	is_day = data.get("is_day", true)
 
+	call_deferred("_force_update_after_load")
+
+func _force_update_after_load():
 	update_environment_visuals(get_current_hour_float())
 	update_time_display()

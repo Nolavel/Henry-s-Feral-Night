@@ -1,4 +1,4 @@
-[gd_scene load_steps=8 format=3 uid="uid://cvv8y27vmgjfi"]
+[gd_scene load_steps=9 format=3 uid="uid://cvv8y27vmgjfi"]
 
 [ext_resource type="Script" path="res://scripts/systems/world/WorldEnvironmentController.gd" id="1_tiy4q"]
 [ext_resource type="Script" path="res://scripts/systems/world/DayNightManager.gd" id="2_n3v7b"]
@@ -8,6 +8,9 @@
 [ext_resource type="Script" path="res://scripts/systems/world/DayNightSettings.gd" id="5_prwu1"]
 
 [sub_resource type="Environment" id="Environment_himop"]
+
+[sub_resource type="LabelSettings" id="LabelSettings_u2kgs"]
+font_color = Color(0.03, 0.03, 0.03, 1)
 
 [node name="WorldEnvironmentSystem" type="Node3D" node_paths=PackedStringArray("day_night_manager", "weather_controller", "time_accelerator", "world_environment", "sun_light")]
 script = ExtResource("1_tiy4q")
@@ -106,6 +109,8 @@ current_day_label = NodePath("DebugTime/VBoxContainer/CurrentDayLabel")
 
 [node name="DayNightSettings" type="Node" parent="DayNightManager"]
 script = ExtResource("5_prwu1")
+day_duration = 72.0
+night_duration = 72.0
 
 [node name="DebugTime" type="Control" parent="DayNightManager"]
 layout_mode = 3
@@ -125,6 +130,7 @@ offset_bottom = 40.0
 [node name="TimeLabel" type="Label" parent="DayNightManager/DebugTime/VBoxContainer"]
 layout_mode = 2
 text = "Time"
+label_settings = SubResource("LabelSettings_u2kgs")
 horizontal_alignment = 1
 vertical_alignment = 1
 
