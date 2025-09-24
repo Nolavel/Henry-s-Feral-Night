@@ -38,8 +38,10 @@ class_name MouseCursorUI
 
 # === ССЫЛКИ ===
 @export var player: CharacterBody3D
+@export var movement_controller: MovementController
+@export var stamina_manager: StaminaManager
 
-# === СОСТОЯНИЕ ===
+# === СОСТОЯНИЕ КУРСОРА ===
 var current_cursor_color: Color
 var label_alpha: float = 0.0
 var cursor_position: Vector2 = Vector2.ZERO
@@ -61,6 +63,19 @@ var sprint_progress: float = 0.0  # 0.0 - 1.0
 var sprint_arc_angle: float = 0.0  # Для анимации дуг
 var movement_dot_alpha: float = 0.0
 var sprint_arcs_alpha: float = 0.0
+
+# === СОСТОЯНИЕ СТАМИНЫ ДЛЯ UI ===
+var current_stamina_ratio: float = 1.0
+var sprint_arc_start_angle: float = 0.0  # Угол начала дуг (для обратной анимации)
+var sprint_arc_end_angle: float = 0.0    # Угол конца дуг
+var sprint_arc_reverse_speed: float = 3.0
+
+# === СОСТОЯНИЕ ПРЫЖКА ===
+var jump_arc_alpha: float = 0.0
+var jump_arc_progress: float = 0.0  # 0 = дуга внизу, 1 = полный круг
+var jump_is_charging: bool = false
+var jump_animation_tween: Tween
+var jump_time: float = 0.0
 
 # === UI ЭЛЕМЕНТЫ ===
 var label: Label
@@ -85,10 +100,29 @@ func _ready() -> void:
 	if player:
 		last_player_pos = player.global_transform.origin
 		last_player_yaw = player.rotation.y
+		
+		# Проверяем ссылки на компоненты
+		if movement_controller == null:
+			movement_controller = player.get_node_or_null("MovementController")
+			if movement_controller == null:
+				push_warning("MovementController reference is not valid. Make sure the Player node has a child named 'MovementController' and the export variable is set.")
+		
+		if stamina_manager == null:
+			stamina_manager = player.get_node_or_null("StaminaManager")
+			if stamina_manager == null:
+				push_warning("StaminaManager reference is not valid. Sprint UI indicators will not work correctly.")
+		
+		# Подключаемся к сигналам стамины
+		if stamina_manager:
+			stamina_manager.stamina_changed.connect(_on_stamina_changed)
+			stamina_manager.stamina_depleted.connect(_on_stamina_depleted)
+			stamina_manager.stamina_recovered.connect(_on_stamina_recovered)
+			stamina_manager.jump_performed.connect(_on_jump_performed)
+			
 	last_mouse_pos = get_viewport().get_mouse_position()
 
 func _process(delta: float) -> void:
-	if not player:
+	if not player or not movement_controller:
 		return
 
 	cursor_position = get_viewport().get_mouse_position()
@@ -124,25 +158,26 @@ func _process(delta: float) -> void:
 	# 6) Лейбл: за спиной + курсор стоит + игрок статичен
 	var should_show_label: bool = is_behind and (mouse_stationary_timer >= label_show_delay) and player_stationary
 	_update_label(delta, should_show_label)
+	
+	if jump_is_charging:
+		jump_time += delta
+	else:
+		jump_time = 0.0
 
 	queue_redraw()
 
 func _update_movement_state(delta: float, lin_speed: float, player_stationary: bool) -> void:
-	var was_moving: bool = is_player_moving
 	var was_sprinting: bool = is_player_sprinting
 	
 	is_player_moving = not player_stationary
-	is_player_sprinting = is_player_moving and Input.is_action_pressed("sprint")
+	is_player_sprinting = movement_controller.is_currently_sprinting(player.velocity)
 	
-	# Получаем прогресс спринта из игрока
-	if player.has_method("get_sprint_blend"):
-		sprint_progress = (player.get_sprint_blend() - 1.0) / max(0.001, player.sprint_speed / player.walk_speed - 1.0)
-	else:
-		# Fallback - используем _sprint_blend напрямую если доступен
-		if "sprint_blend" in player:
-			sprint_progress = (player.sprint_blend - 1.0) / max(0.001, player.sprint_speed / player.walk_speed - 1.0)
-		else:
-			sprint_progress = 1.0 if is_player_sprinting else 0.0
+	# Получаем прогресс спринта из MovementController
+	sprint_progress = movement_controller.get_sprint_blend()
+	
+	# Обновляем стамину из StaminaManager
+	if stamina_manager:
+		current_stamina_ratio = stamina_manager.get_stamina_ratio()
 	
 	sprint_progress = clamp(sprint_progress, 0.0, 1.0)
 	
@@ -150,23 +185,44 @@ func _update_movement_state(delta: float, lin_speed: float, player_stationary: b
 	var target_dot_alpha: float = 1.0 if is_player_moving else 0.0
 	movement_dot_alpha = lerp(movement_dot_alpha, target_dot_alpha, 8.0 * delta)
 	
-	# Анимация дуг спринта
-	var target_arcs_alpha: float = sprint_progress
+	var target_arcs_alpha: float = sprint_progress * current_stamina_ratio
 	sprint_arcs_alpha = lerp(sprint_arcs_alpha, target_arcs_alpha, 6.0 * delta)
 	
-	# Анимация вращения дуг
 	if is_player_sprinting:
 		sprint_arc_angle += sprint_animation_speed * delta * (0.5 + sprint_progress * 0.5)
 		if sprint_arc_angle > TAU:
 			sprint_arc_angle -= TAU
 	else:
-		# Плавная остановка анимации
 		sprint_arc_angle = lerp_angle(sprint_arc_angle, 0.0, 4.0 * delta)
 	
-	# Твин эффект при начале/остановке спринта
 	if was_sprinting != is_player_sprinting:
 		_animate_sprint_transition(is_player_sprinting)
 
+	# Обратная анимация дуг
+	sprint_arc_end_angle -= sprint_arc_reverse_speed * delta
+	if sprint_arc_end_angle < 0.0:
+		sprint_arc_end_angle += TAU
+	else:
+		# Плавное возвращение дуг в норму
+		sprint_arc_end_angle = lerp_angle(sprint_arc_end_angle, sprint_arc_angle, 4.0 * delta)
+		
+		# Отслеживание зарядки прыжка
+	var player_on_floor = player.is_on_floor()
+	var jump_charging = Input.is_action_pressed("jump") and player_on_floor
+
+	if jump_charging and not jump_is_charging:
+		# Начали заряжать прыжок
+		jump_is_charging = true
+		jump_arc_alpha = 0.6
+	elif not jump_charging and jump_is_charging:
+		# Перестали заряжать (но не факт что прыгнули)
+		jump_is_charging = false
+		if player_on_floor:
+			jump_arc_alpha = 0.0
+
+	jump_is_charging = jump_charging
+	
+	
 func _animate_sprint_transition(starting_sprint: bool) -> void:
 	if tween:
 		tween.kill()
@@ -299,19 +355,33 @@ func _draw() -> void:
 	# Дуги спринта
 	if sprint_arcs_alpha > 0.0:
 		_draw_sprint_arcs()
+		
+	# Дуга прыжка (после основных дуг спринта)
+	if jump_arc_alpha > 0.0:
+		_draw_jump_arc()
 
 func _draw_sprint_arcs() -> void:
-	var arc_color: Color = sprint_arc_color
-	arc_color.a *= sprint_arcs_alpha
-	
-	# Рисуем 4 четверти окружности как дуги
+	var base_color: Color = sprint_arc_color
+
+	# Меняем цвет в зависимости от уровня стамины
+	if current_stamina_ratio > 0.5:
+		var t: float = (1.0 - current_stamina_ratio) * 2.0
+		base_color = base_color.lerp(Color(1.0, 1.0, 0.0), t)
+	elif current_stamina_ratio > 0.25:
+		var t: float = (0.5 - current_stamina_ratio) * 4.0
+		base_color = Color(1.0, 1.0, 0.0).lerp(Color(1.0, 0.5, 0.0), t)
+	else:
+		var t: float = (0.25 - current_stamina_ratio) * 4.0
+		base_color = Color(1.0, 0.5, 0.0).lerp(Color(1.0, 0.0, 0.0), t)
+
+	base_color.a *= current_stamina_ratio
+
 	var arc_radius: float = cursor_radius + 4.0
-	var quarter_length: float = PI * 0.5 * sprint_progress  # Длина дуги зависит от прогресса спринта
-	
-	# 4 дуги, каждая в своей четверти
+	var quarter_length: float = PI * 0.5 * sprint_progress * current_stamina_ratio
+
 	for i in range(4):
-		var base_angle: float = i * PI * 0.5 + sprint_arc_angle
-		_draw_arc(cursor_position, arc_radius, base_angle, base_angle + quarter_length, arc_color, sprint_arc_thickness)
+		var base_angle: float = i * PI * 0.5 + sprint_arc_end_angle
+		_draw_arc(cursor_position, arc_radius, base_angle, base_angle + quarter_length, base_color, sprint_arc_thickness)
 
 func _draw_arc(center: Vector2, radius: float, start_angle: float, end_angle: float, color: Color, thickness: float) -> void:
 	var segments: int = max(8, int(abs(end_angle - start_angle) * radius * 0.5))
@@ -339,3 +409,72 @@ func _draw_circle_outline(center: Vector2, radius: float, color: Color, thicknes
 	# Соединяем точки линиями
 	for i in range(segments):
 		draw_line(points[i], points[i + 1], color, thickness)
+		
+func _draw_jump_arc() -> void:
+	var jump_radius = cursor_radius + 12.0
+	var jump_color: Color = Color(0.4, 0.8, 1.0, jump_arc_alpha)
+
+	# Меняем цвет в зависимости от стамины
+	if current_stamina_ratio > 0.5:
+		jump_color = jump_color.lerp(Color(1, 1, 0), (1.0 - current_stamina_ratio) * 2.0)
+	elif current_stamina_ratio > 0.25:
+		jump_color = Color(1, 1, 0).lerp(Color(1, 0.5, 0), (0.5 - current_stamina_ratio) * 4.0)
+	else:
+		jump_color = Color(1, 0.5, 0).lerp(Color(1, 0, 0), (0.25 - current_stamina_ratio) * 4.0)
+
+	jump_color.a *= jump_arc_alpha
+
+	if jump_is_charging:
+		# Зарядка — дуга снизу с импульсом
+		var base_arc_length = PI * 0.2
+		var pulse = sin(jump_time * 20.0) * 0.1
+		var total_arc_length = base_arc_length + pulse + (PI * 0.3 * jump_arc_progress)
+		var center_angle = PI * 0.5  # низ
+		var start_angle = center_angle - total_arc_length * 0.5
+		var end_angle = center_angle + total_arc_length * 0.5
+		_draw_arc(cursor_position, jump_radius, start_angle, end_angle, jump_color, 2.0)
+	else:
+		# Если отпустили — растём к полному кругу, замкнутому сверху
+		var full_progress = clamp(jump_arc_progress, 0.0, 1.0)
+		var circle_center_angle = PI * 1.5  # верхняя точка
+		var start_angle = circle_center_angle - TAU * 0.5 * full_progress
+		var end_angle = circle_center_angle + TAU * 0.5 * full_progress
+
+		if full_progress >= 1.0:
+			_draw_circle_outline(cursor_position, jump_radius, jump_color, 2.0)
+		else:
+			_draw_arc(cursor_position, jump_radius, start_angle, end_angle, jump_color, 2.0)
+
+		
+func _on_jump_performed() -> void:
+	# Анимация расширения и сжатия дуги прыжка
+	if jump_animation_tween:
+		jump_animation_tween.kill()
+	jump_animation_tween = create_tween()
+	jump_animation_tween.set_parallel(true)  # параллельные анимации
+	
+	# Расширение до круга и обратно
+	jump_animation_tween.tween_method(_set_jump_arc_progress, 0.0, 1.0, 0.15)
+	jump_animation_tween.tween_method(_set_jump_arc_progress, 1.0, 0.0, 0.25).set_delay(0.15)
+	
+	# Затухание альфы
+	jump_animation_tween.tween_method(_set_jump_arc_alpha, 0.8, 0.0, 0.4)
+
+func _set_jump_arc_progress(value: float) -> void:
+	jump_arc_progress = value
+
+func _set_jump_arc_alpha(value: float) -> void:
+	jump_arc_alpha = value
+
+func _on_stamina_changed(current_stamina: float, max_stamina: float) -> void:
+	current_stamina_ratio = current_stamina / max_stamina
+
+func _on_stamina_depleted() -> void:
+	# Можно добавить специальные эффекты когда стамина заканчивается
+	# Например, вспышка красного цвета или дрожание курсора
+	pass
+
+func _on_stamina_recovered() -> void:
+	# Можно добавить эффекты восстановления стамины
+	# Например, зеленую вспышку
+	pass

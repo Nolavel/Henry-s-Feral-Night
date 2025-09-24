@@ -1,4 +1,4 @@
-[gd_scene load_steps=16 format=3 uid="uid://bcxsh1dufbls3"]
+[gd_scene load_steps=17 format=3 uid="uid://bcxsh1dufbls3"]
 
 [ext_resource type="PackedScene" uid="uid://cnhshfsm2gpjs" path="res://tools/ScanFolderFiles/ScanFolderFiles.tscn" id="1_gjffg"]
 [ext_resource type="PackedScene" uid="uid://cvv8y27vmgjfi" path="res://scenes/game/systems/world/WorldEnvironmentSystem.tscn" id="2_2ompc"]
@@ -8,6 +8,7 @@
 [ext_resource type="PackedScene" uid="uid://ciy301x7wh6ie" path="res://scenes/actors/player/player.tscn" id="4_vhdnb"]
 [ext_resource type="PackedScene" uid="uid://wxp413rki005" path="res://scenes/ui/hud/dynamic_cursor/mouse_cursor_ui.tscn" id="6_y43q7"]
 [ext_resource type="PackedScene" uid="uid://btnxy5t02bhtw" path="res://scenes/environment/interactive/InteractiveArea.tscn" id="8_loucq"]
+[ext_resource type="PackedScene" uid="uid://dj0m3h8m8d6wh" path="res://scenes/environment/props/Masks/AFM/Airlock_Filter_Mask.tscn" id="9_inqvh"]
 
 [sub_resource type="StandardMaterial3D" id="StandardMaterial3D_mbw63"]
 albedo_color = Color(0.04, 0.04, 0.04, 1)
@@ -58,12 +59,11 @@ mesh = SubResource("BoxMesh_efhgp")
 
 [node name="Player" parent="." instance=ExtResource("4_vhdnb")]
 transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 0, 1, 0)
-yaw_sector_deg = 60.0
 
-[node name="MouseCursorUI" parent="Player" node_paths=PackedStringArray("player") instance=ExtResource("6_y43q7")]
+[node name="MouseCursorUI" parent="Player" node_paths=PackedStringArray("player", "movement_controller", "stamina_manager") instance=ExtResource("6_y43q7")]
 player = NodePath("..")
-
-[node name="DebugVisuals" type="MeshInstance3D" parent="."]
+movement_controller = NodePath("../MovementController")
+stamina_manager = NodePath("../MovementController/StaminaManager")
 
 [node name="MeshWall" type="MeshInstance3D" parent="."]
 transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 0, 2.52639, -10)
@@ -99,3 +99,14 @@ pickup_subtype = 5
 item_name = "Фонарик нагрудный"
 description = "Светит долго, почти сутки без перерыва."
 highlight_color = Color(1, 1, 0, 0.0470588)
+
+[node name="InteractiveArea2" parent="." instance=ExtResource("8_loucq")]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, -10, 0.1, -5)
+interaction_type = 1
+pickup_subtype = 5
+interactable_scene = ExtResource("9_inqvh")
+highlight_color = Color(1, 1, 0, 0.0470588)
+
+[node name="DebugVisuals" type="MeshInstance3D" parent="."]
+
+[editable path="Player"]

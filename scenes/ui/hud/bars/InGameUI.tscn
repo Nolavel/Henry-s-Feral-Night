@@ -1,0 +1,35 @@
+[gd_scene load_steps=4 format=3 uid="uid://cmt2el3xqdir5"]
+
+[ext_resource type="Shader" path="res://assets/materials/Shaders/2D-perspective.gdshader" id="1_kh6np"]
+[ext_resource type="Script" path="res://scripts/ui/hud/in_game_ui.gd" id="1_tgwlh"]
+
+[sub_resource type="ShaderMaterial" id="ShaderMaterial_pf885"]
+shader = ExtResource("1_kh6np")
+shader_parameter/fov = 25.0
+shader_parameter/cull_back = true
+shader_parameter/y_rot = 25.0
+shader_parameter/x_rot = 15.0
+shader_parameter/inset = 0.0
+shader_parameter/use_rect_size = false
+shader_parameter/rect_size = Vector2(100, 100)
+shader_parameter/enable_3d_effect = true
+shader_parameter/alpha_factor = 0.65
+
+[node name="InGameUI" type="CanvasLayer"]
+script = ExtResource("1_tgwlh")
+
+[node name="BioMonitor" type="Control" parent="."]
+modulate = Color(1, 1, 1, 0.392157)
+material = SubResource("ShaderMaterial_pf885")
+layout_mode = 3
+anchors_preset = 3
+anchor_left = 1.0
+anchor_top = 1.0
+anchor_right = 1.0
+anchor_bottom = 1.0
+offset_left = -270.0
+offset_top = -155.0
+offset_right = -170.0
+offset_bottom = -63.0
+grow_horizontal = 0
+grow_vertical = 0

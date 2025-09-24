@@ -1,0 +1,25 @@
+[gd_scene load_steps=4 format=3 uid="uid://dj0m3h8m8d6wh"]
+
+[ext_resource type="Script" path="res://scripts/items/equipment/airlock_filter_mask.gd" id="1_on05g"]
+
+[sub_resource type="BoxMesh" id="BoxMesh_u3ua5"]
+size = Vector3(0.14, 0.055, 0.02)
+
+[sub_resource type="ConvexPolygonShape3D" id="ConvexPolygonShape3D_0t1jn"]
+points = PackedVector3Array(-0.064, -0.0257222, -0.01, 0.064, 0.0262778, 0.01, 0.064, 0.0262778, -0.01, -0.064, 0.0262778, 0.01, 0.064, -0.0257222, 0.01, -0.064, 0.0262778, -0.01, 0.064, -0.0257222, -0.01, -0.064, -0.0257222, 0.01)
+
+[node name="AirlockFilterMask" type="Node3D" node_paths=PackedStringArray("afm_mesh")]
+script = ExtResource("1_on05g")
+afm_mesh = NodePath("AFM_Mesh")
+afm_name = "Airlock Filter Mask"
+description = " Дыхательный аппарат AFM"
+highlight_color = Color(0.116667, 1, 0, 0.45098)
+circle_radius = 0.5
+
+[node name="AFM_Mesh" type="MeshInstance3D" parent="."]
+mesh = SubResource("BoxMesh_u3ua5")
+
+[node name="AFM_tBody" type="StaticBody3D" parent="AFM_Mesh" groups=["interactables"]]
+
+[node name="CollisionShape3D" type="CollisionShape3D" parent="AFM_Mesh/AFM_tBody"]
+shape = SubResource("ConvexPolygonShape3D_0t1jn")

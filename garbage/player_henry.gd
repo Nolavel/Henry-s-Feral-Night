@@ -1,5 +1,5 @@
 extends CharacterBody3D
-class_name Player
+class_name Player1
 
 # === ПАРАМЕТРЫ ДВИЖЕНИЯ ===
 @export_group("Параметры движения")
@@ -122,6 +122,15 @@ var _snap_elapsed: float = 0.0
 var _snap_start_yaw: float = 0.0
 var _snap_target_yaw: float = 0.0
 
+var cam_jump_hold_active: bool = false
+var cam_jump_release_fired: bool = false
+var cam_landed_this_frame: bool = false
+
+var _jump_hold_armed: bool = false
+var _was_on_floor_for_cam: bool = false
+
+
+
 func _ready() -> void:
 	var fwd: Vector3 = -global_transform.basis.z
 	fwd.y = 0.0
@@ -178,12 +187,29 @@ func _physics_process(delta: float) -> void:
 			_snap_ready = true
 			_snap_timer = 0.0
 
-	# === Гравитация / прыжок ===
+	## === Гравитация / прыжок ===
+	#if not is_on_floor():
+		#velocity.y -= gravity * delta
+	#else:
+		#if Input.is_action_just_pressed("jump"):
+			#velocity.y = jump_velocity
+			
+	# 1) Гравитация
 	if not is_on_floor():
 		velocity.y -= gravity * delta
-	else:
-		if Input.is_action_just_pressed("jump"):
+
+	# 2) Готовность -> прыжок на отпускание (импульс В ЭТОМ кадре)
+	cam_jump_release_fired = false
+	if is_on_floor():
+		if Input.is_action_pressed("jump"):
+			_jump_hold_armed = true
+		if _jump_hold_armed and Input.is_action_just_released("jump"):
 			velocity.y = jump_velocity
+			cam_jump_release_fired = true
+			_jump_hold_armed = false
+	else:
+		if Input.is_action_just_released("jump"):
+			_jump_hold_armed = false
 
 	# === Движение с плавным разгоном и спринтом ===
 	var input_dir: Vector3 = Vector3(
@@ -273,7 +299,13 @@ func _physics_process(delta: float) -> void:
 	if show_debug:
 		_draw_debug_visuals()
 		#debug_visuals_node.global_transform = Transform3D(debug_visuals_node.global_transform.basis, global_transform.origin)
-
+	
+	
+	# 4) Флаги ДЛЯ КАМЕРЫ — строго после move_and_slide
+	var on_floor_now := is_on_floor()
+	cam_landed_this_frame = (not _was_on_floor_for_cam and on_floor_now)
+	_was_on_floor_for_cam = on_floor_now
+	cam_jump_hold_active = on_floor_now and Input.is_action_pressed("jump")
 
 func _start_snap_180() -> void:
 	_snap_active = true

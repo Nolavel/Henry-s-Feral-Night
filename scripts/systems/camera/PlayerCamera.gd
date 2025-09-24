@@ -25,10 +25,27 @@ class_name PlayerCamera
 @export var sprint_transition_speed: float = 5.0
 
 @export_group("Jump Effects")
-@export var jump_tilt_amount: float = 15.0
-@export var jump_tilt_speed: float = 8.0
+@export var jump_hold_drop: float = 2.65      # насколько опустить камеру при удержании
+@export var jump_hold_speed: float = 5.0     # скорость опускания/подъёма
+var _jump_hold_offset: float = 0.0           # текущее смещение по Y
 var _jump_tilt_angle: float = 0.0
 var _was_on_floor: bool = true
+@export var land_shake_amp: float = 0.335
+@export var land_shake_speed: float = 30.0
+@export var land_shake_decay: float = 5.0
+@export var land_min_impact_speed: float = 4.0
+@export var land_shake_cooldown: float = 0.15
+
+var _land_amp: float = 0.0
+var _land_phase: float = 0.0
+var _land_cd: float = 0.0
+var _prev_on_floor: bool = true
+var _prev_vy: float = 0.0
+var _breath_offset: float = 0.0
+
+
+
+
 
 # === Орбитальный режим ===
 @export_group("Orbit Settings")
@@ -61,8 +78,8 @@ var _turn_tilt: float = 0.0
 # === Автофокус и дыхание ===
 @export_group("Idle Autofocus")
 @export var idle_time_before_autofocus: float = 1.0
-@export var autofocus_breath_amp: float = 0.05
-@export var autofocus_breath_speed: float = 0.25
+@export var autofocus_breath_amp: float = 0.3
+@export var autofocus_breath_speed: float = 0.45
 var _idle_timer: float = 0.0
 var _breath_time: float = 0.0
 
@@ -86,7 +103,6 @@ var _current_pivot_offset: Vector3 = Vector3.ZERO
 var _collision_raycast: RayCast3D = null
 
 
-
 func _ready() -> void:
 	if player:
 		var fwd: Vector3 = -player.global_transform.basis.z
@@ -96,6 +112,10 @@ func _ready() -> void:
 		push_warning("PlayerCamera: No player assigned!")
 	_current_follow_distance = base_follow_distance
 	fov = base_fov
+	
+	if player:
+		_prev_on_floor = player.is_on_floor()
+		_prev_vy = player.velocity.y
 	# Создаем RayCast для коллизий
 	_collision_raycast = RayCast3D.new()
 	add_child(_collision_raycast)
@@ -174,15 +194,30 @@ func _physics_process(delta: float) -> void:
 		var side_dot: float = clamp(right.dot(move_dir), -1.0, 1.0)
 		target_sprint_tilt = -side_dot * sprint_tilt_amount
 	_sprint_tilt_angle = lerp(_sprint_tilt_angle, target_sprint_tilt, clamp(sprint_tilt_speed * delta, 0.0, 1.0))
+	
+		# 1) Читаем флаг от игрока (без всяких "in player", т.к. это твой игрок)
+	var hold_active: bool = player.cam_jump_hold_active
 
-	# === Прыжковый наклон (pitch) ===
-	var on_floor: bool = player.is_on_floor()
-	if _was_on_floor and not on_floor:
-		_jump_tilt_angle = -jump_tilt_amount
-	elif not _was_on_floor and on_floor:
-		_jump_tilt_angle = jump_tilt_amount
-	_was_on_floor = on_floor
-	_jump_tilt_angle = lerp(_jump_tilt_angle, 0.0, clamp(jump_tilt_speed * delta, 0.0, 1.0))
+
+
+	# 2) Цель: вниз на drop при удержании, иначе 0
+	var target_offset: float = (-jump_hold_drop) if hold_active else 0.0
+
+	# 3) Плавно подтягиваем офсет к цели
+	_jump_hold_offset = lerp(_jump_hold_offset, target_offset, clamp(jump_hold_speed * delta, 0.0, 1.0))
+	
+
+
+
+
+	## === Прыжковый наклон (pitch) ===
+	#var on_floor: bool = player.is_on_floor()
+	#if _was_on_floor and not on_floor:
+		#_jump_tilt_angle = -jump_tilt_amount
+	#elif not _was_on_floor and on_floor:
+		#_jump_tilt_angle = jump_tilt_amount
+	#_was_on_floor = on_floor
+	#_jump_tilt_angle = lerp(_jump_tilt_angle, 0.0, clamp(jump_tilt_speed * delta, 0.0, 1.0))
 
 	# === Базовое слежение с лагом ===
 	#var facing_yaw: float = player.rotation.y
@@ -214,26 +249,59 @@ func _physics_process(delta: float) -> void:
 	# Смещаем pivot в сторону при прицеливании
 	var pivot_pos: Vector3 = player_pos + _current_pivot_offset
 	var target_pos: Vector3 = pivot_pos + horizontal_offset
-	target_pos.y = player_pos.y + height + _current_height_offset
-	
+	#target_pos.y = player_pos.y + height + _current_height_offset
+	var base_y: float = player_pos.y + height + _current_height_offset
+	target_pos.y = base_y
+	var on_floor_now: bool = player.is_on_floor()
+	var vy: float = player.velocity.y
+
+	# Срабатывание только при реальном приземлении после падения
+	if (not _prev_on_floor) and on_floor_now and (_prev_vy <= -land_min_impact_speed) and (_land_cd <= 0.0):
+		_land_amp = land_shake_amp
+		_land_phase = 0.0
+		_land_cd = land_shake_cooldown
+
+	# Обновление шейка
+	var shake_offset: float = 0.0
+	if _land_amp > 0.0:
+		_land_phase += land_shake_speed * delta
+		shake_offset = sin(_land_phase) * _land_amp
+		_land_amp = max(0.0, _land_amp - land_shake_decay * delta)
+
+	# Кулдаун
+	if _land_cd > 0.0:
+		_land_cd = max(0.0, _land_cd - delta)
+
+	# Запоминаем состояние
+	_prev_on_floor = on_floor_now
+	_prev_vy = vy
+
+
+		# 1) Базовая позиция через сглаживание и коллизии
 	var final_pos = _check_camera_collision(player_pos, target_pos, delta)
-	#global_transform.origin = global_transform.origin.lerp(final_pos, dyn_follow_speed * delta)
 	var pos_result = _smooth_damp_vec3(global_transform.origin, final_pos, _pos_velocity, position_smooth_time, delta)
-	global_transform.origin = pos_result[0]
+	var smoothed_pos = pos_result[0]
 	_pos_velocity = pos_result[1]
 
-	
-	# === Auto‑focus ===
+	# 2) Обновляем дыхание (idle focus)
 	var is_camera_colliding = _collision_raycast and _collision_raycast.is_colliding()
 	if player_speed < 0.1 and not is_camera_colliding:
 		_idle_timer += delta
 		if _idle_timer > idle_time_before_autofocus:
 			_breath_time += delta * autofocus_breath_speed
-			var breath = sin(_breath_time) * autofocus_breath_amp
-			global_transform.origin.y += breath
+			_breath_offset = sin(_breath_time) * autofocus_breath_amp
 	else:
 		_idle_timer = 0.0
 		_breath_time = 0.0
+		_breath_offset = 0.0
+
+	# 3) Собираем все вертикальные смещения в одну формулу
+	var total_y_offset = _jump_hold_offset + shake_offset + _breath_offset
+	smoothed_pos.y = base_y + total_y_offset
+
+	# 4) Применяем
+	global_transform.origin = smoothed_pos
+
 
 	## === Применяем наклоны ===
 	#rotation_degrees.x = _jump_tilt_angle + _current_pitch_offset

@@ -1,8 +1,14 @@
-[gd_scene load_steps=6 format=3 uid="uid://ciy301x7wh6ie"]
+[gd_scene load_steps=12 format=3 uid="uid://ciy301x7wh6ie"]
 
-[ext_resource type="Script" path="res://scripts/actors/player/henry/player_henry.gd" id="1_urird"]
+[ext_resource type="Script" path="res://scripts/actors/player/henry/Player.gd" id="1_irk3a"]
 [ext_resource type="PackedScene" uid="uid://c87svnewu110t" path="res://assets/models/characters/henry_test_model/Henry_Test_player.glb" id="2_e7uhf"]
-[ext_resource type="Script" path="res://components/interaction/interaction_manager.gd" id="3_4fuql"]
+[ext_resource type="PackedScene" uid="uid://cmt2el3xqdir5" path="res://scenes/ui/hud/bars/InGameUI.tscn" id="2_kqf2x"]
+[ext_resource type="Script" path="res://scripts/actors/player/henry/Managers/InteractionManager.gd" id="3_4fuql"]
+[ext_resource type="Script" path="res://scripts/actors/player/henry/Controllers/MovementController.gd" id="5_ep65o"]
+[ext_resource type="Script" path="res://scripts/actors/player/henry/Controllers/RotationController.gd" id="6_ggxw4"]
+[ext_resource type="Script" path="res://scripts/actors/player/henry/Managers/StaminaManager.gd" id="6_oh6um"]
+[ext_resource type="Script" path="res://scripts/actors/player/henry/Managers/InventoryManager.gd" id="7_xt5ix"]
+[ext_resource type="Script" path="res://scripts/actors/player/henry/Managers/PlayerHealthManager.gd" id="8_re6ll"]
 
 [sub_resource type="ConvexPolygonShape3D" id="ConvexPolygonShape3D_dr6cc"]
 points = PackedVector3Array(-0.0964325, -0.537257, -0.484592, 0.0227492, 0.47498, 0.49776, 0.170878, 0.503922, 0.46746, -0.0973921, 0.873589, -0.308221, -0.480683, -0.533097, 0.111554, 0.471483, -0.657991, 0.0228179, 0.407195, 0.650692, -0.243388, -0.00700951, -0.718735, 0.44209, -0.454893, 0.656969, -0.126367, -0.0685454, -0.980854, -0.0991944, -0.33136, 0.619732, 0.347314, 0.348041, 0.768885, 0.229665, 0.261746, -0.657073, -0.39523, -0.066323, 0.565307, -0.483129, -0.418933, -0.500441, -0.271599, 0.349723, -0.653711, 0.319949, -0.0683783, 0.978713, 0.114932, -0.243448, -0.650539, 0.40719, 0.467444, 0.503904, 0.170938, -0.271731, 0.50047, -0.418858, 0.198876, 0.558236, -0.447463, 0.264896, -0.907183, 0.113741, 0.235224, 0.909627, -0.158691, -0.249083, -0.907033, 0.144004, 0.464306, -0.47123, -0.183382, -0.276258, -0.807753, -0.27614, -0.457219, 0.660271, 0.112952, -0.00700962, 0.71874, 0.442093, 0.143948, -0.907094, -0.248978, 0.0227492, -0.47498, 0.49776, 0.499323, 0.476312, -0.00687831, -0.183373, 0.471135, 0.464308)
@@ -12,11 +18,9 @@ radius = 2.0
 
 [node name="Player" type="CharacterBody3D" groups=["player"]]
 transform = Transform3D(-4.37114e-08, 0, 1, 0, 1, 0, -1, 0, -4.37114e-08, 0, 0, 0)
-script = ExtResource("1_urird")
-max_rotation_speed = 8.0
-yaw_sector_deg = 45.0
-front_sector_deg = 145.0
-back_slow_sector_deg = 90.0
+script = ExtResource("1_irk3a")
+
+[node name="Healthbar" parent="." instance=ExtResource("2_kqf2x")]
 
 [node name="DirectionalLight3D" type="DirectionalLight3D" parent="."]
 transform = Transform3D(-0.866023, -0.433016, 0.250001, 0, 0.499998, 0.866027, -0.500003, 0.749999, -0.43301, 0, 0, 0)
@@ -44,3 +48,45 @@ shape_cast = NodePath("ShapeCast3D")
 shape = SubResource("SphereShape3D_cxwvb")
 target_position = Vector3(0, 0, 0)
 collide_with_areas = true
+
+[node name="MovementController" type="Node3D" parent="." node_paths=PackedStringArray("stamina_manager")]
+script = ExtResource("5_ep65o")
+stamina_manager = NodePath("StaminaManager")
+debug_show_speed = true
+debug_label_path = NodePath("DebugLBL2")
+
+[node name="DebugLBL" type="Label" parent="MovementController"]
+anchors_preset = 2
+anchor_top = 1.0
+anchor_bottom = 1.0
+offset_top = -21.0
+offset_right = 40.0
+grow_vertical = 0
+horizontal_alignment = 1
+vertical_alignment = 1
+
+[node name="DebugLBL2" type="Label" parent="MovementController"]
+anchors_preset = 2
+anchor_top = 1.0
+anchor_bottom = 1.0
+offset_left = 3.335
+offset_top = -58.375
+offset_right = 43.335
+offset_bottom = -37.375
+grow_vertical = 0
+horizontal_alignment = 1
+vertical_alignment = 1
+
+[node name="StaminaManager" type="Node3D" parent="MovementController"]
+script = ExtResource("6_oh6um")
+debug_show_stamina = true
+debug_label_path = NodePath("../DebugLBL")
+
+[node name="RotationController" type="Node3D" parent="."]
+script = ExtResource("6_ggxw4")
+
+[node name="InventoryManager" type="Node3D" parent="."]
+script = ExtResource("7_xt5ix")
+
+[node name="PlayerHealthSystem" type="Node3D" parent="."]
+script = ExtResource("8_re6ll")
