@@ -1,10 +1,12 @@
-[gd_scene load_steps=13 format=4 uid="uid://b7ncjhg2vit8i"]
+[gd_scene load_steps=16 format=4 uid="uid://b7ncjhg2vit8i"]
 
 [ext_resource type="Script" path="res://scripts/actors/player/gizmo/player_gizmo.gd" id="1_7wokv"]
 [ext_resource type="Shader" path="res://assets/materials/Shaders/Face_Monitor_Diamond.gdshader" id="2_ingp4"]
 [ext_resource type="Texture2D" uid="uid://1r12oshibwsx" path="res://assets/textures/ui/game/biomonitor/bg_biomarker_2.png" id="3_4442y"]
 [ext_resource type="Script" path="res://scripts/actors/player/gizmo/ui_camera_gizmo.gd" id="4_mw440"]
+[ext_resource type="Texture2D" uid="uid://djfpd8nulrasl" path="res://assets/textures/ui/game/HUD/gizmo_icon/image (57).png" id="7_nskc0"]
 [ext_resource type="Script" path="res://scripts/actors/player/gizmo/Flashlight_Gizmo.cs" id="7_ry8yp"]
+[ext_resource type="Shader" path="res://assets/materials/Shaders/indicator_bg_bio.gdshader" id="8_jlsvc"]
 [ext_resource type="PackedScene" uid="uid://ba7d1gwg3y1cd" path="res://assets/models/characters/gizmo_test_model/Gizmo_Test_player.glb" id="8_vxh6c"]
 [ext_resource type="Texture2D" uid="uid://binsix3624ug6" path="res://assets/models/characters/gizmo_test_model/Gizmo_Test_player_tripo_rgb_4a1f6d6f-0c56-41d2-8ad9-4a83e4a7ab62.jpg" id="10_nt5gw"]
 
@@ -60,6 +62,15 @@ shader_parameter/border_softness = 0.02
 shader_parameter/border_color = Color(1, 0.8, 0.2, 1)
 shader_parameter/fade_amount = 0.0
 shader_parameter/fade_softness = 0.05
+
+[sub_resource type="ShaderMaterial" id="ShaderMaterial_yymcv"]
+shader = ExtResource("8_jlsvc")
+shader_parameter/fade_start = 1.0
+shader_parameter/fade_end = 1.0
+shader_parameter/fade_curve = 1.0
+shader_parameter/fade_direction = 3
+shader_parameter/circle_radius = 1.0
+shader_parameter/circle_softness = 0.02
 
 [node name="Gizmo" type="CharacterBody3D"]
 transform = Transform3D(-4.37114e-08, 0, 1, 0, 1, 0, -1, 0, -4.37114e-08, 0, 0, 0)
@@ -131,6 +142,46 @@ offset_top = -200.0
 offset_right = 100.0
 grow_horizontal = 2
 grow_vertical = 0
+
+[node name="GizmoCapabilitiesIcons" type="Control" parent="CameraFaceGizmoForUI"]
+layout_mode = 3
+anchors_preset = 7
+anchor_left = 0.5
+anchor_top = 1.0
+anchor_right = 0.5
+anchor_bottom = 1.0
+offset_left = -295.0
+offset_top = -220.0
+offset_right = -95.0
+offset_bottom = -20.0
+grow_horizontal = 2
+grow_vertical = 0
+
+[node name="Scan_img" type="TextureRect" parent="CameraFaceGizmoForUI/GizmoCapabilitiesIcons"]
+visible = false
+layout_mode = 1
+anchors_preset = 5
+anchor_left = 0.5
+anchor_right = 0.5
+offset_left = -37.5
+offset_right = 37.5
+offset_bottom = 75.0
+grow_horizontal = 2
+texture = ExtResource("7_nskc0")
+expand_mode = 4
+
+[node name="Scan_img2" type="TextureRect" parent="CameraFaceGizmoForUI/GizmoCapabilitiesIcons"]
+material = SubResource("ShaderMaterial_yymcv")
+layout_mode = 1
+anchors_preset = 5
+anchor_left = 0.5
+anchor_right = 0.5
+offset_left = -37.5
+offset_right = 37.5
+offset_bottom = 75.0
+grow_horizontal = 2
+texture = ExtResource("7_nskc0")
+expand_mode = 4
 
 [node name="SpotLight3D" type="OmniLight3D" parent="."]
 transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 0.05, 0.118, -0.07)
