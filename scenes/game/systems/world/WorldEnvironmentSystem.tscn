@@ -8,6 +8,14 @@
 [ext_resource type="Script" path="res://scripts/systems/world/DayNightSettings.gd" id="5_prwu1"]
 
 [sub_resource type="Environment" id="Environment_himop"]
+background_mode = 2
+ambient_light_sky_contribution = 0.0
+fog_mode = 1
+fog_light_energy = 0.1
+fog_density = 1.0
+volumetric_fog_enabled = true
+volumetric_fog_density = 1.0
+volumetric_fog_emission_energy = 2.0
 
 [sub_resource type="LabelSettings" id="LabelSettings_u2kgs"]
 font_color = Color(0.03, 0.03, 0.03, 1)
@@ -24,10 +32,11 @@ sun_light = NodePath("Lighting/SunLight")
 
 [node name="SunLight" type="DirectionalLight3D" parent="Lighting"]
 transform = Transform3D(0.707107, -0.5, 0.5, 0, 0.707107, 0.707107, -0.707107, -0.5, 0.5, 0, 250, 0)
-light_energy = 2.751
-sky_mode = 1
-
-[node name="MoonLight" type="DirectionalLight3D" parent="Lighting"]
+light_bake_mode = 1
+shadow_enabled = true
+directional_shadow_blend_splits = true
+directional_shadow_fade_start = 0.0
+directional_shadow_max_distance = 200.0
 
 [node name="Environment" type="Node3D" parent="."]
 

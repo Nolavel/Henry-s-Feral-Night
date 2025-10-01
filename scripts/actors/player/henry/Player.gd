@@ -74,7 +74,6 @@ func _physics_process(delta: float) -> void:
 	_was_on_floor_for_cam = on_floor_now
 	cam_jump_hold_active = on_floor_now and jump_is_pressed
 	cam_jump_release_fired = movement.get_jump_release_fired()
-	
 
 
 func _snap_double_tap_check(delta: float) -> void:

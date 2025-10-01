@@ -14,6 +14,11 @@ public partial class DayNightCalculator : Node
 	private const float DAWN_PEAK_HOUR = 6.0f;
 	private const float PEAK_NIGHT_HOUR_1 = 0.0f;
 	private const float PEAK_NIGHT_HOUR_2 = 24.0f;
+	
+	// Константы для реалистичного освещения
+	private const float SUNRISE_HOUR = 6.0f;
+	private const float SUNSET_HOUR = 18.0f;
+	private const float NOON_HOUR = 12.0f;
 
 	// Enum для периодов дня (аналог GDScript)
 	public enum TimeOfDay
@@ -55,6 +60,116 @@ public partial class DayNightCalculator : Node
 	};
 
 	/// <summary>
+	/// Вычисляет азимут солнца (0-360°, где 90°=восток, 180°=юг, 270°=запад)
+	/// </summary>
+	public float CalculateSunAzimuth(float gameHour)
+	{
+		if (gameHour >= SUNRISE_HOUR && gameHour <= SUNSET_HOUR)
+		{
+			// День: солнце движется с востока (90°) на запад (270°) через юг
+			float dayProgress = InverseLerp(SUNRISE_HOUR, SUNSET_HOUR, gameHour);
+			return Mathf.Lerp(90.0f, 270.0f, dayProgress);
+		}
+		else
+		{
+			// Ночь: луна движется с востока на запад (противоположная сторона)
+			if (gameHour > SUNSET_HOUR)
+			{
+				float nightProgress = InverseLerp(SUNSET_HOUR, 24.0f, gameHour);
+				return Mathf.Lerp(270.0f, 450.0f, nightProgress) % 360.0f;
+			}
+			else
+			{
+				float nightProgress = InverseLerp(0.0f, SUNRISE_HOUR, gameHour);
+				return Mathf.Lerp(270.0f, 90.0f, nightProgress);
+			}
+		}
+	}
+
+	/// <summary>
+	/// Вычисляет высоту солнца над горизонтом (-10° до 60°)
+	/// </summary>
+	public float CalculateSunAltitude(float gameHour)
+	{
+		if (gameHour >= SUNRISE_HOUR && gameHour <= SUNSET_HOUR)
+		{
+			// Параболическая траектория: максимум в полдень
+			float dayProgress = InverseLerp(SUNRISE_HOUR, SUNSET_HOUR, gameHour);
+			float parabola = 1.0f - Mathf.Pow((dayProgress - 0.5f) * 2.0f, 2.0f);
+			return Mathf.Lerp(-10.0f, 60.0f, parabola); // от -10° (ниже горизонта) до 60° (высоко)
+		}
+		else
+		{
+			// Ночь: луна ниже, от -30° до 40°
+			float nightProgress;
+			if (gameHour > SUNSET_HOUR)
+			{
+				nightProgress = InverseLerp(SUNSET_HOUR, 24.0f, gameHour);
+			}
+			else
+			{
+				nightProgress = InverseLerp(0.0f, SUNRISE_HOUR, gameHour) + 0.25f;
+			}
+			
+			float parabola = 1.0f - Mathf.Pow((nightProgress - 0.5f) * 2.0f, 2.0f);
+			return Mathf.Lerp(-30.0f, 40.0f, parabola);
+		}
+	}
+
+	/// <summary>
+	/// Вычисляет цвет света (оранжевый рассвет/закат, белый день, синеватая ночь)
+	/// </summary>
+	public Color CalculateLightColor(float gameHour)
+	{
+		Color sunriseColor = new Color(1.0f, 0.6f, 0.4f); // Оранжевый
+		Color noonColor = new Color(1.0f, 0.98f, 0.95f);  // Теплый белый
+		Color sunsetColor = new Color(1.0f, 0.5f, 0.3f);  // Красно-оранжевый
+		Color moonColor = new Color(0.7f, 0.75f, 0.85f);  // Холодный голубоватый
+
+		if (gameHour >= SUNRISE_HOUR - 1.0f && gameHour < SUNRISE_HOUR + 1.0f)
+		{
+			// Рассвет (5:00-7:00): оранжевый → белый
+			float t = InverseLerp(SUNRISE_HOUR - 1.0f, SUNRISE_HOUR + 1.0f, gameHour);
+			return sunriseColor.Lerp(noonColor, SmoothStep(0.0f, 1.0f, t));
+		}
+		else if (gameHour >= SUNRISE_HOUR + 1.0f && gameHour < SUNSET_HOUR - 1.0f)
+		{
+			// День (7:00-17:00): белый
+			return noonColor;
+		}
+		else if (gameHour >= SUNSET_HOUR - 1.0f && gameHour < SUNSET_HOUR + 1.0f)
+		{
+			// Закат (17:00-19:00): белый → красно-оранжевый
+			float t = InverseLerp(SUNSET_HOUR - 1.0f, SUNSET_HOUR + 1.0f, gameHour);
+			return noonColor.Lerp(sunsetColor, SmoothStep(0.0f, 1.0f, t));
+		}
+		else
+		{
+			// Ночь: холодный лунный свет
+			return moonColor;
+		}
+	}
+
+	/// <summary>
+	/// Вычисляет интенсивность света с плавной кривой
+	/// </summary>
+	public float CalculateLightIntensity(float gameHour, float maxDayIntensity, float maxNightIntensity)
+	{
+		if (gameHour >= SUNRISE_HOUR && gameHour <= SUNSET_HOUR)
+		{
+			// День: параболическая кривая с пиком в полдень
+			float dayProgress = InverseLerp(SUNRISE_HOUR, SUNSET_HOUR, gameHour);
+			float parabola = 1.0f - Mathf.Pow((dayProgress - 0.5f) * 2.0f, 2.0f);
+			return Mathf.Lerp(maxNightIntensity, maxDayIntensity, SmoothStep(0.0f, 1.0f, parabola));
+		}
+		else
+		{
+			// Ночь: слабая луна
+			return maxNightIntensity;
+		}
+	}
+
+	/// <summary>
 	/// Вычисляет прогресс дня/ночи (0.0 = полная ночь, 1.0 = полный день)
 	/// </summary>
 	public float CalculateDayNightProgress(float gameHour)
@@ -87,7 +202,7 @@ public partial class DayNightCalculator : Node
 	}
 
 	/// <summary>
-	/// Вычисляет угол поворота солнца по оси X
+	/// Вычисляет угол поворота солнца по оси X (УСТАРЕВШИЙ - используйте CalculateSunAltitude)
 	/// </summary>
 	public float CalculateSunRotation(float gameHour)
 	{

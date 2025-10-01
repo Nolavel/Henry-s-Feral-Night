@@ -2,16 +2,16 @@
 
 importer="texture"
 type="CompressedTexture2D"
-uid="uid://bg8fy51oc2dr1"
-path="res://.godot/imported/temperature.png-406c69f6e642fa928cb86922a596257a.ctex"
+uid="uid://1r12oshibwsx"
+path="res://.godot/imported/bg_biomarker_2.png-0748217d9bcfe738f13b9f82f557ed28.ctex"
 metadata={
 "vram_texture": false
 }
 
 [deps]
 
-source_file="res://assets/textures/ui/game/biomonitor/temperature.png"
-dest_files=["res://.godot/imported/temperature.png-406c69f6e642fa928cb86922a596257a.ctex"]
+source_file="res://assets/textures/ui/game/biomonitor/bg_biomarker_2.png"
+dest_files=["res://.godot/imported/bg_biomarker_2.png-0748217d9bcfe738f13b9f82f557ed28.ctex"]
 
 [params]
 

@@ -146,18 +146,41 @@ func update_environment_visuals(game_hour_float: float):
 		if not sky_material:
 			return
 
-	# Получаем прогресс дня/ночи
+	# ============= РЕАЛИСТИЧНОЕ ОСВЕЩЕНИЕ =============
+	
+	if settings.enable_realistic_lighting:
+		# 1. Вычисляем азимут (Y) и высоту (X) солнца/луны
+		var azimuth = calculator.CalculateSunAzimuth(game_hour_float)
+		var altitude = calculator.CalculateSunAltitude(game_hour_float)
+		
+		# 2. Применяем к DirectionalLight (азимут - поворот по Y, высота - по X)
+		directional_light.rotation_degrees.y = azimuth
+		directional_light.rotation_degrees.x = -altitude  # Минус, т.к. Godot инвертирует
+		
+		# 3. Цвет света (оранжевый утром, белый днем, красный вечером, синий ночью)
+		directional_light.light_color = calculator.CalculateLightColor(game_hour_float)
+		
+		# 4. Интенсивность с плавной кривой
+		directional_light.light_energy = calculator.CalculateLightIntensity(
+			game_hour_float,
+			settings.day_light_energy,
+			settings.night_light_energy
+		)
+	else:
+		# Старый метод (простой поворот по X)
+		directional_light.rotation_degrees.x = calculator.CalculateSunRotation(game_hour_float)
+		
+		var day_night_progress = calculator.CalculateDayNightProgress(game_hour_float)
+		directional_light.light_energy = calculator.InterpolateLightEnergy(
+			settings.night_light_energy, 
+			settings.day_light_energy, 
+			day_night_progress
+		)
+	
+	# ============= ОБНОВЛЕНИЕ ОКРУЖЕНИЯ =============
+	
+	# Получаем прогресс дня/ночи для неба и окружения
 	var day_night_progress = calculator.CalculateDayNightProgress(game_hour_float)
-
-	# Обновляем DirectionalLight
-	directional_light.light_energy = calculator.InterpolateLightEnergy(
-		settings.night_light_energy, 
-		settings.day_light_energy, 
-		day_night_progress
-	)
-	
-	directional_light.rotation_degrees.x = calculator.CalculateSunRotation(game_hour_float)
-	
 	var env = world_environment_node.environment
 
 	# Обновляем цвета неба

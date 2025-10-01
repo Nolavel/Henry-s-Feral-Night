@@ -2,16 +2,16 @@
 
 importer="texture"
 type="CompressedTexture2D"
-uid="uid://d22maohe3nwd1"
-path="res://.godot/imported/thirst.png-a26f6a28d0c6243d40669ce960c5fd0c.ctex"
+uid="uid://usc01jj1jfpd"
+path="res://.godot/imported/lineUI.png-48fa77233d0942013bfc4bdf9d7e02f6.ctex"
 metadata={
 "vram_texture": false
 }
 
 [deps]
 
-source_file="res://assets/textures/ui/game/biomonitor/thirst.png"
-dest_files=["res://.godot/imported/thirst.png-a26f6a28d0c6243d40669ce960c5fd0c.ctex"]
+source_file="res://assets/textures/ui/game/biomonitor/lineUI.png"
+dest_files=["res://.godot/imported/lineUI.png-48fa77233d0942013bfc4bdf9d7e02f6.ctex"]
 
 [params]
 

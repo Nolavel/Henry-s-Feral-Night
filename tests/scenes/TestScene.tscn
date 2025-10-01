@@ -1,10 +1,11 @@
-[gd_scene load_steps=17 format=3 uid="uid://bcxsh1dufbls3"]
+[gd_scene load_steps=18 format=3 uid="uid://bcxsh1dufbls3"]
 
 [ext_resource type="PackedScene" uid="uid://cnhshfsm2gpjs" path="res://tools/ScanFolderFiles/ScanFolderFiles.tscn" id="1_gjffg"]
 [ext_resource type="PackedScene" uid="uid://cvv8y27vmgjfi" path="res://scenes/game/systems/world/WorldEnvironmentSystem.tscn" id="2_2ompc"]
 [ext_resource type="PackedScene" uid="uid://duxn5rqcau5dw" path="res://tools/StatsDisplay/StatsDisplay.tscn" id="2_h763q"]
 [ext_resource type="PackedScene" uid="uid://dputwp1am8vfu" path="res://scenes/game/systems/camera/PlayerCamera.tscn" id="3_4vd7y"]
 [ext_resource type="PackedScene" uid="uid://cvuw2ef72te81" path="res://tools/InputDebugger/InputDebugger.tscn" id="3_v0fra"]
+[ext_resource type="PackedScene" uid="uid://b7ncjhg2vit8i" path="res://scenes/actors/gizmo/gizmo.tscn" id="4_1fant"]
 [ext_resource type="PackedScene" uid="uid://ciy301x7wh6ie" path="res://scenes/actors/player/player.tscn" id="4_vhdnb"]
 [ext_resource type="PackedScene" uid="uid://wxp413rki005" path="res://scenes/ui/hud/dynamic_cursor/mouse_cursor_ui.tscn" id="6_y43q7"]
 [ext_resource type="PackedScene" uid="uid://btnxy5t02bhtw" path="res://scenes/environment/interactive/InteractiveArea.tscn" id="8_loucq"]
@@ -49,6 +50,7 @@ mesh = SubResource("PlaneMesh_33h6p")
 shape = SubResource("ConvexPolygonShape3D_qxt5c")
 
 [node name="WorldEnvironmentSystem" parent="." instance=ExtResource("2_2ompc")]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 0, 55, 0)
 
 [node name="PlayerCamera" parent="." node_paths=PackedStringArray("player") instance=ExtResource("3_4vd7y")]
 player = NodePath("../Player")
@@ -59,6 +61,17 @@ mesh = SubResource("BoxMesh_efhgp")
 
 [node name="Player" parent="." instance=ExtResource("4_vhdnb")]
 transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 0, 1, 0)
+
+[node name="BioMonitorManager" parent="Player" index="9" node_paths=PackedStringArray("dn_manager", "bio_monitor_ui")]
+dn_manager = NodePath("../../WorldEnvironmentSystem/DayNightManager")
+bio_monitor_ui = NodePath("../InGameUI/Vital_Signs")
+
+[node name="Vital_Signs" parent="Player/InGameUI" index="0" node_paths=PackedStringArray("player", "bio_monitor")]
+player = NodePath("../..")
+bio_monitor = NodePath("../../BioMonitorManager")
+
+[node name="Gizmo" parent="Player" instance=ExtResource("4_1fant")]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 0.14568, 0.631562, 0.216918)
 
 [node name="MouseCursorUI" parent="Player" node_paths=PackedStringArray("player", "movement_controller", "stamina_manager") instance=ExtResource("6_y43q7")]
 player = NodePath("..")
@@ -109,4 +122,9 @@ highlight_color = Color(1, 1, 0, 0.0470588)
 
 [node name="DebugVisuals" type="MeshInstance3D" parent="."]
 
+[editable path="WorldEnvironmentSystem"]
 [editable path="Player"]
+[editable path="Player/Henry_Test_player"]
+[editable path="Player/InGameUI"]
+[editable path="Player/Gizmo"]
+[editable path="Player/Gizmo/Gizmo_Test_player"]

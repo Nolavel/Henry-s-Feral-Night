@@ -1,6 +1,3 @@
-# ============================================================================
-# DayNightSettings.gd - Resource для хранения всех настроек
-# ============================================================================
 extends Node
 class_name DayNightSettings
 
@@ -11,6 +8,18 @@ class_name DayNightSettings
 @export_group("Light Settings")
 @export var day_light_energy: float = 1.0
 @export var night_light_energy: float = 0.1
+
+@export_group("Realistic Lighting (NEW)")
+@export var enable_realistic_lighting: bool = true
+@export_subgroup("Sun Settings")
+@export var sun_max_altitude: float = 60.0  # Максимальная высота солнца в полдень (градусы)
+@export var sun_color_sunrise: Color = Color(1.0, 0.6, 0.4)  # Оранжевый рассвет
+@export var sun_color_noon: Color = Color(1.0, 0.98, 0.95)   # Теплый белый
+@export var sun_color_sunset: Color = Color(1.0, 0.5, 0.3)   # Красный закат
+
+@export_subgroup("Moon Settings")
+@export var moon_max_altitude: float = 40.0  # Максимальная высота луны (градусы)
+@export var moon_color: Color = Color(0.7, 0.75, 0.85)      # Холодный голубоватый
 
 @export_group("Ambient Settings")
 @export var day_ambient_color: Color = Color(0.7, 0.8, 1.0)
