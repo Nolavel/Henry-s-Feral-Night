@@ -2,16 +2,16 @@
 
 importer="texture"
 type="CompressedTexture2D"
-uid="uid://cqatttfq842je"
-path="res://.godot/imported/image (56).png-5c569453b7e6c14944938f436f8347cb.ctex"
+uid="uid://bwtgj8avivxi2"
+path="res://.godot/imported/Status_Gizmo_img2.png-e86ff90ca379f0f64ef2136b83ce73bf.ctex"
 metadata={
 "vram_texture": false
 }
 
 [deps]
 
-source_file="res://assets/textures/ui/game/HUD/gizmo_icon/image (56).png"
-dest_files=["res://.godot/imported/image (56).png-5c569453b7e6c14944938f436f8347cb.ctex"]
+source_file="res://assets/textures/ui/game/HUD/gizmo_icon/Status_Gizmo_img2.png"
+dest_files=["res://.godot/imported/Status_Gizmo_img2.png-e86ff90ca379f0f64ef2136b83ce73bf.ctex"]
 
 [params]
 

@@ -2,16 +2,16 @@
 
 importer="texture"
 type="CompressedTexture2D"
-uid="uid://djfpd8nulrasl"
-path="res://.godot/imported/image (57).png-0bbf912a6de18d09a49a884219765047.ctex"
+uid="uid://dwx5llekx54e8"
+path="res://.godot/imported/Energy_img.png-3147d6008c5062f4a32fc8af87892fda.ctex"
 metadata={
 "vram_texture": false
 }
 
 [deps]
 
-source_file="res://assets/textures/ui/game/HUD/gizmo_icon/image (57).png"
-dest_files=["res://.godot/imported/image (57).png-0bbf912a6de18d09a49a884219765047.ctex"]
+source_file="res://assets/textures/ui/game/HUD/gizmo_icon/Energy_img.png"
+dest_files=["res://.godot/imported/Energy_img.png-3147d6008c5062f4a32fc8af87892fda.ctex"]
 
 [params]
 

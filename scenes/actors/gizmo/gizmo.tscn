@@ -1,14 +1,18 @@
-[gd_scene load_steps=16 format=4 uid="uid://b7ncjhg2vit8i"]
+[gd_scene load_steps=32 format=4 uid="uid://b7ncjhg2vit8i"]
 
 [ext_resource type="Script" path="res://scripts/actors/player/gizmo/player_gizmo.gd" id="1_7wokv"]
 [ext_resource type="Shader" path="res://assets/materials/Shaders/Face_Monitor_Diamond.gdshader" id="2_ingp4"]
 [ext_resource type="Texture2D" uid="uid://1r12oshibwsx" path="res://assets/textures/ui/game/biomonitor/bg_biomarker_2.png" id="3_4442y"]
 [ext_resource type="Script" path="res://scripts/actors/player/gizmo/ui_camera_gizmo.gd" id="4_mw440"]
-[ext_resource type="Texture2D" uid="uid://djfpd8nulrasl" path="res://assets/textures/ui/game/HUD/gizmo_icon/image (57).png" id="7_nskc0"]
+[ext_resource type="Script" path="res://scripts/actors/player/gizmo/gizmo_capabilities_icons.gd" id="7_q5f5j"]
 [ext_resource type="Script" path="res://scripts/actors/player/gizmo/Flashlight_Gizmo.cs" id="7_ry8yp"]
-[ext_resource type="Shader" path="res://assets/materials/Shaders/indicator_bg_bio.gdshader" id="8_jlsvc"]
+[ext_resource type="Shader" path="res://assets/materials/Shaders/BG_indicatorSURV.gdshader" id="7_wf5l0"]
 [ext_resource type="PackedScene" uid="uid://ba7d1gwg3y1cd" path="res://assets/models/characters/gizmo_test_model/Gizmo_Test_player.glb" id="8_vxh6c"]
+[ext_resource type="Texture2D" uid="uid://dwx5llekx54e8" path="res://assets/textures/ui/game/HUD/gizmo_icon/Energy_img.png" id="9_1bbox"]
+[ext_resource type="Texture2D" uid="uid://bwtgj8avivxi2" path="res://assets/textures/ui/game/HUD/gizmo_icon/Status_Gizmo_img2.png" id="9_38ylu"]
+[ext_resource type="Texture2D" uid="uid://s5aqodkfroue" path="res://assets/textures/ui/game/HUD/gizmo_icon/Scan_img.png" id="9_vs7ob"]
 [ext_resource type="Texture2D" uid="uid://binsix3624ug6" path="res://assets/models/characters/gizmo_test_model/Gizmo_Test_player_tripo_rgb_4a1f6d6f-0c56-41d2-8ad9-4a83e4a7ab62.jpg" id="10_nt5gw"]
+[ext_resource type="Texture2D" uid="uid://dwv6qkam4tuon" path="res://assets/textures/ui/game/HUD/gizmo_icon/Shock_Gizmo_Ready_img.png" id="11_rpb8v"]
 
 [sub_resource type="StandardMaterial3D" id="StandardMaterial3D_x60a1"]
 resource_name = "tripo_mat_8e928862-4561-4793-9227-508d067ab87e"
@@ -63,14 +67,268 @@ shader_parameter/border_color = Color(1, 0.8, 0.2, 1)
 shader_parameter/fade_amount = 0.0
 shader_parameter/fade_softness = 0.05
 
-[sub_resource type="ShaderMaterial" id="ShaderMaterial_yymcv"]
-shader = ExtResource("8_jlsvc")
-shader_parameter/fade_start = 1.0
+[sub_resource type="ShaderMaterial" id="ShaderMaterial_pcx6b"]
+shader = ExtResource("7_wf5l0")
+shader_parameter/fade_start = 0.3
 shader_parameter/fade_end = 1.0
+shader_parameter/base_color = Color(0.419608, 0.419608, 0.419608, 1)
+shader_parameter/fade_direction = 0
+shader_parameter/corner_radius = 0.1
 shader_parameter/fade_curve = 1.0
-shader_parameter/fade_direction = 3
-shader_parameter/circle_radius = 1.0
-shader_parameter/circle_softness = 0.02
+
+[sub_resource type="Gradient" id="Gradient_vyn13"]
+
+[sub_resource type="GradientTexture2D" id="GradientTexture2D_qqtnx"]
+gradient = SubResource("Gradient_vyn13")
+
+[sub_resource type="ShaderMaterial" id="ShaderMaterial_hsr1q"]
+shader = ExtResource("7_wf5l0")
+shader_parameter/fade_start = 0.3
+shader_parameter/fade_end = 1.0
+shader_parameter/base_color = Color(0.419608, 0.419608, 0.419608, 1)
+shader_parameter/fade_direction = 0
+shader_parameter/corner_radius = 0.1
+shader_parameter/fade_curve = 1.0
+
+[sub_resource type="ShaderMaterial" id="ShaderMaterial_bywfu"]
+shader = ExtResource("7_wf5l0")
+shader_parameter/fade_start = 0.3
+shader_parameter/fade_end = 1.0
+shader_parameter/base_color = Color(0.42, 0.42, 0.42, 1)
+shader_parameter/fade_direction = 0
+shader_parameter/corner_radius = 0.0
+shader_parameter/fade_curve = 1.0
+
+[sub_resource type="ShaderMaterial" id="ShaderMaterial_s7bj4"]
+shader = ExtResource("7_wf5l0")
+shader_parameter/fade_start = 0.3
+shader_parameter/fade_end = 1.0
+shader_parameter/base_color = Color(0.419608, 0.419608, 0.419608, 1)
+shader_parameter/fade_direction = 0
+shader_parameter/corner_radius = 0.1
+shader_parameter/fade_curve = 1.0
+
+[sub_resource type="ShaderMaterial" id="ShaderMaterial_yymcv"]
+
+[sub_resource type="Animation" id="Animation_s2e1h"]
+resource_name = "gizmo_status_low"
+length = 0.5
+tracks/0/type = "value"
+tracks/0/imported = false
+tracks/0/enabled = true
+tracks/0/path = NodePath("Status_Gizmo_icon:modulate")
+tracks/0/interp = 1
+tracks/0/loop_wrap = true
+tracks/0/keys = {
+"times": PackedFloat32Array(0, 0.5),
+"transitions": PackedFloat32Array(1, 3.4822),
+"update": 0,
+"values": [Color(0.7, 0.7, 0.7, 1), Color(0.76, 0.0152, 0.0152, 1)]
+}
+tracks/1/type = "value"
+tracks/1/imported = false
+tracks/1/enabled = true
+tracks/1/path = NodePath("bg_4:material:shader_parameter/base_color")
+tracks/1/interp = 1
+tracks/1/loop_wrap = true
+tracks/1/keys = {
+"times": PackedFloat32Array(0, 0.5),
+"transitions": PackedFloat32Array(1, 1),
+"update": 0,
+"values": [Color(0.419608, 0.419608, 0.419608, 1), Color(0.796078, 0.419608, 0, 1)]
+}
+
+[sub_resource type="Animation" id="Animation_f8xmu"]
+length = 0.001
+tracks/0/type = "value"
+tracks/0/imported = false
+tracks/0/enabled = true
+tracks/0/path = NodePath("Status_Gizmo_icon:modulate")
+tracks/0/interp = 1
+tracks/0/loop_wrap = true
+tracks/0/keys = {
+"times": PackedFloat32Array(0),
+"transitions": PackedFloat32Array(1),
+"update": 0,
+"values": [Color(1, 1, 1, 1)]
+}
+tracks/1/type = "value"
+tracks/1/imported = false
+tracks/1/enabled = true
+tracks/1/path = NodePath("Shock__Gizmo_icon:modulate")
+tracks/1/interp = 1
+tracks/1/loop_wrap = true
+tracks/1/keys = {
+"times": PackedFloat32Array(0),
+"transitions": PackedFloat32Array(1),
+"update": 0,
+"values": [Color(0.5, 0.5, 0.5, 0.607843)]
+}
+tracks/2/type = "value"
+tracks/2/imported = false
+tracks/2/enabled = true
+tracks/2/path = NodePath("Energy_icon:modulate")
+tracks/2/interp = 1
+tracks/2/loop_wrap = true
+tracks/2/keys = {
+"times": PackedFloat32Array(0),
+"transitions": PackedFloat32Array(1),
+"update": 0,
+"values": [Color(1, 1, 1, 1)]
+}
+tracks/3/type = "value"
+tracks/3/imported = false
+tracks/3/enabled = true
+tracks/3/path = NodePath("Scan_icon:modulate")
+tracks/3/interp = 1
+tracks/3/loop_wrap = true
+tracks/3/keys = {
+"times": PackedFloat32Array(0),
+"transitions": PackedFloat32Array(1),
+"update": 0,
+"values": [Color(0.22, 0.22, 0.22, 0.392157)]
+}
+tracks/4/type = "value"
+tracks/4/imported = false
+tracks/4/enabled = true
+tracks/4/path = NodePath("bg_1:material:shader_parameter/base_color")
+tracks/4/interp = 1
+tracks/4/loop_wrap = true
+tracks/4/keys = {
+"times": PackedFloat32Array(0),
+"transitions": PackedFloat32Array(1),
+"update": 0,
+"values": [Color(0.419608, 0.419608, 0.419608, 1)]
+}
+tracks/5/type = "value"
+tracks/5/imported = false
+tracks/5/enabled = true
+tracks/5/path = NodePath("bg_3:material:shader_parameter/base_color")
+tracks/5/interp = 1
+tracks/5/loop_wrap = true
+tracks/5/keys = {
+"times": PackedFloat32Array(0),
+"transitions": PackedFloat32Array(1),
+"update": 0,
+"values": [Color(0.42, 0.42, 0.42, 1)]
+}
+tracks/6/type = "value"
+tracks/6/imported = false
+tracks/6/enabled = true
+tracks/6/path = NodePath("bg_2:material:shader_parameter/base_color")
+tracks/6/interp = 1
+tracks/6/loop_wrap = true
+tracks/6/keys = {
+"times": PackedFloat32Array(0),
+"transitions": PackedFloat32Array(1),
+"update": 0,
+"values": [Color(0.419608, 0.419608, 0.419608, 1)]
+}
+tracks/7/type = "value"
+tracks/7/imported = false
+tracks/7/enabled = true
+tracks/7/path = NodePath("bg_4:material:shader_parameter/base_color")
+tracks/7/interp = 1
+tracks/7/loop_wrap = true
+tracks/7/keys = {
+"times": PackedFloat32Array(0),
+"transitions": PackedFloat32Array(1),
+"update": 0,
+"values": [Color(0.419608, 0.419608, 0.419608, 1)]
+}
+
+[sub_resource type="Animation" id="Animation_pcelh"]
+resource_name = "gizmo_shock_available"
+length = 0.5
+tracks/0/type = "value"
+tracks/0/imported = false
+tracks/0/enabled = true
+tracks/0/path = NodePath("Shock__Gizmo_icon:modulate")
+tracks/0/interp = 1
+tracks/0/loop_wrap = true
+tracks/0/keys = {
+"times": PackedFloat32Array(0, 0.5),
+"transitions": PackedFloat32Array(1, 1),
+"update": 0,
+"values": [Color(0.5, 0.5, 0.5, 0.607843), Color(1, 1, 1, 1)]
+}
+tracks/1/type = "value"
+tracks/1/imported = false
+tracks/1/enabled = true
+tracks/1/path = NodePath("bg_3:material:shader_parameter/base_color")
+tracks/1/interp = 1
+tracks/1/loop_wrap = true
+tracks/1/keys = {
+"times": PackedFloat32Array(0, 0.5),
+"transitions": PackedFloat32Array(1, 1),
+"update": 0,
+"values": [Color(0.42, 0.42, 0.42, 1), Color(0.419608, 0.419608, 0.858824, 1)]
+}
+
+[sub_resource type="Animation" id="Animation_0o2gn"]
+resource_name = "energy_power"
+length = 0.5
+tracks/0/type = "value"
+tracks/0/imported = false
+tracks/0/enabled = true
+tracks/0/path = NodePath("Energy_icon:modulate")
+tracks/0/interp = 1
+tracks/0/loop_wrap = true
+tracks/0/keys = {
+"times": PackedFloat32Array(0, 0.5),
+"transitions": PackedFloat32Array(1, 1),
+"update": 0,
+"values": [Color(1, 1, 1, 1), Color(0, 0, 0, 0.227451)]
+}
+tracks/1/type = "value"
+tracks/1/imported = false
+tracks/1/enabled = true
+tracks/1/path = NodePath("bg_1:material:shader_parameter/base_color")
+tracks/1/interp = 1
+tracks/1/loop_wrap = true
+tracks/1/keys = {
+"times": PackedFloat32Array(0, 0.5),
+"transitions": PackedFloat32Array(1, 1),
+"update": 0,
+"values": [Color(0.419608, 0.419608, 0.419608, 1), Color(0.42, 0.1554, 0.1554, 1)]
+}
+
+[sub_resource type="Animation" id="Animation_d0f2s"]
+resource_name = "scan_available"
+length = 0.5
+tracks/0/type = "value"
+tracks/0/imported = false
+tracks/0/enabled = true
+tracks/0/path = NodePath("Scan_icon:modulate")
+tracks/0/interp = 1
+tracks/0/loop_wrap = true
+tracks/0/keys = {
+"times": PackedFloat32Array(0, 0.5),
+"transitions": PackedFloat32Array(1, 1),
+"update": 0,
+"values": [Color(0.22, 0.22, 0.22, 0.392157), Color(0.8, 0.8, 0.8, 0.784314)]
+}
+tracks/1/type = "value"
+tracks/1/imported = false
+tracks/1/enabled = true
+tracks/1/path = NodePath("bg_2:material:shader_parameter/base_color")
+tracks/1/interp = 1
+tracks/1/loop_wrap = true
+tracks/1/keys = {
+"times": PackedFloat32Array(0, 0.5),
+"transitions": PackedFloat32Array(1, 1),
+"update": 0,
+"values": [Color(0.419608, 0.419608, 0.419608, 1), Color(0.419608, 0.419608, 0.768627, 1)]
+}
+
+[sub_resource type="AnimationLibrary" id="AnimationLibrary_jhwkp"]
+_data = {
+"RESET": SubResource("Animation_f8xmu"),
+"energy_power": SubResource("Animation_0o2gn"),
+"gizmo_shock_available": SubResource("Animation_pcelh"),
+"gizmo_status_low": SubResource("Animation_s2e1h"),
+"scan_available": SubResource("Animation_d0f2s")
+}
 
 [node name="Gizmo" type="CharacterBody3D"]
 transform = Transform3D(-4.37114e-08, 0, 1, 0, 1, 0, -1, 0, -4.37114e-08, 0, 0, 0)
@@ -156,32 +414,140 @@ offset_right = -95.0
 offset_bottom = -20.0
 grow_horizontal = 2
 grow_vertical = 0
+script = ExtResource("7_q5f5j")
 
-[node name="Scan_img" type="TextureRect" parent="CameraFaceGizmoForUI/GizmoCapabilitiesIcons"]
-visible = false
+[node name="bg_1" type="TextureRect" parent="CameraFaceGizmoForUI/GizmoCapabilitiesIcons"]
+z_index = -4096
+material = SubResource("ShaderMaterial_pcx6b")
 layout_mode = 1
-anchors_preset = 5
-anchor_left = 0.5
-anchor_right = 0.5
-offset_left = -37.5
-offset_right = 37.5
-offset_bottom = 75.0
-grow_horizontal = 2
-texture = ExtResource("7_nskc0")
-expand_mode = 4
+offset_left = 68.0
+offset_top = 108.0
+offset_right = 132.0
+offset_bottom = 168.0
+rotation = 3.90779
+texture = SubResource("GradientTexture2D_qqtnx")
+expand_mode = 2
 
-[node name="Scan_img2" type="TextureRect" parent="CameraFaceGizmoForUI/GizmoCapabilitiesIcons"]
+[node name="bg_2" type="TextureRect" parent="CameraFaceGizmoForUI/GizmoCapabilitiesIcons"]
+z_index = -4096
+material = SubResource("ShaderMaterial_hsr1q")
+layout_mode = 1
+anchors_preset = 1
+anchor_left = 1.0
+anchor_right = 1.0
+offset_left = -106.0
+offset_top = 64.0
+offset_right = -42.0
+offset_bottom = 124.0
+grow_horizontal = 0
+rotation = 5.49779
+texture = SubResource("GradientTexture2D_qqtnx")
+expand_mode = 2
+
+[node name="bg_3" type="TextureRect" parent="CameraFaceGizmoForUI/GizmoCapabilitiesIcons"]
+z_index = -4096
+material = SubResource("ShaderMaterial_bywfu")
+layout_mode = 1
+anchors_preset = 3
+anchor_left = 1.0
+anchor_top = 1.0
+anchor_right = 1.0
+anchor_bottom = 1.0
+offset_left = -63.0
+offset_top = -108.0
+offset_right = 1.0
+offset_bottom = -48.0
+grow_horizontal = 0
+grow_vertical = 0
+rotation = 0.785398
+texture = SubResource("GradientTexture2D_qqtnx")
+expand_mode = 2
+
+[node name="bg_4" type="TextureRect" parent="CameraFaceGizmoForUI/GizmoCapabilitiesIcons"]
+z_index = -4096
+material = SubResource("ShaderMaterial_s7bj4")
+layout_mode = 1
+anchors_preset = 2
+anchor_top = 1.0
+anchor_bottom = 1.0
+offset_left = 107.0
+offset_top = -65.0
+offset_right = 171.0
+offset_bottom = -5.0
+grow_vertical = 0
+rotation = -3.92699
+texture = SubResource("GradientTexture2D_qqtnx")
+expand_mode = 2
+
+[node name="Scan_icon" type="TextureRect" parent="CameraFaceGizmoForUI/GizmoCapabilitiesIcons"]
+modulate = Color(0.22, 0.22, 0.22, 0.392157)
 material = SubResource("ShaderMaterial_yymcv")
+layout_direction = 1
 layout_mode = 1
-anchors_preset = 5
-anchor_left = 0.5
-anchor_right = 0.5
-offset_left = -37.5
-offset_right = 37.5
+anchors_preset = 6
+anchor_left = 1.0
+anchor_top = 0.5
+anchor_right = 1.0
+anchor_bottom = 0.5
+offset_left = -79.9
+offset_top = -60.0
+offset_right = -39.9
+offset_bottom = -20.0
+grow_horizontal = 0
+grow_vertical = 2
+texture = ExtResource("9_vs7ob")
+expand_mode = 1
+
+[node name="Energy_icon" type="TextureRect" parent="CameraFaceGizmoForUI/GizmoCapabilitiesIcons"]
+layout_direction = 1
+layout_mode = 1
+anchors_preset = 4
+anchor_top = 0.5
+anchor_bottom = 0.5
+offset_left = 40.0
+offset_top = -60.0
+offset_right = 80.0
+offset_bottom = -20.0
+grow_vertical = 2
+texture = ExtResource("9_1bbox")
+expand_mode = 1
+
+[node name="Status_Gizmo_icon" type="TextureRect" parent="CameraFaceGizmoForUI/GizmoCapabilitiesIcons"]
+layout_direction = 1
+layout_mode = 1
+anchors_preset = 4
+anchor_top = 0.5
+anchor_bottom = 0.5
+offset_left = 35.0
+offset_top = 20.0
+offset_right = 75.0
+offset_bottom = 65.0
+grow_vertical = 2
+texture = ExtResource("9_38ylu")
+expand_mode = 1
+
+[node name="Shock__Gizmo_icon" type="TextureRect" parent="CameraFaceGizmoForUI/GizmoCapabilitiesIcons"]
+modulate = Color(0.5, 0.5, 0.5, 0.607843)
+layout_direction = 1
+layout_mode = 1
+anchors_preset = 6
+anchor_left = 1.0
+anchor_top = 0.5
+anchor_right = 1.0
+anchor_bottom = 0.5
+offset_left = -90.0
+offset_top = 10.0
+offset_right = -25.0
 offset_bottom = 75.0
-grow_horizontal = 2
-texture = ExtResource("7_nskc0")
-expand_mode = 4
+grow_horizontal = 0
+grow_vertical = 2
+texture = ExtResource("11_rpb8v")
+expand_mode = 1
+
+[node name="Gizmo_icons_reaction" type="AnimationPlayer" parent="CameraFaceGizmoForUI/GizmoCapabilitiesIcons"]
+libraries = {
+"": SubResource("AnimationLibrary_jhwkp")
+}
 
 [node name="SpotLight3D" type="OmniLight3D" parent="."]
 transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 0.05, 0.118, -0.07)

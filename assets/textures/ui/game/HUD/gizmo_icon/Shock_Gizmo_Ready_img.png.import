@@ -2,16 +2,16 @@
 
 importer="texture"
 type="CompressedTexture2D"
-uid="uid://3eqm71yoas7p"
-path="res://.godot/imported/nuc-bat__1_-removebg-preview.png-d6da0e251276e0ce4192e0b48cf800c2.ctex"
+uid="uid://dwv6qkam4tuon"
+path="res://.godot/imported/Shock_Gizmo_Ready_img.png-038af98505b7cf3db01d88404f3e4436.ctex"
 metadata={
 "vram_texture": false
 }
 
 [deps]
 
-source_file="res://assets/textures/ui/game/HUD/gizmo_icon/nuc-bat__1_-removebg-preview.png"
-dest_files=["res://.godot/imported/nuc-bat__1_-removebg-preview.png-d6da0e251276e0ce4192e0b48cf800c2.ctex"]
+source_file="res://assets/textures/ui/game/HUD/gizmo_icon/Shock_Gizmo_Ready_img.png"
+dest_files=["res://.godot/imported/Shock_Gizmo_Ready_img.png-038af98505b7cf3db01d88404f3e4436.ctex"]
 
 [params]
 
