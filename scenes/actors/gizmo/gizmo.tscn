@@ -110,34 +110,6 @@ shader_parameter/fade_curve = 1.0
 
 [sub_resource type="ShaderMaterial" id="ShaderMaterial_yymcv"]
 
-[sub_resource type="Animation" id="Animation_s2e1h"]
-resource_name = "gizmo_status_low"
-length = 0.5
-tracks/0/type = "value"
-tracks/0/imported = false
-tracks/0/enabled = true
-tracks/0/path = NodePath("Status_Gizmo_icon:modulate")
-tracks/0/interp = 1
-tracks/0/loop_wrap = true
-tracks/0/keys = {
-"times": PackedFloat32Array(0, 0.5),
-"transitions": PackedFloat32Array(1, 3.4822),
-"update": 0,
-"values": [Color(0.7, 0.7, 0.7, 1), Color(0.76, 0.0152, 0.0152, 1)]
-}
-tracks/1/type = "value"
-tracks/1/imported = false
-tracks/1/enabled = true
-tracks/1/path = NodePath("bg_4:material:shader_parameter/base_color")
-tracks/1/interp = 1
-tracks/1/loop_wrap = true
-tracks/1/keys = {
-"times": PackedFloat32Array(0, 0.5),
-"transitions": PackedFloat32Array(1, 1),
-"update": 0,
-"values": [Color(0.419608, 0.419608, 0.419608, 1), Color(0.796078, 0.419608, 0, 1)]
-}
-
 [sub_resource type="Animation" id="Animation_f8xmu"]
 length = 0.001
 tracks/0/type = "value"
@@ -237,6 +209,34 @@ tracks/7/keys = {
 "values": [Color(0.419608, 0.419608, 0.419608, 1)]
 }
 
+[sub_resource type="Animation" id="Animation_0o2gn"]
+resource_name = "energy_power"
+length = 0.5
+tracks/0/type = "value"
+tracks/0/imported = false
+tracks/0/enabled = true
+tracks/0/path = NodePath("Energy_icon:modulate")
+tracks/0/interp = 1
+tracks/0/loop_wrap = true
+tracks/0/keys = {
+"times": PackedFloat32Array(0, 0.5),
+"transitions": PackedFloat32Array(1, 1),
+"update": 0,
+"values": [Color(1, 1, 1, 1), Color(0, 0, 0, 0.227451)]
+}
+tracks/1/type = "value"
+tracks/1/imported = false
+tracks/1/enabled = true
+tracks/1/path = NodePath("bg_1:material:shader_parameter/base_color")
+tracks/1/interp = 1
+tracks/1/loop_wrap = true
+tracks/1/keys = {
+"times": PackedFloat32Array(0, 0.5),
+"transitions": PackedFloat32Array(1, 1),
+"update": 0,
+"values": [Color(0.419608, 0.419608, 0.419608, 1), Color(0.42, 0.1554, 0.1554, 1)]
+}
+
 [sub_resource type="Animation" id="Animation_pcelh"]
 resource_name = "gizmo_shock_available"
 length = 0.5
@@ -265,32 +265,32 @@ tracks/1/keys = {
 "values": [Color(0.42, 0.42, 0.42, 1), Color(0.419608, 0.419608, 0.858824, 1)]
 }
 
-[sub_resource type="Animation" id="Animation_0o2gn"]
-resource_name = "energy_power"
+[sub_resource type="Animation" id="Animation_s2e1h"]
+resource_name = "gizmo_status_low"
 length = 0.5
 tracks/0/type = "value"
 tracks/0/imported = false
 tracks/0/enabled = true
-tracks/0/path = NodePath("Energy_icon:modulate")
+tracks/0/path = NodePath("Status_Gizmo_icon:modulate")
 tracks/0/interp = 1
 tracks/0/loop_wrap = true
 tracks/0/keys = {
 "times": PackedFloat32Array(0, 0.5),
-"transitions": PackedFloat32Array(1, 1),
+"transitions": PackedFloat32Array(1, 3.4822),
 "update": 0,
-"values": [Color(1, 1, 1, 1), Color(0, 0, 0, 0.227451)]
+"values": [Color(0.7, 0.7, 0.7, 1), Color(0.76, 0.0152, 0.0152, 1)]
 }
 tracks/1/type = "value"
 tracks/1/imported = false
 tracks/1/enabled = true
-tracks/1/path = NodePath("bg_1:material:shader_parameter/base_color")
+tracks/1/path = NodePath("bg_4:material:shader_parameter/base_color")
 tracks/1/interp = 1
 tracks/1/loop_wrap = true
 tracks/1/keys = {
 "times": PackedFloat32Array(0, 0.5),
 "transitions": PackedFloat32Array(1, 1),
 "update": 0,
-"values": [Color(0.419608, 0.419608, 0.419608, 1), Color(0.42, 0.1554, 0.1554, 1)]
+"values": [Color(0.419608, 0.419608, 0.419608, 1), Color(0.796078, 0.419608, 0, 1)]
 }
 
 [sub_resource type="Animation" id="Animation_d0f2s"]

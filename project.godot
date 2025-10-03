@@ -1300,10 +1300,10 @@ xr={
 config/name="Henry`s Feral Night"
 config/tags=[]
 run/main_scene="res://tests/scenes/TestScene.tscn"
-config/features=PackedStringArray("4.3", "C#", "Forward Plus")
+config/features=PackedStringArray("4.5", "C#", "Forward Plus")
 run/max_fps=0.0
-run/frame_delay_msec=0.0
 run/low_processor_mode_sleep_usec=6900.0
+run/frame_delay_msec=0.0
 config/icon="res://icon.svg"
 boot_splash/minimum_display_time=0.0
 
@@ -1315,7 +1315,7 @@ settings/addon_root_folder="res://addons/debug_draw_3d"
 
 window/size/viewport_width=1920.0
 window/size/viewport_height=1080.0
-window/size/mode=0.0
+window/size/mode=3
 window/size/initial_position_type=1.0
 window/size/initial_position="(0, 0)"
 window/size/initial_screen=0.0
@@ -1358,6 +1358,15 @@ interactables=""
 [gui]
 
 theme/custom_font="res://assets/fonts/IM Fell English SC/IMFellEnglishSC-Regular.ttf"
+
+[importer_defaults]
+
+animation_library={
+"animation/import_rest_as_RESET": true,
+"animation/trimming": true,
+"fbx/allow_geometry_helper_nodes": true,
+"nodes/import_as_skeleton_bones": true
+}
 
 [input]
 
@@ -1845,8 +1854,6 @@ modify_option={
 
 [rendering]
 
-renderer/rendering_method="gl_compatibility"
-renderer/rendering_method.mobile="gl_compatibility"
 anti_aliasing/quality/msaa_2d=1
 anti_aliasing/quality/msaa_3d=1
 anti_aliasing/quality/screen_space_aa=1
