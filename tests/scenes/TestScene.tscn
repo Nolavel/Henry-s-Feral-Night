@@ -70,6 +70,9 @@ bio_monitor_ui = NodePath("../InGameUI/Vital_Signs")
 player = NodePath("../..")
 bio_monitor = NodePath("../../BioMonitorManager")
 
+[node name="Active_Weapon_Highlight" parent="Player/HUD/CombatHUD/Icon_Weapons" index="0"]
+layout_mode = 0
+
 [node name="Gizmo" parent="Player" instance=ExtResource("4_1fant")]
 transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 0.14568, 0.631562, 0.216918)
 
