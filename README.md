@@ -1,6 +1,6 @@
 Henry's Feral Night
-[ENG] Henry's Feral Night — Third-person survival-action set in the endless cold. Built with Godot 4.3.
-[RUS] Henry's Feral Night — Сурвайвал-экшен от третьего лица о выживании в замерзшем апокалипсисе. Создано на Godot 4.3.
+[ENG] Henry's Feral Night — Third-person survival-action set in the endless cold. Built with Godot 4.5.
+[RUS] Henry's Feral Night — Сурвайвал-экшен от третьего лица о выживании в замерзшем апокалипсисе. Создано на Godot 4.5.
 📂 Repository Structure / Структура репозитория
 English (EN)
 
