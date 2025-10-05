@@ -8,7 +8,8 @@ extends Node3D
 
 # === Экспорт: камера ===
 @export var distance: float = 0.35
-@export var height: float = 0.8
+@export var height: float = 0.7
+
 
 # === Экспорт: шейдерные параметры ===
 @export var sh_diamond_softness: float = 0.02

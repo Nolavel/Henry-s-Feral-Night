@@ -32,6 +32,11 @@ extends Control
 @export var lbl_current_bullets_in_clip: Label
 @export var lbl_total_ammo: Label
 
+@export_group("Default State")
+@export_enum("Pickup", "Melee", "Sidearm", "PWS1", "PWS2", "Throwable")
+var default_active_slot: String = "Pickup"
+
+
 # позиции
 var awh_position_pickup = Vector2(-15, -9)
 var awh_position_melee = Vector2(28, -9)
@@ -50,14 +55,61 @@ var is_moving := false
 # текущий активный слот
 var current_slot: TextureRect
 
+#func _ready():
+	#_update_slot_visibility()
+	#target_pos = Active_Weapon_Highlight.position
+	#start_pos = target_pos
+	#current_slot = Pickup
+	#_update_glow()
+	#_update_aws_for_slot(current_slot)
+	#_update_ammo_labels_visibility()
+	
 func _ready():
 	_update_slot_visibility()
-	target_pos = Active_Weapon_Highlight.position
-	start_pos = target_pos
-	current_slot = Pickup
+
+	# Определяем слот по умолчанию
+	match default_active_slot:
+		"Pickup":
+			_set_initial_slot(awh_position_pickup, Pickup)
+		"Melee":
+			_set_initial_slot(awh_position_melee, Melee)
+		"Sidearm":
+			_set_initial_slot(awh_position_sidearm, Sidearm)
+		"PWS1":
+			_set_initial_slot(awh_position_pws_1, Primary_Weapon_Slot_1)
+		"PWS2":
+			_set_initial_slot(awh_position_pws_2, Primary_Weapon_Slot_2)
+		"Throwable":
+			_set_initial_slot(awh_position_throwable, Throwable)
+		_:
+			push_warning("⚠ Unknown default_active_slot value. Using Pickup as fallback.")
+			_set_initial_slot(awh_position_pickup, Pickup)
+
+func _set_initial_slot(new_pos: Vector2, slot: TextureRect) -> void:
+	current_slot = slot
+	target_pos = new_pos
+	start_pos = new_pos
+	Active_Weapon_Highlight.position = new_pos
 	_update_glow()
-	_update_aws_for_slot(current_slot)
+	
+	# 🔧 Сбрасываем glow у активного слота
+	if slot and slot.material is ShaderMaterial:
+		var mat: ShaderMaterial = slot.material
+		var has_ammo := true
+		if slot == Sidearm: has_ammo = has_ammo_sidearm
+		elif slot == Primary_Weapon_Slot_1: has_ammo = has_ammo_pws_1
+		elif slot == Primary_Weapon_Slot_2: has_ammo = has_ammo_pws_2
+		elif slot == Throwable: has_ammo = has_ammo_throwable
+
+		if has_ammo:
+			mat.set_shader_parameter("glow_intensity", 0.0)
+		else:
+			mat.set_shader_parameter("glow_color", Color(1,0,0,1))
+			mat.set_shader_parameter("glow_intensity", 2.0)
+
+	_update_aws_for_slot(slot)
 	_update_ammo_labels_visibility()
+
 
 func _process(delta: float):
 	if is_moving:

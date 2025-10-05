@@ -1,4 +1,4 @@
-[gd_scene load_steps=76 format=4 uid="uid://ciy301x7wh6ie"]
+[gd_scene load_steps=101 format=4 uid="uid://ciy301x7wh6ie"]
 
 [ext_resource type="Script" uid="uid://b50rnmqk3m8fr" path="res://scripts/actors/player/henry/Player.gd" id="1_irk3a"]
 [ext_resource type="Texture2D" uid="uid://b1vpe3iqs2wgh" path="res://assets/textures/player_test/player/SUIT_albedo.jpeg" id="2_cat03"]
@@ -6,15 +6,36 @@
 [ext_resource type="PackedScene" uid="uid://cmt2el3xqdir5" path="res://scenes/ui/hud/bars/InGameUI.tscn" id="2_kqf2x"]
 [ext_resource type="Script" uid="uid://eqxhilyjvx0p" path="res://scripts/actors/player/henry/Managers/InteractionManager.gd" id="3_4fuql"]
 [ext_resource type="Texture2D" uid="uid://dxtpqu5g4coku" path="res://assets/textures/player_test/player/SUIT_roughness.jpeg" id="3_7i6t6"]
+[ext_resource type="Texture2D" uid="uid://bm5av7swjwdh0" path="res://assets/textures/player_test/player/SUIT_AO.jpeg" id="3_msxka"]
 [ext_resource type="Texture2D" uid="uid://bv1n45klvklpa" path="res://assets/models/characters/henry_test_model/Henry_Test_player_tripo_rgb_85c90314-eee5-42c1-b5ac-b610683f6d46.jpg" id="4_8o8gh"]
+[ext_resource type="Texture2D" uid="uid://dnqgepa528k5j" path="res://assets/textures/player_test/player/SUIT_metallic.jpeg" id="4_sn63g"]
+[ext_resource type="Texture2D" uid="uid://dradfpoxkkgo3" path="res://assets/textures/player_test/player/Body_albedo.jpeg" id="4_xsnmo"]
+[ext_resource type="Texture2D" uid="uid://cv1ovvc2ljs4e" path="res://assets/textures/player_test/player/SUIT_normal.png" id="5_eh6yv"]
 [ext_resource type="Script" uid="uid://g61q2r54tbha" path="res://scripts/actors/player/henry/Controllers/MovementController.gd" id="5_ep65o"]
+[ext_resource type="Texture2D" uid="uid://e8c2wdgtco77" path="res://assets/textures/player_test/player/Body_metallic.jpeg" id="5_msxka"]
+[ext_resource type="Texture2D" uid="uid://re2gj53qwutt" path="res://assets/textures/player_test/player/Body_normal.png" id="6_3f3m1"]
 [ext_resource type="Script" uid="uid://dtpnfwdmfe7xn" path="res://scripts/actors/player/henry/Controllers/RotationController.gd" id="6_ggxw4"]
 [ext_resource type="Script" uid="uid://rd1kyphwhfvi" path="res://scripts/actors/player/henry/Managers/StaminaManager.gd" id="6_oh6um"]
+[ext_resource type="Texture2D" uid="uid://be0em6nyi7met" path="res://assets/textures/player_test/player/Armor_albedo.jpeg" id="7_75awx"]
+[ext_resource type="Texture2D" uid="uid://bg00nlljt7ojc" path="res://assets/textures/player_test/player/Material__7_albedo.jpeg" id="7_jk84i"]
+[ext_resource type="Texture2D" uid="uid://d1dsyxpjhtp2g" path="res://assets/textures/player_test/player/Body_roughness.jpeg" id="7_sn63g"]
 [ext_resource type="Script" uid="uid://2xuupb25mhs7" path="res://scripts/actors/player/henry/Managers/InventoryManager.gd" id="7_xt5ix"]
+[ext_resource type="Texture2D" uid="uid://ckrbvguep8fpy" path="res://assets/textures/player_test/player/Head_albedo.jpeg" id="8_eh6yv"]
+[ext_resource type="Texture2D" uid="uid://cht3x06jqvtq8" path="res://assets/textures/player_test/player/Material__7_AO.jpeg" id="8_eltio"]
+[ext_resource type="Texture2D" uid="uid://w2jus0dhp7j0" path="res://assets/textures/player_test/player/Armor_AO.jpeg" id="8_lguxi"]
+[ext_resource type="Texture2D" uid="uid://dv5n6dyiu0jpl" path="res://assets/textures/player_test/player/Armor_metallic.jpeg" id="8_mfpx7"]
 [ext_resource type="Script" uid="uid://ddfmb4kv6sg0l" path="res://scripts/actors/player/henry/Managers/PlayerHealthManager.gd" id="8_re6ll"]
+[ext_resource type="Texture2D" uid="uid://c6rvmqxmq5gxj" path="res://assets/textures/player_test/player/Material__7_normal.png" id="8_u0jtt"]
+[ext_resource type="Texture2D" uid="uid://ct1wqp24eb7v7" path="res://assets/textures/player_test/player/Material__7_roughness.jpeg" id="9_eltio"]
+[ext_resource type="Texture2D" uid="uid://c1itw7qnyrvmk" path="res://assets/textures/player_test/player/Armor_normal.png" id="9_lguxi"]
+[ext_resource type="Texture2D" uid="uid://82bw7trvu4v8" path="res://assets/textures/player_test/player/Head_AO.jpeg" id="9_shibf"]
+[ext_resource type="Texture2D" uid="uid://dhwloxffl8o5n" path="res://assets/textures/player_test/player/Head_metallic.jpeg" id="10_jk84i"]
 [ext_resource type="Script" uid="uid://djgsya3tmwfqa" path="res://scripts/actors/player/henry/Managers/BioMonitorManager.gd" id="10_mvyhi"]
+[ext_resource type="Texture2D" uid="uid://c4cgxd2syf1dl" path="res://assets/textures/player_test/player/Armor_roughness.jpeg" id="10_w0i13"]
 [ext_resource type="Shader" uid="uid://cq0cewnu86jod" path="res://assets/materials/Shaders/BG_indicatorSURV.gdshader" id="11_7mm2c"]
 [ext_resource type="Script" uid="uid://x6kekeaur64p" path="res://scripts/ui/hud/camera_face_for_ui.gd" id="11_atp51"]
+[ext_resource type="Texture2D" uid="uid://ckk71xxqgus15" path="res://assets/textures/player_test/player/Head_normal.png" id="11_u0jtt"]
+[ext_resource type="Texture2D" uid="uid://bp5vim0fdiuwm" path="res://assets/textures/player_test/player/Head_roughness.jpeg" id="12_eltio"]
 [ext_resource type="Texture2D" uid="uid://dsc7d56n14klw" path="res://assets/textures/ui/game/biomonitor/fists_default.png" id="12_u1ijy"]
 [ext_resource type="Shader" uid="uid://ql5g8xoo1y81" path="res://assets/materials/Shaders/Face_Monitor_Diamond.gdshader" id="13_57880"]
 [ext_resource type="Texture2D" uid="uid://dnmn77dghrhtp" path="res://assets/textures/ui/game/biomonitor/bg_biomarker_1.png" id="14_ofj7d"]
@@ -760,7 +781,13 @@ _data = {
 
 [sub_resource type="StandardMaterial3D" id="StandardMaterial3D_e5w6i"]
 albedo_texture = ExtResource("2_cat03")
+metallic = 1.0
+metallic_texture = ExtResource("4_sn63g")
 roughness_texture = ExtResource("3_7i6t6")
+normal_enabled = true
+normal_texture = ExtResource("5_eh6yv")
+ao_enabled = true
+ao_texture = ExtResource("3_msxka")
 
 [sub_resource type="StandardMaterial3D" id="StandardMaterial3D_2dqaq"]
 resource_name = "Material #6"
@@ -872,6 +899,14 @@ bind/25/bone = -1
 bind/25/pose = Transform3D(0.4160576, 0.7053571, -0.57390547, 0.2078337, -0.6881802, -0.69513535, -0.885269, 0.16993944, -0.4329196, 1.0280247, 1.3943644, 2.4202235)
 
 [sub_resource type="StandardMaterial3D" id="StandardMaterial3D_t1vny"]
+albedo_texture = ExtResource("7_75awx")
+metallic = 1.0
+metallic_texture = ExtResource("8_mfpx7")
+roughness_texture = ExtResource("10_w0i13")
+normal_enabled = true
+normal_texture = ExtResource("9_lguxi")
+ao_enabled = true
+ao_texture = ExtResource("8_lguxi")
 
 [sub_resource type="StandardMaterial3D" id="StandardMaterial3D_0ktcl"]
 
@@ -943,6 +978,8 @@ bind/14/name = &"LeftLowerLeg"
 bind/14/bone = -1
 bind/14/pose = Transform3D(-0.9873131, 0.007581444, -0.15860462, 0.15878165, 0.054296214, -0.98581964, 0.0011376945, -0.9984961, -0.054811154, 0.566899, 1.2197284, 0.09433498)
 
+[sub_resource type="StandardMaterial3D" id="StandardMaterial3D_fvo2l"]
+
 [sub_resource type="StandardMaterial3D" id="StandardMaterial3D_wpdpq"]
 
 [sub_resource type="ArrayMesh" id="ArrayMesh_eiuri"]
@@ -991,6 +1028,22 @@ bind/6/pose = Transform3D(-0.99999183, 0.002841185, 0.002875002, -0.0026980978, 
 bind/7/name = &"LeftUpperLeg"
 bind/7/bone = -1
 bind/7/pose = Transform3D(-0.9961513, 0.00418496, -0.08754981, 0.08764978, 0.047562625, -0.9950152, -3.1545332e-11, -0.99885947, -0.047746383, 0.9940605, 1.9908944, 0.15272552)
+
+[sub_resource type="StandardMaterial3D" id="StandardMaterial3D_75awx"]
+albedo_texture = ExtResource("7_jk84i")
+roughness_texture = ExtResource("9_eltio")
+normal_enabled = true
+normal_texture = ExtResource("8_u0jtt")
+ao_enabled = true
+ao_texture = ExtResource("8_eltio")
+
+[sub_resource type="StandardMaterial3D" id="StandardMaterial3D_kn7dg"]
+albedo_texture = ExtResource("4_xsnmo")
+metallic = 1.0
+metallic_texture = ExtResource("5_msxka")
+roughness_texture = ExtResource("7_sn63g")
+normal_enabled = true
+normal_texture = ExtResource("6_3f3m1")
 
 [sub_resource type="StandardMaterial3D" id="StandardMaterial3D_goac5"]
 
@@ -1167,6 +1220,16 @@ bind/0/pose = Transform3D(1.137049, 0, 0, 0, 9.157079e-17, 1.029025, 0, -1.02902
 bind/1/name = &"Head"
 bind/1/bone = -1
 bind/1/pose = Transform3D(1.137049, 0, 0, 0, 9.157079e-17, 1.029025, 0, -1.029025, 9.157079e-17, -0.002210427, 0.2569126, 0.09252719)
+
+[sub_resource type="StandardMaterial3D" id="StandardMaterial3D_fqgpy"]
+albedo_texture = ExtResource("8_eh6yv")
+metallic = 1.0
+metallic_texture = ExtResource("10_jk84i")
+roughness_texture = ExtResource("12_eltio")
+normal_enabled = true
+normal_texture = ExtResource("11_u0jtt")
+ao_enabled = true
+ao_texture = ExtResource("9_shibf")
 
 [sub_resource type="CylinderShape3D" id="CylinderShape3D_0w3ce"]
 
@@ -2229,14 +2292,17 @@ layers = 16
 material_override = SubResource("StandardMaterial3D_t1vny")
 mesh = SubResource("ArrayMesh_0b2ib")
 skin = SubResource("Skin_8qha1")
+surface_material_override/0 = SubResource("StandardMaterial3D_fvo2l")
 
 [node name="Boots Low Poly" type="MeshInstance3D" parent="player_base_mesh/GeneralSkeleton/RetargetModifier3D/OriginalSkeleton"]
 layers = 16
 mesh = SubResource("ArrayMesh_eiuri")
 skin = SubResource("Skin_x41ax")
+surface_material_override/0 = SubResource("StandardMaterial3D_75awx")
 
 [node name="Genesis8Male_Shape" type="MeshInstance3D" parent="player_base_mesh/GeneralSkeleton/RetargetModifier3D/OriginalSkeleton"]
 layers = 16
+material_override = SubResource("StandardMaterial3D_kn7dg")
 mesh = SubResource("ArrayMesh_0bu4r")
 skin = SubResource("Skin_e3d5k")
 
@@ -2244,6 +2310,7 @@ skin = SubResource("Skin_e3d5k")
 layers = 16
 mesh = SubResource("ArrayMesh_qyyfj")
 skin = SubResource("Skin_0vdbd")
+surface_material_override/0 = SubResource("StandardMaterial3D_fqgpy")
 
 [node name="Main_Collision" type="CollisionShape3D" parent="."]
 shape = SubResource("CylinderShape3D_0w3ce")
@@ -2329,7 +2396,7 @@ canvas_cull_mask = 4293918736
 size = Vector2i(128, 128)
 
 [node name="CameraFaceHenry" type="Camera3D" parent="CameraFaceHenryForUI/SubViewport"]
-transform = Transform3D(1.31134e-07, 0, -1, 0, 1, 0, 1, 0, 1.31134e-07, -0.45, 0.8, 1.96701e-08)
+transform = Transform3D(1.31134e-07, 0, -1, 0, 1, 0, 1, 0, 1.31134e-07, -0.45, 0.7, 0)
 keep_aspect = 0
 cull_mask = 16
 environment = SubResource("Environment_edegv")
@@ -2383,9 +2450,9 @@ grow_vertical = 0
 transform = Transform3D(0.959491, 0, -0.281739, 0, 1, 0, 0.281739, 0, 0.959491, 0.151, 1.0479, -0.594)
 layers = 16
 light_bake_mode = 1
-light_cull_mask = 4293918752
+light_cull_mask = 4293918736
 omni_range = 0.8
-omni_attenuation = -0.014
+omni_attenuation = 0.198
 
 [node name="WeaponSlot" type="Node3D" parent="."]
 
@@ -2559,7 +2626,7 @@ grow_horizontal = 2
 [node name="Active_Weapon_Highlight" type="TextureRect" parent="HUD/CombatHUD/Icon_Weapons"]
 modulate = Color(1, 1, 1, 0.568627)
 material = SubResource("ShaderMaterial_ailxr")
-layout_mode = 0
+layout_mode = 1
 offset_left = -15.0
 offset_top = -9.0
 offset_right = 35.0

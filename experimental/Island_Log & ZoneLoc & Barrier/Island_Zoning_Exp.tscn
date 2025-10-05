@@ -1,0 +1,98 @@
+[gd_scene load_steps=8 format=3 uid="uid://sjcowtseegjw"]
+
+[ext_resource type="PackedScene" uid="uid://cnhshfsm2gpjs" path="res://tools/ScanFolderFiles/ScanFolderFiles.tscn" id="1_ymp3q"]
+[ext_resource type="PackedScene" uid="uid://duxn5rqcau5dw" path="res://tools/StatsDisplay/StatsDisplay.tscn" id="2_lghla"]
+[ext_resource type="PackedScene" uid="uid://cvuw2ef72te81" path="res://tools/InputDebugger/InputDebugger.tscn" id="3_x2mcl"]
+[ext_resource type="PackedScene" uid="uid://cvv8y27vmgjfi" path="res://scenes/game/systems/world/WorldEnvironmentSystem.tscn" id="4_bdewo"]
+[ext_resource type="PackedScene" uid="uid://dputwp1am8vfu" path="res://scenes/game/systems/camera/PlayerCamera.tscn" id="5_56cke"]
+
+[sub_resource type="StandardMaterial3D" id="StandardMaterial3D_7stkc"]
+albedo_color = Color(0.039215688, 0.039215688, 0.039215688, 1)
+
+[sub_resource type="PlaneMesh" id="PlaneMesh_gurxr"]
+material = SubResource("StandardMaterial3D_7stkc")
+size = Vector2(2000, 2000)
+
+[node name="IslandZoningExp" type="Node3D"]
+
+[node name="ProjectStats_AND_ExitTrigger" parent="." instance=ExtResource("1_ymp3q")]
+
+[node name="StatsDisplay" parent="." instance=ExtResource("2_lghla")]
+
+[node name="InputDebugger" parent="." instance=ExtResource("3_x2mcl")]
+
+[node name="WorldEnvironmentSystem" parent="." instance=ExtResource("4_bdewo")]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 0, 55, 0)
+
+[node name="PlayerCamera" parent="." node_paths=PackedStringArray("player") instance=ExtResource("5_56cke")]
+player = NodePath("")
+
+[node name="CameraRegional" type="Camera3D" parent="."]
+transform = Transform3D(1, 0, 0, 0, -4.371139e-08, 1, 0, -1, -4.371139e-08, 0, 4000, 0)
+current = true
+far = 4050.0
+
+[node name="Graciosa_Island_Location" type="Node3D" parent="."]
+
+[node name="zone_center" type="Node3D" parent="Graciosa_Island_Location"]
+
+[node name="MeshInstance3D" type="MeshInstance3D" parent="Graciosa_Island_Location/zone_center"]
+mesh = SubResource("PlaneMesh_gurxr")
+
+[node name="Label3D" type="Label3D" parent="Graciosa_Island_Location/zone_center"]
+transform = Transform3D(1, 0, 0, 0, -4.371139e-08, 1, 0, -1, -4.371139e-08, 0, 50, 0)
+pixel_size = 10.0
+modulate = Color(0, 1, 1, 1)
+outline_modulate = Color(1, 0, 0, 1)
+text = "Center
+"
+
+[node name="zone_north_west" type="Node3D" parent="Graciosa_Island_Location"]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, -2000, 0, -2000)
+
+[node name="MeshInstance3D" type="MeshInstance3D" parent="Graciosa_Island_Location/zone_north_west"]
+mesh = SubResource("PlaneMesh_gurxr")
+
+[node name="zone_north" type="Node3D" parent="Graciosa_Island_Location"]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 0, 0, -2000)
+
+[node name="MeshInstance3D" type="MeshInstance3D" parent="Graciosa_Island_Location/zone_north"]
+mesh = SubResource("PlaneMesh_gurxr")
+
+[node name="zone_north_east" type="Node3D" parent="Graciosa_Island_Location"]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 2000, 0, -2000)
+
+[node name="MeshInstance3D" type="MeshInstance3D" parent="Graciosa_Island_Location/zone_north_east"]
+mesh = SubResource("PlaneMesh_gurxr")
+
+[node name="zone_west" type="Node3D" parent="Graciosa_Island_Location"]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, -2000, 0, 0)
+
+[node name="MeshInstance3D" type="MeshInstance3D" parent="Graciosa_Island_Location/zone_west"]
+mesh = SubResource("PlaneMesh_gurxr")
+
+[node name="zone_east" type="Node3D" parent="Graciosa_Island_Location"]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 2000, 0, 0)
+
+[node name="MeshInstance3D" type="MeshInstance3D" parent="Graciosa_Island_Location/zone_east"]
+mesh = SubResource("PlaneMesh_gurxr")
+
+[node name="zone_south_west" type="Node3D" parent="Graciosa_Island_Location"]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, -2000, 0, 2000)
+
+[node name="MeshInstance3D" type="MeshInstance3D" parent="Graciosa_Island_Location/zone_south_west"]
+mesh = SubResource("PlaneMesh_gurxr")
+
+[node name="zone_south" type="Node3D" parent="Graciosa_Island_Location"]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 0, 0, 2000)
+
+[node name="MeshInstance3D" type="MeshInstance3D" parent="Graciosa_Island_Location/zone_south"]
+mesh = SubResource("PlaneMesh_gurxr")
+
+[node name="zone_south_east" type="Node3D" parent="Graciosa_Island_Location"]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 2000, 0, 2000)
+
+[node name="MeshInstance3D" type="MeshInstance3D" parent="Graciosa_Island_Location/zone_south_east"]
+mesh = SubResource("PlaneMesh_gurxr")
+
+[editable path="WorldEnvironmentSystem"]
