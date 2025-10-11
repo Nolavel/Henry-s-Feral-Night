@@ -4,15 +4,16 @@ importer="texture"
 type="CompressedTexture2D"
 uid="uid://c1ots7w6i0i1q"
 path.bptc="res://.godot/imported/ground037_nrm_rgh.png-cd4c9cf2ddf0695fa23cc78c6d514144.bptc.ctex"
+path.astc="res://.godot/imported/ground037_nrm_rgh.png-cd4c9cf2ddf0695fa23cc78c6d514144.astc.ctex"
 metadata={
-"imported_formats": ["s3tc_bptc"],
+"imported_formats": ["s3tc_bptc", "etc2_astc"],
 "vram_texture": true
 }
 
 [deps]
 
 source_file="res://addons/terrain_3d/demo/assets/textures/ground037_nrm_rgh.png"
-dest_files=["res://.godot/imported/ground037_nrm_rgh.png-cd4c9cf2ddf0695fa23cc78c6d514144.bptc.ctex"]
+dest_files=["res://.godot/imported/ground037_nrm_rgh.png-cd4c9cf2ddf0695fa23cc78c6d514144.bptc.ctex", "res://.godot/imported/ground037_nrm_rgh.png-cd4c9cf2ddf0695fa23cc78c6d514144.astc.ctex"]
 
 [params]
 

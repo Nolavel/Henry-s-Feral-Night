@@ -4,15 +4,16 @@ importer="texture"
 type="CompressedTexture2D"
 uid="uid://d3l7j0o5x445r"
 path.s3tc="res://.godot/imported/Concrete_Muddy_001_BaseColor.jpg-56b178c0b813a372c2c36568af721330.s3tc.ctex"
+path.etc2="res://.godot/imported/Concrete_Muddy_001_BaseColor.jpg-56b178c0b813a372c2c36568af721330.etc2.ctex"
 metadata={
-"imported_formats": ["s3tc_bptc"],
+"imported_formats": ["s3tc_bptc", "etc2_astc"],
 "vram_texture": true
 }
 
 [deps]
 
 source_file="res://assets/textures/textures_map/Concrete_Muddy/Concrete_Muddy_001_BaseColor.jpg"
-dest_files=["res://.godot/imported/Concrete_Muddy_001_BaseColor.jpg-56b178c0b813a372c2c36568af721330.s3tc.ctex"]
+dest_files=["res://.godot/imported/Concrete_Muddy_001_BaseColor.jpg-56b178c0b813a372c2c36568af721330.s3tc.ctex", "res://.godot/imported/Concrete_Muddy_001_BaseColor.jpg-56b178c0b813a372c2c36568af721330.etc2.ctex"]
 
 [params]
 

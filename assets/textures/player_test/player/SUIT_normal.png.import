@@ -4,15 +4,16 @@ importer="texture"
 type="CompressedTexture2D"
 uid="uid://cv1ovvc2ljs4e"
 path.s3tc="res://.godot/imported/SUIT_normal.png-65eaa7251af44a394b7a32ad3c2a2ffd.s3tc.ctex"
+path.etc2="res://.godot/imported/SUIT_normal.png-65eaa7251af44a394b7a32ad3c2a2ffd.etc2.ctex"
 metadata={
-"imported_formats": ["s3tc_bptc"],
+"imported_formats": ["s3tc_bptc", "etc2_astc"],
 "vram_texture": true
 }
 
 [deps]
 
 source_file="res://assets/textures/player_test/player/SUIT_normal.png"
-dest_files=["res://.godot/imported/SUIT_normal.png-65eaa7251af44a394b7a32ad3c2a2ffd.s3tc.ctex"]
+dest_files=["res://.godot/imported/SUIT_normal.png-65eaa7251af44a394b7a32ad3c2a2ffd.s3tc.ctex", "res://.godot/imported/SUIT_normal.png-65eaa7251af44a394b7a32ad3c2a2ffd.etc2.ctex"]
 
 [params]
 

@@ -4,15 +4,16 @@ importer="texture"
 type="CompressedTexture2D"
 uid="uid://c4cgxd2syf1dl"
 path.s3tc="res://.godot/imported/Armor_roughness.jpeg-4cd1bfe18018fee7a233e47e3a4ba22c.s3tc.ctex"
+path.etc2="res://.godot/imported/Armor_roughness.jpeg-4cd1bfe18018fee7a233e47e3a4ba22c.etc2.ctex"
 metadata={
-"imported_formats": ["s3tc_bptc"],
+"imported_formats": ["s3tc_bptc", "etc2_astc"],
 "vram_texture": true
 }
 
 [deps]
 
 source_file="res://assets/textures/player_test/player/Armor_roughness.jpeg"
-dest_files=["res://.godot/imported/Armor_roughness.jpeg-4cd1bfe18018fee7a233e47e3a4ba22c.s3tc.ctex"]
+dest_files=["res://.godot/imported/Armor_roughness.jpeg-4cd1bfe18018fee7a233e47e3a4ba22c.s3tc.ctex", "res://.godot/imported/Armor_roughness.jpeg-4cd1bfe18018fee7a233e47e3a4ba22c.etc2.ctex"]
 
 [params]
 

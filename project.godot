@@ -1365,6 +1365,7 @@ config/features=PackedStringArray("4.5", "C#", "Forward Plus")
 run/max_fps=0.0
 run/low_processor_mode_sleep_usec=6900.0
 run/frame_delay_msec=0.0
+boot_splash/fullsize=false
 boot_splash/image="uid://7vujivcaksjj"
 config/icon="res://icon.svg"
 boot_splash/minimum_display_time=5000
@@ -1380,7 +1381,6 @@ window/size/viewport_height=1080.0
 window/size/mode=3
 window/size/initial_position_type=1.0
 window/size/initial_position="(0, 0)"
-window/size/initial_screen=0.0
 window/size/borderless=true
 window/size/window_width_override=0.0
 window/size/window_height_override=0.0
@@ -1921,6 +1921,8 @@ modify_option={
 
 [rendering]
 
+textures/vram_compression/import_s3tc_bptc=true
+textures/vram_compression/import_etc2_astc=true
 anti_aliasing/quality/msaa_2d=1
 anti_aliasing/quality/msaa_3d=1
 anti_aliasing/quality/screen_space_aa=1

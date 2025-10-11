@@ -4,15 +4,16 @@ importer="texture"
 type="CompressedTexture2D"
 uid="uid://bp5vim0fdiuwm"
 path.s3tc="res://.godot/imported/Head_roughness.jpeg-d29c933a7d7e4cf81049b1c47f8bfc16.s3tc.ctex"
+path.etc2="res://.godot/imported/Head_roughness.jpeg-d29c933a7d7e4cf81049b1c47f8bfc16.etc2.ctex"
 metadata={
-"imported_formats": ["s3tc_bptc"],
+"imported_formats": ["s3tc_bptc", "etc2_astc"],
 "vram_texture": true
 }
 
 [deps]
 
 source_file="res://assets/textures/player_test/player/Head_roughness.jpeg"
-dest_files=["res://.godot/imported/Head_roughness.jpeg-d29c933a7d7e4cf81049b1c47f8bfc16.s3tc.ctex"]
+dest_files=["res://.godot/imported/Head_roughness.jpeg-d29c933a7d7e4cf81049b1c47f8bfc16.s3tc.ctex", "res://.godot/imported/Head_roughness.jpeg-d29c933a7d7e4cf81049b1c47f8bfc16.etc2.ctex"]
 
 [params]
 

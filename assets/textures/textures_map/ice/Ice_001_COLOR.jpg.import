@@ -4,15 +4,16 @@ importer="texture"
 type="CompressedTexture2D"
 uid="uid://bpq8kh0wrbeuv"
 path.s3tc="res://.godot/imported/Ice_001_COLOR.jpg-265624240b8063ab17898d8879565c1f.s3tc.ctex"
+path.etc2="res://.godot/imported/Ice_001_COLOR.jpg-265624240b8063ab17898d8879565c1f.etc2.ctex"
 metadata={
-"imported_formats": ["s3tc_bptc"],
+"imported_formats": ["s3tc_bptc", "etc2_astc"],
 "vram_texture": true
 }
 
 [deps]
 
 source_file="res://assets/textures/textures_map/ice/Ice_001_COLOR.jpg"
-dest_files=["res://.godot/imported/Ice_001_COLOR.jpg-265624240b8063ab17898d8879565c1f.s3tc.ctex"]
+dest_files=["res://.godot/imported/Ice_001_COLOR.jpg-265624240b8063ab17898d8879565c1f.s3tc.ctex", "res://.godot/imported/Ice_001_COLOR.jpg-265624240b8063ab17898d8879565c1f.etc2.ctex"]
 
 [params]
 

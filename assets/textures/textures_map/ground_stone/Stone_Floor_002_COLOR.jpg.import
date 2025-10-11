@@ -4,15 +4,16 @@ importer="texture"
 type="CompressedTexture2D"
 uid="uid://dsj3x4kfkrkrc"
 path.s3tc="res://.godot/imported/Stone_Floor_002_COLOR.jpg-fa79ab46dc056497b12587647e17a28a.s3tc.ctex"
+path.etc2="res://.godot/imported/Stone_Floor_002_COLOR.jpg-fa79ab46dc056497b12587647e17a28a.etc2.ctex"
 metadata={
-"imported_formats": ["s3tc_bptc"],
+"imported_formats": ["s3tc_bptc", "etc2_astc"],
 "vram_texture": true
 }
 
 [deps]
 
 source_file="res://assets/textures/textures_map/ground_stone/Stone_Floor_002_COLOR.jpg"
-dest_files=["res://.godot/imported/Stone_Floor_002_COLOR.jpg-fa79ab46dc056497b12587647e17a28a.s3tc.ctex"]
+dest_files=["res://.godot/imported/Stone_Floor_002_COLOR.jpg-fa79ab46dc056497b12587647e17a28a.s3tc.ctex", "res://.godot/imported/Stone_Floor_002_COLOR.jpg-fa79ab46dc056497b12587647e17a28a.etc2.ctex"]
 
 [params]
 

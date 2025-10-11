@@ -4,15 +4,16 @@ importer="texture"
 type="CompressedTexture2D"
 uid="uid://dxtpqu5g4coku"
 path.s3tc="res://.godot/imported/SUIT_roughness.jpeg-98dd1d1db4d0ca64d01bf3fef5f6257c.s3tc.ctex"
+path.etc2="res://.godot/imported/SUIT_roughness.jpeg-98dd1d1db4d0ca64d01bf3fef5f6257c.etc2.ctex"
 metadata={
-"imported_formats": ["s3tc_bptc"],
+"imported_formats": ["s3tc_bptc", "etc2_astc"],
 "vram_texture": true
 }
 
 [deps]
 
 source_file="res://assets/textures/player_test/player/SUIT_roughness.jpeg"
-dest_files=["res://.godot/imported/SUIT_roughness.jpeg-98dd1d1db4d0ca64d01bf3fef5f6257c.s3tc.ctex"]
+dest_files=["res://.godot/imported/SUIT_roughness.jpeg-98dd1d1db4d0ca64d01bf3fef5f6257c.s3tc.ctex", "res://.godot/imported/SUIT_roughness.jpeg-98dd1d1db4d0ca64d01bf3fef5f6257c.etc2.ctex"]
 
 [params]
 

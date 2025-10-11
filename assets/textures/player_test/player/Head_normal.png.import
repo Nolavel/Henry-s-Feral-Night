@@ -4,15 +4,16 @@ importer="texture"
 type="CompressedTexture2D"
 uid="uid://ckk71xxqgus15"
 path.s3tc="res://.godot/imported/Head_normal.png-d4e5d1398170d0842a57e3068439f2ca.s3tc.ctex"
+path.etc2="res://.godot/imported/Head_normal.png-d4e5d1398170d0842a57e3068439f2ca.etc2.ctex"
 metadata={
-"imported_formats": ["s3tc_bptc"],
+"imported_formats": ["s3tc_bptc", "etc2_astc"],
 "vram_texture": true
 }
 
 [deps]
 
 source_file="res://assets/textures/player_test/player/Head_normal.png"
-dest_files=["res://.godot/imported/Head_normal.png-d4e5d1398170d0842a57e3068439f2ca.s3tc.ctex"]
+dest_files=["res://.godot/imported/Head_normal.png-d4e5d1398170d0842a57e3068439f2ca.s3tc.ctex", "res://.godot/imported/Head_normal.png-d4e5d1398170d0842a57e3068439f2ca.etc2.ctex"]
 
 [params]
 
