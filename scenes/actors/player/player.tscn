@@ -1,4 +1,4 @@
-[gd_scene load_steps=101 format=4 uid="uid://ciy301x7wh6ie"]
+[gd_scene load_steps=102 format=4 uid="uid://ciy301x7wh6ie"]
 
 [ext_resource type="Script" uid="uid://b50rnmqk3m8fr" path="res://scripts/actors/player/henry/Player.gd" id="1_irk3a"]
 [ext_resource type="Texture2D" uid="uid://b1vpe3iqs2wgh" path="res://assets/textures/player_test/player/SUIT_albedo.jpeg" id="2_cat03"]
@@ -48,6 +48,7 @@
 [ext_resource type="Texture2D" uid="uid://b3dwojen2500n" path="res://assets/textures/ui/game/biomonitor/Grenade_icon.png" id="20_v5r82"]
 [ext_resource type="FontFile" uid="uid://dl57dggictqy0" path="res://assets/fonts/Averia Libre _ Averia Gruesa Libre _ Averia Serif Libre _ Averia Sans Libre/AveriaLibre-Regular.ttf" id="24_2uy4f"]
 [ext_resource type="FontFile" uid="uid://c3ns1xlotoc62" path="res://assets/fonts/Special Elite/SpecialElite-Regular.ttf" id="24_sdm1e"]
+[ext_resource type="PackedScene" uid="uid://wxp413rki005" path="res://scenes/ui/hud/dynamic_cursor/mouse_cursor_ui.tscn" id="49_lguxi"]
 
 [sub_resource type="Animation" id="Animation_8qcbc"]
 resource_name = "Take 001"
@@ -2696,5 +2697,10 @@ texture = ExtResource("20_v5r82")
 expand_mode = 2
 stretch_mode = 5
 flip_h = true
+
+[node name="MouseCursorUI" parent="." node_paths=PackedStringArray("player", "movement_controller", "stamina_manager") instance=ExtResource("49_lguxi")]
+player = NodePath("..")
+movement_controller = NodePath("../MovementController")
+stamina_manager = NodePath("../MovementController/StaminaManager")
 
 [editable path="Henry_Test_player"]

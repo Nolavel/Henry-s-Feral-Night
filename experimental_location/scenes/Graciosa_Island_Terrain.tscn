@@ -1,0 +1,337 @@
+[gd_scene load_steps=18 format=3 uid="uid://cg14lfow57cog"]
+
+[ext_resource type="PackedScene" uid="uid://dputwp1am8vfu" path="res://scenes/game/systems/camera/PlayerCamera.tscn" id="1_ftega"]
+[ext_resource type="PackedScene" uid="uid://ciy301x7wh6ie" path="res://scenes/actors/player/player.tscn" id="2_8hwqn"]
+[ext_resource type="PackedScene" uid="uid://cnhshfsm2gpjs" path="res://tools/ScanFolderFiles/ScanFolderFiles.tscn" id="4_vnnm2"]
+[ext_resource type="PackedScene" uid="uid://duxn5rqcau5dw" path="res://tools/StatsDisplay/StatsDisplay.tscn" id="5_h70bg"]
+[ext_resource type="PackedScene" uid="uid://cvv8y27vmgjfi" path="res://scenes/game/systems/world/WorldEnvironmentSystem.tscn" id="6_pbfqm"]
+[ext_resource type="PackedScene" uid="uid://cvuw2ef72te81" path="res://tools/InputDebugger/InputDebugger.tscn" id="6_x3erf"]
+
+[sub_resource type="NavigationMesh" id="NavigationMesh_gciob"]
+
+[sub_resource type="Gradient" id="Gradient_3yugc"]
+offsets = PackedFloat32Array(0.2, 1)
+colors = PackedColorArray(1, 1, 1, 1, 0, 0, 0, 1)
+
+[sub_resource type="FastNoiseLite" id="FastNoiseLite_2kskv"]
+noise_type = 2
+frequency = 0.03
+cellular_jitter = 3.0
+cellular_return_type = 0
+domain_warp_enabled = true
+domain_warp_type = 1
+domain_warp_amplitude = 50.0
+domain_warp_fractal_type = 2
+domain_warp_fractal_lacunarity = 1.5
+domain_warp_fractal_gain = 1.0
+
+[sub_resource type="NoiseTexture2D" id="NoiseTexture2D_0xu8p"]
+noise = SubResource("FastNoiseLite_2kskv")
+color_ramp = SubResource("Gradient_3yugc")
+seamless = true
+
+[sub_resource type="Terrain3DMaterial" id="Terrain3DMaterial_pm2sj"]
+_shader_parameters = {
+&"bias_distance": 512.0,
+&"blend_sharpness": 0.5,
+&"depth_blur": 0.0,
+&"enable_macro_variation": true,
+&"enable_projection": true,
+&"flat_terrain_normals": false,
+&"macro_variation1": Color(1, 1, 1, 1),
+&"macro_variation2": Color(1, 1, 1, 1),
+&"macro_variation_slope": 0.333,
+&"mipmap_bias": 1.0,
+&"noise1_angle": 0.0,
+&"noise1_offset": Vector2(0.5, 0.5),
+&"noise1_scale": 0.04,
+&"noise2_scale": 0.076,
+&"noise_texture": SubResource("NoiseTexture2D_0xu8p"),
+&"projection_threshold": 0.8
+}
+show_region_grid = true
+show_checkered = true
+
+[sub_resource type="StandardMaterial3D" id="StandardMaterial3D_3e4jx"]
+transparency = 4
+cull_mode = 2
+vertex_color_use_as_albedo = true
+backlight_enabled = true
+backlight = Color(0.5, 0.5, 0.5, 1)
+distance_fade_mode = 1
+distance_fade_min_distance = 128.0
+distance_fade_max_distance = 96.0
+
+[sub_resource type="Terrain3DMeshAsset" id="Terrain3DMeshAsset_r35sr"]
+generated_type = 1
+height_offset = 0.5
+material_override = SubResource("StandardMaterial3D_3e4jx")
+last_lod = 0
+last_shadow_lod = 0
+lod0_range = 128.0
+
+[sub_resource type="Terrain3DAssets" id="Terrain3DAssets_am4gq"]
+mesh_list = Array[Terrain3DMeshAsset]([SubResource("Terrain3DMeshAsset_r35sr")])
+
+[sub_resource type="StandardMaterial3D" id="StandardMaterial3D_gciob"]
+albedo_color = Color(0.29803923, 0.5803922, 1, 1)
+
+[sub_resource type="PlaneMesh" id="PlaneMesh_cqilh"]
+lightmap_size_hint = Vector2i(30002, 30002)
+material = SubResource("StandardMaterial3D_gciob")
+add_uv2 = true
+size = Vector2(6000, 6000)
+
+[sub_resource type="GDScript" id="GDScript_pbfqm"]
+script/source = "extends TextureRect
+
+# ============================================================================
+# EXPORT VARIABLES
+# ============================================================================
+@export_group(\"Player References\")
+@export var player: CharacterBody3D
+@export var camera_height: float = 2000.0
+
+@export_group(\"Direction Arrow\")
+@export var show_direction_arrow: bool = true
+@export var arrow_head_size: float = 15.0
+@export var arrow_width: float = 4.0
+@export var arrow_color: Color = Color.CYAN
+
+# ============================================================================
+# INTERNAL VARIABLES
+# ============================================================================
+@onready var camera_regional: Camera3D = $\"../../SubViewport/CameraRegional\"
+@onready var sub_viewport: SubViewport = $\"../../SubViewport\"
+@onready var distance_label: Label = $\"../DistanceLabel\"
+
+var player_rotation: float = 0.0
+var player_screen_pos: Vector2
+var last_player_pos: Vector3
+var distance_travelled: float = 0.0   # в метрах
+
+# ============================================================================
+# INITIALIZATION
+# ============================================================================
+func _ready():
+	# Setup texture
+	if sub_viewport:
+		texture = sub_viewport.get_texture()
+	
+	# Check player
+	if not player:
+		printerr(\"Minimap: Player not assigned!\")
+		set_process(false)
+		return
+	
+	# Setup camera position
+	if camera_regional:
+		_update_camera_position()
+	last_player_pos = player.global_position
+# ============================================================================
+# PROCESS
+# ============================================================================
+func _process(_delta):
+	if not player:
+		return
+		
+	# === Подсчёт пройденного расстояния ===
+	var current_pos: Vector3 = player.global_position
+	var step: float = last_player_pos.distance_to(current_pos)
+	distance_travelled += step
+	last_player_pos = current_pos
+	distance_label.text = \"Пройдено: %.1f м\" % distance_travelled
+	# Update camera to follow player
+	_update_camera_position()
+	
+	# Update player rotation for arrow
+	_update_player_rotation()
+	
+	# Update player position on minimap
+	_update_player_screen_position()
+	
+	# Redraw minimap
+	queue_redraw()
+
+# ============================================================================
+# CAMERA UPDATE
+# ============================================================================
+func _update_camera_position():
+	\"\"\"Update camera to follow player from above\"\"\"
+	if not camera_regional or not player:
+		return
+	
+	var player_pos = player.global_position
+	camera_regional.global_position = Vector3(
+		player_pos.x,
+		camera_height,
+		player_pos.z
+	)
+	
+	# Camera looks straight down
+	camera_regional.rotation_degrees = Vector3(-90, 0, 0)
+
+# ============================================================================
+# PLAYER ROTATION
+# ============================================================================
+func _update_player_rotation():
+	\"\"\"Get player's facing direction\"\"\"
+	var forward = -player.global_transform.basis.z
+	player_rotation = atan2(forward.x, forward.z)
+
+func _update_player_screen_position():
+	\"\"\"Get player position on minimap texture\"\"\"
+	if not camera_regional or not player or not sub_viewport:
+		return
+	
+	# Get player 3D position
+	var player_3d_pos = player.global_position
+	
+	# Project to camera 2D space
+	var viewport_pos = camera_regional.unproject_position(player_3d_pos)
+	
+	# Get viewport size (128x128)
+	var viewport_size = sub_viewport.size
+	
+	# Get TextureRect size (200x200)
+	var texture_size = size
+	
+	# Scale from viewport to texture coordinates
+	player_screen_pos = Vector2(
+		(viewport_pos.x / viewport_size.x) * texture_size.x,
+		(viewport_pos.y / viewport_size.y) * texture_size.y
+	)
+
+# ============================================================================
+# DRAWING
+# ============================================================================
+func _draw():
+	# Draw direction arrow
+	if show_direction_arrow:
+		_draw_direction_arrow()
+
+func _draw_direction_arrow():
+	\"\"\"Draw arrow showing player's facing direction\"\"\"
+	# Calculate arrow direction from player rotation
+	var arrow_direction = Vector2(sin(player_rotation), -cos(player_rotation))
+	
+	# Arrow tip position
+	var arrow_tip = player_screen_pos + arrow_direction * arrow_head_size
+	
+	# Draw arrow head
+	_draw_arrow_head(arrow_tip, arrow_direction)
+
+func _draw_arrow_head(tip_pos: Vector2, direction: Vector2):
+	\"\"\"Draw arrow head at tip position\"\"\"
+	var base_angle = direction.angle()
+	var angle1 = base_angle + PI * 0.75
+	var angle2 = base_angle - PI * 0.75
+	
+	var point1 = tip_pos + Vector2(cos(angle1), sin(angle1)) * arrow_head_size
+	var point2 = tip_pos + Vector2(cos(angle2), sin(angle2)) * arrow_head_size
+	
+	# Draw filled triangle
+	var triangle = PackedVector2Array([tip_pos, point1, point2])
+	draw_colored_polygon(triangle, arrow_color)
+	
+	# Draw outline
+	draw_line(tip_pos, point1, arrow_color.darkened(0.3), arrow_width * 0.5)
+	draw_line(tip_pos, point2, arrow_color.darkened(0.3), arrow_width * 0.5)
+	draw_line(point1, point2, arrow_color.darkened(0.3), arrow_width * 0.5)
+"
+
+[node name="Graciosa_Island_Terrain" type="Node3D"]
+
+[node name="PlayerCamera" parent="." node_paths=PackedStringArray("player") instance=ExtResource("1_ftega")]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 0, 15, 0.145)
+player = NodePath("../Player")
+
+[node name="NavigationRegion3D" type="NavigationRegion3D" parent="."]
+navigation_mesh = SubResource("NavigationMesh_gciob")
+
+[node name="Terrain3D" type="Terrain3D" parent="NavigationRegion3D"]
+data_directory = "res://experimental_location/Graciosa/terrain_graciosa"
+material = SubResource("Terrain3DMaterial_pm2sj")
+assets = SubResource("Terrain3DAssets_am4gq")
+show_grid = true
+show_instances = false
+show_region_grid = true
+show_checkered = true
+top_level = true
+metadata/_edit_lock_ = true
+
+[node name="MeshInstance3D" type="MeshInstance3D" parent="."]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 0, 0.04, 0)
+mesh = SubResource("PlaneMesh_cqilh")
+
+[node name="Perfomance&Debugging" type="Node3D" parent="."]
+
+[node name="ProjectStats_AND_ExitTrigger" parent="Perfomance&Debugging" instance=ExtResource("4_vnnm2")]
+
+[node name="StatsDisplay" parent="Perfomance&Debugging" instance=ExtResource("5_h70bg")]
+
+[node name="InputDebugger" parent="Perfomance&Debugging" instance=ExtResource("6_x3erf")]
+
+[node name="SubViewport" type="SubViewport" parent="Perfomance&Debugging"]
+size = Vector2i(128, 128)
+
+[node name="CameraRegional" type="Camera3D" parent="Perfomance&Debugging/SubViewport"]
+transform = Transform3D(1, 0, 0, 0, -4.371139e-08, 1, 0, -1, -4.371139e-08, 0, 2000, 0)
+far = 4050.0
+
+[node name="MapDebug" type="Control" parent="Perfomance&Debugging"]
+layout_mode = 3
+anchors_preset = 5
+anchor_left = 0.5
+anchor_right = 0.5
+offset_left = -460.0
+offset_right = -160.00006
+offset_bottom = 200.0
+grow_horizontal = 2
+
+[node name="Region_img" type="TextureRect" parent="Perfomance&Debugging/MapDebug" node_paths=PackedStringArray("player")]
+layout_mode = 1
+anchors_preset = 5
+anchor_left = 0.5
+anchor_right = 0.5
+offset_left = -150.0
+offset_right = 150.0
+offset_bottom = 200.0
+grow_horizontal = 2
+script = SubResource("GDScript_pbfqm")
+player = NodePath("../../../Player")
+
+[node name="DistanceLabel" type="Label" parent="Perfomance&Debugging/MapDebug"]
+layout_mode = 0
+offset_right = 40.0
+offset_bottom = 21.0
+
+[node name="Locations" type="Node3D" parent="."]
+
+[node name="Silvan Heights" type="Node3D" parent="Locations"]
+
+[node name="Palawan Cove" type="Node3D" parent="Locations"]
+
+[node name="Fort Meridian" type="Node3D" parent="Locations"]
+
+[node name="Verdant Ruins" type="Node3D" parent="Locations"]
+
+[node name="Harborlight District" type="Node3D" parent="Locations"]
+
+[node name="Player" parent="." instance=ExtResource("2_8hwqn")]
+transform = Transform3D(-4.37114e-08, 0, 1, 0, 1, 0, -1, 0, -4.37114e-08, 0, 73.72568, 0)
+
+[node name="BioMonitorManager" parent="Player" index="10" node_paths=PackedStringArray("dn_manager", "bio_monitor_ui")]
+dn_manager = NodePath("../../WorldEnvironmentSystem/DayNightManager")
+bio_monitor_ui = NodePath("../InGameUI/Vital_Signs")
+
+[node name="Vital_Signs" parent="Player/InGameUI" index="0" node_paths=PackedStringArray("player", "bio_monitor")]
+player = NodePath("../..")
+bio_monitor = NodePath("../../BioMonitorManager")
+
+[node name="WorldEnvironmentSystem" parent="." instance=ExtResource("6_pbfqm")]
+
+[editable path="Player"]
+[editable path="Player/Henry_Test_player"]
+[editable path="Player/InGameUI"]
+[editable path="WorldEnvironmentSystem"]
