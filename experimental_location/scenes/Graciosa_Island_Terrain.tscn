@@ -1,4 +1,4 @@
-[gd_scene load_steps=18 format=3 uid="uid://cg14lfow57cog"]
+[gd_scene load_steps=19 format=3 uid="uid://cg14lfow57cog"]
 
 [ext_resource type="PackedScene" uid="uid://dputwp1am8vfu" path="res://scenes/game/systems/camera/PlayerCamera.tscn" id="1_ftega"]
 [ext_resource type="PackedScene" uid="uid://ciy301x7wh6ie" path="res://scenes/actors/player/player.tscn" id="2_8hwqn"]
@@ -6,6 +6,7 @@
 [ext_resource type="PackedScene" uid="uid://duxn5rqcau5dw" path="res://tools/StatsDisplay/StatsDisplay.tscn" id="5_h70bg"]
 [ext_resource type="PackedScene" uid="uid://cvv8y27vmgjfi" path="res://scenes/game/systems/world/WorldEnvironmentSystem.tscn" id="6_pbfqm"]
 [ext_resource type="PackedScene" uid="uid://cvuw2ef72te81" path="res://tools/InputDebugger/InputDebugger.tscn" id="6_x3erf"]
+[ext_resource type="Script" uid="uid://bw0s7ptu6faor" path="res://experimental_location/scripts/trigger_zones.gd" id="7_ftega"]
 
 [sub_resource type="NavigationMesh" id="NavigationMesh_gciob"]
 
@@ -91,12 +92,6 @@ script/source = "extends TextureRect
 @export_group(\"Player References\")
 @export var player: CharacterBody3D
 @export var camera_height: float = 2000.0
-
-@export_group(\"Direction Arrow\")
-@export var show_direction_arrow: bool = true
-@export var arrow_head_size: float = 15.0
-@export var arrow_width: float = 4.0
-@export var arrow_color: Color = Color.CYAN
 
 # ============================================================================
 # INTERNAL VARIABLES
@@ -206,44 +201,26 @@ func _update_player_screen_position():
 # DRAWING
 # ============================================================================
 func _draw():
-	# Draw direction arrow
-	if show_direction_arrow:
-		_draw_direction_arrow()
+	_draw_player_dot()
 
-func _draw_direction_arrow():
-	\"\"\"Draw arrow showing player's facing direction\"\"\"
-	# Calculate arrow direction from player rotation
-	var arrow_direction = Vector2(sin(player_rotation), -cos(player_rotation))
+func _draw_player_dot():
+	if player_screen_pos == null:
+		return
 	
-	# Arrow tip position
-	var arrow_tip = player_screen_pos + arrow_direction * arrow_head_size
+	var outer_radius = 4.0   
+	var inner_radius = 4.0    
 	
-	# Draw arrow head
-	_draw_arrow_head(arrow_tip, arrow_direction)
+	
+	draw_circle(player_screen_pos, outer_radius, Color.BLACK)
+	
 
-func _draw_arrow_head(tip_pos: Vector2, direction: Vector2):
-	\"\"\"Draw arrow head at tip position\"\"\"
-	var base_angle = direction.angle()
-	var angle1 = base_angle + PI * 0.75
-	var angle2 = base_angle - PI * 0.75
-	
-	var point1 = tip_pos + Vector2(cos(angle1), sin(angle1)) * arrow_head_size
-	var point2 = tip_pos + Vector2(cos(angle2), sin(angle2)) * arrow_head_size
-	
-	# Draw filled triangle
-	var triangle = PackedVector2Array([tip_pos, point1, point2])
-	draw_colored_polygon(triangle, arrow_color)
-	
-	# Draw outline
-	draw_line(tip_pos, point1, arrow_color.darkened(0.3), arrow_width * 0.5)
-	draw_line(tip_pos, point2, arrow_color.darkened(0.3), arrow_width * 0.5)
-	draw_line(point1, point2, arrow_color.darkened(0.3), arrow_width * 0.5)
+	draw_circle(player_screen_pos, inner_radius, Color.RED)
 "
 
 [node name="Graciosa_Island_Terrain" type="Node3D"]
 
 [node name="PlayerCamera" parent="." node_paths=PackedStringArray("player") instance=ExtResource("1_ftega")]
-transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 0, 15, 0.145)
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 1442.73, 15, -1005.2396)
 player = NodePath("../Player")
 
 [node name="NavigationRegion3D" type="NavigationRegion3D" parent="."]
@@ -306,20 +283,121 @@ layout_mode = 0
 offset_right = 40.0
 offset_bottom = 21.0
 
+[node name="debug_label_loc" type="Label" parent="Perfomance&Debugging"]
+anchors_preset = 5
+anchor_left = 0.5
+anchor_right = 0.5
+offset_left = -160.0
+offset_right = -94.0
+offset_bottom = 21.0
+grow_horizontal = 2
+text = "Location"
+
 [node name="Locations" type="Node3D" parent="."]
+script = ExtResource("7_ftega")
 
 [node name="Silvan Heights" type="Node3D" parent="Locations"]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, -669.59204, 0, -547.3395)
+
+[node name="Label3D" type="Label3D" parent="Locations/Silvan Heights"]
+transform = Transform3D(1.0000002, 0, 0, 0, -4.371139e-08, 1.0000002, 0, -1, -4.37114e-08, 195.86743, 20, 232.30734)
+pixel_size = 2.0
+text = "Silvan Heights
+"
+
+[node name="Loc_SilvanHeights" type="Area3D" parent="Locations/Silvan Heights"]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 271.91412, 0, -148.73383)
+collision_layer = 0
+
+[node name="CollisionPolygon3D" type="CollisionPolygon3D" parent="Locations/Silvan Heights/Loc_SilvanHeights"]
+transform = Transform3D(0.8660253, 0.49999994, -2.1855692e-08, 0, -4.3711385e-08, -0.9999999, -0.49999997, 0.86602527, -3.785517e-08, -4.1573486, -25, -32.88037)
+depth = 200.0
+polygon = PackedVector2Array(-374.7259, -164.39508, 81.45563, -755.3223, 568.33813, -317.69977, -438, 1404, -947.22815, 657.72815)
+debug_color = Color(3.6098063e-06, 0.6541855, 0.43301886, 0.78431374)
 
 [node name="Palawan Cove" type="Node3D" parent="Locations"]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, -1298, 0, -615)
+
+[node name="Label3D" type="Label3D" parent="Locations/Palawan Cove"]
+transform = Transform3D(1.0000002, 0, 0, 0, -4.371139e-08, 1.0000002, 0, -1, -4.37114e-08, -355.29358, 20, -200.422)
+pixel_size = 2.0
+text = "Palawan Cove
+"
+
+[node name="Loc_PalawanCove" type="Area3D" parent="Locations/Palawan Cove"]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 271.91412, 0, -148.73383)
+collision_layer = 0
+
+[node name="CollisionPolygon3D" type="CollisionPolygon3D" parent="Locations/Palawan Cove/Loc_PalawanCove"]
+transform = Transform3D(0.8660253, 0.49999994, -2.1855692e-08, 0, -4.3711385e-08, -0.9999999, -0.49999997, 0.86602527, -3.785517e-08, -4.1573486, -25, -32.88037)
+depth = 200.0
+polygon = PackedVector2Array(-1537, -339, -1205.3646, -880.76843, -324.0383, -881.40247, 595.786, -377.7683, -435.52786, 1026.2742)
+debug_color = Color(0, 0, 0, 1)
 
 [node name="Fort Meridian" type="Node3D" parent="Locations"]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 1243.5278, 0, -769.80304)
+
+[node name="Label3D" type="Label3D" parent="Locations/Fort Meridian"]
+transform = Transform3D(1.0000002, 0, 0, 0, -4.371139e-08, 1.0000002, 0, -1, -4.37114e-08, 0, 20, 0)
+pixel_size = 2.0
+text = "FortMeridian
+"
+
+[node name="Marker_Location_FortMeridian" type="Marker3D" parent="Locations/Fort Meridian"]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 0, 25, 0)
+gizmo_extents = 10.0
+
+[node name="Loc_FortMeridian" type="Area3D" parent="Locations/Fort Meridian"]
+collision_layer = 0
+
+[node name="CollisionPolygon3D" type="CollisionPolygon3D" parent="Locations/Fort Meridian/Loc_FortMeridian"]
+transform = Transform3D(0.8660253, 0.49999994, -2.1855692e-08, 0, -4.3711385e-08, -0.9999999, -0.49999997, 0.86602527, -3.785517e-08, -4.1573486, -25, -32.88037)
+depth = 200.0
+polygon = PackedVector2Array(-523.37866, -494.65765, 450.05286, -629.2069, 811.0657, -214.60834, 454.51758, 324.74567, -573.42096, 591.5918)
+debug_color = Color(0.96862745, 0, 0.45882353, 0.78431374)
 
 [node name="Verdant Ruins" type="Node3D" parent="Locations"]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 423.6194, 0, -277.8579)
+
+[node name="Label3D" type="Label3D" parent="Locations/Verdant Ruins"]
+transform = Transform3D(1.0000002, 0, 0, 0, -4.371139e-08, 1.0000002, 0, -1, -4.37114e-08, 0, 20, 192.98184)
+pixel_size = 2.0
+text = "Verdant Ruins
+"
+
+[node name="Marker_Location_VerdantRuins" type="Marker3D" parent="Locations/Verdant Ruins"]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 0, 20, 0)
+gizmo_extents = 10.0
+
+[node name="Loc_VerdantRuins" type="Area3D" parent="Locations/Verdant Ruins"]
+collision_layer = 0
+
+[node name="CollisionPolygon3D" type="CollisionPolygon3D" parent="Locations/Verdant Ruins/Loc_VerdantRuins"]
+transform = Transform3D(0.8660253, 0.49999994, -2.1855692e-08, 0, -4.3711385e-08, -0.9999999, -0.49999997, 0.86602527, -3.785517e-08, -4.1573486, -25, -32.88037)
+depth = 200.0
+polygon = PackedVector2Array(61.384827, -1100.1819, 464.08893, -516.6648, 394.90656, 724.3206, -201, 753, -1051, 785)
+debug_color = Color(0.96862745, 0.92156863, 0.45882353, 0.78431374)
 
 [node name="Harborlight District" type="Node3D" parent="Locations"]
 
+[node name="Label3D" type="Label3D" parent="Locations/Harborlight District"]
+transform = Transform3D(1.0000002, 0, 0, 0, -4.371139e-08, 1.0000002, 0, -1, -4.37114e-08, 716.71014, 20, 770.9487)
+pixel_size = 2.0
+text = "Harborlight District
+"
+
+[node name="Loc_HarborlightDistrict" type="Area3D" parent="Locations/Harborlight District"]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 654.53815, 0, 666.6196)
+collision_layer = 0
+
+[node name="CollisionPolygon3D" type="CollisionPolygon3D" parent="Locations/Harborlight District/Loc_HarborlightDistrict"]
+transform = Transform3D(0.8660253, 0.49999994, -2.1855692e-08, 0, -4.3711385e-08, -0.9999999, -0.49999997, 0.86602527, -3.785517e-08, -4.1573486, -25, -32.88037)
+depth = 200.0
+polygon = PackedVector2Array(-951, 169, -753, -174, 679, -228, 599, 790, -320, 907)
+debug_color = Color(0.45590004, 0.4901733, 0.97, 0.78431374)
+
 [node name="Player" parent="." instance=ExtResource("2_8hwqn")]
-transform = Transform3D(-4.37114e-08, 0, 1, 0, 1, 0, -1, 0, -4.37114e-08, 0, 73.72568, 0)
+transform = Transform3D(-4.37114e-08, 0, 1, 0, 1, 0, -1, 0, -4.37114e-08, 1478, 20, -990)
 
 [node name="BioMonitorManager" parent="Player" index="10" node_paths=PackedStringArray("dn_manager", "bio_monitor_ui")]
 dn_manager = NodePath("../../WorldEnvironmentSystem/DayNightManager")
@@ -330,6 +408,21 @@ player = NodePath("../..")
 bio_monitor = NodePath("../../BioMonitorManager")
 
 [node name="WorldEnvironmentSystem" parent="." instance=ExtResource("6_pbfqm")]
+
+[node name="SunLight" parent="WorldEnvironmentSystem/Lighting" index="0"]
+light_energy = 11.797
+light_volumetric_fog_energy = 0.0
+
+[connection signal="body_entered" from="Locations/Silvan Heights/Loc_SilvanHeights" to="Locations" method="_on_loc_silvan_heights_body_entered"]
+[connection signal="body_exited" from="Locations/Silvan Heights/Loc_SilvanHeights" to="Locations" method="_on_loc_silvan_heights_body_exited"]
+[connection signal="body_entered" from="Locations/Palawan Cove/Loc_PalawanCove" to="Locations" method="_on_loc_palawan_cove_body_entered"]
+[connection signal="body_exited" from="Locations/Palawan Cove/Loc_PalawanCove" to="Locations" method="_on_loc_palawan_cove_body_exited"]
+[connection signal="body_entered" from="Locations/Fort Meridian/Loc_FortMeridian" to="Locations" method="_on_loc_fort_meridian_body_entered"]
+[connection signal="body_exited" from="Locations/Fort Meridian/Loc_FortMeridian" to="Locations" method="_on_loc_fort_meridian_body_exited"]
+[connection signal="body_entered" from="Locations/Verdant Ruins/Loc_VerdantRuins" to="Locations" method="_on_loc_verdant_ruins_body_entered"]
+[connection signal="body_exited" from="Locations/Verdant Ruins/Loc_VerdantRuins" to="Locations" method="_on_loc_verdant_ruins_body_exited"]
+[connection signal="body_entered" from="Locations/Harborlight District/Loc_HarborlightDistrict" to="Locations" method="_on_loc_harborlight_district_body_entered"]
+[connection signal="body_exited" from="Locations/Harborlight District/Loc_HarborlightDistrict" to="Locations" method="_on_loc_harborlight_district_body_exited"]
 
 [editable path="Player"]
 [editable path="Player/Henry_Test_player"]

@@ -120,36 +120,23 @@ func _update_player_screen_position():
 # ============================================================================
 # DRAWING
 # ============================================================================
+# ============================================================================
+# DRAWING
+# ============================================================================
 func _draw():
-	# Draw direction arrow
-	if show_direction_arrow:
-		_draw_direction_arrow()
+	# Рисуем точку игрока на миникарте
+	_draw_player_dot()
 
-func _draw_direction_arrow():
-	"""Draw arrow showing player's facing direction"""
-	# Calculate arrow direction from player rotation
-	var arrow_direction = Vector2(sin(player_rotation), -cos(player_rotation))
+func _draw_player_dot():
+	"""Рисует красную точку (игрока) с черной окантовкой"""
+	if player_screen_pos == null:
+		return
 	
-	# Arrow tip position
-	var arrow_tip = player_screen_pos + arrow_direction * arrow_head_size
+	var outer_radius = 8.0    # радиус черной окантовки
+	var inner_radius = 4.0    # радиус красной точки
 	
-	# Draw arrow head
-	_draw_arrow_head(arrow_tip, arrow_direction)
-
-func _draw_arrow_head(tip_pos: Vector2, direction: Vector2):
-	"""Draw arrow head at tip position"""
-	var base_angle = direction.angle()
-	var angle1 = base_angle + PI * 0.75
-	var angle2 = base_angle - PI * 0.75
+	# Черный внешний круг
+	draw_circle(player_screen_pos, outer_radius, Color.BLACK)
 	
-	var point1 = tip_pos + Vector2(cos(angle1), sin(angle1)) * arrow_head_size
-	var point2 = tip_pos + Vector2(cos(angle2), sin(angle2)) * arrow_head_size
-	
-	# Draw filled triangle
-	var triangle = PackedVector2Array([tip_pos, point1, point2])
-	draw_colored_polygon(triangle, arrow_color)
-	
-	# Draw outline
-	draw_line(tip_pos, point1, arrow_color.darkened(0.3), arrow_width * 0.5)
-	draw_line(tip_pos, point2, arrow_color.darkened(0.3), arrow_width * 0.5)
-	draw_line(point1, point2, arrow_color.darkened(0.3), arrow_width * 0.5)
+	# Красный внутренний круг
+	draw_circle(player_screen_pos, inner_radius, Color.RED)
