@@ -1,0 +1,13 @@
+[gd_scene load_steps=3 format=3 uid="uid://b5hkv1ix6og3v"]
+
+[sub_resource type="StandardMaterial3D" id="StandardMaterial3D_y15cn"]
+albedo_color = Color(1, 0.100000024, 0, 1)
+
+[sub_resource type="BoxMesh" id="BoxMesh_t26t1"]
+material = SubResource("StandardMaterial3D_y15cn")
+size = Vector3(1, 40, 1)
+
+[node name="ChunkThePitDescent" type="Node3D"]
+
+[node name="MeshInstance3D" type="MeshInstance3D" parent="."]
+mesh = SubResource("BoxMesh_t26t1")

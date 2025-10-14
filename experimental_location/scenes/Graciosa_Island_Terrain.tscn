@@ -1,12 +1,13 @@
-[gd_scene load_steps=19 format=3 uid="uid://cg14lfow57cog"]
+[gd_scene load_steps=20 format=3 uid="uid://cg14lfow57cog"]
 
+[ext_resource type="Script" uid="uid://cfxlv63bvtuwb" path="res://scripts/systems/game_route/GameRouter.gd" id="1_8hwqn"]
 [ext_resource type="PackedScene" uid="uid://dputwp1am8vfu" path="res://scenes/game/systems/camera/PlayerCamera.tscn" id="1_ftega"]
 [ext_resource type="PackedScene" uid="uid://ciy301x7wh6ie" path="res://scenes/actors/player/player.tscn" id="2_8hwqn"]
 [ext_resource type="PackedScene" uid="uid://cnhshfsm2gpjs" path="res://tools/ScanFolderFiles/ScanFolderFiles.tscn" id="4_vnnm2"]
 [ext_resource type="PackedScene" uid="uid://duxn5rqcau5dw" path="res://tools/StatsDisplay/StatsDisplay.tscn" id="5_h70bg"]
 [ext_resource type="PackedScene" uid="uid://cvv8y27vmgjfi" path="res://scenes/game/systems/world/WorldEnvironmentSystem.tscn" id="6_pbfqm"]
 [ext_resource type="PackedScene" uid="uid://cvuw2ef72te81" path="res://tools/InputDebugger/InputDebugger.tscn" id="6_x3erf"]
-[ext_resource type="Script" uid="uid://bw0s7ptu6faor" path="res://experimental_location/scripts/trigger_zones.gd" id="7_ftega"]
+[ext_resource type="Script" uid="uid://bw0s7ptu6faor" path="res://experimental_location/scripts/WorldStreamManager.gd" id="7_ftega"]
 
 [sub_resource type="NavigationMesh" id="NavigationMesh_gciob"]
 
@@ -217,7 +218,21 @@ func _draw_player_dot():
 	draw_circle(player_screen_pos, inner_radius, Color.RED)
 "
 
-[node name="Graciosa_Island_Terrain" type="Node3D"]
+[node name="Graciosa_Island_Terrain" type="Node3D" node_paths=PackedStringArray("first_spawner_marker")]
+script = ExtResource("1_8hwqn")
+first_spawner_marker = NodePath("FirstSpawner")
+metadata/_edit_group_ = true
+
+[node name="Player" parent="." instance=ExtResource("2_8hwqn")]
+transform = Transform3D(-4.37114e-08, 0, 1, 0, 1, 0, -1, 0, -4.37114e-08, 1247, 20, -829)
+
+[node name="BioMonitorManager" parent="Player" index="10" node_paths=PackedStringArray("dn_manager", "bio_monitor_ui")]
+dn_manager = NodePath("../../WorldEnvironmentSystem/DayNightManager")
+bio_monitor_ui = NodePath("../InGameUI/Vital_Signs")
+
+[node name="Vital_Signs" parent="Player/InGameUI" index="0" node_paths=PackedStringArray("player", "bio_monitor")]
+player = NodePath("../..")
+bio_monitor = NodePath("../../BioMonitorManager")
 
 [node name="PlayerCamera" parent="." node_paths=PackedStringArray("player") instance=ExtResource("1_ftega")]
 transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 1442.73, 15, -1005.2396)
@@ -283,129 +298,316 @@ layout_mode = 0
 offset_right = 40.0
 offset_bottom = 21.0
 
-[node name="debug_label_loc" type="Label" parent="Perfomance&Debugging"]
+[node name="debug_label_loc_pos_player" type="RichTextLabel" parent="Perfomance&Debugging"]
 anchors_preset = 5
 anchor_left = 0.5
 anchor_right = 0.5
-offset_left = -160.0
-offset_right = -94.0
-offset_bottom = 21.0
+offset_left = -460.0
+offset_top = 200.0
+offset_right = -110.0
+offset_bottom = 245.0
 grow_horizontal = 2
+bbcode_enabled = true
 text = "Location"
+scroll_active = false
 
-[node name="Locations" type="Node3D" parent="."]
+[node name="debug_label_loc_info" type="RichTextLabel" parent="Perfomance&Debugging"]
+anchors_preset = 5
+anchor_left = 0.5
+anchor_right = 0.5
+offset_left = -460.0
+offset_top = 250.0
+offset_right = -110.0
+offset_bottom = 335.0
+grow_horizontal = 2
+bbcode_enabled = true
+text = "Info Location
+"
+
+[node name="debug_label_chunk_info" type="RichTextLabel" parent="Perfomance&Debugging"]
+anchors_preset = 5
+anchor_left = 0.5
+anchor_right = 0.5
+offset_left = -460.0
+offset_top = 325.0
+offset_right = -110.0
+offset_bottom = 370.0002
+grow_horizontal = 2
+bbcode_enabled = true
+text = "Сhunk info"
+scroll_active = false
+
+[node name="WorldStreamManager" type="Node3D" parent="."]
 script = ExtResource("7_ftega")
 
-[node name="Silvan Heights" type="Node3D" parent="Locations"]
+[node name="Silvan Heights" type="Node3D" parent="WorldStreamManager"]
 transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, -669.59204, 0, -547.3395)
 
-[node name="Label3D" type="Label3D" parent="Locations/Silvan Heights"]
+[node name="lbl_Silvan_Heights" type="Label3D" parent="WorldStreamManager/Silvan Heights"]
 transform = Transform3D(1.0000002, 0, 0, 0, -4.371139e-08, 1.0000002, 0, -1, -4.37114e-08, 195.86743, 20, 232.30734)
 pixel_size = 2.0
 text = "Silvan Heights
 "
 
-[node name="Loc_SilvanHeights" type="Area3D" parent="Locations/Silvan Heights"]
+[node name="Loc_SilvanHeights" type="Area3D" parent="WorldStreamManager/Silvan Heights"]
 transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 271.91412, 0, -148.73383)
 collision_layer = 0
 
-[node name="CollisionPolygon3D" type="CollisionPolygon3D" parent="Locations/Silvan Heights/Loc_SilvanHeights"]
+[node name="CollisionPolygon3D" type="CollisionPolygon3D" parent="WorldStreamManager/Silvan Heights/Loc_SilvanHeights"]
 transform = Transform3D(0.8660253, 0.49999994, -2.1855692e-08, 0, -4.3711385e-08, -0.9999999, -0.49999997, 0.86602527, -3.785517e-08, -4.1573486, -25, -32.88037)
 depth = 200.0
 polygon = PackedVector2Array(-374.7259, -164.39508, 81.45563, -755.3223, 568.33813, -317.69977, -438, 1404, -947.22815, 657.72815)
-debug_color = Color(3.6098063e-06, 0.6541855, 0.43301886, 0.78431374)
+debug_color = Color(0, 0.654902, 0.43137255, 0.78431374)
+metadata/debug_color = Color(0, 0.654902, 0.43137255, 0.78431374)
 
-[node name="Palawan Cove" type="Node3D" parent="Locations"]
+[node name="Palawan Cove" type="Node3D" parent="WorldStreamManager"]
 transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, -1298, 0, -615)
 
-[node name="Label3D" type="Label3D" parent="Locations/Palawan Cove"]
+[node name="lbl_Palawan_Cove" type="Label3D" parent="WorldStreamManager/Palawan Cove"]
 transform = Transform3D(1.0000002, 0, 0, 0, -4.371139e-08, 1.0000002, 0, -1, -4.37114e-08, -355.29358, 20, -200.422)
 pixel_size = 2.0
 text = "Palawan Cove
 "
 
-[node name="Loc_PalawanCove" type="Area3D" parent="Locations/Palawan Cove"]
+[node name="Loc_PalawanCove" type="Area3D" parent="WorldStreamManager/Palawan Cove"]
 transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 271.91412, 0, -148.73383)
 collision_layer = 0
 
-[node name="CollisionPolygon3D" type="CollisionPolygon3D" parent="Locations/Palawan Cove/Loc_PalawanCove"]
+[node name="CollisionPolygon3D" type="CollisionPolygon3D" parent="WorldStreamManager/Palawan Cove/Loc_PalawanCove"]
 transform = Transform3D(0.8660253, 0.49999994, -2.1855692e-08, 0, -4.3711385e-08, -0.9999999, -0.49999997, 0.86602527, -3.785517e-08, -4.1573486, -25, -32.88037)
 depth = 200.0
 polygon = PackedVector2Array(-1537, -339, -1205.3646, -880.76843, -324.0383, -881.40247, 595.786, -377.7683, -435.52786, 1026.2742)
 debug_color = Color(0, 0, 0, 1)
+metadata/debug_color = Color(0, 0, 0, 1)
 
-[node name="Fort Meridian" type="Node3D" parent="Locations"]
+[node name="Fort Meridian" type="Node3D" parent="WorldStreamManager"]
 transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 1243.5278, 0, -769.80304)
 
-[node name="Label3D" type="Label3D" parent="Locations/Fort Meridian"]
+[node name="lbl_Fort_Meridian" type="Label3D" parent="WorldStreamManager/Fort Meridian"]
 transform = Transform3D(1.0000002, 0, 0, 0, -4.371139e-08, 1.0000002, 0, -1, -4.37114e-08, 0, 20, 0)
 pixel_size = 2.0
 text = "FortMeridian
 "
 
-[node name="Marker_Location_FortMeridian" type="Marker3D" parent="Locations/Fort Meridian"]
+[node name="Marker_Location_FortMeridian" type="Marker3D" parent="WorldStreamManager/Fort Meridian"]
 transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 0, 25, 0)
 gizmo_extents = 10.0
 
-[node name="Loc_FortMeridian" type="Area3D" parent="Locations/Fort Meridian"]
+[node name="Loc_FortMeridian" type="Area3D" parent="WorldStreamManager/Fort Meridian"]
 collision_layer = 0
 
-[node name="CollisionPolygon3D" type="CollisionPolygon3D" parent="Locations/Fort Meridian/Loc_FortMeridian"]
+[node name="CollisionPolygon3D" type="CollisionPolygon3D" parent="WorldStreamManager/Fort Meridian/Loc_FortMeridian"]
 transform = Transform3D(0.8660253, 0.49999994, -2.1855692e-08, 0, -4.3711385e-08, -0.9999999, -0.49999997, 0.86602527, -3.785517e-08, -4.1573486, -25, -32.88037)
 depth = 200.0
 polygon = PackedVector2Array(-523.37866, -494.65765, 450.05286, -629.2069, 811.0657, -214.60834, 454.51758, 324.74567, -573.42096, 591.5918)
 debug_color = Color(0.96862745, 0, 0.45882353, 0.78431374)
+metadata/debug_color = Color(0.96862745, 0, 0.45882353, 0.78431374)
 
-[node name="Verdant Ruins" type="Node3D" parent="Locations"]
+[node name="FM_Сhunks" type="Node3D" parent="WorldStreamManager/Fort Meridian"]
+
+[node name="Сhunk_EastPointRedoubt" type="Area3D" parent="WorldStreamManager/Fort Meridian/FM_Сhunks"]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 185.58545, 0, -160.6582)
+collision_layer = 0
+
+[node name="CollisionPolygon3D" type="CollisionPolygon3D" parent="WorldStreamManager/Fort Meridian/FM_Сhunks/Сhunk_EastPointRedoubt"]
+transform = Transform3D(0.8660253, 0.49999994, -2.1855692e-08, 0, -4.3711385e-08, -0.9999999, -0.49999997, 0.86602527, -3.785517e-08, -148.17615, -25, 92.110535)
+depth = 200.0
+polygon = PackedVector2Array(103, -85, 176, -97, 239, -21, 229, 53, 156, 84)
+debug_color = Color(0, 0.99514896, 0.45895782, 0.78400004)
+metadata/debug_color = Color(0.96862745, 0, 0.45882353, 0.78431374)
+
+[node name="lbl_Сhunk_EastPointRedoubt" type="Label3D" parent="WorldStreamManager/Fort Meridian/FM_Сhunks/Сhunk_EastPointRedoubt"]
+transform = Transform3D(1.0000002, 0, 0, 0, -4.371139e-08, 1.0000002, 0, -1, -4.37114e-08, 0, 20, 0)
+pixel_size = 0.5
+text = "East Point Redoubt
+"
+outline_size = 1
+
+[node name="Сhunk_AlataBattery" type="Area3D" parent="WorldStreamManager/Fort Meridian/FM_Сhunks"]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 164.13904, 0, -132.68512)
+collision_layer = 0
+
+[node name="CollisionPolygon3D" type="CollisionPolygon3D" parent="WorldStreamManager/Fort Meridian/FM_Сhunks/Сhunk_AlataBattery"]
+transform = Transform3D(0.8660253, 0.49999994, -2.1855692e-08, 0, -4.3711385e-08, -0.9999999, -0.49999997, 0.86602527, -3.785517e-08, -148.17615, -25, 92.110535)
+depth = 200.0
+polygon = PackedVector2Array(73, 5, 70, -43, 172, -52, 189, 19, 103, 43)
+debug_color = Color(0, 0.99514896, 0.45895782, 0.78400004)
+metadata/debug_color = Color(0.96862745, 0, 0.45882353, 0.78431374)
+
+[node name="lbl_Сhunk_Alata Battery" type="Label3D" parent="WorldStreamManager/Fort Meridian/FM_Сhunks/Сhunk_AlataBattery"]
+transform = Transform3D(1.0000002, 0, 0, 0, -4.371139e-08, 1.0000002, 0, -1, -4.37114e-08, -43, 20, 25)
+pixel_size = 0.5
+text = "Alata Battery
+"
+outline_size = 1
+
+[node name="Сhunk_GuardsBeach" type="Area3D" parent="WorldStreamManager/Fort Meridian/FM_Сhunks"]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 315.9574, 0, -318.53485)
+collision_layer = 0
+
+[node name="CollisionPolygon3D" type="CollisionPolygon3D" parent="WorldStreamManager/Fort Meridian/FM_Сhunks/Сhunk_GuardsBeach"]
+transform = Transform3D(0.8660253, 0.49999994, -2.1855692e-08, 0, -4.3711385e-08, -0.9999999, -0.49999997, 0.86602527, -3.785517e-08, -148.17615, -25, 92.110535)
+depth = 200.0
+polygon = PackedVector2Array(78, -42, 193, -83, 241, -49, 160, 84, 93, 96)
+debug_color = Color(0, 0.99514896, 0.45895782, 0.78400004)
+metadata/debug_color = Color(0.96862745, 0, 0.45882353, 0.78431374)
+
+[node name="lbl_Сhunk_Guards\' Beach" type="Label3D" parent="WorldStreamManager/Fort Meridian/FM_Сhunks/Сhunk_GuardsBeach"]
+transform = Transform3D(1.0000002, 0, 0, 0, -4.371139e-08, 1.0000002, 0, -1, -4.37114e-08, 0, 20, 0)
+pixel_size = 0.5
+text = "Guards Beach
+"
+outline_size = 1
+
+[node name="Сhunk_GatewayCove" type="Area3D" parent="WorldStreamManager/Fort Meridian/FM_Сhunks"]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 56.100464, 0, -139.88043)
+collision_layer = 0
+
+[node name="CollisionPolygon3D" type="CollisionPolygon3D" parent="WorldStreamManager/Fort Meridian/FM_Сhunks/Сhunk_GatewayCove"]
+transform = Transform3D(0.8660253, 0.49999994, -2.1855692e-08, 0, -4.3711385e-08, -0.9999999, -0.49999997, 0.86602527, -3.785517e-08, -148.17615, -25, 92.110535)
+depth = 200.0
+polygon = PackedVector2Array(97, -66, 250, -40, 261, 13, 20, 33, -2, -26)
+debug_color = Color(0, 0.99514896, 0.45895782, 0.78400004)
+metadata/debug_color = Color(0.96862745, 0, 0.45882353, 0.78431374)
+
+[node name="lbl_Сhunk_Gateway Cove" type="Label3D" parent="WorldStreamManager/Fort Meridian/FM_Сhunks/Сhunk_GatewayCove"]
+transform = Transform3D(1.0000002, 0, 0, 0, -4.371139e-08, 1.0000002, 0, -1, -4.37114e-08, -53, 20, 29)
+pixel_size = 0.5
+text = "Gateway Cove
+"
+outline_size = 1
+
+[node name="Сhunk_EchoGlade" type="Area3D" parent="WorldStreamManager/Fort Meridian/FM_Сhunks"]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, -136.89954, 0, 55.392212)
+collision_layer = 0
+
+[node name="CollisionPolygon3D" type="CollisionPolygon3D" parent="WorldStreamManager/Fort Meridian/FM_Сhunks/Сhunk_EchoGlade"]
+transform = Transform3D(0.8660253, 0.49999994, -2.1855692e-08, 0, -4.3711385e-08, -0.9999999, -0.49999997, 0.86602527, -3.785517e-08, -148.17615, -25, 92.110535)
+depth = 200.0
+polygon = PackedVector2Array(-1, -70, 274, -104, 294, -38, 243, 56, 173, 176)
+debug_color = Color(0, 0.99514896, 0.45895782, 0.78400004)
+metadata/debug_color = Color(0.96862745, 0, 0.45882353, 0.78431374)
+
+[node name="lbl_Сhunk_Echo Glade" type="Label3D" parent="WorldStreamManager/Fort Meridian/FM_Сhunks/Сhunk_EchoGlade"]
+transform = Transform3D(1.0000002, 0, 0, 0, -4.371139e-08, 1.0000002, 0, -1, -4.37114e-08, 0, 20, 0)
+pixel_size = 0.5
+text = "Echo Glade
+"
+outline_size = 1
+
+[node name="Сhunk_TheWaitingHill" type="Area3D" parent="WorldStreamManager/Fort Meridian/FM_Сhunks"]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 205.71631, 0, -231.95892)
+collision_layer = 0
+
+[node name="CollisionPolygon3D" type="CollisionPolygon3D" parent="WorldStreamManager/Fort Meridian/FM_Сhunks/Сhunk_TheWaitingHill"]
+transform = Transform3D(0.8660253, 0.49999994, -2.1855692e-08, 0, -4.3711385e-08, -0.9999999, -0.49999997, 0.86602527, -3.785517e-08, -148.17615, -25, 92.110535)
+depth = 200.0
+polygon = PackedVector2Array(117, -45, 228, -65, 238, 73, 166, 108, 178, 30)
+debug_color = Color(0, 0.99514896, 0.45895782, 0.78400004)
+metadata/debug_color = Color(0.96862745, 0, 0.45882353, 0.78431374)
+
+[node name="lbl_Сhunk_The Waiting Hill" type="Label3D" parent="WorldStreamManager/Fort Meridian/FM_Сhunks/Сhunk_TheWaitingHill"]
+transform = Transform3D(1.0000002, 0, 0, 0, -4.371139e-08, 1.0000002, 0, -1, -4.37114e-08, 0, 20, 0)
+pixel_size = 0.5
+text = "The Waiting Hill
+"
+outline_size = 1
+
+[node name="Сhunk_ThePatrolTrail" type="Area3D" parent="WorldStreamManager/Fort Meridian/FM_Сhunks"]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, -11.244019, 0, -35.03662)
+collision_layer = 0
+
+[node name="CollisionPolygon3D" type="CollisionPolygon3D" parent="WorldStreamManager/Fort Meridian/FM_Сhunks/Сhunk_ThePatrolTrail"]
+transform = Transform3D(0.8660253, 0.49999994, -2.1855692e-08, 0, -4.3711385e-08, -0.9999999, -0.49999997, 0.86602527, -3.785517e-08, -148.17615, -25, 92.110535)
+depth = 200.0
+polygon = PackedVector2Array(128, -31, 275, -40, 309, 46, 180, 89, 75, 71)
+debug_color = Color(0, 0.99514896, 0.45895782, 0.78400004)
+metadata/debug_color = Color(0.96862745, 0, 0.45882353, 0.78431374)
+
+[node name="lbl_Сhunk_The Patrol Trail" type="Label3D" parent="WorldStreamManager/Fort Meridian/FM_Сhunks/Сhunk_ThePatrolTrail"]
+transform = Transform3D(1.0000002, 0, 0, 0, -4.371139e-08, 1.0000002, 0, -1, -4.37114e-08, 47, 20, 0)
+pixel_size = 0.5
+text = "The Patrol Trail
+"
+outline_size = 1
+
+[node name="Сhunk_RadioShadow" type="Area3D" parent="WorldStreamManager/Fort Meridian/FM_Сhunks"]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 178.5935, 0, -49.315308)
+collision_layer = 0
+
+[node name="CollisionPolygon3D" type="CollisionPolygon3D" parent="WorldStreamManager/Fort Meridian/FM_Сhunks/Сhunk_RadioShadow"]
+transform = Transform3D(0.8660253, 0.49999994, -2.1855692e-08, 0, -4.3711385e-08, -0.9999999, -0.49999997, 0.86602527, -3.785517e-08, -148.17615, -25, 92.110535)
+depth = 200.0
+polygon = PackedVector2Array(2, -3, 213, -70, 233, -13, 96, 67, 42, 71)
+debug_color = Color(0, 0.99514896, 0.45895782, 0.78400004)
+metadata/debug_color = Color(0.96862745, 0, 0.45882353, 0.78431374)
+
+[node name="lbl_Сhunk_Radio Shadow" type="Label3D" parent="WorldStreamManager/Fort Meridian/FM_Сhunks/Сhunk_RadioShadow"]
+transform = Transform3D(1.0000002, 0, 0, 0, -4.371139e-08, 1.0000002, 0, -1, -4.37114e-08, 0, 20, 0)
+pixel_size = 0.5
+text = "Radio Shadow
+"
+outline_size = 1
+
+[node name="Сhunk_ThePitDescent" type="Area3D" parent="WorldStreamManager/Fort Meridian/FM_Сhunks"]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 21.150879, 0, 114.01715)
+collision_layer = 0
+
+[node name="CollisionPolygon3D" type="CollisionPolygon3D" parent="WorldStreamManager/Fort Meridian/FM_Сhunks/Сhunk_ThePitDescent"]
+transform = Transform3D(0.8660253, 0.49999994, -2.1855692e-08, 0, -4.3711385e-08, -0.9999999, -0.49999997, 0.86602527, -3.785517e-08, -148.17615, -25, 92.110535)
+depth = 200.0
+polygon = PackedVector2Array(129, -87, 235, -70, 275, 7, 132, 100, 51, 38)
+debug_color = Color(0, 0.99514896, 0.45895782, 0.78400004)
+metadata/debug_color = Color(0.96862745, 0, 0.45882353, 0.78431374)
+
+[node name="lbl_Сhunk_The Pit Descent" type="Label3D" parent="WorldStreamManager/Fort Meridian/FM_Сhunks/Сhunk_ThePitDescent"]
+transform = Transform3D(1.0000002, 0, 0, 0, -4.371139e-08, 1.0000002, 0, -1, -4.37114e-08, 0, 20, 0)
+pixel_size = 0.5
+text = "The Pit Descent
+"
+outline_size = 1
+
+[node name="Verdant Ruins" type="Node3D" parent="WorldStreamManager"]
 transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 423.6194, 0, -277.8579)
 
-[node name="Label3D" type="Label3D" parent="Locations/Verdant Ruins"]
+[node name="lbl_Verdant_Ruins" type="Label3D" parent="WorldStreamManager/Verdant Ruins"]
 transform = Transform3D(1.0000002, 0, 0, 0, -4.371139e-08, 1.0000002, 0, -1, -4.37114e-08, 0, 20, 192.98184)
 pixel_size = 2.0
 text = "Verdant Ruins
 "
 
-[node name="Marker_Location_VerdantRuins" type="Marker3D" parent="Locations/Verdant Ruins"]
+[node name="Marker_Location_VerdantRuins" type="Marker3D" parent="WorldStreamManager/Verdant Ruins"]
 transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 0, 20, 0)
 gizmo_extents = 10.0
 
-[node name="Loc_VerdantRuins" type="Area3D" parent="Locations/Verdant Ruins"]
+[node name="Loc_VerdantRuins" type="Area3D" parent="WorldStreamManager/Verdant Ruins"]
 collision_layer = 0
 
-[node name="CollisionPolygon3D" type="CollisionPolygon3D" parent="Locations/Verdant Ruins/Loc_VerdantRuins"]
+[node name="CollisionPolygon3D" type="CollisionPolygon3D" parent="WorldStreamManager/Verdant Ruins/Loc_VerdantRuins"]
 transform = Transform3D(0.8660253, 0.49999994, -2.1855692e-08, 0, -4.3711385e-08, -0.9999999, -0.49999997, 0.86602527, -3.785517e-08, -4.1573486, -25, -32.88037)
 depth = 200.0
 polygon = PackedVector2Array(61.384827, -1100.1819, 464.08893, -516.6648, 394.90656, 724.3206, -201, 753, -1051, 785)
 debug_color = Color(0.96862745, 0.92156863, 0.45882353, 0.78431374)
+metadata/debug_color = Color(0.96862745, 0.92156863, 0.45882353, 0.78431374)
 
-[node name="Harborlight District" type="Node3D" parent="Locations"]
+[node name="Harborlight District" type="Node3D" parent="WorldStreamManager"]
 
-[node name="Label3D" type="Label3D" parent="Locations/Harborlight District"]
+[node name="lbl_Harborlight_District" type="Label3D" parent="WorldStreamManager/Harborlight District"]
 transform = Transform3D(1.0000002, 0, 0, 0, -4.371139e-08, 1.0000002, 0, -1, -4.37114e-08, 716.71014, 20, 770.9487)
 pixel_size = 2.0
 text = "Harborlight District
 "
 
-[node name="Loc_HarborlightDistrict" type="Area3D" parent="Locations/Harborlight District"]
+[node name="Loc_HarborlightDistrict" type="Area3D" parent="WorldStreamManager/Harborlight District"]
 transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 654.53815, 0, 666.6196)
 collision_layer = 0
 
-[node name="CollisionPolygon3D" type="CollisionPolygon3D" parent="Locations/Harborlight District/Loc_HarborlightDistrict"]
+[node name="CollisionPolygon3D" type="CollisionPolygon3D" parent="WorldStreamManager/Harborlight District/Loc_HarborlightDistrict"]
 transform = Transform3D(0.8660253, 0.49999994, -2.1855692e-08, 0, -4.3711385e-08, -0.9999999, -0.49999997, 0.86602527, -3.785517e-08, -4.1573486, -25, -32.88037)
 depth = 200.0
 polygon = PackedVector2Array(-951, 169, -753, -174, 679, -228, 599, 790, -320, 907)
 debug_color = Color(0.45590004, 0.4901733, 0.97, 0.78431374)
-
-[node name="Player" parent="." instance=ExtResource("2_8hwqn")]
-transform = Transform3D(-4.37114e-08, 0, 1, 0, 1, 0, -1, 0, -4.37114e-08, 1478, 20, -990)
-
-[node name="BioMonitorManager" parent="Player" index="10" node_paths=PackedStringArray("dn_manager", "bio_monitor_ui")]
-dn_manager = NodePath("../../WorldEnvironmentSystem/DayNightManager")
-bio_monitor_ui = NodePath("../InGameUI/Vital_Signs")
-
-[node name="Vital_Signs" parent="Player/InGameUI" index="0" node_paths=PackedStringArray("player", "bio_monitor")]
-player = NodePath("../..")
-bio_monitor = NodePath("../../BioMonitorManager")
+metadata/debug_color = Color(0.45490196, 0.49019608, 0.96862745, 0.78431374)
 
 [node name="WorldEnvironmentSystem" parent="." instance=ExtResource("6_pbfqm")]
 
@@ -413,16 +615,37 @@ bio_monitor = NodePath("../../BioMonitorManager")
 light_energy = 11.797
 light_volumetric_fog_energy = 0.0
 
-[connection signal="body_entered" from="Locations/Silvan Heights/Loc_SilvanHeights" to="Locations" method="_on_loc_silvan_heights_body_entered"]
-[connection signal="body_exited" from="Locations/Silvan Heights/Loc_SilvanHeights" to="Locations" method="_on_loc_silvan_heights_body_exited"]
-[connection signal="body_entered" from="Locations/Palawan Cove/Loc_PalawanCove" to="Locations" method="_on_loc_palawan_cove_body_entered"]
-[connection signal="body_exited" from="Locations/Palawan Cove/Loc_PalawanCove" to="Locations" method="_on_loc_palawan_cove_body_exited"]
-[connection signal="body_entered" from="Locations/Fort Meridian/Loc_FortMeridian" to="Locations" method="_on_loc_fort_meridian_body_entered"]
-[connection signal="body_exited" from="Locations/Fort Meridian/Loc_FortMeridian" to="Locations" method="_on_loc_fort_meridian_body_exited"]
-[connection signal="body_entered" from="Locations/Verdant Ruins/Loc_VerdantRuins" to="Locations" method="_on_loc_verdant_ruins_body_entered"]
-[connection signal="body_exited" from="Locations/Verdant Ruins/Loc_VerdantRuins" to="Locations" method="_on_loc_verdant_ruins_body_exited"]
-[connection signal="body_entered" from="Locations/Harborlight District/Loc_HarborlightDistrict" to="Locations" method="_on_loc_harborlight_district_body_entered"]
-[connection signal="body_exited" from="Locations/Harborlight District/Loc_HarborlightDistrict" to="Locations" method="_on_loc_harborlight_district_body_exited"]
+[node name="FirstSpawner" type="Marker3D" parent="."]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 1420, 3, -943)
+
+[connection signal="body_entered" from="WorldStreamManager/Silvan Heights/Loc_SilvanHeights" to="WorldStreamManager" method="_on_loc_silvan_heights_body_entered"]
+[connection signal="body_exited" from="WorldStreamManager/Silvan Heights/Loc_SilvanHeights" to="WorldStreamManager" method="_on_loc_silvan_heights_body_exited"]
+[connection signal="body_entered" from="WorldStreamManager/Palawan Cove/Loc_PalawanCove" to="WorldStreamManager" method="_on_loc_palawan_cove_body_entered"]
+[connection signal="body_exited" from="WorldStreamManager/Palawan Cove/Loc_PalawanCove" to="WorldStreamManager" method="_on_loc_palawan_cove_body_exited"]
+[connection signal="body_entered" from="WorldStreamManager/Fort Meridian/Loc_FortMeridian" to="WorldStreamManager" method="_on_loc_fort_meridian_body_entered"]
+[connection signal="body_exited" from="WorldStreamManager/Fort Meridian/Loc_FortMeridian" to="WorldStreamManager" method="_on_loc_fort_meridian_body_exited"]
+[connection signal="body_entered" from="WorldStreamManager/Fort Meridian/FM_Сhunks/Сhunk_EastPointRedoubt" to="WorldStreamManager" method="_on_chunk_east_point_redoubt_body_entered"]
+[connection signal="body_exited" from="WorldStreamManager/Fort Meridian/FM_Сhunks/Сhunk_EastPointRedoubt" to="WorldStreamManager" method="_on_chunk_east_point_redoubt_body_exited"]
+[connection signal="body_entered" from="WorldStreamManager/Fort Meridian/FM_Сhunks/Сhunk_AlataBattery" to="WorldStreamManager" method="_on_chunk_alata_battery_body_entered"]
+[connection signal="body_exited" from="WorldStreamManager/Fort Meridian/FM_Сhunks/Сhunk_AlataBattery" to="WorldStreamManager" method="_on_chunk_alata_battery_body_exited"]
+[connection signal="body_entered" from="WorldStreamManager/Fort Meridian/FM_Сhunks/Сhunk_GuardsBeach" to="WorldStreamManager" method="_on_chunk_guards_beach_body_entered"]
+[connection signal="body_exited" from="WorldStreamManager/Fort Meridian/FM_Сhunks/Сhunk_GuardsBeach" to="WorldStreamManager" method="_on_chunk_guards_beach_body_exited"]
+[connection signal="body_entered" from="WorldStreamManager/Fort Meridian/FM_Сhunks/Сhunk_GatewayCove" to="WorldStreamManager" method="_on_chunk_gateway_cove_body_entered"]
+[connection signal="body_exited" from="WorldStreamManager/Fort Meridian/FM_Сhunks/Сhunk_GatewayCove" to="WorldStreamManager" method="_on_chunk_gateway_cove_body_exited"]
+[connection signal="body_entered" from="WorldStreamManager/Fort Meridian/FM_Сhunks/Сhunk_EchoGlade" to="WorldStreamManager" method="_on_chunk_echo_glade_body_entered"]
+[connection signal="body_exited" from="WorldStreamManager/Fort Meridian/FM_Сhunks/Сhunk_EchoGlade" to="WorldStreamManager" method="_on_chunk_echo_glade_body_exited"]
+[connection signal="body_entered" from="WorldStreamManager/Fort Meridian/FM_Сhunks/Сhunk_TheWaitingHill" to="WorldStreamManager" method="_on_chunk_the_waiting_hill_body_entered"]
+[connection signal="body_exited" from="WorldStreamManager/Fort Meridian/FM_Сhunks/Сhunk_TheWaitingHill" to="WorldStreamManager" method="_on_chunk_the_waiting_hill_body_exited"]
+[connection signal="body_entered" from="WorldStreamManager/Fort Meridian/FM_Сhunks/Сhunk_ThePatrolTrail" to="WorldStreamManager" method="_on_chunk_the_patrol_trail_body_entered"]
+[connection signal="body_exited" from="WorldStreamManager/Fort Meridian/FM_Сhunks/Сhunk_ThePatrolTrail" to="WorldStreamManager" method="_on_chunk_the_patrol_trail_body_exited"]
+[connection signal="body_entered" from="WorldStreamManager/Fort Meridian/FM_Сhunks/Сhunk_RadioShadow" to="WorldStreamManager" method="_on_chunk_radio_shadow_body_entered"]
+[connection signal="body_exited" from="WorldStreamManager/Fort Meridian/FM_Сhunks/Сhunk_RadioShadow" to="WorldStreamManager" method="_on_chunk_radio_shadow_body_exited"]
+[connection signal="body_entered" from="WorldStreamManager/Fort Meridian/FM_Сhunks/Сhunk_ThePitDescent" to="WorldStreamManager" method="_on_chunk_the_pit_descent_body_entered"]
+[connection signal="body_exited" from="WorldStreamManager/Fort Meridian/FM_Сhunks/Сhunk_ThePitDescent" to="WorldStreamManager" method="_on_chunk_the_pit_descent_body_exited"]
+[connection signal="body_entered" from="WorldStreamManager/Verdant Ruins/Loc_VerdantRuins" to="WorldStreamManager" method="_on_loc_verdant_ruins_body_entered"]
+[connection signal="body_exited" from="WorldStreamManager/Verdant Ruins/Loc_VerdantRuins" to="WorldStreamManager" method="_on_loc_verdant_ruins_body_exited"]
+[connection signal="body_entered" from="WorldStreamManager/Harborlight District/Loc_HarborlightDistrict" to="WorldStreamManager" method="_on_loc_harborlight_district_body_entered"]
+[connection signal="body_exited" from="WorldStreamManager/Harborlight District/Loc_HarborlightDistrict" to="WorldStreamManager" method="_on_loc_harborlight_district_body_exited"]
 
 [editable path="Player"]
 [editable path="Player/Henry_Test_player"]
