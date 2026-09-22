@@ -1,22 +1,20 @@
 shader_type canvas_item;
 render_mode unshaded;
 
-// HFN readable production-preview Sobel.
-// Environment/props keep the hand-drawn outline.
-// Henry is excluded through his actual projected mesh bounds.
+// Readable production Sobel. Henry exclusion comes from a separate render pass
+// (player_mask_texture), not from a guessed 2D shape.
 
 uniform sampler2D screen_texture : hint_screen_texture, repeat_disable, filter_nearest;
+uniform sampler2D player_mask_texture : repeat_disable, filter_nearest;
 
-uniform vec4 edge_color : source_color = vec4(0.012, 0.016, 0.022, 1.0);
-uniform float edge_opacity : hint_range(0.0, 1.0) = 0.58;
-uniform float edge_width_px : hint_range(0.5, 4.0, 0.1) = 1.05;
-uniform float edge_threshold : hint_range(0.001, 0.5, 0.001) = 0.032;
+uniform vec4 edge_color : source_color = vec4(0.006, 0.008, 0.012, 1.0);
+uniform float edge_opacity : hint_range(0.0, 1.0) = 0.76;
+uniform float edge_width_px : hint_range(0.5, 4.0, 0.1) = 1.35;
+uniform float edge_threshold : hint_range(0.001, 0.5, 0.001) = 0.018;
 uniform float jitter_amount_px : hint_range(0.0, 2.0, 0.05) = 0.30;
 
-uniform float player_mask_enabled = 0.0;
-uniform vec2 player_mask_min = vec2(0.45, 0.35);
-uniform vec2 player_mask_max = vec2(0.55, 0.75);
-uniform float player_mask_feather : hint_range(0.0, 0.25) = 0.08;
+uniform vec2 player_mask_texel_size = vec2(0.00078125, 0.00138889);
+uniform float player_mask_dilate_px : hint_range(0.0, 4.0, 0.25) = 1.5;
 
 
 float luma(vec3 c) {
@@ -31,19 +29,18 @@ float hand_offset(float y_px) {
 }
 
 
-float player_exclusion(vec2 uv) {
-	if (player_mask_enabled < 0.5) {
-		return 0.0;
-	}
-
-	vec2 size = max(player_mask_max - player_mask_min, vec2(0.00001));
-	vec2 center = (player_mask_min + player_mask_max) * 0.5;
-	vec2 half_size = size * 0.5;
-	vec2 normalized = abs(uv - center) / half_size;
-	float box_distance = max(normalized.x, normalized.y);
-
-	float inner = max(0.0, 1.0 - player_mask_feather);
-	return 1.0 - smoothstep(inner, 1.0, box_distance);
+float henry_mask(vec2 uv) {
+	vec2 t = player_mask_texel_size * player_mask_dilate_px;
+	float a = texture(player_mask_texture, uv).a;
+	a = max(a, texture(player_mask_texture, uv + vec2( t.x, 0.0)).a);
+	a = max(a, texture(player_mask_texture, uv + vec2(-t.x, 0.0)).a);
+	a = max(a, texture(player_mask_texture, uv + vec2(0.0,  t.y)).a);
+	a = max(a, texture(player_mask_texture, uv + vec2(0.0, -t.y)).a);
+	a = max(a, texture(player_mask_texture, uv + vec2( t.x,  t.y)).a);
+	a = max(a, texture(player_mask_texture, uv + vec2(-t.x,  t.y)).a);
+	a = max(a, texture(player_mask_texture, uv + vec2( t.x, -t.y)).a);
+	a = max(a, texture(player_mask_texture, uv + vec2(-t.x, -t.y)).a);
+	return smoothstep(0.02, 0.20, a);
 }
 
 
@@ -69,7 +66,8 @@ void fragment() {
 	float magnitude = length(vec2(gx, gy));
 	float edge = smoothstep(edge_threshold, edge_threshold * 3.5, magnitude);
 
-	edge *= 1.0 - player_exclusion(base_uv);
+	// Exact per-pixel exclusion from the ID render pass.
+	edge *= 1.0 - henry_mask(base_uv);
 
 	vec3 scene_color = texture(screen_texture, base_uv).rgb;
 	COLOR = vec4(mix(scene_color, edge_color.rgb, edge * edge_opacity), 1.0);
