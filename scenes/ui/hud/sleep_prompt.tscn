@@ -1,0 +1,134 @@
+[gd_scene load_steps=4 format=3]
+
+[ext_resource type="Script" path="res://scripts/ui/hud/sleep_prompt.gd" id="1"]
+
+[sub_resource type="StyleBoxFlat" id="PanelStyle"]
+bg_color = Color(0.055, 0.062, 0.082, 0.93)
+border_width_left = 1
+border_width_top = 1
+border_width_right = 1
+border_width_bottom = 1
+border_color = Color(0.62, 0.66, 0.74, 0.35)
+corner_radius_top_left = 4
+corner_radius_top_right = 4
+corner_radius_bottom_right = 4
+corner_radius_bottom_left = 4
+content_margin_left = 34.0
+content_margin_top = 26.0
+content_margin_right = 34.0
+content_margin_bottom = 26.0
+
+[sub_resource type="StyleBoxFlat" id="HoldFill"]
+bg_color = Color(0.68, 0.79, 0.92, 0.9)
+
+[node name="SleepPrompt" type="Control"]
+layout_mode = 3
+anchors_preset = 15
+anchor_right = 1.0
+anchor_bottom = 1.0
+grow_horizontal = 2
+grow_vertical = 2
+mouse_filter = 2
+script = ExtResource("1")
+
+[node name="HoldIndicator" type="ProgressBar" parent="."]
+layout_mode = 1
+anchors_preset = 7
+anchor_left = 0.5
+anchor_top = 1.0
+anchor_right = 0.5
+anchor_bottom = 1.0
+offset_left = -150.0
+offset_top = -128.0
+offset_right = 150.0
+offset_bottom = -118.0
+grow_horizontal = 2
+grow_vertical = 0
+max_value = 1.0
+step = 0.001
+show_percentage = false
+theme_override_styles/fill = SubResource("HoldFill")
+
+[node name="HoldHint" type="Label" parent="."]
+layout_mode = 1
+anchors_preset = 7
+anchor_left = 0.5
+anchor_top = 1.0
+anchor_right = 0.5
+anchor_bottom = 1.0
+offset_left = -200.0
+offset_top = -112.0
+offset_right = 200.0
+offset_bottom = -88.0
+grow_horizontal = 2
+grow_vertical = 0
+theme_override_colors/font_color = Color(0.78, 0.82, 0.88, 0.75)
+text = "HOLD  S  TO SLEEP"
+horizontal_alignment = 1
+
+[node name="Dialog" type="PanelContainer" parent="."]
+visible = false
+layout_mode = 1
+anchors_preset = 8
+anchor_left = 0.5
+anchor_top = 0.5
+anchor_right = 0.5
+anchor_bottom = 0.5
+offset_left = -230.0
+offset_top = -118.0
+offset_right = 230.0
+offset_bottom = 118.0
+grow_horizontal = 2
+grow_vertical = 2
+theme_override_styles/panel = SubResource("PanelStyle")
+
+[node name="Rows" type="VBoxContainer" parent="Dialog"]
+layout_mode = 2
+theme_override_constants/separation = 14
+
+[node name="Title" type="Label" parent="Dialog/Rows"]
+layout_mode = 2
+theme_override_colors/font_color = Color(0.9, 0.92, 0.95, 1)
+text = "REST UNTIL"
+horizontal_alignment = 1
+
+[node name="HoursRow" type="HBoxContainer" parent="Dialog/Rows"]
+layout_mode = 2
+alignment = 1
+theme_override_constants/separation = 22
+
+[node name="Less" type="Label" parent="Dialog/Rows/HoursRow"]
+layout_mode = 2
+theme_override_colors/font_color = Color(0.6, 0.65, 0.72, 0.8)
+text = "[ A ]"
+
+[node name="Hours" type="Label" parent="Dialog/Rows/HoursRow"]
+layout_mode = 2
+theme_override_colors/font_color = Color(0.72, 0.84, 0.96, 1)
+theme_override_font_sizes/font_size = 44
+text = "8"
+
+[node name="HoursUnit" type="Label" parent="Dialog/Rows/HoursRow"]
+layout_mode = 2
+theme_override_colors/font_color = Color(0.78, 0.82, 0.88, 0.8)
+text = "HOURS"
+
+[node name="More" type="Label" parent="Dialog/Rows/HoursRow"]
+layout_mode = 2
+theme_override_colors/font_color = Color(0.6, 0.65, 0.72, 0.8)
+text = "[ D ]"
+
+[node name="Separator" type="HSeparator" parent="Dialog/Rows"]
+layout_mode = 2
+
+[node name="Keys" type="Label" parent="Dialog/Rows"]
+layout_mode = 2
+theme_override_colors/font_color = Color(0.7, 0.75, 0.82, 0.85)
+text = "[ E ]  SLEEP  AND  SAVE          [ ESC ]  CANCEL"
+horizontal_alignment = 1
+
+[node name="Warning" type="Label" parent="Dialog/Rows"]
+layout_mode = 2
+theme_override_colors/font_color = Color(0.86, 0.6, 0.42, 0.9)
+text = "the fire will not last the night"
+horizontal_alignment = 1

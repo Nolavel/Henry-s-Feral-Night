@@ -7,7 +7,7 @@
 [ext_resource type="Texture2D" uid="uid://bbpn5ac5gfe8u" path="res://assets/textures/ui/game/biomonitor/dynamic_direction_size_40x15.png" id="6_n2tv3"]
 [ext_resource type="Texture2D" uid="uid://diol3eabygedq" path="res://assets/textures/ui/game/biomonitor/sleep.png" id="8_71ow1"]
 [ext_resource type="Texture2D" uid="uid://bg8fy51oc2dr1" path="res://assets/textures/ui/game/biomonitor/temperature_icon.png" id="12_edmk5"]
-[ext_resource type="Texture2D" uid="uid://ssyv56dpmbyr" path="res://assets/textures/ui/game/biomonitor/Warning sign60х51.png" id="16_d253i"]
+[ext_resource type="Texture2D" uid="uid://ssyv56dpmbyr" path="res://assets/textures/ui/game/biomonitor/warning_sign_60x51.png" id="16_d253i"]
 [ext_resource type="Texture2D" uid="uid://dy80rqisjq3oo" path="res://assets/textures/ui/game/biomonitor/hunger_icon.png" id="17_ogv15"]
 [ext_resource type="Texture2D" uid="uid://ba4d7nxovd4nr" path="res://assets/textures/ui/game/biomonitor/radiation_icon.png" id="18_evh7y"]
 

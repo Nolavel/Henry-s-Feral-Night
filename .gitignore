@@ -34,3 +34,9 @@ Thumbs.db
 *.tmp
 *.bak
 *.bat
+
+# Render harness output
+shots/
+
+# Terrain3D GDExtension binaries (fetched by tools/ci/setup_env.sh)
+addons/terrain_3d/bin/

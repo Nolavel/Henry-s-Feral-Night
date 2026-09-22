@@ -16,6 +16,22 @@ One agent uses one branch. Agents never share a working branch.
 
 If an agent cannot create or write its own branch, it must stop instead of falling back to `main`.
 
+## Roles
+
+| Agent | Branch | Owns |
+|---|---|---|
+| **Author (human)** | any | Design, narrative, art direction, final say on scope. |
+| **Claude** | `claudeflow` | Technical direction: architecture, engine baseline, build/CI, headless render pipeline, code review. See `CLAUDE.md`. |
+| **Codex** | `codex` | Implementation passes: rendering/shader work, tooling, refactors it opens. |
+
+Handover rules:
+
+- An agent reviews the other's branch on request; it never pushes to it.
+- Conflicting opinions are resolved in writing (a note in `CHANGELOG.md` or a doc
+  under `docs/`), not by silently reverting the other's work.
+- Shared conventions (style, engine version, hygiene) live in this file and in
+  `CLAUDE.md`; neither agent changes them without saying so in `CHANGELOG.md`.
+
 ## Engine baseline
 
 - Godot: **4.8 dev6 .NET (mono)**
