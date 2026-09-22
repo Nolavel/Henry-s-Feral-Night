@@ -2,7 +2,6 @@ name: render-smoke
 
 on:
   push:
-    branches-ignore: [gpt-freemans-sky-experiment]
   pull_request:
   workflow_dispatch:
 
