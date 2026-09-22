@@ -8,7 +8,15 @@ const STEP_MINUTES: float = 10.0
 var _failures: int = 0
 
 
-func _initialize() -> void:
+## Nodes added to root during _initialize() are not in the tree, so transforms
+## and _ready() are both unavailable there. Running from the first frame puts
+## the suite in the same conditions as the running game.
+func _process(_delta: float) -> bool:
+	_run()
+	return true
+
+
+func _run() -> void:
 	_test_exposure_cools_the_body()
 	_test_wind_chill_makes_it_worse()
 	_test_fire_rewarms()

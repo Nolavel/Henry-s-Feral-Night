@@ -152,7 +152,7 @@ static func advance_all_fuel(delta_hours: float) -> void:
 
 ## Degrees this source contributes at a world position, zero beyond its radius.
 func get_offset_at(world_position: Vector3) -> float:
-	if not _is_burning or radius_m <= 0.0:
+	if not _is_burning or radius_m <= 0.0 or not is_inside_tree():
 		return 0.0
 	var distance: float = global_position.distance_to(world_position)
 	if distance >= radius_m:

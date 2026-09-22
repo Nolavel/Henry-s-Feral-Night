@@ -32,6 +32,19 @@ func _run() -> void:
 	quit(0)
 
 
+## Writes a file, failing the suite with the reason rather than crashing on a
+## null handle when user:// is not writable.
+func _write(path: String, text: String) -> bool:
+	var file := FileAccess.open(path, FileAccess.WRITE)
+	if file == null:
+		_check(false, "cannot write %s (error %d); is user:// writable?"
+			% [path, FileAccess.get_open_error()])
+		return false
+	file.store_string(text)
+	file.close()
+	return true
+
+
 func _check(condition: bool, message: String) -> void:
 	if condition:
 		return
@@ -160,9 +173,9 @@ func _test_unknown_save_versions_are_refused() -> void:
 	DirAccess.make_dir_recursive_absolute(ProjectSettings.globalize_path("user://saves"))
 
 	var path: String = "user://saves/slot_5.json"
-	var file := FileAccess.open(path, FileAccess.WRITE)
-	file.store_string(JSON.stringify({"version": 999, "payload": {}, "metadata": {}}))
-	file.close()
+	if not _write(path, JSON.stringify({"version": 999, "payload": {}, "metadata": {}})):
+		_dispose(manager)
+		return
 
 	_check(manager.read_slot(5).is_empty(), "a save from a newer build was accepted")
 	_check(
@@ -170,9 +183,9 @@ func _test_unknown_save_versions_are_refused() -> void:
 		"the refusal did not explain itself: '%s'" % manager.get_last_error()
 	)
 
-	file = FileAccess.open(path, FileAccess.WRITE)
-	file.store_string(JSON.stringify({"payload": {}}))
-	file.close()
+	if not _write(path, JSON.stringify({"payload": {}})):
+		_dispose(manager)
+		return
 	_check(manager.read_slot(5).is_empty(), "a save with no version field was accepted")
 
 	manager.delete_slot(5)

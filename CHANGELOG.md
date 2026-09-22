@@ -5,6 +5,38 @@ Maintained per branch; entries are added by whoever makes the change.
 
 ## [Unreleased] — `claudeflow`
 
+### 2026-09-22 (12) — Fix CI: the environment, not the code
+
+The first CI run on PR #2 went red. Every cause was in the harness I wrote.
+
+Fixed
+- `setup_env.sh` was invoked as `sudo -E`, so the **whole** script ran as root
+  and created `$HOME/.local` root-owned. Every later unprivileged step then
+  failed to write `user://`, which is why the save tests could not create a
+  slot. Root is needed for apt and nothing else, so the script now asks for it
+  itself and the workflow calls it unprivileged.
+- The artifact step ran `find` over a directory that does not exist when no
+  render was produced, and `bash -e` turned that into a failed job even under
+  `if: always()`. It tolerates a missing directory now.
+- `HeatSource.get_offset_at()` read `global_position` without checking
+  `is_inside_tree()`, flooding the log with engine errors on every headless
+  temperature calculation. Guarded.
+- Two suites dereferenced a null `FileAccess` when `user://` was unwritable, so
+  a broken environment surfaced as a crash instead of a reason. They now report
+  what could not be written and why.
+
+Changed
+- **All eight suites now run from the first frame** rather than `_initialize()`.
+  Three of them had been relying on a node outside the tree returning a zero
+  transform that happened to equal the origin — luck, not correctness. This is
+  the same Godot trap recorded in `WORLD_ARCHITECTURE.md` §8, and it is now
+  handled consistently everywhere. The engine-error flood in the logs is gone
+  with it (from hundreds of lines to zero).
+
+Verified
+- Eight suites pass, `TestScene` renders, the workflow's step list is intact.
+
+
 ### 2026-09-22 (11) — ASCII filenames and the orphaned uid
 
 Closes §3.10 of the commercial assessment.

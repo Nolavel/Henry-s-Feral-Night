@@ -9,7 +9,15 @@ const STEP_MINUTES: float = 10.0
 var _failures: int = 0
 
 
-func _initialize() -> void:
+## Nodes added to root during _initialize() are not in the tree, so transforms
+## and _ready() are both unavailable there. Running from the first frame puts
+## the suite in the same conditions as the running game.
+func _process(_delta: float) -> bool:
+	_run()
+	return true
+
+
+func _run() -> void:
 	_clear_slots()
 	_test_round_trip_restores_state()
 	_test_empty_and_corrupt_slots_are_survivable()
@@ -135,6 +143,11 @@ func _test_empty_and_corrupt_slots_are_survivable() -> void:
 	var path: String = "user://saves/slot_3.json"
 	DirAccess.make_dir_recursive_absolute(ProjectSettings.globalize_path("user://saves"))
 	var file := FileAccess.open(path, FileAccess.WRITE)
+	if file == null:
+		_check(false, "cannot write %s (error %d); is user:// writable?"
+			% [path, FileAccess.get_open_error()])
+		_dispose(manager)
+		return
 	file.store_string("{ this is not json")
 	file.close()
 

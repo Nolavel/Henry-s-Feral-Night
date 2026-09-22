@@ -14,7 +14,15 @@ func _island() -> PackedVector2Array:
 	])
 
 
-func _initialize() -> void:
+## Nodes added to root during _initialize() are not in the tree, so transforms
+## and _ready() are both unavailable there. Running from the first frame puts
+## the suite in the same conditions as the running game.
+func _process(_delta: float) -> bool:
+	_run()
+	return true
+
+
+func _run() -> void:
 	_test_ice_thins_with_distance_from_shore()
 	_test_land_is_not_ice()
 	_test_standing_still_drains_slower_than_sprinting()

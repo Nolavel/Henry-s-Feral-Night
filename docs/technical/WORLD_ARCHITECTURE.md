@@ -203,4 +203,9 @@ and both are the same underlying fact — **the scene tree is not ready during
   `_initialize()`, which is also how the game actually runs.
 
 `WeatherController._find_day_night_manager()` guards `get_tree()` for the same
-reason.
+reason, and `HeatSource.get_offset_at()` guards `is_inside_tree()`.
+
+**Every test suite runs from `_process()`, not `_initialize()`.** Three of them
+had been passing on a node outside the tree returning a zero transform that
+happened to equal the origin. That is luck, and it broke the moment the engine
+error behind it was guarded properly.
