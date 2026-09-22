@@ -5,15 +5,15 @@
 [sub_resource type="ShaderMaterial" id="ShaderMaterial_outline"]
 resource_local_to_scene = true
 shader = ExtResource("1_shader")
-shader_parameter/edge_color = Color(0.025, 0.032, 0.045, 1)
-shader_parameter/edge_opacity = 0.82
-shader_parameter/edge_width_px = 1.15
-shader_parameter/depth_threshold = 0.018
-shader_parameter/normal_threshold = 0.11
-shader_parameter/jitter_amount_px = 0.35
+shader_parameter/edge_color = Color(0.006, 0.008, 0.012, 1)
+shader_parameter/edge_opacity = 0.96
+shader_parameter/edge_width_px = 1.65
+shader_parameter/depth_threshold = 0.004
+shader_parameter/normal_threshold = 0.035
+shader_parameter/jitter_amount_px = 0.28
 shader_parameter/jitter_speed = 0.3
-shader_parameter/distance_fade_start = 18.0
-shader_parameter/distance_fade_end = 55.0
+shader_parameter/distance_fade_start = 35.0
+shader_parameter/distance_fade_end = 120.0
 
 [sub_resource type="QuadMesh" id="QuadMesh_outline"]
 material = SubResource("ShaderMaterial_outline")
