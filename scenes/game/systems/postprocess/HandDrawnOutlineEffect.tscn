@@ -8,9 +8,9 @@ resource_local_to_scene = true
 render_priority = 127
 shader = ExtResource("1_outline")
 shader_parameter/edge_color = Color(0.012, 0.016, 0.022, 1)
-shader_parameter/edge_opacity = 0.58
-shader_parameter/edge_width_px = 1.05
-shader_parameter/edge_threshold = 0.032
+shader_parameter/edge_opacity = 0.68
+shader_parameter/edge_width_px = 1.15
+shader_parameter/edge_threshold = 0.012
 shader_parameter/jitter_amount_px = 0.3
 
 [sub_resource type="QuadMesh" id="QuadMesh_outline"]
