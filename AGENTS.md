@@ -7,6 +7,8 @@ This file applies to the entire repository.
 One agent uses one branch. Agents never share a working branch.
 
 - Codex owns `codex`.
+- Claude owns `claudeflow`.
+- Grok owns `grok`.
 - Any other AI/automation agent must create and use its own uniquely named branch.
 - Never commit directly to `main`.
 - Never push commits to another agent's branch.
@@ -23,6 +25,7 @@ If an agent cannot create or write its own branch, it must stop instead of falli
 | **Author (human)** | any | Design, narrative, art direction, final say on scope. |
 | **Claude** | `claudeflow` | Technical direction: architecture, engine baseline, build/CI, headless render pipeline, code review. See `CLAUDE.md`. |
 | **Codex** | `codex` | Implementation passes: rendering/shader work, tooling, refactors it opens. |
+| **Grok** | `grok` | Commercial/product readiness, scope control, risk matrix, vertical-slice audit, design-analysis docs, coordination via issues. |
 
 Handover rules:
 
