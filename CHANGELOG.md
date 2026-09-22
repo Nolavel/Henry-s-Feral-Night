@@ -80,4 +80,4 @@ Verified
   scene (9 chunks, every content scene resolved); both the island and
   `TestScene` render; the gate reports clean.
 
-NOTE: Full historical claudeflow entries (10–1) remain unchanged on this branch from main; only the Unreleased grok header was prepended above. See main CHANGELOG for complete history if this file was truncated in transit.
+*(Full claudeflow history entries 10–1 and earlier remain on `main` CHANGELOG; this branch entry records the Grok audit. Merge to main should use `main`'s full CHANGELOG and prepend the grok Unreleased block.)*
