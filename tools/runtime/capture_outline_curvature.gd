@@ -112,8 +112,8 @@ func _add_curvature_references() -> void:
 	var cylinder := MeshInstance3D.new()
 	cylinder.name = "CurvatureCylinder"
 	cylinder.mesh = cylinder_mesh
-	cylinder.global_position = Vector3(0.65, 0.675, -5.1)
 	_scene.add_child(cylinder)
+	cylinder.global_position = Vector3(0.65, 0.675, -5.1)
 
 	var sphere_mesh := SphereMesh.new()
 	sphere_mesh.radius = 0.48
@@ -125,8 +125,8 @@ func _add_curvature_references() -> void:
 	var sphere := MeshInstance3D.new()
 	sphere.name = "CurvatureSphere"
 	sphere.mesh = sphere_mesh
-	sphere.global_position = Vector3(1.65, 1.0, -5.15)
 	_scene.add_child(sphere)
+	sphere.global_position = Vector3(1.65, 1.0, -5.15)
 
 	# Real project prop, enlarged only for this screenshot so its rounded body
 	# spans enough pixels to judge normal-curvature response.
