@@ -6,6 +6,7 @@ class_name Player
 @onready var movement: MovementController = $MovementController
 @onready var rotation_controller: RotationController = $RotationController
 @onready var interactiom_manager: InteractionManager = $InteractionManager
+@onready var animation_component: HenryUALAnimation = $HenryUALVisual
 
 # === ПАРАМЕТРЫ ДВИЖЕНИЯ, оставшиеся для управления движком ===
 @export var jump_velocity: float = 5.0
@@ -68,6 +69,11 @@ func _physics_process(delta: float) -> void:
 	rotation_controller.process_rotation(self, delta, snap_just_activated)
 
 	move_and_slide()
+
+	# ADT-style explicit animation ordering: the component sees the REAL
+	# post-collision velocity, not input intent and not scene-tree process order.
+	if is_instance_valid(animation_component):
+		animation_component.update_animation_blend(delta)
 	
 	var on_floor_now := is_on_floor()
 	cam_landed_this_frame = (not _was_on_floor_for_cam and on_floor_now)
@@ -83,3 +89,11 @@ func _snap_double_tap_check(delta: float) -> void:
 		if _snap_timer > rotation_controller.snap_double_tap_time:
 			_snap_ready = false
 			_snap_timer = 0.0
+
+
+## Horizontal movement ratio for the animation component, 0..1.
+## Uses the actual CharacterBody3D velocity after move_and_slide().
+func get_locomotion_speed_ratio() -> float:
+	var horizontal_speed: float = Vector2(velocity.x, velocity.z).length()
+	var max_speed: float = maxf(movement.sprint_speed, 0.001)
+	return clampf(horizontal_speed / max_speed, 0.0, 1.0)
