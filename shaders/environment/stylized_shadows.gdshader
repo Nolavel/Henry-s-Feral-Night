@@ -103,22 +103,22 @@ void light() {
 
 		// Keep the middle of the cast shadow solid. Once the physical shadow is
 		// deep enough, noise has zero authority to punch white holes through it.
-		float solid_core = smoothstep(0.34, 0.62, physical_shadow);
+		float solid_core = smoothstep(0.48, 0.68, physical_shadow);
 
 		// Only the penumbra/periphery is eligible for silhouette destruction.
 		// The gate fades out before the solid core so the two regions overlap
 		// cleanly instead of creating a bright seam.
 		float perimeter_gate =
-			smoothstep(0.025, 0.12, physical_shadow)
-			* (1.0 - smoothstep(0.38, 0.60, physical_shadow));
+			smoothstep(0.10, 0.22, physical_shadow)
+			* (1.0 - smoothstep(0.50, 0.72, physical_shadow));
 
 		// Distort the edge field with one large noise band and a restrained
 		// detail band. This changes the OUTER SHAPE rather than texturing the
 		// interior of the shadow.
 		float edge_field =
-			physical_shadow * 0.70
-			+ shadow_macro * 0.58
-			+ (shadow_detail - 0.5) * 0.12 * shadow_detail_amount;
+			physical_shadow * 0.56
+			+ shadow_macro * 0.78
+			+ (shadow_detail - 0.5) * 0.10 * shadow_detail_amount;
 
 		float ragged_edge = smoothstep(
 			shadow_pattern_threshold - shadow_break_softness,
