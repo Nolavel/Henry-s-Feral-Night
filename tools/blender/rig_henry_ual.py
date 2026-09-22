@@ -327,6 +327,8 @@ def main():
     ual_objects = import_glb(UAL_PATH)
     armature = choose_armature(ual_objects)
     donor = choose_donor_mesh(ual_objects, armature)
+    donor_name = donor.name
+    donor_vertex_group_count = len(donor.vertex_groups)
     armature.name = "Henry_UAL_Armature"
     armature.data.pose_position = 'REST'
 
@@ -386,8 +388,8 @@ def main():
         "output_glb": os.path.relpath(OUT_GLB, ROOT),
         "armature": armature.name,
         "bone_count": len(armature.data.bones),
-        "donor_mesh": donor.name,
-        "donor_vertex_groups": len(donor.vertex_groups),
+        "donor_mesh": donor_name,
+        "donor_vertex_groups": donor_vertex_group_count,
         "henry_meshes": [o.name for o in henry_meshes],
         "alignment_scale": scale,
         "source_bounds": {
