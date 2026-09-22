@@ -3,7 +3,7 @@ render_mode unshaded;
 
 // HFN readable production-preview Sobel.
 // Environment/props keep the hand-drawn outline.
-// Henry is excluded by a soft screen-space ellipse driven by PlayerCamera.
+// Henry is excluded through his actual projected mesh bounds.
 
 uniform sampler2D screen_texture : hint_screen_texture, repeat_disable, filter_nearest;
 
@@ -14,8 +14,9 @@ uniform float edge_threshold : hint_range(0.001, 0.5, 0.001) = 0.032;
 uniform float jitter_amount_px : hint_range(0.0, 2.0, 0.05) = 0.30;
 
 uniform float player_mask_enabled = 0.0;
-uniform vec2 player_mask_center = vec2(0.5, 0.5);
-uniform vec2 player_mask_radius = vec2(0.05, 0.15);
+uniform vec2 player_mask_min = vec2(0.45, 0.35);
+uniform vec2 player_mask_max = vec2(0.55, 0.75);
+uniform float player_mask_feather : hint_range(0.0, 0.25) = 0.08;
 
 
 float luma(vec3 c) {
@@ -35,12 +36,14 @@ float player_exclusion(vec2 uv) {
 		return 0.0;
 	}
 
-	vec2 radius = max(player_mask_radius, vec2(0.00001));
-	vec2 p = (uv - player_mask_center) / radius;
-	float d = length(p);
+	vec2 size = max(player_mask_max - player_mask_min, vec2(0.00001));
+	vec2 center = (player_mask_min + player_mask_max) * 0.5;
+	vec2 half_size = size * 0.5;
+	vec2 normalized = abs(uv - center) / half_size;
+	float box_distance = max(normalized.x, normalized.y);
 
-	// 1 inside Henry's projected body region, with a small feather at the edge.
-	return 1.0 - smoothstep(0.82, 1.0, d);
+	float inner = max(0.0, 1.0 - player_mask_feather);
+	return 1.0 - smoothstep(inner, 1.0, box_distance);
 }
 
 
@@ -66,7 +69,6 @@ void fragment() {
 	float magnitude = length(vec2(gx, gy));
 	float edge = smoothstep(edge_threshold, edge_threshold * 3.5, magnitude);
 
-	// Keep the exact production-preview look everywhere except Henry.
 	edge *= 1.0 - player_exclusion(base_uv);
 
 	vec3 scene_color = texture(screen_texture, base_uv).rgb;
