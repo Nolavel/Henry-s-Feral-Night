@@ -7,10 +7,10 @@ render_mode unshaded;
 
 uniform sampler2D screen_texture : hint_screen_texture, repeat_disable, filter_nearest;
 uniform vec4 edge_color : source_color = vec4(0.012, 0.016, 0.022, 1.0);
-uniform float edge_opacity : hint_range(0.0, 1.0) = 0.88;
-uniform float edge_width_px : hint_range(0.5, 4.0, 0.1) = 1.55;
-uniform float edge_threshold : hint_range(0.001, 0.5, 0.001) = 0.020;
-uniform float jitter_amount_px : hint_range(0.0, 2.0, 0.05) = 0.38;
+uniform float edge_opacity : hint_range(0.0, 1.0) = 0.58;
+uniform float edge_width_px : hint_range(0.5, 4.0, 0.1) = 1.05;
+uniform float edge_threshold : hint_range(0.001, 0.5, 0.001) = 0.032;
+uniform float jitter_amount_px : hint_range(0.0, 2.0, 0.05) = 0.30;
 
 
 float luma(vec3 c) {
