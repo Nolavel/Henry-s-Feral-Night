@@ -70,10 +70,10 @@ func _configure_test_scene() -> void:
 		_sun.visible = true
 		_sun.rotation_degrees = Vector3(-23.0, -58.0, 0.0)
 		_sun.light_energy = 2.6
-		_sun.light_angular_distance = 4.0
+		_sun.light_angular_distance = 1.2
 		_sun.shadow_enabled = true
-		_sun.shadow_bias = 0.025
-		_sun.shadow_normal_bias = 0.55
+		_sun.shadow_bias = 0.085
+		_sun.shadow_normal_bias = 1.25
 
 	var env := Environment.new()
 	env.background_mode = Environment.BG_COLOR
@@ -81,7 +81,7 @@ func _configure_test_scene() -> void:
 	env.background_energy_multiplier = 1.0
 	env.ambient_light_source = Environment.AMBIENT_SOURCE_COLOR
 	env.ambient_light_color = Color(0.28, 0.31, 0.37, 1.0)
-	env.ambient_light_energy = 0.42
+	env.ambient_light_energy = 0.18
 	_camera.environment = env
 
 	_hide_canvas(_scene_root)
@@ -94,6 +94,9 @@ func _configure_test_scene() -> void:
 func _set_fade_view() -> void:
 	if _sun != null:
 		_sun.light_energy = 0.16
+
+	if _camera.environment != null:
+		_camera.environment.ambient_light_energy = 0.42
 
 	_camera.fov = 64.0
 	_camera.global_position = Vector3(-8.5, 2.25, 1.8)
