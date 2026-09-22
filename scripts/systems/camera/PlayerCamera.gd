@@ -47,7 +47,9 @@ class_name PlayerCamera
 @export_range(0.0, 1.0, 0.01) var outline_opacity: float = 0.58
 @export_range(0.5, 3.0, 0.05) var outline_width_px: float = 1.05
 @export_range(0.001, 0.25, 0.001) var outline_depth_threshold: float = 0.018
-@export_range(0.005, 0.6, 0.005) var outline_normal_threshold: float = 0.085
+@export_range(0.005, 0.6, 0.005) var outline_normal_threshold: float = 0.055
+@export_range(1.0, 8.0, 0.25) var outline_wide_normal_radius_px: float = 3.5
+@export_range(0.0, 1.5, 0.05) var outline_curvature_boost: float = 0.80
 @export_range(0.0, 1.0, 0.05) var outline_jitter_px: float = 0.30
 @export_range(0.0, 100.0, 0.5) var outline_fade_start: float = 18.0
 @export_range(1.0, 200.0, 0.5) var outline_fade_end: float = 60.0
@@ -249,6 +251,8 @@ func _setup_hand_drawn_outline() -> void:
 	_outline_effect.edge_width_px = outline_width_px
 	_outline_effect.depth_threshold = outline_depth_threshold
 	_outline_effect.normal_threshold = outline_normal_threshold
+	_outline_effect.wide_normal_radius_px = outline_wide_normal_radius_px
+	_outline_effect.curvature_boost = outline_curvature_boost
 	_outline_effect.jitter_amount_px = outline_jitter_px
 	_outline_effect.distance_fade_start = outline_fade_start
 	_outline_effect.distance_fade_end = maxf(outline_fade_end, outline_fade_start + 0.5)
