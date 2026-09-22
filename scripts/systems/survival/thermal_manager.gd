@@ -25,10 +25,13 @@ const HOURS_PER_DAY: float = 24.0
 @export var normal_body_temp_c: float = 36.6
 ## Body temperature at or below which the player dies.
 @export var lethal_body_temp_c: float = 28.0
-## Felt temperature at which the body neither gains nor loses heat.
+## Felt temperature at which bare skin would neither gain nor lose heat.
 @export var comfort_temp_c: float = 20.0
+## Degrees of self-generated warmth from basal metabolism. Without this the
+## body can never rewarm, because no reachable shelter beats bare-skin comfort.
+@export var basal_heat_c: float = 12.0
 ## Degrees the body moves per in-game hour per degree of comfort deficit.
-@export var cooling_coefficient: float = 0.045
+@export var cooling_coefficient: float = 0.075
 ## Degrees the body recovers per in-game hour when the surroundings are warm.
 @export var rewarm_coefficient: float = 0.55
 
@@ -200,7 +203,7 @@ func _compute_felt_temperature(current_hour: float) -> float:
 ## Moves body temperature toward the felt temperature through insulation.
 func _integrate_body_temperature(hours: float) -> void:
 	var insulation: float = clothing_insulation_c * (1.0 - _wetness * wetness_insulation_penalty)
-	var effective: float = _felt_temp_c + insulation
+	var effective: float = _felt_temp_c + insulation + basal_heat_c
 	var deficit: float = comfort_temp_c - effective
 	var previous: float = _body_temp_c
 

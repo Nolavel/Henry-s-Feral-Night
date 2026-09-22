@@ -45,7 +45,9 @@ felt  =  ambient(hour of day)          # curve, ambient_min_c .. ambient_max_c
        + Σ heat_source.offset_at(player)
        + exertion_bonus * exertion     # sprinting generates real warmth
 
-effective = felt + clothing_insulation * (1 - wetness * wetness_penalty)
+effective = felt
+          + clothing_insulation * (1 - wetness * wetness_penalty)
+          + basal_heat_c                # metabolism: the body is not passive
 
 if effective < comfort:  body -= (comfort - effective) * cooling_coefficient * hours
 else:                    body += (effective - comfort) * rewarm_coefficient * hours
@@ -56,9 +58,15 @@ Everything is billed **per in-game hour**, never per frame. The clock comes from
 the wrap at midnight. This means the model behaves identically at 30 fps and
 144 fps, and it stays correct when `TimeAccelerator` speeds the clock up.
 
-Current tuning: roughly **1.3 °C of core temperature lost per hour** at -15 °C in
-dry clothing — Henry reaches hypothermia in about 2.5 hours of exposure and dies
-in about 6. Tuned to make one night the unit of tension. All of it lives in
+`basal_heat_c` is not cosmetic. Without it there is **no reachable configuration
+in which the player rewarms**: a lit shelter at -18 °C ambient tops out around
++4 °C felt, which never beats bare-skin comfort, so the body cools forever and
+the survival loop cannot close. The debug chart in §9 is what exposed this.
+
+Current tuning: roughly **1.5 °C of core temperature lost per hour** exposed at
+-18 °C in dry clothing — hypothermia in about 2.5 hours, death in about 5.5. A
+shelter with a lit fire recovers a hypothermic player to normal in roughly two
+hours. Tuned to make one night the unit of tension. All of it lives in
 `@export` values, not constants.
 
 ## 3. The four weather states
@@ -139,7 +147,27 @@ it until the night is fair, and drop the expensive presentation in later without
 touching a line of the simulation. Do it in that order — tuning cold against
 unfinished visuals is how projects burn months.
 
-## 6. Wiring it into a scene
+## 6. The HUD binding
+
+`vital_signs.gd` now drives the thermometer from the model, following exactly
+the pattern the other vital signs use:
+
+- **Icon opacity** tracks normalised body temperature — colder means more opaque,
+  same `ICON_MIN_ALPHA`/`ICON_MAX_ALPHA` ramp as hunger and thirst.
+- **Warning sign** appears at `HYPOTHERMIC` and clears on recovery.
+- **Upper/lower indicators** flash on a real change of `TEMPERATURE_ALERT_DELTA_C`
+  (0.35 °C): lower when falling, upper when warming.
+- **The red critical indicator** holds solid while freezing, matching hunger.
+
+Assign `thermal_manager` on the HUD node. Without it the HUD pushes a warning
+and the thermometer stays idle rather than showing a fabricated reading.
+
+One defect was found and fixed while wiring this: the thermometer seeding had
+been placed inside `initialize_ui_state()`, which returns early when no
+`BioMonitorManager` is assigned — so the thermometer silently never seeded. It
+now lives in its own `initialize_thermal_state()`.
+
+## 7. Wiring it into a scene
 
 ```
 Player (CharacterBody3D)
@@ -159,7 +187,7 @@ World
 onto these. `vital_signs.gd` currently only toggles thermometer visibility and
 has no value behind it; connecting it is the next step.
 
-## 7. Deliberately not built yet
+## 8. Deliberately not built yet
 
 - **Clothing as items.** `clothing_insulation_c` is one number today. It becomes
   a sum over equipped garments once the inventory carries wearables.
@@ -171,7 +199,23 @@ has no value behind it; connecting it is the next step.
 - **Sleeping.** `restore_body_temperature()` and `reset_clock()` exist as the
   seam for it; the save system is what is actually missing.
 
-## 8. Known test findings
+## 9. The tuning chart
+
+`tools/runtime/capture_thermal_debug.gd` simulates one worsening night twice —
+exposed throughout, and reaching a lit shelter at hour 5 — and renders both
+curves to a PNG. Run it the same way as any capture tool; the output lands in
+`user://shots/thermal_debug.png`.
+
+This is the instrument for tuning the night, and it earned its place
+immediately: the first run showed **both** curves flatlining at the lethal
+floor, which is how the missing metabolic term was found.
+
+Open tuning question for the author: with a lit fire the sheltered curve now
+holds a flat 36.6 °C straight through the blizzard — shelter is currently
+*too* safe. `HeatSource.burn_duration_h` is the intended answer (fuel runs out,
+the room cools, you wake up cold), but it is not yet used anywhere.
+
+## 10. Known test findings
 
 The suites caught three real defects while this was written, all fixed:
 
@@ -182,3 +226,9 @@ The suites caught three real defects while this was written, all fixed:
 3. `_ready()` does not run until the first frame, so anything constructed in a
    headless test was uninitialised. Each system now has a public `initialize()`
    that `_ready()` calls, which is also a better seam for save-game loading.
+4. The model had no metabolic heat term, so no shelter could ever rewarm the
+   player. Found by the debug chart, now covered by a test asserting that a lit
+   shelter returns a chilled player to `NORMAL`.
+5. `vital_signs.gd` seeded the thermometer behind an unrelated early return.
+6. The HUD's device-visibility loop dereferenced unassigned `TextureRect`
+   exports; now null-guarded.

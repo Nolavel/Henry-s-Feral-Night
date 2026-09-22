@@ -40,20 +40,29 @@ extends Control
 @export_group("Important References")
 @export var player: CharacterBody3D
 @export var bio_monitor: BioMonitorManager # Ссылка на BioMonitor
+## Supplies body temperature and hypothermia stage; without it the
+## thermometer stays idle instead of showing a false reading.
+@export var thermal_manager: ThermalManager
 
 # === ПЕРЕМЕННЫЕ ДЛЯ ОТСЛЕЖИВАНИЯ КРИТИЧЕСКИХ СОСТОЯНИЙ ===
 var is_critically_hungry_in_hud: bool = false
 var is_critically_thirsty_in_hud: bool = false
 var is_critically_tired_in_hud: bool = false
+var is_freezing_in_hud: bool = false
 
 var hunger_tween: Tween = null # ИСПРАВЛЕНИЕ: Инициализация
 var thirst_tween: Tween = null # ИСПРАВЛЕНИЕ: Инициализация
 var energy_tween: Tween = null # ИСПРАВЛЕНИЕ: Инициализация
+var temperature_tween: Tween = null
+var _last_body_temp_c: float = 0.0
 
 # === КОНСТАНТЫ ДЛЯ ПРОЗРАЧНОСТИ ===
 const ICON_MIN_ALPHA: float = 0.25 # Минимальная прозрачность (все хорошо)
 const ICON_MAX_ALPHA: float = 0.9  # Максимальная прозрачность (критично)
 const ALERT_DURATION: float = 3.5  # Длительность показа Upper/Lower в секундах
+
+## Degrees of change needed before the HUD flashes an up or down alert.
+const TEMPERATURE_ALERT_DELTA_C: float = 0.35
 
 func _ready() -> void:
 	if not vital_signs_enabled:
@@ -62,10 +71,12 @@ func _ready() -> void:
 		
 		# Логика видимости для Temperature и Radiation 
 	for temperature_device in [temperature_warning_sign, temperature_upper, temperature_icon, temperature_lower]:
-		temperature_device.visible = temperature_device_equip
+		if temperature_device:
+			temperature_device.visible = temperature_device_equip
 		
 	for radiation_device in [radiation_warning_sign, radiation_upper, radiation_icon, radiation_lower]:
-		radiation_device.visible = radiation_device_equip
+		if radiation_device:
+			radiation_device.visible = radiation_device_equip
 	
 	# Скрываем все warnings, uppers и lowers по умолчанию
 	hide_all_temporary_elements()
@@ -75,6 +86,9 @@ func _ready() -> void:
 	
 	# Подписка на сигналы BioMonitorManager
 	setup_bio_monitor_connections()
+	
+	# Подписка на сигналы ThermalManager
+	setup_thermal_connections()
 	
 	# Инициализация начального состояния
 	call_deferred("initialize_ui_state")
@@ -146,6 +160,32 @@ func setup_bio_monitor_connections():
 	else:
 		print("ОШИБКА: BioMonitorManager не назначен в Vital_Signs_UI!")
 
+## Subscribes the thermometer to the thermal model.
+func setup_thermal_connections() -> void:
+	if not thermal_manager:
+		push_warning("Vital_Signs_UI: no ThermalManager assigned, thermometer stays idle")
+		return
+	thermal_manager.body_temperature_changed.connect(_on_body_temperature_changed)
+	thermal_manager.stage_changed.connect(_on_thermal_stage_changed)
+	initialize_thermal_state()
+
+
+## Seeds the thermometer from the live model. Kept out of initialize_ui_state,
+## which returns early when no BioMonitorManager is assigned.
+func initialize_thermal_state() -> void:
+	if not thermal_manager:
+		return
+	_last_body_temp_c = thermal_manager.get_body_temperature_c()
+	_apply_temperature_icon(thermal_manager.get_body_temperature_normalised())
+	is_freezing_in_hud = thermal_manager.get_stage() >= ThermalManager.Stage.HYPOTHERMIC
+	if temperature_warning_sign:
+		temperature_warning_sign.modulate = Color(1.0, 1.0, 1.0, 1.0 if is_freezing_in_hud else 0.0)
+	if temperature_lower:
+		temperature_lower.modulate = Color(1.0, 1.0, 1.0, 0.0)
+	if temperature_upper:
+		temperature_upper.modulate = Color(1.0, 1.0, 1.0, 0.0)
+
+
 func initialize_ui_state():
 	"""Инициализация начального состояния UI"""
 	if not bio_monitor:
@@ -186,6 +226,61 @@ func _on_energy_level_changed(progress: float):
 	if sleep_icon:
 		var alpha_value = lerp(ICON_MAX_ALPHA, ICON_MIN_ALPHA, progress)
 		sleep_icon.modulate = Color(1.0, 1.0, 1.0, alpha_value)
+
+## Drives the thermometer icon and flashes an up or down alert on real change.
+func _on_body_temperature_changed(celsius: float, normalised: float) -> void:
+	_apply_temperature_icon(normalised)
+	if not is_zero_approx(_last_body_temp_c):
+		var delta: float = celsius - _last_body_temp_c
+		if absf(delta) >= TEMPERATURE_ALERT_DELTA_C:
+			_last_body_temp_c = celsius
+			if delta < 0.0:
+				trigger_temperature_lower_alert()
+			else:
+				trigger_temperature_upper_alert()
+			return
+	else:
+		_last_body_temp_c = celsius
+
+
+## Mirrors the hypothermia stage onto the warning sign and the lower indicator.
+func _on_thermal_stage_changed(stage: ThermalManager.Stage) -> void:
+	var freezing: bool = stage >= ThermalManager.Stage.HYPOTHERMIC
+	if freezing == is_freezing_in_hud:
+		return
+	is_freezing_in_hud = freezing
+	update_warning_signs()
+	if not temperature_lower:
+		return
+	if freezing:
+		if temperature_tween and is_instance_valid(temperature_tween) and temperature_tween.is_running():
+			temperature_tween.kill()
+		temperature_lower.modulate = Color(1.0, 0.0, 0.0, 1.0)
+	else:
+		temperature_lower.modulate = Color(1.0, 1.0, 1.0, 0.0)
+
+
+## Colder bodies show a more opaque icon, matching the other vital signs.
+func _apply_temperature_icon(normalised: float) -> void:
+	if not temperature_icon:
+		return
+	var alpha_value: float = lerpf(ICON_MAX_ALPHA, ICON_MIN_ALPHA, clampf(normalised, 0.0, 1.0))
+	temperature_icon.modulate = Color(1.0, 1.0, 1.0, alpha_value)
+
+
+## Flashes the falling-temperature indicator, unless already freezing.
+func trigger_temperature_lower_alert() -> void:
+	if not temperature_lower or is_freezing_in_hud:
+		return
+	show_temporary_indicator(temperature_lower, "temperature_tween")
+
+
+## Flashes the rising-temperature indicator when the player warms up.
+func trigger_temperature_upper_alert() -> void:
+	if not temperature_upper:
+		return
+	show_temporary_indicator(temperature_upper, "temperature_tween")
+
 
 # === ОБРАБОТЧИКИ КРИТИЧЕСКИХ СОСТОЯНИЙ ===
 func _on_critical_hunger_reached():
@@ -250,6 +345,9 @@ func update_warning_signs():
 		
 	if sleep_warning_sign:
 		sleep_warning_sign.modulate = Color(1.0, 1.0, 1.0, 1.0 if is_critically_tired_in_hud else 0.0)
+		
+	if temperature_warning_sign:
+		temperature_warning_sign.modulate = Color(1.0, 1.0, 1.0, 1.0 if is_freezing_in_hud else 0.0)
 
 
 func trigger_hourly_hunger_alert():
@@ -316,6 +414,8 @@ func show_temporary_indicator(indicator: TextureRect, var_name: String):
 		current_tween = thirst_tween
 	elif var_name == "energy_tween":
 		current_tween = energy_tween
+	elif var_name == "temperature_tween":
+		current_tween = temperature_tween
 	else:
 		push_warning("Неизвестное имя переменной для Tween: " + var_name)
 		return
@@ -334,6 +434,8 @@ func show_temporary_indicator(indicator: TextureRect, var_name: String):
 		thirst_tween = current_tween
 	elif var_name == "energy_tween":
 		energy_tween = current_tween
+	elif var_name == "temperature_tween":
+		temperature_tween = current_tween
 	
 	# Показываем индикатор с обычным белым цветом (не красным)
 	indicator.modulate = Color(1.0, 1.0, 1.0, 1.0)

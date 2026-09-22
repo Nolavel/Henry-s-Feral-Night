@@ -15,6 +15,7 @@ func _initialize() -> void:
 	_test_interior_blocks_wind()
 	_test_wet_clothing_costs_insulation()
 	_test_stage_ladder_is_ordered()
+	_test_a_lit_shelter_rewarms_a_chilled_player()
 	if _failures > 0:
 		push_error("thermal: %d check(s) failed" % _failures)
 		quit(1)
@@ -175,6 +176,49 @@ func _test_wet_clothing_costs_insulation() -> void:
 	)
 	_check(is_equal_approx(wet.get_wetness(), 1.0), "wetness did not clamp to 1.0")
 	_dispose(wet)
+
+
+## The slice depends on this: reaching a warm shelter must reverse the cold,
+## not merely slow it down. Without it there is no survival loop at all.
+func _test_a_lit_shelter_rewarms_a_chilled_player() -> void:
+	var manager := _make_manager(-18.0)
+	_simulate(manager, 3.0)
+	var chilled: float = manager.get_body_temperature_c()
+	_check(
+		chilled < manager.normal_body_temp_c and chilled > manager.lethal_body_temp_c,
+		"rig failed: the player should be chilled but alive before sheltering"
+	)
+
+	var zone := ThermalZone.new()
+	zone.is_interior = true
+	zone.wind_exposure = 0.0
+	zone.temperature_offset_c = 6.0
+	zone.max_heated_offset_c = 16.0
+	zone.heating_rate_c_per_hour = 9.0
+	root.add_child(zone)
+	zone.add_heat_source()
+	manager._zones.append(zone)
+
+	## The zone only models the room warming up; standing by the flames is the
+	## HeatSource, and that is how a shelter is actually used.
+	var fire := HeatSource.new()
+	fire.peak_offset_c = 18.0
+	fire.radius_m = 5.0
+	root.add_child(fire)
+	fire.initialize()
+
+	_simulate(manager, 4.0)
+	_check(
+		manager.get_body_temperature_c() > chilled,
+		"a lit shelter did not rewarm a chilled player; the survival loop cannot close"
+	)
+	_check(
+		manager.get_stage() == ThermalManager.Stage.NORMAL,
+		"a lit shelter did not bring the player back to a safe stage"
+	)
+	_dispose(fire)
+	_dispose(zone)
+	_dispose(manager)
 
 
 func _test_stage_ladder_is_ordered() -> void:

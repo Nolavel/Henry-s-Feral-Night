@@ -5,6 +5,43 @@ Maintained per branch; entries are added by whoever makes the change.
 
 ## [Unreleased] — `claudeflow`
 
+### 2026-09-22 (4) — HUD thermometer bound to the model; metabolism fix
+
+Added
+- `vital_signs.gd` now drives the temperature indicators from `ThermalManager`:
+  icon opacity tracks body temperature, the warning sign follows the hypothermia
+  stage, and the upper/lower indicators flash on real change — the same pattern
+  hunger and thirst already use. Assign `thermal_manager` on the HUD node.
+- `tests/systems/test_vital_signs_binding.gd` — asserts the HUD follows the
+  model and survives having no manager assigned.
+- `tools/runtime/capture_thermal_debug.gd` — charts one worsening night twice,
+  exposed and sheltered-at-hour-5, to a PNG. This is the tuning instrument.
+- `ThermalManager.basal_heat_c` — metabolic heat production.
+- A test asserting a lit shelter returns a chilled player to `NORMAL`.
+
+Fixed
+- **The survival loop could not close.** The model had no metabolic heat term,
+  so `effective` temperature never beat bare-skin comfort: a lit shelter at
+  -18 °C ambient slowed the cooling but never reversed it, and every run ended
+  at the lethal floor. Found by the new debug chart, which showed both the
+  exposed and the sheltered curve flatlining. `basal_heat_c` (12 °C) fixes it;
+  `cooling_coefficient` retuned to 0.075 to keep the night's pace.
+- `vital_signs.gd` seeded the thermometer inside `initialize_ui_state()`, which
+  returns early when no `BioMonitorManager` is assigned — so the thermometer
+  silently never seeded. Moved to `initialize_thermal_state()`.
+- `vital_signs.gd` dereferenced unassigned `TextureRect` exports in its
+  device-visibility loop; now null-guarded.
+
+Open for the author
+- With a lit fire the sheltered curve holds a flat 36.6 °C straight through a
+  blizzard — shelter is currently too safe. `HeatSource.burn_duration_h` is the
+  intended answer but is not used anywhere yet.
+
+Verified
+- All three suites pass via `tools/ci/run_tests.sh`.
+- `TestScene` still imports and renders.
+
+
 ### 2026-09-22 (3) — Thermal model, weather state machine, first test suites
 
 Added
