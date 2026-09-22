@@ -5,4 +5,4 @@
 [node name="PlayerCamera" type="Camera3D"]
 transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 0, 5, 0.145)
 script = ExtResource("1_m0laq")
-sprint_fov = 100.0
+sprint_fov = 94.0
