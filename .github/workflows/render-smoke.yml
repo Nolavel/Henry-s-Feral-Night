@@ -20,6 +20,9 @@ jobs:
           export PATH="$HOME/.local/bin:$PATH"
           godot --headless --import --quit || true
 
+      - name: Check filenames and uid files
+        run: tools/ci/check_filenames.sh
+
       - name: Run headless test suites
         run: tools/ci/run_tests.sh
 

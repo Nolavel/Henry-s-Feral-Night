@@ -5,6 +5,38 @@ Maintained per branch; entries are added by whoever makes the change.
 
 ## [Unreleased] — `claudeflow`
 
+### 2026-09-22 (11) — ASCII filenames and the orphaned uid
+
+Closes §3.10 of the commercial assessment.
+
+Renamed
+- `scenes/game/Сhunks/` → `scenes/game/chunks/` — the old directory began with
+  **U+0421 CYRILLIC CAPITAL ES**, visually identical to a Latin `C` and quietly
+  fatal to every grep, glob, path comparison and export filter written against
+  it. Nine chunk scenes moved.
+- `Warning sign101х86.png` / `Warning sign60х51.png` → `warning_sign_101x86.png`
+  / `warning_sign_60x51.png`. Those `х` were Cyrillic too.
+- The island scene's own node names with them: `FM_Сhunks` → `FM_Chunks`,
+  `Сhunk_*` → `Chunk_*`.
+
+Removed
+- `scripts/systems/world/Debug_Accelerator.gd.uid`, orphaned when the script was
+  renamed to `debug_accelerator.gd`. It kept handing out `uid://cjj38qmk6jo8p`,
+  which `WorldEnvironmentSystem.tscn` still referenced — the scene loaded by
+  text path with a warning on every boot. The scene now points at the real
+  `uid://dgvkrwulefgho` and the warning is gone.
+
+Added
+- `tools/ci/check_filenames.sh`, wired into CI ahead of the tests: fails the
+  build on any non-ASCII tracked path and on any `.uid` whose script is gone.
+  Neither problem can come back silently.
+
+Verified
+- Eight suites pass; `data/world_data.tres` regenerated from the normalised
+  scene (9 chunks, every content scene resolved); both the island and
+  `TestScene` render; the gate reports clean.
+
+
 ### 2026-09-22 (10) — Data-driven streaming
 
 Closes the last item `AGENTS.md` had against this project: chunk definitions

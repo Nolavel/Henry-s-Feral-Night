@@ -155,8 +155,16 @@ grep, glob, path comparison or export filter that anyone writes against it. The
 same class of bug produced the old `Сrimson Flow` name. This is not cosmetic —
 it is a defect that only shows up at the worst moment.
 
-Fix: normalise every path in the repository to ASCII, once, in a dedicated
-commit, and add a CI check that rejects non-ASCII filenames.
+**Resolved 2026-09-22.** Every tracked path is ASCII: `scenes/game/Сhunks/` →
+`scenes/game/chunks/`, the two `Warning sign…х…png` textures renamed, and the
+scene's own node names (`FM_Сhunks`, `Сhunk_*`) normalised with them.
+`tools/ci/check_filenames.sh` now fails the build on any non-ASCII tracked path,
+so it cannot come back.
+
+The same pass removed an orphaned `Debug_Accelerator.gd.uid` — left behind when
+the script was renamed to `debug_accelerator.gd` — which was still handing out
+`uid://cjj38qmk6jo8p` to a scene that then loaded by text path with a warning.
+The gate rejects orphaned `.uid` files too.
 
 ## 4. Market position — candid
 

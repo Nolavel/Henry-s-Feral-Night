@@ -3,15 +3,15 @@
 importer="texture"
 type="CompressedTexture2D"
 uid="uid://ssyv56dpmbyr"
-path="res://.godot/imported/Warning sign60х51.png-49479ee24184337f65c42e4be31e795a.ctex"
+path="res://.godot/imported/warning_sign_60x51.png-7e5174625936754f721a4d8fc1264549.ctex"
 metadata={
 "vram_texture": false
 }
 
 [deps]
 
-source_file="res://assets/textures/ui/game/biomonitor/Warning sign60х51.png"
-dest_files=["res://.godot/imported/Warning sign60х51.png-49479ee24184337f65c42e4be31e795a.ctex"]
+source_file="res://assets/textures/ui/game/biomonitor/warning_sign_60x51.png"
+dest_files=["res://.godot/imported/warning_sign_60x51.png-7e5174625936754f721a4d8fc1264549.ctex"]
 
 [params]
 

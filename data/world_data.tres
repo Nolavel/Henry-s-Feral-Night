@@ -5,21 +5,21 @@
 
 [sub_resource type="Resource" id="Resource_xy5s7"]
 script = ExtResource("1_a7pgw")
-id = &"east_point_redoubt"
-display_name = "East Point Redoubt"
-location = "Fort Meridian"
-position = Vector3(1429.1133, 0, -930.46124)
-radius = 239.92082
-content_scene_path = "res://scenes/game/Сhunks/chunk_east_point_redoubt.tscn"
-
-[sub_resource type="Resource" id="Resource_ke6ng"]
-script = ExtResource("1_a7pgw")
 id = &"alata_battery"
 display_name = "Alata Battery"
 location = "Fort Meridian"
 position = Vector3(1407.6669, 0, -902.48816)
 radius = 189.95262
-content_scene_path = "res://scenes/game/Сhunks/chunk_alata_battery.tscn"
+content_scene_path = "res://scenes/game/chunks/chunk_alata_battery.tscn"
+
+[sub_resource type="Resource" id="Resource_ke6ng"]
+script = ExtResource("1_a7pgw")
+id = &"east_point_redoubt"
+display_name = "East Point Redoubt"
+location = "Fort Meridian"
+position = Vector3(1429.1133, 0, -930.46124)
+radius = 239.92082
+content_scene_path = "res://scenes/game/chunks/chunk_east_point_redoubt.tscn"
 
 [sub_resource type="Resource" id="Resource_ffflj"]
 script = ExtResource("1_a7pgw")
@@ -28,7 +28,7 @@ display_name = "Guards Beach"
 location = "Fort Meridian"
 position = Vector3(1559.4852, 0, -1088.3379)
 radius = 245.93088
-content_scene_path = "res://scenes/game/Сhunks/chunk_guards_beach.tscn"
+content_scene_path = "res://scenes/game/chunks/chunk_guards_beach.tscn"
 
 [sub_resource type="Resource" id="Resource_m1w6v"]
 script = ExtResource("1_a7pgw")
@@ -37,7 +37,7 @@ display_name = "Echo Glade"
 location = "Fort Meridian"
 position = Vector3(1106.6283, 0, -714.4108)
 radius = 296.44562
-content_scene_path = "res://scenes/game/Сhunks/chunk_echo_glade.tscn"
+content_scene_path = "res://scenes/game/chunks/chunk_echo_glade.tscn"
 
 [sub_resource type="Resource" id="Resource_msege"]
 script = ExtResource("1_a7pgw")
@@ -46,7 +46,7 @@ display_name = "Gateway Cove"
 location = "Fort Meridian"
 position = Vector3(1299.6283, 0, -909.6835)
 radius = 261.32355
-content_scene_path = "res://scenes/game/Сhunks/chunk_gateway_cove.tscn"
+content_scene_path = "res://scenes/game/chunks/chunk_gateway_cove.tscn"
 
 [sub_resource type="Resource" id="Resource_3v5xq"]
 script = ExtResource("1_a7pgw")
@@ -55,7 +55,7 @@ display_name = "The Waiting Hill"
 location = "Fort Meridian"
 position = Vector3(1449.2441, 0, -1001.76196)
 radius = 248.94377
-content_scene_path = "res://scenes/game/Сhunks/chunk_the_waiting_hill.tscn"
+content_scene_path = "res://scenes/game/chunks/chunk_the_waiting_hill.tscn"
 
 [sub_resource type="Resource" id="Resource_1h1a2"]
 script = ExtResource("1_a7pgw")
@@ -64,7 +64,7 @@ display_name = "The Patrol Trail"
 location = "Fort Meridian"
 position = Vector3(1232.2838, 0, -804.83966)
 radius = 312.40518
-content_scene_path = "res://scenes/game/Сhunks/chunk_the_patrol_trail.tscn"
+content_scene_path = "res://scenes/game/chunks/chunk_the_patrol_trail.tscn"
 
 [sub_resource type="Resource" id="Resource_0d14d"]
 script = ExtResource("1_a7pgw")
@@ -73,7 +73,7 @@ display_name = "Radio Shadow"
 location = "Fort Meridian"
 position = Vector3(1422.1213, 0, -819.11835)
 radius = 233.36238
-content_scene_path = "res://scenes/game/Сhunks/chunk_radio_shadow.tscn"
+content_scene_path = "res://scenes/game/chunks/chunk_radio_shadow.tscn"
 
 [sub_resource type="Resource" id="Resource_keauj"]
 script = ExtResource("1_a7pgw")
@@ -82,7 +82,7 @@ display_name = "The Pit Descent"
 location = "Fort Meridian"
 position = Vector3(1264.6787, 0, -655.7859)
 radius = 275.08908
-content_scene_path = "res://scenes/game/Сhunks/chunk_the_pit_descent.tscn"
+content_scene_path = "res://scenes/game/chunks/chunk_the_pit_descent.tscn"
 
 [resource]
 script = ExtResource("2_e4cvp")
