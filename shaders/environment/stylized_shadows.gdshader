@@ -99,27 +99,45 @@ void light() {
 	float ndotl = max(dot(NORMAL, LIGHT), 0.0);
 
 	if (LIGHT_IS_DIRECTIONAL) {
-		// ATTENUATION only defines the physical region in which a cast shadow
-		// may exist. The visible silhouette is then cut apart by world-space
-		// noise, so the shadow no longer faithfully copies the caster outline.
 		float physical_shadow = clamp(1.0 - ATTENUATION, 0.0, 1.0);
-		float cast_region = smoothstep(0.08, 0.38, physical_shadow);
 
-		// Large islands do the silhouette destruction. A second, smaller band
-		// creates occasional torn flecks without filling the white gaps back in.
-		float macro_ink = smoothstep(
+		// Keep the middle of the cast shadow solid. Once the physical shadow is
+		// deep enough, noise has zero authority to punch white holes through it.
+		float solid_core = smoothstep(0.34, 0.62, physical_shadow);
+
+		// Only the penumbra/periphery is eligible for silhouette destruction.
+		// The gate fades out before the solid core so the two regions overlap
+		// cleanly instead of creating a bright seam.
+		float perimeter_gate =
+			smoothstep(0.025, 0.12, physical_shadow)
+			* (1.0 - smoothstep(0.38, 0.60, physical_shadow));
+
+		// Distort the edge field with one large noise band and a restrained
+		// detail band. This changes the OUTER SHAPE rather than texturing the
+		// interior of the shadow.
+		float edge_field =
+			physical_shadow * 0.70
+			+ shadow_macro * 0.58
+			+ (shadow_detail - 0.5) * 0.12 * shadow_detail_amount;
+
+		float ragged_edge = smoothstep(
 			shadow_pattern_threshold - shadow_break_softness,
 			shadow_pattern_threshold + shadow_break_softness,
-			shadow_macro
+			edge_field
 		);
-		float detail_ink = smoothstep(0.58, 0.72, shadow_detail) * shadow_detail_amount;
-		float broken_ink = clamp(max(macro_ink, detail_ink) * cast_region, 0.0, 1.0);
 
-		// Where broken_ink is zero, direct light is deliberately restored even
-		// though the physical shadow map says "shadow". This is what creates the
-		// white holes and chopped, noisy outer silhouette seen in the reference.
-		float ink_darkness = mix(shadow_pattern_light, shadow_floor, macro_ink);
-		float stylized_shadow = mix(1.0, ink_darkness, broken_ink * shadow_strength);
+		float perimeter_ink = ragged_edge * perimeter_gate;
+		float ink_mask = clamp(max(solid_core, perimeter_ink), 0.0, 1.0);
+
+		// Core stays almost black; only peripheral fragments get a slightly
+		// lighter ink value so the torn silhouette remains readable.
+		float edge_darkness = mix(
+			shadow_pattern_light,
+			shadow_floor,
+			smoothstep(0.42, 0.72, shadow_macro)
+		);
+		float ink_darkness = mix(edge_darkness, shadow_floor, solid_core);
+		float stylized_shadow = mix(1.0, ink_darkness, ink_mask * shadow_strength);
 
 		DIFFUSE_LIGHT += ndotl * stylized_shadow * LIGHT_COLOR / PI;
 	} else {
