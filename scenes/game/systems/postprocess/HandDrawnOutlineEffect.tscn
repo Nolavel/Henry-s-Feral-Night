@@ -1,26 +1,26 @@
 [gd_scene load_steps=4 format=3]
 
-[ext_resource type="Shader" path="res://shaders/postprocess/hand_drawn_outline_stencil.gdshader" id="1_outline"]
-[ext_resource type="Script" path="res://scripts/systems/rendering/StencilHandDrawnOutline.gd" id="2_script"]
+[ext_resource type="Shader" path="res://shaders/postprocess/hand_drawn_outline_screen_sobel.gdshader" id="1_shader"]
+[ext_resource type="Script" path="res://scripts/systems/rendering/MaskedHandDrawnOutline.gd" id="2_script"]
 
 [sub_resource type="ShaderMaterial" id="ShaderMaterial_outline"]
 resource_local_to_scene = true
-render_priority = 127
-shader = ExtResource("1_outline")
-shader_parameter/edge_color = Color(0.012, 0.016, 0.022, 1)
-shader_parameter/edge_opacity = 0.68
-shader_parameter/edge_width_px = 1.15
-shader_parameter/edge_threshold = 0.012
+shader = ExtResource("1_shader")
+shader_parameter/edge_color = Color(0.006, 0.008, 0.012, 1)
+shader_parameter/edge_opacity = 0.76
+shader_parameter/edge_width_px = 1.35
+shader_parameter/edge_threshold = 0.018
 shader_parameter/jitter_amount_px = 0.3
+shader_parameter/player_mask_dilate_px = 1.5
 
-[sub_resource type="QuadMesh" id="QuadMesh_outline"]
+[node name="HandDrawnOutlineEffect" type="ColorRect"]
+anchors_preset = 15
+anchor_right = 1.0
+anchor_bottom = 1.0
+grow_horizontal = 2
+grow_vertical = 2
+mouse_filter = 2
 material = SubResource("ShaderMaterial_outline")
-size = Vector2(2, 2)
-flip_faces = true
-
-[node name="HandDrawnOutlineEffect" type="MeshInstance3D"]
-position = Vector3(0, 0, -1)
-cast_shadow = 0
-extra_cull_margin = 16384.0
-mesh = SubResource("QuadMesh_outline")
 script = ExtResource("2_script")
+player_render_layer = 16
+mask_dilate_px = 1.5
