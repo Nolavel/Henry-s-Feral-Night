@@ -16,6 +16,14 @@ uniform float cloud_sag = 2.0;
 uniform sampler2D noise_texture : filter_linear_mipmap, repeat_enable;
 uniform vec2 noise_tiling = vec2(1.0);
 uniform vec2 wind_speed = vec2(0.24, 0.08);
+
+// Multi-layer angular parallax. Because a sky shader is infinitely distant,
+// this is a layered directional parallax rather than world-position parallax.
+uniform float parallax_strength : hint_range(0.0, 1.0) = 0.22;
+uniform float parallax_layer_separation : hint_range(0.0, 1.0) = 0.35;
+uniform float parallax_detail_weight : hint_range(0.0, 1.0) = 0.45;
+uniform float parallax_mid_scale : hint_range(1.0, 4.0) = 1.65;
+uniform float parallax_high_scale : hint_range(1.0, 6.0) = 2.55;
 group_uniforms;
 
 group_uniforms Ground;
@@ -46,6 +54,36 @@ float sample_cloud_height(vec2 uv) {
 }
 
 
+float sample_layered_clouds(
+	vec2 base_uv,
+	vec2 view_slant,
+	vec2 wind_uv
+) {
+	float base = sample_cloud_height(base_uv + wind_uv);
+
+	vec2 mid_offset =
+		view_slant * parallax_strength * parallax_layer_separation
+		+ wind_uv * 0.37
+		+ vec2(13.71, -8.23);
+	float middle = sample_cloud_height(
+		base_uv * parallax_mid_scale + mid_offset
+	);
+
+	vec2 high_offset =
+		view_slant * parallax_strength * parallax_layer_separation * 1.9
+		+ wind_uv * 0.73
+		+ vec2(-19.42, 15.31);
+	float high = sample_cloud_height(
+		base_uv * parallax_high_scale + high_offset
+	);
+
+	float layered = base;
+	layered = mix(layered, max(base * 0.78, middle), parallax_detail_weight * 0.62);
+	layered = mix(layered, clamp(layered * 0.86 + high * 0.22, 0.0, 1.0), parallax_detail_weight * 0.48);
+	return clamp(layered, 0.0, 1.0);
+}
+
+
 float beer_law(float absorption, float distance_through_cloud) {
 	return exp(-absorption * max(distance_through_cloud, 0.0));
 }
@@ -72,17 +110,44 @@ void sky() {
 	);
 
 	if (t >= 0.0) {
-		vec3 wind = vec3(wind_speed.x, 0.0, wind_speed.y) * TIME * 0.1;
+		vec2 wind_uv = wind_speed * TIME * 0.1;
 		vec3 tiling = vec3(noise_tiling.x, 1.0, noise_tiling.y) * 0.2;
-		vec3 cloud_position = EYEDIR * t * tiling + wind;
+		vec3 cloud_position = EYEDIR * t * tiling;
 
-		float cloud_height = sample_cloud_height(cloud_position.xz);
-		cloud_position += EYEDIR * cloud_height * cloud_depth * 0.1;
-		cloud_height = sample_cloud_height(cloud_position.xz);
+		float safe_up = max(EYEDIR.y, 0.08);
+		vec2 view_slant = EYEDIR.xz / safe_up;
+
+		float cloud_height = sample_layered_clouds(
+			cloud_position.xz,
+			view_slant,
+			wind_uv
+		);
+
+		// Second depth sample: shifts the apparent cloud body along the ray and
+		// strengthens the layered separation without adding another texture.
+		vec3 depth_position = cloud_position
+			+ EYEDIR * cloud_height * cloud_depth * 0.12;
+		float depth_height = sample_layered_clouds(
+			depth_position.xz,
+			view_slant * 1.08,
+			wind_uv * 1.05
+		);
+		cloud_height = mix(cloud_height, depth_height, 0.42);
 
 		float view_up = clamp(dot(vec3(0.0, 1.0, 0.0), EYEDIR), 0.0, 1.0);
-		float transmission = beer_law(cloud_density, 1.0 - cloud_height * view_up);
-		upper_sky += light_color * transmission;
+		float transmission = beer_law(
+			cloud_density,
+			1.0 - cloud_height * view_up
+		);
+
+		// Give the middle/high layers a subtle value separation so their
+		// parallax remains readable in a still frame.
+		float depth_relief = clamp(
+			cloud_height * (0.88 + parallax_detail_weight * 0.18),
+			0.0,
+			1.0
+		);
+		upper_sky += light_color * transmission * mix(0.86, 1.08, depth_relief);
 	}
 
 	vec3 horizon = cloud_color.rgb + light_color * beer_law(cloud_density, 1.0);
