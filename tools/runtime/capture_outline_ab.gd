@@ -103,6 +103,12 @@ func _prepare_scene() -> void:
 		if day_night.has_method("force_update_lighting"):
 			day_night.call("force_update_lighting")
 
+		# simple_overcast.gdshader uses TIME for wind. Freeze wind so the two
+		# screenshots differ only by HandDrawnOutlineEffect.visible.
+		var sky_material: ShaderMaterial = day_night.get("sky_material") as ShaderMaterial
+		if sky_material != null:
+			sky_material.set_shader_parameter("wind_speed", Vector2.ZERO)
+
 
 func _hide_canvas_items(node: Node) -> void:
 	if node is CanvasItem:
