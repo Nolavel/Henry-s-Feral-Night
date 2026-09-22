@@ -5,6 +5,7 @@ on:
     branches: [main]
     paths:
       - "tools/runtime/capture_island_visual_fx.gd"
+      - "shaders/environment/terrain3d_stylized_capture.gdshader"
       - ".github/workflows/island-visual-fx-preview.yml"
 
 jobs:

@@ -3,9 +3,10 @@ extends SceneTree
 const ISLAND_SCENE := "res://experimental_location/scenes/Graciosa_Island_Terrain.tscn"
 const FADE_VOLUME_SCENE := "res://scenes/environment/visual_fx/FadeVolume.tscn"
 const SHADOW_MATERIAL := "res://scenes/environment/visual_fx/StylizedShadowMaterial.tres"
+const TERRAIN_CAPTURE_SHADER := "res://shaders/environment/terrain3d_stylized_capture.gdshader"
 const OUTPUT_DIR := "res://artifacts/island_visual_fx"
-const INITIAL_WARMUP_FRAMES := 72
-const SHOT_SETTLE_FRAMES := 18
+const INITIAL_WARMUP_FRAMES := 80
+const SHOT_SETTLE_FRAMES := 22
 
 const SHOTS := [
 	{
@@ -43,11 +44,11 @@ const SHOTS := [
 ]
 
 var _scene_root: Node3D
-var _terrain: Terrain3D
+var _terrain: Node
 var _camera: Camera3D
 var _sun: DirectionalLight3D
 var _volume: Node3D
-var _anchor: Vector3
+var _anchor := Vector3(1420.0, 3.0, -943.0)
 var _frame := 0
 var _configured := false
 var _shot_index := -1
@@ -67,6 +68,24 @@ func _initialize() -> void:
 		quit(1)
 		return
 
+	# GameRouter queues FirstSpawner for deletion in _ready(), so capture its
+	# authored position before the island enters the SceneTree.
+	var spawner := _scene_root.get_node_or_null("FirstSpawner") as Marker3D
+	if spawner != null:
+		_anchor = spawner.position
+
+	# Install the Compatibility-safe Terrain3D shader BEFORE first render.
+	# This prevents Terrain3D 1.0.1's full generated shader from being the
+	# material we rely on when the CI runner falls back from Vulkan to GLES3.
+	_terrain = _scene_root.get_node_or_null("NavigationRegion3D/Terrain3D")
+	if _terrain == null:
+		push_error("Island VFX capture: Terrain3D node is absent before tree entry.")
+		quit(1)
+		return
+	if not _install_capture_terrain_shader():
+		quit(1)
+		return
+
 	root.add_child(_scene_root)
 
 
@@ -74,7 +93,7 @@ func _process(_delta: float) -> bool:
 	_frame += 1
 
 	if not _configured:
-		if _frame < 4:
+		if _frame < 5:
 			return false
 		_configure_scene()
 		return false
@@ -98,18 +117,49 @@ func _process(_delta: float) -> bool:
 	return false
 
 
+func _install_capture_terrain_shader() -> bool:
+	var terrain_material: Object = _terrain.get("material")
+	if terrain_material == null:
+		push_error("Island VFX capture: Terrain3D material missing.")
+		return false
+
+	var custom_shader := load(TERRAIN_CAPTURE_SHADER) as Shader
+	if custom_shader == null:
+		push_error("Island VFX capture: capture Terrain3D shader failed to load.")
+		return false
+
+	terrain_material.set("shader_override", custom_shader)
+	terrain_material.set("shader_override_enabled", true)
+
+	var source_material := load(SHADOW_MATERIAL) as ShaderMaterial
+	if source_material == null:
+		push_error("Island VFX capture: StylizedShadowMaterial failed to load.")
+		return false
+
+	var noise_texture = source_material.get_shader_parameter("noise_texture")
+	if terrain_material.has_method("set_shader_param"):
+		terrain_material.call("set_shader_param", "hfn_shadow_noise", noise_texture)
+		terrain_material.call("set_shader_param", "hfn_scale_macro", 0.09)
+		terrain_material.call("set_shader_param", "hfn_scale_detail", 0.44)
+		terrain_material.call("set_shader_param", "hfn_shadow_floor", 0.005)
+		terrain_material.call("set_shader_param", "hfn_shadow_edge_light", 0.06)
+		terrain_material.call("set_shader_param", "hfn_shadow_threshold", 0.46)
+		terrain_material.call("set_shader_param", "hfn_break_softness", 0.045)
+		terrain_material.call("set_shader_param", "hfn_detail_amount", 0.12)
+
+	_terrain.set("show_grid", false)
+	_terrain.set("show_region_grid", false)
+	return true
+
+
 func _configure_scene() -> void:
 	_camera = _scene_root.get_node_or_null("PlayerCamera") as Camera3D
-	_terrain = _scene_root.get_node_or_null("NavigationRegion3D/Terrain3D") as Terrain3D
 	_sun = _scene_root.get_node_or_null("WorldEnvironmentSystem/Lighting/SunLight") as DirectionalLight3D
-	var spawner := _scene_root.get_node_or_null("FirstSpawner") as Marker3D
 
-	if _camera == null or _terrain == null or spawner == null:
-		push_error("Island VFX capture: required Graciosa nodes are missing.")
+	if _camera == null:
+		push_error("Island VFX capture: PlayerCamera is missing.")
 		quit(1)
 		return
-
-	_anchor = spawner.global_position
 
 	_camera.process_mode = Node.PROCESS_MODE_DISABLED
 	_camera.current = true
@@ -132,10 +182,6 @@ func _configure_scene() -> void:
 		_sun.shadow_normal_bias = 1.25
 		_sun.directional_shadow_max_distance = 1800.0
 
-	_terrain.show_grid = false
-	_terrain.show_region_grid = false
-	_install_terrain_stylized_shadows()
-
 	var fade_packed := load(FADE_VOLUME_SCENE) as PackedScene
 	if fade_packed == null:
 		push_error("Island VFX capture: FadeVolume scene failed to load.")
@@ -153,125 +199,14 @@ func _configure_scene() -> void:
 	_configured = true
 
 
-func _install_terrain_stylized_shadows() -> void:
-	var terrain_material: Terrain3DMaterial = _terrain.material
-	if terrain_material == null:
-		push_error("Island VFX capture: Terrain3D material missing.")
-		quit(1)
-		return
-
-	# Ask Terrain3D for the exact shader generated from the island's own current
-	# material settings, then add only a custom light() function.
-	terrain_material.shader_override_enabled = true
-	var generated: Shader = terrain_material.shader_override
-	if generated == null:
-		push_error("Island VFX capture: Terrain3D did not generate shader override.")
-		quit(1)
-		return
-
-	var code := generated.code
-	if code.contains("void light()"):
-		push_error("Island VFX capture: generated Terrain3D shader already owns light().")
-		quit(1)
-		return
-	if not code.contains("varying vec3 v_vertex"):
-		push_error("Island VFX capture: generated Terrain3D shader has no v_vertex varying.")
-		quit(1)
-		return
-
-	code += """
-
-// HFN island preview: the same solid-core / torn-perimeter shadow treatment
-// used by StylizedShadowMaterial, applied to Terrain3D's real generated shader.
-uniform sampler2D hfn_shadow_noise : source_color, filter_linear_mipmap, repeat_enable;
-uniform float hfn_scale_macro = 0.09;
-uniform float hfn_scale_detail = 0.44;
-uniform float hfn_shadow_floor = 0.005;
-uniform float hfn_shadow_edge_light = 0.06;
-uniform float hfn_shadow_threshold = 0.46;
-uniform float hfn_break_softness = 0.045;
-uniform float hfn_detail_amount = 0.12;
-
-void light() {
-	float ndotl = max(dot(NORMAL, LIGHT), 0.0);
-
-	if (LIGHT_IS_DIRECTIONAL) {
-		float physical_shadow = clamp(1.0 - ATTENUATION, 0.0, 1.0);
-		float solid_core = smoothstep(0.48, 0.68, physical_shadow);
-		float perimeter_gate =
-			smoothstep(0.10, 0.22, physical_shadow)
-			* (1.0 - smoothstep(0.50, 0.72, physical_shadow));
-
-		float macro_noise = texture(hfn_shadow_noise, v_vertex.xz * hfn_scale_macro).r;
-		float detail_noise = texture(
-			hfn_shadow_noise,
-			v_vertex.xz * hfn_scale_detail + vec2(11.7, -4.3)
-		).r;
-
-		float edge_field =
-			physical_shadow * 0.56
-			+ macro_noise * 0.78
-			+ (detail_noise - 0.5) * 0.10 * hfn_detail_amount;
-
-		float ragged_edge = smoothstep(
-			hfn_shadow_threshold - hfn_break_softness,
-			hfn_shadow_threshold + hfn_break_softness,
-			edge_field
-		);
-
-		float perimeter_ink = ragged_edge * perimeter_gate;
-		float ink_mask = clamp(max(solid_core, perimeter_ink), 0.0, 1.0);
-		float edge_darkness = mix(
-			hfn_shadow_edge_light,
-			hfn_shadow_floor,
-			smoothstep(0.42, 0.72, macro_noise)
-		);
-		float ink_darkness = mix(edge_darkness, hfn_shadow_floor, solid_core);
-		float stylized_shadow = mix(1.0, ink_darkness, ink_mask);
-
-		DIFFUSE_LIGHT += ndotl * stylized_shadow * LIGHT_COLOR / PI;
-	} else {
-		DIFFUSE_LIGHT += ndotl * ATTENUATION * LIGHT_COLOR / PI;
-	}
-}
-"""
-
-	var custom := Shader.new()
-	custom.code = code
-	terrain_material.shader_override = custom
-	terrain_material.shader_override_enabled = true
-
-	var source_material := load(SHADOW_MATERIAL) as ShaderMaterial
-	if source_material == null:
-		push_error("Island VFX capture: StylizedShadowMaterial failed to load.")
-		quit(1)
-		return
-
-	var noise_texture = source_material.get_shader_parameter("noise_texture")
-	terrain_material.set_shader_param("hfn_shadow_noise", noise_texture)
-	terrain_material.set_shader_param("hfn_scale_macro", 0.09)
-	terrain_material.set_shader_param("hfn_scale_detail", 0.44)
-	terrain_material.set_shader_param("hfn_shadow_floor", 0.005)
-	terrain_material.set_shader_param("hfn_shadow_edge_light", 0.06)
-	terrain_material.set_shader_param("hfn_shadow_threshold", 0.46)
-	terrain_material.set_shader_param("hfn_break_softness", 0.045)
-	terrain_material.set_shader_param("hfn_detail_amount", 0.12)
-
-
 func _apply_shot(shot: Dictionary) -> void:
-	var camera_xz := Vector2(
-		_anchor.x + float((shot["camera_offset"] as Vector3).x),
-		_anchor.z + float((shot["camera_offset"] as Vector3).z)
-	)
-	var target_xz := Vector2(
-		_anchor.x + float((shot["target_offset"] as Vector3).x),
-		_anchor.z + float((shot["target_offset"] as Vector3).z)
-	)
+	var camera_offset: Vector3 = shot["camera_offset"]
+	var target_offset: Vector3 = shot["target_offset"]
+	var camera_xz := Vector2(_anchor.x + camera_offset.x, _anchor.z + camera_offset.z)
+	var target_xz := Vector2(_anchor.x + target_offset.x, _anchor.z + target_offset.z)
 
-	var camera_height := float((shot["camera_offset"] as Vector3).y)
-	var target_height := float((shot["target_offset"] as Vector3).y)
-	var camera_pos := _position_above_terrain(camera_xz, camera_height)
-	var target_pos := _position_above_terrain(target_xz, target_height)
+	var camera_pos := _position_above_terrain(camera_xz, camera_offset.y)
+	var target_pos := _position_above_terrain(target_xz, target_offset.y)
 
 	_camera.global_position = camera_pos
 	_camera.fov = float(shot["fov"])
@@ -284,17 +219,20 @@ func _apply_shot(shot: Dictionary) -> void:
 		shot["volume_scale"] as Vector3
 	)
 
-	print(
-		"Island VFX shot %s camera=%s target=%s"
-		% [String(shot["name"]), camera_pos, target_pos]
-	)
+	print("Island VFX shot %s camera=%s target=%s" % [
+		String(shot["name"]),
+		camera_pos,
+		target_pos,
+	])
 
 
 func _position_above_terrain(xz: Vector2, above: float) -> Vector3:
-	var probe := Vector3(xz.x, 0.0, xz.y)
-	var ground := _terrain.data.get_height(probe)
-	if is_nan(ground):
-		ground = _anchor.y
+	var ground := _anchor.y
+	var data: Object = _terrain.get("data")
+	if data != null and data.has_method("get_height"):
+		var value = data.call("get_height", Vector3(xz.x, 0.0, xz.y))
+		if value is float and not is_nan(float(value)):
+			ground = float(value)
 	return Vector3(xz.x, ground + above, xz.y)
 
 
