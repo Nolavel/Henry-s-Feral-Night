@@ -24,6 +24,10 @@ boot_splash/minimum_display_time=5000
 
 settings/addon_root_folder="res://addons/debug_draw_3d"
 
+[autoload]
+
+InputSystems="*res://core/input/input_systems.gd"
+
 [display]
 
 window/size/viewport_width=1920.0

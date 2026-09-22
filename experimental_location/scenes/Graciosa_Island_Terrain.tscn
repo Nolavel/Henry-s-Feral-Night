@@ -1,6 +1,6 @@
 [gd_scene load_steps=18 format=3 uid="uid://cg14lfow57cog"]
 
-[ext_resource type="Script" uid="uid://cfxlv63bvtuwb" path="res://scripts/systems/game_route/GameRouter.gd" id="1_8hwqn"]
+[ext_resource type="Script" path="res://world/world.gd" id="1_8hwqn"]
 [ext_resource type="PackedScene" uid="uid://dputwp1am8vfu" path="res://scenes/game/systems/camera/PlayerCamera.tscn" id="1_ftega"]
 [ext_resource type="PackedScene" uid="uid://ciy301x7wh6ie" path="res://scenes/actors/player/player.tscn" id="2_8hwqn"]
 [ext_resource type="PackedScene" uid="uid://duxn5rqcau5dw" path="res://tools/StatsDisplay/StatsDisplay.tscn" id="5_h70bg"]
@@ -216,10 +216,15 @@ func _draw_player_dot():
 	draw_circle(player_screen_pos, inner_radius, Color.RED)
 "
 
-[node name="Graciosa_Island_Terrain" type="Node3D" node_paths=PackedStringArray("first_spawner_marker")]
+[node name="World" type="Node3D" node_paths=PackedStringArray("stream_container", "player", "camera", "first_spawner_marker")]
 script = ExtResource("1_8hwqn")
+stream_container = NodePath("StreamContainer")
+player = NodePath("Player")
+camera = NodePath("PlayerCamera")
 first_spawner_marker = NodePath("FirstSpawner")
 metadata/_edit_group_ = true
+
+[node name="StreamContainer" type="Node3D" parent="."]
 
 [node name="Player" parent="." instance=ExtResource("2_8hwqn")]
 transform = Transform3D(-4.37114e-08, 0, 1, 0, 1, 0, -1, 0, -4.37114e-08, 1247, 20, -829)

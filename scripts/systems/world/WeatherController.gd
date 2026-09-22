@@ -9,6 +9,9 @@ signal weather_changed(profile: WeatherProfile)
 ## Emitted every tick with the blended values the rest of the game reads.
 signal conditions_updated(ambient_offset_c: float, wind_speed_mps: float, snowfall_density: float)
 
+## Directory the default profiles are loaded from when none are assigned.
+const DEFAULT_PROFILE_DIR: String = "res://resources/weather"
+
 @export_group("Profiles")
 ## Weather profiles the scheduler may pick from, as .tres resources.
 @export var profiles: Array[WeatherProfile] = []
@@ -76,8 +79,66 @@ func _process(delta: float) -> void:
 	conditions_updated.emit(_ambient_offset_c, _wind_speed_mps, _snowfall_density)
 
 
-## Stable key this system uses inside a save file.
-func save_id() -> StringName:
+## Resolves the day/night clock from the scene when the world comes up, so the
+## scheduler runs without anyone wiring an export by hand.
+func on_world_ready(context: WorldContext) -> void:
+	if day_night_manager == null:
+		day_night_manager = _find_day_night_manager(context)
+	if day_night_manager != null and not day_night_manager.time_update.is_connected(_on_time_update):
+		day_night_manager.time_update.connect(_on_time_update)
+	if profiles.is_empty():
+		profiles = load_profiles_from(DEFAULT_PROFILE_DIR)
+	initialize()
+
+
+## Loads every WeatherProfile in a directory, sorted for a stable order.
+static func load_profiles_from(directory: String) -> Array[WeatherProfile]:
+	var profiles: Array[WeatherProfile] = []
+	var dir := DirAccess.open(directory)
+	if dir == null:
+		return profiles
+	var names: Array[String] = []
+	for file_name: String in dir.get_files():
+		var clean: String = file_name.trim_suffix(".remap")
+		if clean.ends_with(".tres"):
+			names.append(clean)
+	names.sort()
+	for clean: String in names:
+		var profile := load("%s/%s" % [directory, clean]) as WeatherProfile
+		if profile != null:
+			profiles.append(profile)
+	return profiles
+
+
+## Walks the scene for a DayNightManager, since it is authored in the level
+## rather than created by the composition root.
+func _find_day_night_manager(context: WorldContext) -> DayNightManager:
+	var roots: Array[Node] = [context.player]
+	if is_inside_tree():
+		roots.append(get_tree().current_scene)
+	for root_node: Node in roots:
+		if root_node == null:
+			continue
+		var found := _search_for_day_night(root_node)
+		if found != null:
+			return found
+	return null
+
+
+func _search_for_day_night(node: Node) -> DayNightManager:
+	var typed := node as DayNightManager
+	if typed != null:
+		return typed
+	for child: Node in node.get_children():
+		var found := _search_for_day_night(child)
+		if found != null:
+			return found
+	return null
+
+
+## Key this system owns in a save file, stated explicitly so renaming the
+## script never orphans an existing save.
+func get_save_key() -> StringName:
 	return &"weather"
 
 

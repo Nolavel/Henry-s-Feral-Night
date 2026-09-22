@@ -174,8 +174,9 @@ func restore_body_temperature() -> void:
 	_update_stage()
 
 
-## Stable key this system uses inside a save file.
-func save_id() -> StringName:
+## Key this system owns in a save file, stated explicitly so renaming the
+## script never orphans an existing save.
+func get_save_key() -> StringName:
 	return &"thermal"
 
 

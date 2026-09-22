@@ -5,6 +5,56 @@ Maintained per branch; entries are added by whoever makes the change.
 
 ## [Unreleased] — `claudeflow`
 
+### 2026-09-22 (9) — Composition root, WorldContext and InputSystems, from ADT
+
+Read `Nolavel/ADT` and ported its architectural spine. Details and the full
+list of what was and was not taken: `docs/technical/WORLD_ARCHITECTURE.md`.
+
+Added
+- `world/world.gd` — the composition root. Three declarative lists
+  (`WORLD_SYSTEM_SCRIPTS`, `WORLD_3D_ENTITY_SCENES`, `WORLD_UI_SCENES`) say what
+  exists; the loops that build them are fixed, so **the file does not grow as
+  systems are added**. Adding anything is one line.
+- `core/world/world_context.gd` — `WorldContext`, the "almost DI": player,
+  camera, stream container and the live systems, with `get_system(Class)`.
+  Systems stop being hand-wired through `@export` NodePaths in the scene.
+- `on_world_ready(context)` — duck-typed lifecycle hook, checked by
+  `has_method()`. `SaveManager` adopts the systems list through it;
+  `WeatherController` finds the day/night clock and loads its profiles.
+- `core/input/input_systems.gd` — first autoload in this project, and the only
+  file that reads `Input`. Edges come from events, levels come from polls, and
+  `Input.is_action_just_pressed()` is banned outright.
+- `tests/systems/test_world_composition.gd`.
+
+Changed
+- The island scene now carries `world.gd`, has a `StreamContainer`, and its root
+  is `World`. `GameRouter.gd`'s one job — move the player to the marker and free
+  it — is `_place_player()`.
+- **Save contract converged on ADT's**, since two codebases by the same author
+  should not disagree: `save_id()` → `get_save_key()`; partial implementations
+  are now skipped all-or-nothing; and an unrecognised save version is **refused
+  outright** rather than passed through with a warning. A half-applied save from
+  a future build is worse than a refused one.
+
+Fixed
+- `WeatherController` dereferenced `get_tree()` without checking it, which is
+  null outside the tree.
+
+Recorded, not done
+- By ADT's naming rule, `BioMonitorManager`, `StaminaManager`,
+  `InventoryManager` and `ThermalManager` are all **Components** — attached to
+  one owner, owning no collection. Renaming touches scenes as well as scripts,
+  so it is written down rather than half-applied.
+- The streaming port is specified in `WORLD_ARCHITECTURE.md` §6 as four concrete
+  steps. `CHUNK_DEFINITIONS` being a hardcoded dictionary is the gap
+  `AGENTS.md` already names; the generator and the rewrite land together or not
+  at all.
+
+Verified
+- Seven suites pass; the island boots through the composition root and renders
+  (`[World] initialized with 2 systems`).
+
+
 ### 2026-09-22 (8) — Gait wired to the ice
 
 Added

@@ -1,8 +1,15 @@
 class_name SaveManager
 extends Node
 
-## Collects state from every registered participant and writes it atomically to
-## a slot. Meant to be an autoload; sleeping is the only thing that calls save().
+## Collects state from every participant and writes it atomically to a slot.
+## Sleeping is the only thing that calls save() during play.
+##
+## The contract is three methods, checked all-or-nothing, taken from the ADT
+## project so both codebases opt in the same way:
+##   get_save_key() -> StringName   a key that outlives the class name
+##   get_save_data() -> Dictionary  primitives, arrays and dictionaries only
+##   load_save_data(data: Dictionary) -> void
+## Implement all three and you are saved; implement some and you are skipped.
 
 ## Emitted after a slot is written successfully.
 signal save_completed(slot: int)
@@ -29,15 +36,34 @@ var _last_error: String = ""
 var _registered: Array[Node] = []
 
 
+## The composition root's optional lifecycle hook. Everything this system
+## needs is the already-built systems list.
+func on_world_ready(context: WorldContext) -> void:
+	for system: Node in context.systems:
+		if system != self and implements_save_contract(system):
+			register(system)
+
+
 ## Registers a participant explicitly. Use this from _ready() when a system
 ## must be saved regardless of when the scene tree settles.
 func register(node: Node) -> void:
 	if node == null or _registered.has(node):
 		return
-	if not (node.has_method("get_save_data") and node.has_method("load_save_data")):
-		push_warning("SaveManager: '%s' cannot be registered, it lacks the save methods" % node.name)
+	if not implements_save_contract(node):
+		push_warning("SaveManager: '%s' does not implement the save contract" % node.name)
 		return
 	_registered.append(node)
+
+
+## True when a node implements the whole contract. Partial implementations are
+## skipped rather than half-saved, which is how a missing key stays visible.
+static func implements_save_contract(node: Node) -> bool:
+	return (
+		node != null
+		and node.has_method("get_save_key")
+		and node.has_method("get_save_data")
+		and node.has_method("load_save_data")
+	)
 
 
 ## Drops a participant; freed nodes are pruned automatically as well.
@@ -177,20 +203,20 @@ func _get_participants() -> Array[Node]:
 		for node: Node in get_tree().get_nodes_in_group(SAVEABLE_GROUP):
 			if participants.has(node):
 				continue
-			if node.has_method("get_save_data") and node.has_method("load_save_data"):
+			if implements_save_contract(node):
 				participants.append(node)
 			else:
 				push_warning(
-					"SaveManager: '%s' is saveable but lacks the save methods" % node.name
+					"SaveManager: '%s' is in the saveable group but does not "
+					% node.name + "implement the whole contract"
 				)
 	return participants
 
 
-## Participants may declare a stable id; otherwise the node name is used.
+## A participant's own key. Stated explicitly by the system so renaming a
+## script never orphans a save file.
 func _resolve_id(node: Node) -> String:
-	if node.has_method("save_id"):
-		return String(node.call("save_id"))
-	return node.name
+	return String(node.call(&"get_save_key"))
 
 
 ## Writes via a temporary file and renames, so a crash cannot leave a half save.
@@ -222,20 +248,26 @@ func _write_atomically(path: String, text: String) -> bool:
 	return true
 
 
-## Upgrades an older document to the current layout. Unknown future versions
-## are passed through untouched rather than silently mangled.
+## Upgrades an older document to the current layout, or refuses it.
+##
+## A version this build does not recognise is refused outright rather than
+## half-applied: a save format without a version field is a migration problem
+## that can never be fixed after the fact, so no partial apply is allowed.
 func _migrate(document: Dictionary) -> Dictionary:
-	var version: int = int(document.get("version", 0))
+	if not document.has("version"):
+		_last_error = "save has no version field"
+		push_warning("SaveManager: %s; refusing it" % _last_error)
+		return {}
+	var version: int = int(document["version"])
 	if version == SAVE_VERSION:
 		return document
 	if version > SAVE_VERSION:
-		push_warning("SaveManager: slot was written by a newer build (v%d)" % version)
-		return document
-	if version < 1:
-		document["payload"] = document.get("payload", {})
-		document["metadata"] = document.get("metadata", {})
-		document["version"] = SAVE_VERSION
-	return document
+		_last_error = "save was written by a newer build (v%d)" % version
+		push_warning("SaveManager: %s; refusing it" % _last_error)
+		return {}
+	_last_error = "save version %d has no migration path" % version
+	push_warning("SaveManager: %s; refusing it" % _last_error)
+	return {}
 
 
 func _slot_path(slot: int) -> String:
