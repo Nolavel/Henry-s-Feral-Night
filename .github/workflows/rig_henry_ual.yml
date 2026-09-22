@@ -6,6 +6,7 @@ on:
       - codex
     paths:
       - .github/workflows/rig_henry_ual.yml
+      - tools/blender/rig_henry_ual.py
 
 permissions:
   contents: write
