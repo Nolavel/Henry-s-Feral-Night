@@ -41,6 +41,17 @@ class_name PlayerCamera
 @export var collision_margin: float = 0.08
 @export_flags_3d_physics var collision_mask: int = 0xFFFFFFFF
 
+@export_group("Hand Drawn Outline")
+@export var outline_enabled: bool = true
+@export var outline_edge_color: Color = Color(0.012, 0.016, 0.022, 1.0)
+@export_range(0.0, 1.0, 0.01) var outline_opacity: float = 0.58
+@export_range(0.5, 3.0, 0.05) var outline_width_px: float = 1.05
+@export_range(0.001, 0.25, 0.001) var outline_depth_threshold: float = 0.018
+@export_range(0.005, 0.6, 0.005) var outline_normal_threshold: float = 0.085
+@export_range(0.0, 1.0, 0.05) var outline_jitter_px: float = 0.30
+@export_range(0.0, 100.0, 0.5) var outline_fade_start: float = 18.0
+@export_range(1.0, 200.0, 0.5) var outline_fade_end: float = 60.0
+
 var current_yaw: float = 0.0
 
 var _orbit_offset: float = 0.0
@@ -53,9 +64,12 @@ var _land_offset: float = 0.0
 var _was_on_floor: bool = true
 var _previous_vertical_velocity: float = 0.0
 var _collision_shape: SphereShape3D
+var _outline_effect: HandDrawnOutlineCompositorEffect
 
 
 func _ready() -> void:
+	_setup_hand_drawn_outline()
+
 	if not is_instance_valid(player):
 		push_warning("PlayerCamera: player is not assigned.")
 		return
@@ -220,3 +234,27 @@ func _update_orientation_feedback(
 
 func _response(speed: float, delta: float) -> float:
 	return 1.0 - exp(-maxf(speed, 0.001) * delta)
+
+
+
+func _setup_hand_drawn_outline() -> void:
+	if not outline_enabled:
+		compositor = null
+		_outline_effect = null
+		return
+
+	_outline_effect = HandDrawnOutlineCompositorEffect.new()
+	_outline_effect.edge_color = outline_edge_color
+	_outline_effect.edge_opacity = outline_opacity
+	_outline_effect.edge_width_px = outline_width_px
+	_outline_effect.depth_threshold = outline_depth_threshold
+	_outline_effect.normal_threshold = outline_normal_threshold
+	_outline_effect.jitter_amount_px = outline_jitter_px
+	_outline_effect.distance_fade_start = outline_fade_start
+	_outline_effect.distance_fade_end = maxf(outline_fade_end, outline_fade_start + 0.5)
+
+	var outline_compositor := Compositor.new()
+	var effects: Array[CompositorEffect] = []
+	effects.append(_outline_effect)
+	outline_compositor.compositor_effects = effects
+	compositor = outline_compositor
