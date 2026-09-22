@@ -1,0 +1,116 @@
+{
+  "blender_version": "4.0.2",
+  "render_engine": "BLENDER_EEVEE",
+  "source_henry": "assets/models/characters/henry_test_model/Henry_Test_player.glb",
+  "source_ual": "assets/animation/ual/Unreal-Godot/UAL1_Standard.glb",
+  "output_glb": "assets/models/characters/henry_ual/Henry_UAL_Rigged.glb",
+  "armature": "Henry_UAL_Armature",
+  "bone_count": 65,
+  "donor_mesh": "Mannequin",
+  "donor_vertex_groups": 65,
+  "henry_meshes": [
+    "Henry_Body"
+  ],
+  "alignment_scale": 1.8287171091069467,
+  "source_bounds": {
+    "min": [
+      -0.08959537744522095,
+      -0.48843932151794434,
+      -0.5
+    ],
+    "max": [
+      0.08766859769821167,
+      0.48843932151794434,
+      0.5
+    ]
+  },
+  "donor_bounds": {
+    "min": [
+      -0.9722270965576172,
+      -0.20544447004795074,
+      0.0004614625941030681
+    ],
+    "max": [
+      0.9722270965576172,
+      0.164154052734375,
+      1.8291785717010498
+    ]
+  },
+  "weight_stats": {
+    "Henry_Body": {
+      "vertices": 4411,
+      "unweighted_vertices": 0,
+      "weak_weight_vertices": 0,
+      "unweighted_ratio": 0.0
+    }
+  },
+  "actions": [
+    "A_TPose_Armature",
+    "Crouch_Fwd_Loop_Armature",
+    "Crouch_Idle_Loop_Armature",
+    "Dance_Loop_Armature",
+    "Death01_Armature",
+    "Driving_Loop_Armature",
+    "Fixing_Kneeling_Armature",
+    "Hit_Chest_Armature",
+    "Hit_Head_Armature",
+    "Idle_Loop_Armature",
+    "Idle_Talking_Loop_Armature",
+    "Idle_Torch_Loop_Armature",
+    "Interact_Armature",
+    "Jog_Fwd_Loop_Armature",
+    "Jump_Land_Armature",
+    "Jump_Loop_Armature",
+    "Jump_Start_Armature",
+    "PickUp_Table_Armature",
+    "Pistol_Aim_Down_Armature",
+    "Pistol_Aim_Neutral_Armature",
+    "Pistol_Aim_Up_Armature",
+    "Pistol_Idle_Loop_Armature",
+    "Pistol_Reload_Armature",
+    "Pistol_Shoot_Armature",
+    "Punch_Cross_Armature",
+    "Punch_Jab_Armature",
+    "Push_Loop_Armature",
+    "Roll_Armature",
+    "Roll_RM_Armature",
+    "Sitting_Enter_Armature",
+    "Sitting_Exit_Armature",
+    "Sitting_Idle_Loop_Armature",
+    "Sitting_Talking_Loop_Armature",
+    "Spell_Simple_Enter_Armature",
+    "Spell_Simple_Exit_Armature",
+    "Spell_Simple_Idle_Loop_Armature",
+    "Spell_Simple_Shoot_Armature",
+    "Sprint_Loop_Armature",
+    "Swim_Fwd_Loop_Armature",
+    "Swim_Idle_Loop_Armature",
+    "Sword_Attack_Armature",
+    "Sword_Attack_RM_Armature",
+    "Sword_Idle_Armature",
+    "Walk_Formal_Loop_Armature",
+    "Walk_Loop_Armature"
+  ],
+  "previews": {
+    "idle_front.png": {
+      "action": "Crouch_Idle_Loop_Armature",
+      "frame": 35,
+      "view": "front"
+    },
+    "walk_3q.png": {
+      "action": "Walk_Formal_Loop_Armature",
+      "frame": 18,
+      "view": "three_quarter"
+    },
+    "sprint_side.png": {
+      "action": "Sprint_Loop_Armature",
+      "frame": 10,
+      "view": "side"
+    },
+    "stress_pose.png": {
+      "action": "Jog_Fwd_Loop_Armature",
+      "frame": 19,
+      "view": "front"
+    }
+  }
+}
