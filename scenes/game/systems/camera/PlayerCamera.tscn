@@ -1,11 +1,8 @@
-[gd_scene load_steps=3 format=3 uid="uid://dputwp1am8vfu"]
+[gd_scene load_steps=2 format=3 uid="uid://dputwp1am8vfu"]
 
 [ext_resource type="Script" path="res://scripts/systems/camera/PlayerCamera.gd" id="1_m0laq"]
-[ext_resource type="PackedScene" path="res://scenes/game/systems/postprocess/HandDrawnOutlineEffect.tscn" id="2_outline"]
 
 [node name="PlayerCamera" type="Camera3D"]
 transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 0, 5, 0.145)
 script = ExtResource("1_m0laq")
 sprint_fov = 94.0
-
-[node name="HandDrawnOutlineEffect" parent="." instance=ExtResource("2_outline")]
