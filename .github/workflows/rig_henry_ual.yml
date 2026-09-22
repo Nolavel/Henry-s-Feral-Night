@@ -28,7 +28,7 @@ jobs:
         run: |
           set -euo pipefail
           sudo apt-get update -qq
-          sudo apt-get install -y blender python3-numpy
+          sudo apt-get install -y blender python3-numpy xvfb libegl1 libgl1-mesa-dri libglu1-mesa
           blender --version
           blender --background --factory-startup --python-expr "import numpy; print('numpy', numpy.__version__)"
 
@@ -36,7 +36,8 @@ jobs:
         shell: bash
         run: |
           set -euo pipefail
-          blender --background --factory-startup \
+          export LIBGL_ALWAYS_SOFTWARE=1
+          xvfb-run -a blender --background --factory-startup \
             --python tools/blender/rig_henry_ual.py
           test -s assets/models/characters/henry_ual/Henry_UAL_Rigged.glb
 
