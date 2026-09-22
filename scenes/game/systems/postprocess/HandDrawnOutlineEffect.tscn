@@ -6,9 +6,10 @@
 resource_local_to_scene = true
 shader = ExtResource("1_shader")
 shader_parameter/edge_color = Color(0.006, 0.008, 0.012, 1)
-shader_parameter/edge_opacity = 0.96
-shader_parameter/edge_width_px = 1.65
+shader_parameter/edge_opacity = 1.0
+shader_parameter/edge_width_px = 1.85
 shader_parameter/depth_threshold = 0.004
+shader_parameter/raw_depth_threshold = 0.00035
 shader_parameter/normal_threshold = 0.035
 shader_parameter/jitter_amount_px = 0.28
 shader_parameter/jitter_speed = 0.3
