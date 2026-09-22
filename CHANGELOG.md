@@ -5,6 +5,44 @@ Maintained per branch; entries are added by whoever makes the change.
 
 ## [Unreleased] — `claudeflow`
 
+### 2026-09-23 (2) — Phase A step 1: player state and the interact claim
+
+Both ported from ADT with permission; see `docs/THIRD_PARTY_NOTICES.md`.
+
+Added
+- `core/player_state/player_state.gd` — autoload, the single source of truth for
+  what the player is doing: `ON_FOOT`, `WORKING`, `SWIMMING`, `SLEEPING`, `MENU`.
+  **`MENU` is reachable only through `open_menu()`/`close_menu()`**; `set_mode(MENU)`
+  push_errors, and so does any mode change while a menu is open, so pause and
+  mode can never diverge. Pause is set **before** the signal fires, so every
+  listener sees a consistent tree. A menu opened while swimming returns to
+  swimming.
+- The **interact claim** in `InputSystems`. While a claim is held the key
+  belongs entirely to the claimant and `interact_pressed/held/released` stay
+  silent — one owner decides what the key means instead of subscribers racing.
+  The claimant duck-types `on_interact_claimed()` plus optional
+  `on_interact_held(duration)` / `on_interact_released(duration)`. This is what
+  Phase B's "hold to seal a breach" will use.
+- `tests/systems/test_player_state.gd` — the pause coupling, mode restoration,
+  movement blocking, and the claim taking and returning the key.
+
+Changed
+- `InputSystems` now gates on `PlayerState`: `get_move_axis()` returns zero and
+  `is_sprinting()` returns false whenever the mode holds the player still, so
+  no caller has to check. Gameplay edges are suppressed in `MENU`, except the
+  cancel key, which must still reach the menu that is open.
+- `SleepPrompt` no longer sets `get_tree().paused` itself — it calls
+  `PlayerState.open_menu()`/`close_menu()`. Pause has one owner now.
+
+Notes
+- `_tick_interact()` level-polls `Input` as a safety net: if the release event
+  never arrives (a Control ate it, focus was lost, the claimant was freed) the
+  key would otherwise read as held forever. The test presses the key for real
+  rather than working around that net.
+
+Verified
+- Nine suites pass; `TestScene` renders; the filename gate is clean.
+
 ### 2026-09-23 (1) — The project's own licence
 
 Fixed
