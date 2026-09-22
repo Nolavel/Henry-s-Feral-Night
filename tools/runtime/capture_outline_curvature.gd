@@ -48,7 +48,20 @@ func _run() -> void:
 	_prepare_output_dir()
 
 	await _wait_frames(14)
-	await _capture()
+
+	var outline_effect := _camera.compositor.compositor_effects[0] as CompositorEffect
+	if outline_effect == null:
+		push_error("OutlineCurvatureCapture: compositor effect unavailable.")
+		quit(5)
+		return
+
+	outline_effect.enabled = false
+	await _wait_frames(4)
+	await _capture("before.png")
+
+	outline_effect.enabled = true
+	await _wait_frames(6)
+	await _capture("after.png")
 
 	print("[HFN_OUTLINE_CURVATURE] complete")
 	quit(0)
@@ -158,18 +171,18 @@ func _wait_frames(count: int) -> void:
 		await process_frame
 
 
-func _capture() -> void:
+func _capture(filename: String) -> void:
 	await process_frame
 	await RenderingServer.frame_post_draw
 
 	var image := root.get_texture().get_image()
 	if image == null or image.is_empty():
 		push_error("OutlineCurvatureCapture: empty viewport image.")
-		quit(5)
+		quit(6)
 		return
 
-	var path := ProjectSettings.globalize_path("%s/curvature_props.png" % OUT_DIR)
+	var path := ProjectSettings.globalize_path("%s/%s" % [OUT_DIR, filename])
 	var error := image.save_png(path)
 	if error != OK:
 		push_error("OutlineCurvatureCapture: save_png failed (%d)." % error)
-		quit(6)
+		quit(7)
