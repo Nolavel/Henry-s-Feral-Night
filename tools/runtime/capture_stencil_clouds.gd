@@ -60,9 +60,9 @@ func _prepare_scene() -> void:
 
 	_camera.set_process(false)
 	_camera.set_physics_process(false)
-	_camera.global_position = Vector3(5.6, 3.55, 1.95)
-	_camera.fov = 60.0
-	_camera.look_at(Vector3(-0.65, 2.75, -7.2), Vector3.UP)
+	_camera.global_position = Vector3(4.85, 3.25, 0.95)
+	_camera.fov = 56.0
+	_camera.look_at(Vector3(-0.55, 2.85, -5.95), Vector3.UP)
 	_camera.current = true
 
 	var day_night := _scene.get_node_or_null("WorldEnvironmentSystem/DayNightManager")
@@ -72,10 +72,19 @@ func _prepare_scene() -> void:
 		if day_night.has_method("force_update_lighting"):
 			day_night.call("force_update_lighting")
 
+		var world_environment := _scene.get_node_or_null("WorldEnvironmentSystem/WorldEnvironment") as WorldEnvironment
+		if world_environment != null and world_environment.environment != null:
+			world_environment.environment.fog_enabled = false
+			world_environment.environment.volumetric_fog_enabled = false
+
 		var sky_material: ShaderMaterial = day_night.get("sky_material") as ShaderMaterial
 		if sky_material != null:
-			# Keep production values, but freeze wind for a deterministic review.
+			# Freeze wind for deterministic review and exaggerate separation only
+			# enough to make the layered parallax legible in a still frame.
 			sky_material.set_shader_parameter("wind_speed", Vector2.ZERO)
+			sky_material.set_shader_parameter("parallax_strength", 0.34)
+			sky_material.set_shader_parameter("parallax_layer_separation", 0.48)
+			sky_material.set_shader_parameter("parallax_detail_weight", 0.58)
 
 	# Capture-only fill: keeps Henry readable without changing his materials.
 	var key := DirectionalLight3D.new()
