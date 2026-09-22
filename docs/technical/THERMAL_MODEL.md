@@ -210,10 +210,11 @@ This is the instrument for tuning the night, and it earned its place
 immediately: the first run showed **both** curves flatlining at the lethal
 floor, which is how the missing metabolic term was found.
 
-Open tuning question for the author: with a lit fire the sheltered curve now
-holds a flat 36.6 °C straight through the blizzard — shelter is currently
-*too* safe. `HeatSource.burn_duration_h` is the intended answer (fuel runs out,
-the room cools, you wake up cold), but it is not yet used anywhere.
+The "shelter is too safe" problem this chart raised is now closed: fuel burns
+on the game clock (`HeatSource.advance_all_fuel`, ticked by `ThermalManager`),
+a fire with `heats_zone` set stops warming its room the moment it goes out, and
+`refuel()` is the player's answer. A fire now defaults to six hours — less than
+a full night's sleep, on purpose.
 
 ## 10. Known test findings
 

@@ -5,6 +5,49 @@ Maintained per branch; entries are added by whoever makes the change.
 
 ## [Unreleased] — `claudeflow`
 
+### 2026-09-22 (6) — Campfire fuel and the hold-to-sleep UI
+
+Added
+- `HeatSource` fuel now actually burns: `advance_all_fuel()` is ticked by
+  `ThermalManager` on the game clock, `refuel()` feeds and relights a fire, and
+  `heats_zone` links a source to its room so a fire going out stops heating it
+  with no scene wiring. Default burn is six hours — deliberately less than a
+  full night.
+- `scripts/ui/hud/sleep_prompt.gd` + `scenes/ui/hud/sleep_prompt.tscn` — hold S
+  for one second, A/D choose 1–8 hours, E sleeps and saves, Esc cancels.
+- Input actions `sleep` (S), `sleep_hours_less` (A), `sleep_hours_more` (D),
+  `sleep_cancel` (Esc).
+- `tools/runtime/capture_sleep_prompt.gd` — renders both UI states for review.
+- `tests/systems/test_sleep_prompt.gd` — fuel burn-down, a dead fire cooling its
+  zone, refuel capping, the hold gate, hour clamping, and the fuel warning.
+
+Key conflicts, resolved rather than fudged
+- **S was already `move_backward`.** The hold only charges while sleeping is
+  possible and no movement action is held, so walking backwards can never start
+  it. A test asserts S does nothing in the open.
+- **E was already `interact`.** Opening the dialog pauses the tree while the
+  prompt runs with `PROCESS_MODE_ALWAYS`, so `InteractionManager` never sees the
+  press. No edits to its file and no input-order guessing.
+
+Fixed
+- The fuel warning is real: `fire_outlasts_sleep()` checks every fire warming
+  the spot against the chosen duration, so the player learns they will wake up
+  cold before committing.
+- **A node-reference `@export` on a scene root cannot resolve to its own
+  children** — root properties are applied before children exist. This produced
+  a dialog that never appeared. `resolve_nodes()` now fills in any widget the
+  scene left null.
+
+Closed
+- The "shelter is too safe" tuning problem raised by the thermal chart: fuel
+  running out during sleep is now the pressure that makes banking wood a real
+  decision.
+
+Verified
+- All five suites pass via `tools/ci/run_tests.sh`.
+- `TestScene` still imports and renders; both sleep UI states captured.
+
+
 ### 2026-09-22 (5) — Save system and sleep-to-save
 
 Added

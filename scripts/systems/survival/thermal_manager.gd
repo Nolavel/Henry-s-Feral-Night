@@ -192,6 +192,7 @@ func _on_time_update(current_hour: float) -> void:
 	var hours: float = _hours.consume(current_hour)
 	if hours <= 0.0 or _is_dead:
 		return
+	HeatSource.advance_all_fuel(hours)
 	for zone: ThermalZone in _zones:
 		zone.advance_heating(hours)
 	_update_wetness(hours, current_hour)

@@ -111,10 +111,38 @@ asleep. A test asserts this — sleeping through a shelter that goes cold must
 cost body heat. That is what makes banking fuel before bed a real decision, and
 it is the hook the "too safe shelter" problem from the thermal model needs.
 
-## 6. Not built yet
+## 6. The sleep UI, and the two key conflicts
 
-- **`HeatSource.burn_duration_h` is still unused.** Until fuel actually runs out
-  during sleep, step 3 above has nothing to bite on. This is the next piece.
+Both keys you asked for were already taken, and neither conflict is fudged:
+
+- **S is `move_backward`.** The hold only charges while sleeping is genuinely
+  possible *and* no movement action is held. Walking backwards can never start
+  it; holding S standing still in a warm shelter always does. `can_begin_hold()`
+  is the single predicate, and a test asserts S does nothing in the open.
+- **E is `interact`.** Opening the dialog sets `get_tree().paused = true` while
+  the prompt itself runs with `PROCESS_MODE_ALWAYS`. `InteractionManager` is
+  paused, so it never sees the E press — no edits to its file, no input-order
+  guessing. Pausing is also the right behaviour for a modal dialog.
+
+Controls: hold **S** for one second → **A / D** choose 1–8 hours → **E** sleeps
+and saves, **Esc** cancels.
+
+The warning line is not decoration. `fire_outlasts_sleep()` checks every fire
+actually warming the spot against the chosen duration, so the player is told
+they will wake up cold *before* committing, and the warning appears and clears
+as the hours change.
+
+`scenes/ui/hud/sleep_prompt.tscn` carries the layout.
+`tools/runtime/capture_sleep_prompt.gd` renders both states for review.
+
+One Godot detail worth recording: **a node-reference `@export` on a scene root
+cannot resolve to its own children**, because root properties are applied before
+children are added. `SleepPrompt.resolve_nodes()` fills in any widget the scene
+left null, by conventional node name. This silently produced a dialog that
+never appeared.
+
+## 7. Not built yet
+
 - **Player position and inventory** do not participate yet; `InventoryManager`
   needs `get_save_data()`/`load_save_data()` over its slot array.
 - **No UI.** No load menu, no sleep prompt, no "you cannot sleep here" toast.
