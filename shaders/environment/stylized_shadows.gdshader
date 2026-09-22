@@ -105,7 +105,10 @@ void light() {
 		float shadow_fill = mix(shadow_floor, shadow_pattern_light, graphic_pattern);
 		float stylized_shadow = mix(shadow_fill, 1.0, stylized_edge);
 
-		float is_shadowed = 1.0 - step(0.999, ATTENUATION);
+		// Keep the graphic pattern strictly inside a real cast shadow.
+		// Soft shadow-map filtering can return values just below 1.0 even on lit
+		// pixels, so a 0.999 cutoff leaks noise onto the white receiver.
+		float is_shadowed = 1.0 - smoothstep(0.82, 0.96, ATTENUATION);
 		float shadow_term = mix(ATTENUATION, stylized_shadow, shadow_strength * is_shadowed);
 
 		DIFFUSE_LIGHT += ndotl * shadow_term * LIGHT_COLOR / PI;

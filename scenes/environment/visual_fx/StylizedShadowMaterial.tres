@@ -4,10 +4,10 @@
 
 [sub_resource type="FastNoiseLite" id="FastNoiseLite_shadow"]
 noise_type = 3
-frequency = 0.035
+frequency = 0.045
 fractal_type = 1
-fractal_octaves = 4
-fractal_lacunarity = 2.0
+fractal_octaves = 3
+fractal_lacunarity = 2.1
 fractal_gain = 0.5
 
 [sub_resource type="NoiseTexture2D" id="NoiseTexture2D_shadow"]
@@ -22,18 +22,18 @@ noise = SubResource("FastNoiseLite_shadow")
 shader = ExtResource("1_shader")
 shader_parameter/noise_texture = SubResource("NoiseTexture2D_shadow")
 shader_parameter/use_albedo_texture = false
-shader_parameter/albedo_tint = Color(0.46, 0.49, 0.54, 1)
-shader_parameter/roughness = 0.92
-shader_parameter/noise_strength_1 = 0.48
-shader_parameter/noise_strength_2 = 0.2
-shader_parameter/uv_scale_1 = Vector3(0.22, 0.22, 0.22)
+shader_parameter/albedo_tint = Color(0.95, 0.96, 0.94, 1)
+shader_parameter/roughness = 1.0
+shader_parameter/noise_strength_1 = 0.68
+shader_parameter/noise_strength_2 = 0.24
+shader_parameter/uv_scale_1 = Vector3(0.14, 0.14, 0.14)
 shader_parameter/uv_offset_1 = Vector3(0, 0, 0)
-shader_parameter/uv_scale_2 = Vector3(0.72, 0.72, 0.72)
+shader_parameter/uv_scale_2 = Vector3(0.52, 0.52, 0.52)
 shader_parameter/uv_offset_2 = Vector3(11.7, -4.3, 7.1)
 shader_parameter/use_world = true
-shader_parameter/shadow_strength = 0.95
-shader_parameter/shadow_threshold = 0.52
-shader_parameter/shadow_softness = 0.028
-shader_parameter/shadow_floor = 0.035
-shader_parameter/shadow_pattern_light = 0.18
-shader_parameter/shadow_pattern_threshold = 0.5
+shader_parameter/shadow_strength = 1.0
+shader_parameter/shadow_threshold = 0.5
+shader_parameter/shadow_softness = 0.015
+shader_parameter/shadow_floor = 0.005
+shader_parameter/shadow_pattern_light = 0.1
+shader_parameter/shadow_pattern_threshold = 0.47
