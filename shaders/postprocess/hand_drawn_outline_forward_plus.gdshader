@@ -1,0 +1,106 @@
+shader_type spatial;
+render_mode unshaded, cull_disabled, depth_draw_never, depth_test_disabled;
+
+// Henry's Feral Night Forward+ prototype.
+//
+// Artistic direction adapted from Cyprinodont's CC0 "Hand Drawn"
+// depth-based Sobel outline on GodotShaders (2026-01-19).
+// This implementation is intentionally different: Forward+ gives us a
+// normal/roughness buffer, so we do not render a second ghost viewport and we
+// do not detect lighting/shadow changes as geometry edges.
+
+uniform sampler2D screen_texture : hint_screen_texture, repeat_disable, filter_nearest;
+uniform sampler2D depth_texture : hint_depth_texture, repeat_disable, filter_nearest;
+uniform sampler2D normal_roughness_texture : hint_normal_roughness_texture, repeat_disable, filter_nearest;
+
+uniform vec4 edge_color : source_color = vec4(0.025, 0.032, 0.045, 1.0);
+uniform float edge_opacity : hint_range(0.0, 1.0) = 0.82;
+uniform float edge_width_px : hint_range(0.5, 3.0, 0.1) = 1.15;
+uniform float depth_threshold : hint_range(0.001, 0.2, 0.001) = 0.018;
+uniform float normal_threshold : hint_range(0.01, 0.6, 0.01) = 0.11;
+uniform float jitter_amount_px : hint_range(0.0, 2.0, 0.05) = 0.35;
+uniform float jitter_speed : hint_range(0.0, 4.0, 0.05) = 0.30;
+uniform float distance_fade_start : hint_range(0.0, 100.0, 0.5) = 18.0;
+uniform float distance_fade_end : hint_range(1.0, 200.0, 0.5) = 55.0;
+
+
+void vertex() {
+	// Full-screen post-process quad. Keeping Z at 1 and disabling depth testing
+	// makes the material independent from the camera node transform.
+	POSITION = vec4(VERTEX.xy, 1.0, 1.0);
+}
+
+
+float linear_depth(vec2 uv) {
+	float raw_depth = texture(depth_texture, uv).r;
+	vec3 ndc = vec3(uv * 2.0 - 1.0, raw_depth);
+	vec4 view = INV_PROJECTION_MATRIX * vec4(ndc, 1.0);
+	view.xyz /= max(abs(view.w), 0.000001);
+	return max(-view.z, 0.0);
+}
+
+
+vec3 decoded_normal(vec2 uv) {
+	return normalize(texture(normal_roughness_texture, uv).xyz * 2.0 - 1.0);
+}
+
+
+float hash21(vec2 p) {
+	p = fract(p * vec2(123.34, 345.45));
+	p += dot(p, p + 34.345);
+	return fract(p.x * p.y);
+}
+
+
+void fragment() {
+	vec3 scene_color = texture(screen_texture, SCREEN_UV).rgb;
+	float raw_center = texture(depth_texture, SCREEN_UV).r;
+
+	// Reverse-Z Forward+: sky/background depth is approximately zero.
+	if (raw_center <= 0.000001) {
+		ALBEDO = scene_color;
+		return;
+	}
+
+	vec2 pixel = 1.0 / VIEWPORT_SIZE;
+	float phase = TIME * jitter_speed;
+	float band = floor(SCREEN_UV.y * VIEWPORT_SIZE.y / 7.0);
+	float jitter_seed = hash21(vec2(band, floor(phase * 5.0)));
+	float jitter_wave = sin(SCREEN_UV.y * VIEWPORT_SIZE.y * 0.055 + phase * 2.3);
+	vec2 jitter = vec2(
+		(jitter_seed - 0.5) + jitter_wave * 0.20,
+		sin(SCREEN_UV.x * VIEWPORT_SIZE.x * 0.047 + phase) * 0.18
+	) * pixel * jitter_amount_px;
+
+	vec2 p = pixel * edge_width_px;
+	vec2 uv = SCREEN_UV + jitter;
+
+	float d0 = linear_depth(uv + vec2(-p.x, -p.y));
+	float d1 = linear_depth(uv + vec2( 0.0, -p.y));
+	float d2 = linear_depth(uv + vec2( p.x, -p.y));
+	float d3 = linear_depth(uv + vec2(-p.x,  0.0));
+	float d4 = linear_depth(uv);
+	float d5 = linear_depth(uv + vec2( p.x,  0.0));
+	float d6 = linear_depth(uv + vec2(-p.x,  p.y));
+	float d7 = linear_depth(uv + vec2( 0.0,  p.y));
+	float d8 = linear_depth(uv + vec2( p.x,  p.y));
+
+	float gx = d2 + 2.0 * d5 + d8 - d0 - 2.0 * d3 - d6;
+	float gy = d0 + 2.0 * d1 + d2 - d6 - 2.0 * d7 - d8;
+	float relative_depth_edge = length(vec2(gx, gy)) / max(d4, 0.20);
+	float depth_edge = smoothstep(depth_threshold, depth_threshold * 2.35, relative_depth_edge);
+
+	vec3 nc = decoded_normal(uv);
+	float normal_delta = 0.0;
+	normal_delta = max(normal_delta, 1.0 - dot(nc, decoded_normal(uv + vec2( p.x, 0.0))));
+	normal_delta = max(normal_delta, 1.0 - dot(nc, decoded_normal(uv + vec2(-p.x, 0.0))));
+	normal_delta = max(normal_delta, 1.0 - dot(nc, decoded_normal(uv + vec2(0.0,  p.y))));
+	normal_delta = max(normal_delta, 1.0 - dot(nc, decoded_normal(uv + vec2(0.0, -p.y))));
+	float normal_edge = smoothstep(normal_threshold, normal_threshold * 2.0, normal_delta);
+
+	float edge = max(depth_edge, normal_edge);
+	float distance_fade = 1.0 - smoothstep(distance_fade_start, distance_fade_end, d4);
+	edge *= distance_fade * edge_opacity;
+
+	ALBEDO = mix(scene_color, edge_color.rgb, edge);
+}
