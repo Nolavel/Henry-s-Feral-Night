@@ -57,7 +57,10 @@ jobs:
         shell: bash
         run: |
           set -euo pipefail
-          "$GODOT_BIN" --headless --editor --path .             --rendering-method gl_compatibility             --quit-after 18
+          rm -rf .godot
+          "$GODOT_BIN" --headless --editor --import --path .             --rendering-method gl_compatibility
+          test -d .godot/imported
+          test "$(find .godot/imported -type f | wc -l)" -gt 0
 
       - name: Run main scene locomotion capture
         shell: bash
