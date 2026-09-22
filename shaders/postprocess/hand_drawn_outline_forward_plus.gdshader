@@ -19,6 +19,8 @@ uniform float edge_width_px : hint_range(0.5, 3.0, 0.1) = 1.15;
 uniform float depth_threshold : hint_range(0.001, 0.2, 0.001) = 0.004;
 uniform float raw_depth_threshold : hint_range(0.00001, 0.02, 0.00001) = 0.00035;
 uniform float normal_threshold : hint_range(0.01, 0.6, 0.01) = 0.035;
+uniform float luminance_threshold : hint_range(0.001, 0.5, 0.001) = 0.025;
+uniform float luminance_weight : hint_range(0.0, 1.0, 0.05) = 0.80;
 uniform float jitter_amount_px : hint_range(0.0, 2.0, 0.05) = 0.35;
 uniform float jitter_speed : hint_range(0.0, 4.0, 0.05) = 0.30;
 uniform float distance_fade_start : hint_range(0.0, 100.0, 0.5) = 18.0;
@@ -51,6 +53,11 @@ float hash21(vec2 p) {
 	p = fract(p * vec2(123.34, 345.45));
 	p += dot(p, p + 34.345);
 	return fract(p.x * p.y);
+}
+
+
+float luminance(vec3 c) {
+	return dot(c, vec3(0.2126, 0.7152, 0.0722));
 }
 
 
@@ -111,7 +118,26 @@ void fragment() {
 	normal_delta = max(normal_delta, 1.0 - dot(nc, decoded_normal(uv + vec2(0.0, -p.y))));
 	float normal_edge = smoothstep(normal_threshold, normal_threshold * 2.0, normal_delta);
 
-	float edge = max(max(depth_edge, silhouette_edge), normal_edge);
+	// Screen-space Sobel fallback. Depth + normals remain the geometric signal,
+	// while luminance makes the prototype readable even on software Vulkan
+	// drivers where auxiliary buffers can be conservative.
+	float l0 = luminance(texture(screen_texture, uv + vec2(-p.x, -p.y)).rgb);
+	float l1 = luminance(texture(screen_texture, uv + vec2( 0.0, -p.y)).rgb);
+	float l2 = luminance(texture(screen_texture, uv + vec2( p.x, -p.y)).rgb);
+	float l3 = luminance(texture(screen_texture, uv + vec2(-p.x,  0.0)).rgb);
+	float l5 = luminance(texture(screen_texture, uv + vec2( p.x,  0.0)).rgb);
+	float l6 = luminance(texture(screen_texture, uv + vec2(-p.x,  p.y)).rgb);
+	float l7 = luminance(texture(screen_texture, uv + vec2( 0.0,  p.y)).rgb);
+	float l8 = luminance(texture(screen_texture, uv + vec2( p.x,  p.y)).rgb);
+	float lgx = l2 + 2.0 * l5 + l8 - l0 - 2.0 * l3 - l6;
+	float lgy = l0 + 2.0 * l1 + l2 - l6 - 2.0 * l7 - l8;
+	float luminance_edge = smoothstep(
+		luminance_threshold,
+		luminance_threshold * 3.0,
+		length(vec2(lgx, lgy))
+	) * luminance_weight;
+
+	float edge = max(max(max(depth_edge, silhouette_edge), normal_edge), luminance_edge);
 	float distance_fade = 1.0 - smoothstep(distance_fade_start, distance_fade_end, d4);
 	edge *= distance_fade * edge_opacity;
 
