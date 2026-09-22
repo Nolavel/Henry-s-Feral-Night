@@ -4,6 +4,7 @@ import math
 import os
 import sys
 from mathutils import Vector, Matrix
+from mathutils.bvhtree import BVHTree
 
 ROOT = os.getcwd()
 HENRY_PATH = os.path.join(ROOT, "assets/models/characters/henry_test_model/Henry_Test_player.glb")
@@ -90,6 +91,32 @@ def choose_donor_mesh(objects, armature):
     return meshes[0]
 
 
+def _world_bvh(mesh_obj):
+    vertices = [mesh_obj.matrix_world @ vertex.co for vertex in mesh_obj.data.vertices]
+    polygons = [tuple(poly.vertices) for poly in mesh_obj.data.polygons]
+    return BVHTree.FromPolygons(vertices, polygons, all_triangles=False)
+
+
+def _alignment_score(henry_meshes, donor_bvh, transform):
+    distance_sum = 0.0
+    samples = 0
+    for obj in henry_meshes:
+        step = max(1, len(obj.data.vertices) // 600)
+        for vertex in obj.data.vertices[::step]:
+            point = transform @ obj.matrix_world @ vertex.co
+            nearest = donor_bvh.find_nearest(point)
+            if nearest is None:
+                continue
+            distance_sum += nearest[3]
+            samples += 1
+    return distance_sum / max(samples, 1)
+
+
+def _bake_world_transform(obj):
+    set_active(obj)
+    bpy.ops.object.transform_apply(location=True, rotation=True, scale=True)
+
+
 def align_henry_to_donor(henry_meshes, donor_mesh):
     src_bounds = bbox_world(henry_meshes)
     dst_bounds = bbox_world([donor_mesh])
@@ -99,15 +126,45 @@ def align_henry_to_donor(henry_meshes, donor_mesh):
 
     src_anchor = bottom_center(src_bounds)
     dst_anchor = bottom_center(dst_bounds)
-    xform = (
-        Matrix.Translation(dst_anchor)
-        @ Matrix.Scale(scale, 4)
-        @ Matrix.Translation(-src_anchor)
+
+    src_size = src_bounds[1] - src_bounds[0]
+    dst_size = dst_bounds[1] - dst_bounds[0]
+
+    # Henry_Test_player.glb is exported with its arm span on Y while UAL has
+    # the arm span on X. Test both 90-degree directions and choose the one
+    # whose surface fits the UAL mannequin best; this also resolves front/back.
+    needs_quarter_turn = (
+        src_size.y > src_size.x * 2.0
+        and dst_size.x > dst_size.y * 2.0
     )
+    candidate_degrees = (90.0, -90.0) if needs_quarter_turn else (0.0,)
+
+    donor_bvh = _world_bvh(donor_mesh)
+    candidates = []
+    for rotation_deg in candidate_degrees:
+        rotation = Matrix.Rotation(math.radians(rotation_deg), 4, 'Z')
+        transform = (
+            Matrix.Translation(dst_anchor)
+            @ Matrix.Scale(scale, 4)
+            @ rotation
+            @ Matrix.Translation(-src_anchor)
+        )
+        score = _alignment_score(henry_meshes, donor_bvh, transform)
+        candidates.append((score, rotation_deg, transform))
+
+    candidates.sort(key=lambda item: item[0])
+    best_score, rotation_deg, xform = candidates[0]
+
     for obj in henry_meshes:
         obj.matrix_world = xform @ obj.matrix_world
+        # Skinning is substantially more reliable when the fitted rest pose is
+        # baked into vertex coordinates instead of leaving scale/rotation on
+        # the mesh object under the armature.
+        _bake_world_transform(obj)
 
-    return scale, src_bounds, dst_bounds
+    aligned_bounds = bbox_world(henry_meshes)
+    scores = {str(deg): score for score, deg, _ in candidates}
+    return scale, rotation_deg, scores, src_bounds, dst_bounds, aligned_bounds
 
 
 def transfer_weights(target, donor, armature):
@@ -173,12 +230,21 @@ def remove_objects(objects):
             bpy.data.objects.remove(obj, do_unlink=True)
 
 
+def _normalized_action_name(name):
+    normalized = name.lower().replace(" ", "_")
+    if normalized.endswith("_armature"):
+        normalized = normalized[:-len("_armature")]
+    if "|" in normalized:
+        normalized = normalized.rsplit("|", 1)[-1]
+    return normalized
+
+
 def action_by_alias(aliases):
-    lowered = [(a, a.name.lower()) for a in bpy.data.actions]
+    actions = [(action, _normalized_action_name(action.name)) for action in bpy.data.actions]
     for alias in aliases:
-        needle = alias.lower()
-        for action, name in lowered:
-            if name == needle or name.endswith("|" + needle) or needle in name:
+        needle = _normalized_action_name(alias)
+        for action, normalized in actions:
+            if normalized == needle:
                 return action
     return None
 
@@ -342,9 +408,9 @@ def main():
     if not henry_meshes:
         raise RuntimeError("Henry GLB imported without mesh")
 
-    scale, src_bounds, dst_bounds = align_henry_to_donor(henry_meshes, donor)
+    scale, rotation_deg, alignment_scores, src_bounds, dst_bounds, aligned_bounds = align_henry_to_donor(henry_meshes, donor)
     log(f"Henry meshes={[(o.name, len(o.data.vertices)) for o in henry_meshes]}")
-    log(f"Alignment scale={scale:.6f}")
+    log(f"Alignment scale={scale:.6f} rotation_z={rotation_deg:.1f} scores={alignment_scores}")
 
     for idx, target in enumerate(henry_meshes):
         target.name = "Henry_Body" if idx == 0 else f"Henry_Body_{idx:02d}"
@@ -370,10 +436,11 @@ def main():
     poses = {}
 
     pose_specs = [
-        ("idle_front.png", ["Idle", "Idle_Loop"], 0.50, "front"),
-        ("walk_3q.png", ["Walk", "Walk_Loop"], 0.55, "three_quarter"),
-        ("sprint_side.png", ["Sprint", "Sprint_Loop", "Jog_Fwd", "Jog_Fwd_Loop"], 0.62, "side"),
-        ("stress_pose.png", ["Jog_Fwd", "Jog_Fwd_Loop", "Sprint", "Sprint_Loop"], 0.83, "front"),
+        ("tpose_front.png", ["A_TPose"], 0.0, "front"),
+        ("idle_front.png", ["Idle_Loop", "Idle"], 0.50, "front"),
+        ("walk_3q.png", ["Walk_Loop", "Walk"], 0.55, "three_quarter"),
+        ("sprint_side.png", ["Sprint_Loop", "Sprint", "Jog_Fwd_Loop"], 0.62, "side"),
+        ("stress_pose.png", ["Jog_Fwd_Loop", "Jog_Fwd", "Sprint_Loop"], 0.83, "front"),
     ]
     for filename, aliases, phase, view in pose_specs:
         action_name, frame = set_action(armature, aliases, phase)
@@ -392,6 +459,8 @@ def main():
         "donor_vertex_groups": donor_vertex_group_count,
         "henry_meshes": [o.name for o in henry_meshes],
         "alignment_scale": scale,
+        "alignment_rotation_z_deg": rotation_deg,
+        "alignment_scores": alignment_scores,
         "source_bounds": {
             "min": list(src_bounds[0]),
             "max": list(src_bounds[1]),
@@ -399,6 +468,10 @@ def main():
         "donor_bounds": {
             "min": list(dst_bounds[0]),
             "max": list(dst_bounds[1]),
+        },
+        "aligned_henry_bounds": {
+            "min": list(aligned_bounds[0]),
+            "max": list(aligned_bounds[1]),
         },
         "weight_stats": stats,
         "actions": [a.name for a in bpy.data.actions],
