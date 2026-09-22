@@ -1,0 +1,19 @@
+[gd_scene load_steps=3 format=3]
+
+[ext_resource type="Shader" path="res://shaders/environment/fade_volume.gdshader" id="1_shader"]
+
+[sub_resource type="ShaderMaterial" id="ShaderMaterial_fade"]
+resource_local_to_scene = true
+render_priority = 0
+shader = ExtResource("1_shader")
+shader_parameter/x_len = 6.0
+shader_parameter/exponent = 1.35
+shader_parameter/fade_color = Color(0, 0, 0, 0.72)
+
+[sub_resource type="BoxMesh" id="BoxMesh_volume"]
+material = SubResource("ShaderMaterial_fade")
+size = Vector3(6, 3, 4)
+
+[node name="FadeVolume" type="MeshInstance3D"]
+cast_shadow = 0
+mesh = SubResource("BoxMesh_volume")

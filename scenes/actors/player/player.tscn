@@ -50,6 +50,8 @@
 [ext_resource type="FontFile" uid="uid://c3ns1xlotoc62" path="res://assets/fonts/Special Elite/SpecialElite-Regular.ttf" id="24_sdm1e"]
 [ext_resource type="PackedScene" uid="uid://wxp413rki005" path="res://scenes/ui/hud/dynamic_cursor/mouse_cursor_ui.tscn" id="49_lguxi"]
 
+[ext_resource type="PackedScene" path="res://scenes/actors/player/HenryUALVisual.tscn" id="50_ual"]
+
 [sub_resource type="Animation" id="Animation_8qcbc"]
 resource_name = "Take 001"
 length = 3.3333333
@@ -1417,6 +1419,7 @@ script = ExtResource("1_irk3a")
 
 [node name="player_base_mesh" type="Node3D" parent="."]
 transform = Transform3D(-0.4, 0, -3.4969112e-08, 0, 0.4, 0, 3.4969112e-08, 0, -0.4, 0, -1, 0)
+visible = false
 
 [node name="AnimationPlayer" type="AnimationPlayer" parent="player_base_mesh"]
 libraries = {
@@ -2312,6 +2315,10 @@ layers = 16
 mesh = SubResource("ArrayMesh_qyyfj")
 skin = SubResource("Skin_0vdbd")
 surface_material_override/0 = SubResource("StandardMaterial3D_fqgpy")
+
+[node name="HenryUALVisual" parent="." instance=ExtResource("50_ual")]
+position = Vector3(0, -1, 0)
+rotation = Vector3(0, 3.1415927, 0)
 
 [node name="Main_Collision" type="CollisionShape3D" parent="."]
 shape = SubResource("CylinderShape3D_0w3ce")

@@ -1,10 +1,8 @@
-[gd_scene load_steps=16 format=3 uid="uid://bcxsh1dufbls3"]
+[gd_scene load_steps=14 format=3 uid="uid://bcxsh1dufbls3"]
 
-[ext_resource type="PackedScene" uid="uid://cnhshfsm2gpjs" path="res://tools/ScanFolderFiles/ScanFolderFiles.tscn" id="1_gjffg"]
 [ext_resource type="PackedScene" uid="uid://cvv8y27vmgjfi" path="res://scenes/game/systems/world/WorldEnvironmentSystem.tscn" id="2_2ompc"]
 [ext_resource type="PackedScene" uid="uid://duxn5rqcau5dw" path="res://tools/StatsDisplay/StatsDisplay.tscn" id="2_h763q"]
 [ext_resource type="PackedScene" uid="uid://dputwp1am8vfu" path="res://scenes/game/systems/camera/PlayerCamera.tscn" id="3_4vd7y"]
-[ext_resource type="PackedScene" uid="uid://cvuw2ef72te81" path="res://tools/InputDebugger/InputDebugger.tscn" id="3_v0fra"]
 [ext_resource type="PackedScene" uid="uid://ciy301x7wh6ie" path="res://scenes/actors/player/player.tscn" id="4_vhdnb"]
 [ext_resource type="PackedScene" uid="uid://btnxy5t02bhtw" path="res://scenes/environment/interactive/InteractiveArea.tscn" id="8_loucq"]
 [ext_resource type="PackedScene" uid="uid://dj0m3h8m8d6wh" path="res://scenes/environment/props/Masks/AFM/Airlock_Filter_Mask.tscn" id="9_inqvh"]
@@ -33,11 +31,7 @@ points = PackedVector3Array(-2.35782, -2.35735, -0.5, 2.53919, 2.53869, 0.571429
 
 [node name="TestScene" type="Node3D"]
 
-[node name="ProjectStats_AND_ExitTrigger" parent="." instance=ExtResource("1_gjffg")]
-
 [node name="StatsDisplay" parent="." instance=ExtResource("2_h763q")]
-
-[node name="InputDebugger" parent="." instance=ExtResource("3_v0fra")]
 
 [node name="MeshPlane" type="MeshInstance3D" parent="."]
 mesh = SubResource("PlaneMesh_33h6p")
@@ -52,6 +46,7 @@ transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 0, 55, 0)
 
 [node name="PlayerCamera" parent="." node_paths=PackedStringArray("player") instance=ExtResource("3_4vd7y")]
 player = NodePath("../Player")
+
 
 [node name="MeshInstance3D" type="MeshInstance3D" parent="."]
 transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 0, 0.587775, -1)

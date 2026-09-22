@@ -1,0 +1,73 @@
+{
+	"captures": [
+		{
+			"animation_label": "IDLE",
+			"blend_position": 0.0,
+			"horizontal_speed_mps": 0.0,
+			"player_position": [
+				20.0,
+				1.0,
+				20.0
+			],
+			"player_velocity": [
+				0.0,
+				0.0,
+				0.0
+			],
+			"state": "idle"
+		},
+		{
+			"animation_label": "WALK",
+			"blend_position": 0.499999612569809,
+			"horizontal_speed_mps": 3.99999690055847,
+			"player_position": [
+				23.3782253265381,
+				1.00093579292297,
+				16.1228199005127
+			],
+			"player_velocity": [
+				1.809157371521,
+				0.0,
+				-3.56748175621033
+			],
+			"state": "walk"
+		},
+		{
+			"animation_label": "JOG",
+			"blend_position": 0.769215643405914,
+			"horizontal_speed_mps": 6.15372514724731,
+			"player_position": [
+				25.7200412750244,
+				1.00093579292297,
+				12.992805480957
+			],
+			"player_velocity": [
+				5.64835834503174,
+				0.0,
+				-2.44220876693726
+			],
+			"state": "jog_transition"
+		},
+		{
+			"animation_label": "SPRINT",
+			"blend_position": 0.911457240581512,
+			"horizontal_speed_mps": 7.2916579246521,
+			"player_position": [
+				32.1631011962891,
+				1.00093579292297,
+				12.3299760818481
+			],
+			"player_velocity": [
+				7.25824499130249,
+				0.0,
+				-0.697247803211212
+			],
+			"state": "sprint"
+		}
+	],
+	"main_scene": "res://tests/scenes/TestScene.tscn",
+	"viewport": [
+		1280,
+		720
+	]
+}

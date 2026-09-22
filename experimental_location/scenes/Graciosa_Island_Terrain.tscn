@@ -1,12 +1,10 @@
-[gd_scene load_steps=20 format=3 uid="uid://cg14lfow57cog"]
+[gd_scene load_steps=18 format=3 uid="uid://cg14lfow57cog"]
 
 [ext_resource type="Script" uid="uid://cfxlv63bvtuwb" path="res://scripts/systems/game_route/GameRouter.gd" id="1_8hwqn"]
 [ext_resource type="PackedScene" uid="uid://dputwp1am8vfu" path="res://scenes/game/systems/camera/PlayerCamera.tscn" id="1_ftega"]
 [ext_resource type="PackedScene" uid="uid://ciy301x7wh6ie" path="res://scenes/actors/player/player.tscn" id="2_8hwqn"]
-[ext_resource type="PackedScene" uid="uid://cnhshfsm2gpjs" path="res://tools/ScanFolderFiles/ScanFolderFiles.tscn" id="4_vnnm2"]
 [ext_resource type="PackedScene" uid="uid://duxn5rqcau5dw" path="res://tools/StatsDisplay/StatsDisplay.tscn" id="5_h70bg"]
 [ext_resource type="PackedScene" uid="uid://cvv8y27vmgjfi" path="res://scenes/game/systems/world/WorldEnvironmentSystem.tscn" id="6_pbfqm"]
-[ext_resource type="PackedScene" uid="uid://cvuw2ef72te81" path="res://tools/InputDebugger/InputDebugger.tscn" id="6_x3erf"]
 [ext_resource type="Script" uid="uid://bw0s7ptu6faor" path="res://experimental_location/scripts/WorldStreamManager.gd" id="7_ftega"]
 
 [sub_resource type="NavigationMesh" id="NavigationMesh_gciob"]
@@ -258,11 +256,7 @@ mesh = SubResource("PlaneMesh_cqilh")
 
 [node name="Perfomance&Debugging" type="Node3D" parent="."]
 
-[node name="ProjectStats_AND_ExitTrigger" parent="Perfomance&Debugging" instance=ExtResource("4_vnnm2")]
-
-[node name="StatsDisplay" parent="Perfomance&Debugging" instance=ExtResource("5_h70bg")]
-
-[node name="InputDebugger" parent="Perfomance&Debugging" instance=ExtResource("6_x3erf")]
+[node name="StatsDisplay" parent="." instance=ExtResource("5_h70bg")]
 
 [node name="SubViewport" type="SubViewport" parent="Perfomance&Debugging"]
 size = Vector2i(128, 128)

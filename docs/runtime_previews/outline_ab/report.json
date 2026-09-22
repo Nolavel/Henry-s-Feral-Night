@@ -1,0 +1,19 @@
+{
+	"camera_position": [
+		7.59999990463257,
+		5.69999980926514,
+		2.59999990463257
+	],
+	"main_scene": "res://tests/scenes/TestScene.tscn",
+	"outline_enabled_only_difference": true,
+	"player_position": [
+		-0.899999976158142,
+		1.0,
+		-4.19999980926514
+	],
+	"renderer": "llvmpipe (LLVM 20.1.2, 256 bits)",
+	"viewport": [
+		1280,
+		720
+	]
+}
