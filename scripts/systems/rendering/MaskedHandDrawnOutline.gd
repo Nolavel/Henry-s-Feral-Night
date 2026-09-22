@@ -51,7 +51,6 @@ func _create_mask_viewport() -> void:
 	_mask_viewport = SubViewport.new()
 	_mask_viewport.name = "HenryIDMaskViewport"
 	_mask_viewport.transparent_bg = true
-	_mask_viewport.disable_2d = true
 	_mask_viewport.disable_3d = false
 	_mask_viewport.render_target_update_mode = SubViewport.UPDATE_ALWAYS
 	_mask_viewport.render_target_clear_mode = SubViewport.CLEAR_MODE_ALWAYS
