@@ -28,6 +28,22 @@ jobs:
           chmod +x "$GODOT_BIN"
           echo "GODOT_BIN=$GODOT_BIN" >> "$GITHUB_ENV"
 
+      - name: Install Terrain3D 1.0.1 Linux binary
+        run: |
+          curl -L -o /tmp/terrain3d.zip \
+            https://github.com/TokisanGames/Terrain3D/releases/download/v1.0.1-stable/Terrain3D_v1.0.1.zip
+          rm -rf /tmp/terrain3d-release
+          mkdir -p /tmp/terrain3d-release addons/terrain_3d/bin
+          unzip -q /tmp/terrain3d.zip -d /tmp/terrain3d-release
+          DEBUG_SO="$(find /tmp/terrain3d-release -type f -name 'libterrain.linux.debug.x86_64.so' | head -1)"
+          RELEASE_SO="$(find /tmp/terrain3d-release -type f -name 'libterrain.linux.release.x86_64.so' | head -1)"
+          test -n "$DEBUG_SO"
+          cp "$DEBUG_SO" addons/terrain_3d/bin/libterrain.linux.debug.x86_64.so
+          if [ -n "$RELEASE_SO" ]; then
+            cp "$RELEASE_SO" addons/terrain_3d/bin/libterrain.linux.release.x86_64.so
+          fi
+          ls -lh addons/terrain_3d/bin/libterrain.linux*.so
+
       - name: Import project
         run: |
           "$GODOT_BIN" --headless --path . --import --quit || true
