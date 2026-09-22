@@ -1,0 +1,49 @@
+name: visual-fx-preview
+
+on:
+  push:
+    branches: [main]
+    paths:
+      - "tests/scenes/TestScene.tscn"
+      - "scenes/environment/visual_fx/**"
+      - "shaders/environment/**"
+      - "tools/runtime/capture_visual_fx_showcase.gd"
+      - ".github/workflows/visual-fx-preview.yml"
+
+jobs:
+  render:
+    runs-on: ubuntu-latest
+    timeout-minutes: 12
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Install runtime dependencies
+        run: |
+          sudo apt-get update -qq
+          sudo apt-get install -y -qq mesa-vulkan-drivers xvfb unzip
+
+      - name: Install Godot 4.8-dev6 Mono
+        run: |
+          curl -L -o /tmp/godot.zip             https://github.com/godotengine/godot-builds/releases/download/4.8-dev6/Godot_v4.8-dev6_mono_linux_x86_64.zip
+          unzip -q /tmp/godot.zip -d /tmp/godot
+          GODOT_BIN="$(find /tmp/godot -type f -name '*.x86_64' | head -1)"
+          chmod +x "$GODOT_BIN"
+          echo "GODOT_BIN=$GODOT_BIN" >> "$GITHUB_ENV"
+
+      - name: Import project
+        run: |
+          "$GODOT_BIN" --headless --path . --import --quit || true
+
+      - name: Render TestScene visual FX showcase
+        env:
+          VK_DRIVER_FILES: /usr/share/vulkan/icd.d/lvp_icd.x86_64.json
+          XDG_RUNTIME_DIR: /tmp/xdg
+        run: |
+          mkdir -p "$XDG_RUNTIME_DIR"
+          xvfb-run -a "$GODOT_BIN"             --path .             --rendering-method gl_compatibility             --audio-driver Dummy             --script tools/runtime/capture_visual_fx_showcase.gd
+
+      - name: Upload preview
+        uses: actions/upload-artifact@v4
+        with:
+          name: visual-fx-showcase
+          path: artifacts/visual_fx_showcase.png
