@@ -32,10 +32,14 @@ uniform float shadow_softness : hint_range(0.001, 0.35) = 0.035;
 uniform float shadow_floor : hint_range(0.0, 0.5) = 0.035;
 uniform float shadow_pattern_light : hint_range(0.0, 0.5) = 0.17;
 uniform float shadow_pattern_threshold : hint_range(0.0, 1.0) = 0.52;
+uniform float shadow_break_softness : hint_range(0.001, 0.25) = 0.055;
+uniform float shadow_detail_amount : hint_range(0.0, 1.0) = 0.22;
 
 varying vec3 sample_position;
 varying vec3 sample_normal;
 varying float shadow_noise;
+varying float shadow_macro;
+varying float shadow_detail;
 
 
 float triplanar_noise(sampler2D tex, vec3 p, vec3 n) {
@@ -73,6 +77,8 @@ void fragment() {
 		sample_normal
 	);
 
+	shadow_macro = n1;
+	shadow_detail = n2;
 	shadow_noise =
 		(n1 - 0.5) * noise_strength_1
 		+ (n2 - 0.5) * noise_strength_2;
@@ -93,25 +99,29 @@ void light() {
 	float ndotl = max(dot(NORMAL, LIGHT), 0.0);
 
 	if (LIGHT_IS_DIRECTIONAL) {
-		float noisy_shadow_sample = clamp(ATTENUATION + shadow_noise, 0.0, 1.0);
-		float stylized_edge = smoothstep(
-			shadow_threshold - shadow_softness,
-			shadow_threshold + shadow_softness,
-			noisy_shadow_sample
+		// ATTENUATION only defines the physical region in which a cast shadow
+		// may exist. The visible silhouette is then cut apart by world-space
+		// noise, so the shadow no longer faithfully copies the caster outline.
+		float physical_shadow = clamp(1.0 - ATTENUATION, 0.0, 1.0);
+		float cast_region = smoothstep(0.08, 0.38, physical_shadow);
+
+		// Large islands do the silhouette destruction. A second, smaller band
+		// creates occasional torn flecks without filling the white gaps back in.
+		float macro_ink = smoothstep(
+			shadow_pattern_threshold - shadow_break_softness,
+			shadow_pattern_threshold + shadow_break_softness,
+			shadow_macro
 		);
+		float detail_ink = smoothstep(0.58, 0.72, shadow_detail) * shadow_detail_amount;
+		float broken_ink = clamp(max(macro_ink, detail_ink) * cast_region, 0.0, 1.0);
 
-		float pattern_sample = clamp(0.5 + shadow_noise * 2.8, 0.0, 1.0);
-		float graphic_pattern = step(shadow_pattern_threshold, pattern_sample);
-		float shadow_fill = mix(shadow_floor, shadow_pattern_light, graphic_pattern);
-		float stylized_shadow = mix(shadow_fill, 1.0, stylized_edge);
+		// Where broken_ink is zero, direct light is deliberately restored even
+		// though the physical shadow map says "shadow". This is what creates the
+		// white holes and chopped, noisy outer silhouette seen in the reference.
+		float ink_darkness = mix(shadow_pattern_light, shadow_floor, macro_ink);
+		float stylized_shadow = mix(1.0, ink_darkness, broken_ink * shadow_strength);
 
-		// Keep the graphic pattern strictly inside a real cast shadow.
-		// Soft shadow-map filtering can return values just below 1.0 even on lit
-		// pixels, so a 0.999 cutoff leaks noise onto the white receiver.
-		float is_shadowed = 1.0 - smoothstep(0.82, 0.96, ATTENUATION);
-		float shadow_term = mix(ATTENUATION, stylized_shadow, shadow_strength * is_shadowed);
-
-		DIFFUSE_LIGHT += ndotl * shadow_term * LIGHT_COLOR / PI;
+		DIFFUSE_LIGHT += ndotl * stylized_shadow * LIGHT_COLOR / PI;
 	} else {
 		DIFFUSE_LIGHT += ndotl * ATTENUATION * LIGHT_COLOR / PI;
 	}
