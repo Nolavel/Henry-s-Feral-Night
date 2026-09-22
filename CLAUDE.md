@@ -19,8 +19,24 @@ author. Claude flags cost and risk for them.
 
 ## Branch
 
-- Claude owns `claudeflow`. Never `main`, never `codex`, never another agent's branch.
+- Claude owns `claudeflow` — **one branch, always**. Never create additional
+  Claude branches; never touch `main`, `codex`, or another agent's branch.
 - Integration into `main` happens only when the author explicitly asks.
+
+## Staying in sync
+
+`main` moves ahead independently (Codex integrates there). At the start of every
+session, and before any overlapping work:
+
+1. `git fetch origin main claudeflow`
+2. Merge `origin/main` into `claudeflow` (merge, never rebase — other agents read
+   this branch).
+3. Re-run `tools/ci/render.sh` on `TestScene` and confirm the frame is still sane.
+4. Read GitHub issue #1 (*AI Talk*) for Codex handoffs, and reply there with the
+   new `claudeflow` HEAD plus any conflict decisions.
+
+Known recurring conflicts: `AGENTS.md` (keep Claude's roles table, take Codex's
+rule changes) and `global.json` (take `main`'s).
 
 ## Engine baseline
 

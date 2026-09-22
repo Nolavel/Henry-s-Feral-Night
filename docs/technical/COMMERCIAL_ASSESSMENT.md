@@ -2,10 +2,34 @@
 
 Reviewer: Claude (technical director)
 Date: 2026-09-22
-Baseline reviewed: `main` @ `29d3f2a`, plus `codex` and `prototype` branches
+Baseline reviewed: `main` @ `29d3f2a`; **revised 2026-09-22 against `main` @ `4ba97eb`**
+(fast-forwarded to Codex HEAD), plus the `prototype` branch
 Engine used for verification: Godot 4.8-dev6 mono, Forward+/Vulkan on lavapipe
 
 ---
+
+## 0. Revision note (main @ 4ba97eb)
+
+`main` was fast-forwarded to Codex HEAD after the first pass. Several §3 findings
+are **resolved** and are kept below only for the record:
+
+- Duplicate solutions gone — one `Henry's Feral Night.sln` / `.csproj` remains,
+  `Сrimson Flow.*` deleted (§3.2).
+- `ProjectSettings` dump/load tooling and the `ScanFolderFiles` debug UI removed;
+  `project.godot` is no longer a settings dump (§3.2).
+- `DayNightCalculator.cs` deleted; the GDScript/C# duplication that broke
+  `DayNightManager.gd:31` is gone (§3.4).
+- `global.json` now carries `rollForward: latestFeature` + `allowPrerelease` (§3.5).
+- Third-party notices landed (`docs/THIRD_PARTY_NOTICES.md`) (§3.7).
+- Henry has a real UAL rig and runtime locomotion; verified rendering headlessly.
+
+Still open: §3.1 (no game loop), §3.2 (382 MB git, no LFS), §3.3 (case/homoglyph
+filenames — see §3.10), §3.6 (no tests), §3.8 (localisation debt), §3.9 (Terrain3D
+binaries — now worked around by `tools/ci/setup_env.sh`).
+
+Revised verdict: **6.5/10**. The repository hygiene gap closed noticeably; the
+product gap did not move, because no playable loop was added. See
+`docs/game_design/VERTICAL_SLICE.md` for the agreed target.
 
 ## 1. Verdict
 
@@ -122,6 +146,18 @@ terrain work on `main` unreproducible for a new contributor or a CI runner.
 Either vendor the release binaries (LFS) or pin the addon version and fetch it
 in `tools/ci/setup_env.sh`.
 
+### 3.10 Cyrillic homoglyphs in filenames
+`scenes/game/Сhunks/` begins with **U+0421 CYRILLIC CAPITAL LETTER ES**, not
+Latin `C` — verified at byte level (`\320\241hunks`). The node paths inside
+`WorldStreamManager.gd` (`FM_Сhunks/Сhunk_EastPointRedoubt`) carry the same
+character. It is visually identical to `Chunks` and will silently defeat any
+grep, glob, path comparison or export filter that anyone writes against it. The
+same class of bug produced the old `Сrimson Flow` name. This is not cosmetic —
+it is a defect that only shows up at the worst moment.
+
+Fix: normalise every path in the repository to ASCII, once, in a dedicated
+commit, and add a CI check that rejects non-ASCII filenames.
+
 ## 4. Market position — candid
 
 Survival-action is a crowded genre where solo/small-team entries usually fail on
@@ -151,8 +187,9 @@ Realistic budget/time to a pitchable slice with the current team shape:
 4. Migrate binary assets to Git LFS and add `.gitattributes` filters.
 5. Resolve the C#/GDScript overlap: remove duplicated systems, target
    `Godot.NET.Sdk` 4.8.x / `net8.0`.
-6. Restore Terrain3D binaries (vendored via LFS, or fetched by `setup_env.sh`)
-   so a clean checkout loads terrain scenes.
+6. ~~Restore Terrain3D binaries~~ — **done**: `tools/ci/setup_env.sh` fetches the
+   pinned `v1.0.1-stable` release; `addons/terrain_3d/bin/` is gitignored.
+6a. Purge Cyrillic homoglyphs from all paths and add a non-ASCII filename CI gate.
 7. Land the engine 4.8 upgrade as **one deliberate commit** — importing under 4.8
    rewrites ~120 `.import` files; that churn belongs in its own commit, not
    scattered across feature work.
