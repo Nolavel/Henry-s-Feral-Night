@@ -27,8 +27,8 @@ layout(push_constant, std430) uniform Params {
 
 	float distance_fade_start;
 	float distance_fade_end;
-	float pad0;
-	float pad1;
+	float wide_normal_radius_px;
+	float curvature_boost;
 
 	vec4 edge_color;
 } params;
@@ -116,16 +116,41 @@ void main() {
 	);
 
 	vec3 nc = view_normal(c);
-	float normal_delta = 0.0;
-	normal_delta = max(normal_delta, 1.0 - dot(nc, view_normal(c + vec2( step_uv.x, 0.0))));
-	normal_delta = max(normal_delta, 1.0 - dot(nc, view_normal(c + vec2(-step_uv.x, 0.0))));
-	normal_delta = max(normal_delta, 1.0 - dot(nc, view_normal(c + vec2(0.0,  step_uv.y))));
-	normal_delta = max(normal_delta, 1.0 - dot(nc, view_normal(c + vec2(0.0, -step_uv.y))));
-	float normal_edge = smoothstep(
+
+	// Local normal change catches creases and bevels. Use vector distance rather
+	// than 1-dot so shallow angular changes are not quadratically suppressed.
+	float local_normal_delta = 0.0;
+	local_normal_delta = max(local_normal_delta, length(nc - view_normal(c + vec2( step_uv.x, 0.0))));
+	local_normal_delta = max(local_normal_delta, length(nc - view_normal(c + vec2(-step_uv.x, 0.0))));
+	local_normal_delta = max(local_normal_delta, length(nc - view_normal(c + vec2(0.0,  step_uv.y))));
+	local_normal_delta = max(local_normal_delta, length(nc - view_normal(c + vec2(0.0, -step_uv.y))));
+
+	float local_normal_edge = smoothstep(
 		params.normal_threshold,
 		params.normal_threshold * 2.0,
-		normal_delta
+		local_normal_delta
 	);
+
+	// A wider radius reads gradual curvature on cylinders, rounded props and
+	// character volumes without adding edges to truly flat surfaces.
+	vec2 wide_step = texel * max(params.wide_normal_radius_px, width_px);
+	float wide_normal_delta = 0.0;
+	wide_normal_delta = max(wide_normal_delta, length(nc - view_normal(c + vec2( wide_step.x, 0.0))));
+	wide_normal_delta = max(wide_normal_delta, length(nc - view_normal(c + vec2(-wide_step.x, 0.0))));
+	wide_normal_delta = max(wide_normal_delta, length(nc - view_normal(c + vec2(0.0,  wide_step.y))));
+	wide_normal_delta = max(wide_normal_delta, length(nc - view_normal(c + vec2(0.0, -wide_step.y))));
+	wide_normal_delta = max(wide_normal_delta, length(nc - view_normal(c + vec2( wide_step.x,  wide_step.y))));
+	wide_normal_delta = max(wide_normal_delta, length(nc - view_normal(c + vec2(-wide_step.x,  wide_step.y))));
+	wide_normal_delta = max(wide_normal_delta, length(nc - view_normal(c + vec2( wide_step.x, -wide_step.y))));
+	wide_normal_delta = max(wide_normal_delta, length(nc - view_normal(c + vec2(-wide_step.x, -wide_step.y))));
+
+	float wide_normal_edge = smoothstep(
+		params.normal_threshold * 0.70,
+		params.normal_threshold * 1.65,
+		wide_normal_delta
+	) * params.curvature_boost;
+
+	float normal_edge = max(local_normal_edge, wide_normal_edge);
 
 	float edge = max(depth_edge, normal_edge);
 	float distance_fade = 1.0 - smoothstep(
