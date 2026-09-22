@@ -6,6 +6,7 @@ on:
       - codex
     paths:
       - .github/workflows/capture_henry_locomotion.yml
+      - tools/runtime/capture_henry_locomotion.gd
 
 permissions:
   contents: write
