@@ -24,6 +24,8 @@ func _initialize() -> void:
 	_test_the_active_window_is_bounded()
 	_test_falling_through_soaks_and_chills()
 	_test_climbing_out_requires_thrashing_first()
+	_test_gait_follows_velocity()
+	_test_gait_reaches_the_field()
 	if _failures > 0:
 		push_error("ice: %d check(s) failed" % _failures)
 		quit(1)
@@ -249,6 +251,65 @@ func _test_falling_through_soaks_and_chills() -> void:
 
 
 ## Climbing out is deliberately not instant; the thrash is the story beat.
+## The binder is what makes sprinting across the ice actually cost more.
+func _test_gait_follows_velocity() -> void:
+	var field := _make_field()
+	var binder := IceGaitBinder.new()
+	binder.ice_field = field
+	root.add_child(binder)
+
+	_check(
+		binder.classify(Vector3.ZERO) == IceField.Gait.STILL,
+		"a stationary body was not reported as still"
+	)
+	_check(
+		binder.classify(Vector3(3.0, 0.0, 0.0)) == IceField.Gait.WALK,
+		"walking speed was not reported as a walk"
+	)
+	_check(
+		binder.classify(Vector3(7.5, 0.0, 0.0)) == IceField.Gait.SPRINT,
+		"sprinting speed was not reported as a sprint"
+	)
+	_check(
+		binder.classify(Vector3(0.0, -9.0, 0.0)) == IceField.Gait.STILL,
+		"falling was mistaken for horizontal movement"
+	)
+	## No crouch action exists in the project, so CROUCH must never be reported.
+	_check(
+		binder.classify(Vector3(1.0, 0.0, 0.0)) != IceField.Gait.CROUCH,
+		"CROUCH was reported although no crouch action is bound"
+	)
+	_dispose(binder)
+	_dispose(field)
+
+
+func _test_gait_reaches_the_field() -> void:
+	var walking := _make_field()
+	var position: Vector3 = _sea_point(60.0)
+	var walk_binder := IceGaitBinder.new()
+	walk_binder.ice_field = walking
+	root.add_child(walk_binder)
+	walk_binder.apply(Vector3(3.0, 0.0, 0.0))
+	walking.step(position, 1.0)
+	var walked: float = walking.get_integrity(walking.world_to_tile(position))
+	_dispose(walk_binder)
+	_dispose(walking)
+
+	var sprinting := _make_field()
+	var sprint_binder := IceGaitBinder.new()
+	sprint_binder.ice_field = sprinting
+	root.add_child(sprint_binder)
+	sprint_binder.apply(Vector3(7.5, 0.0, 0.0))
+	sprinting.step(position, 1.0)
+
+	_check(
+		sprinting.get_integrity(sprinting.world_to_tile(position)) < walked,
+		"sprinting through the binder did not load the ice harder than walking"
+	)
+	_dispose(sprint_binder)
+	_dispose(sprinting)
+
+
 func _test_climbing_out_requires_thrashing_first() -> void:
 	var field := _make_field()
 	var water := ColdWaterImmersion.new()

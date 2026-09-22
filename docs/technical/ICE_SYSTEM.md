@@ -71,6 +71,18 @@ Standing on a tile drains it; gait scales how hard:
 | Walk | 1.6 |
 | Sprint | 3.2 — running the bay is the gamble |
 
+`IceGaitBinder` supplies this. It reads `MovementController.is_currently_sprinting()`
+and the body's horizontal velocity and pushes the result into the field — an
+adapter, so `MovementController` itself is untouched and stays in nobody's way.
+Vertical velocity is ignored, so falling is not mistaken for running.
+
+**There is no crouch in the project.** No input action, no controller state. The
+0.45 multiplier is therefore currently unreachable, and `IceGaitBinder` reports
+`CROUCH` only if someone binds `crouch_action`. That matters for design: the
+careful way across the ice does not exist yet, so right now the player's only
+choices are walk or gamble. A test asserts `CROUCH` is never reported while no
+action is bound, so this cannot be forgotten silently.
+
 Stepping off lets a tile recover at `recovery_per_second`, capped at its natural
 thickness, so a bay can be crossed repeatedly but not carelessly. Broken tiles
 never come back: the hole stays in the world.
@@ -134,7 +146,7 @@ and tuning it is given.
   whoever wires it.
 - **Broken tiles do not persist.** The ice is not a save participant yet, so
   holes vanish on load. `IceField` needs the save contract.
-- **Gait is not wired.** `set_gait()` exists; nothing calls it from
-  `MovementController` yet.
+- **Crouch does not exist.** See §5 — the gentle crossing is unavailable until
+  a crouch action and controller state are added.
 - **No wind direction or snow cover.** Thin ice hidden under fresh snow is the
   obvious next twist, and the weather profiles already carry snowfall density.

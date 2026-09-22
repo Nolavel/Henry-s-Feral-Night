@@ -5,6 +5,29 @@ Maintained per branch; entries are added by whoever makes the change.
 
 ## [Unreleased] — `claudeflow`
 
+### 2026-09-22 (8) — Gait wired to the ice
+
+Added
+- `scripts/systems/ice/ice_gait_binder.gd` — reads `MovementController` and the
+  body's horizontal velocity and pushes the resulting gait into `IceField`, so
+  sprinting across the bay now costs 3.2x what standing still does. Written as
+  an adapter: `MovementController` is not edited and stays in nobody's way.
+- Tests: gait classification (still / walk / sprint), that vertical velocity is
+  not mistaken for movement, and that a sprint through the binder loads the ice
+  harder than a walk.
+
+Finding
+- **The project has no crouch.** No input action, no controller state. The
+  profile's 0.45 crouch multiplier is therefore unreachable, and the careful way
+  across the ice does not exist — the player's only options today are walk or
+  gamble. `IceGaitBinder` reports `CROUCH` only when someone binds
+  `crouch_action`, and a test asserts it is never reported until then, so this
+  cannot be forgotten silently.
+
+Verified
+- All six suites pass; `TestScene` still renders.
+
+
 ### 2026-09-22 (7) — The frozen sea
 
 Added
