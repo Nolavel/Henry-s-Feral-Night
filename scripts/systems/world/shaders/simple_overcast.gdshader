@@ -24,6 +24,8 @@ uniform float parallax_layer_separation : hint_range(0.0, 1.0) = 0.35;
 uniform float parallax_detail_weight : hint_range(0.0, 1.0) = 0.45;
 uniform float parallax_mid_scale : hint_range(1.0, 4.0) = 1.65;
 uniform float parallax_high_scale : hint_range(1.0, 6.0) = 2.55;
+uniform float cloud_shape_contrast : hint_range(0.0, 1.0) = 0.52;
+uniform float cloud_shadow_strength : hint_range(0.0, 1.0) = 0.34;
 group_uniforms;
 
 group_uniforms Ground;
@@ -140,14 +142,15 @@ void sky() {
 			1.0 - cloud_height * view_up
 		);
 
-		// Give the middle/high layers a subtle value separation so their
-		// parallax remains readable in a still frame.
-		float depth_relief = clamp(
-			cloud_height * (0.88 + parallax_detail_weight * 0.18),
-			0.0,
-			1.0
-		);
-		upper_sky += light_color * transmission * mix(0.86, 1.08, depth_relief);
+		// Readable overcast volume: darker dense bodies, brighter thin edges.
+		// This keeps parallax visible even when directional light is weak.
+		float shape = smoothstep(0.18, 0.82, cloud_height);
+		vec3 cloud_shadow = cloud_color.rgb * (1.0 - cloud_shadow_strength);
+		vec3 cloud_lit = cloud_color.rgb * (1.0 + cloud_shape_contrast * 0.42);
+		upper_sky = mix(cloud_lit, cloud_shadow, shape);
+
+		float rim = pow(clamp(1.0 - abs(cloud_height - 0.48) * 2.0, 0.0, 1.0), 2.0);
+		upper_sky += light_color * transmission * (0.42 + rim * 0.32);
 	}
 
 	vec3 horizon = cloud_color.rgb + light_color * beer_law(cloud_density, 1.0);
