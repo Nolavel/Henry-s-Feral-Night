@@ -12,6 +12,11 @@
     "Henry_Body"
   ],
   "alignment_scale": 1.8287171091069467,
+  "alignment_rotation_z_deg": -90.0,
+  "alignment_scores": {
+    "-90.0": 0.03117889732065413,
+    "90.0": 0.054590968334758565
+  },
   "source_bounds": {
     "min": [
       -0.08959537744522095,
@@ -33,6 +38,18 @@
     "max": [
       0.9722270965576172,
       0.164154052734375,
+      1.8291785717010498
+    ]
+  },
+  "aligned_henry_bounds": {
+    "min": [
+      -0.8932174444198608,
+      -0.18272806704044342,
+      0.0004614591598510742
+    ],
+    "max": [
+      0.8932174444198608,
+      0.14143764972686768,
       1.8291785717010498
     ]
   },
@@ -92,13 +109,18 @@
     "Walk_Loop_Armature"
   ],
   "previews": {
+    "tpose_front.png": {
+      "action": "A_TPose_Armature",
+      "frame": 0,
+      "view": "front"
+    },
     "idle_front.png": {
-      "action": "Crouch_Idle_Loop_Armature",
-      "frame": 35,
+      "action": "Idle_Loop_Armature",
+      "frame": 30,
       "view": "front"
     },
     "walk_3q.png": {
-      "action": "Walk_Formal_Loop_Armature",
+      "action": "Walk_Loop_Armature",
       "frame": 18,
       "view": "three_quarter"
     },
