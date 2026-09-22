@@ -5,6 +5,50 @@ Maintained per branch; entries are added by whoever makes the change.
 
 ## [Unreleased] — `claudeflow`
 
+### 2026-09-22 (3) — Thermal model, weather state machine, first test suites
+
+Added
+- `scripts/systems/survival/thermal_manager.gd` — body temperature simulation:
+  ambient curve, weather, wind chill, shelter zones, heat sources, exertion and
+  clothing wetness, integrated per in-game hour into a hypothermia stage ladder
+  (NORMAL → CHILLED → COLD → HYPOTHERMIC → CRITICAL → death).
+- `scripts/systems/survival/thermal_zone.gd` — static Area3D volumes for
+  interiors and wind shadows, with warmth the player accumulates by burning fuel.
+- `scripts/systems/survival/heat_source.gd` — point heat with distance falloff
+  and a fuel timer; sampled from a static registry, not via physics overlap.
+- `scripts/systems/survival/weather_profile.gd` — Resource holding one weather
+  state's tuning, so designers edit `.tres` rather than code.
+- `scripts/systems/survival/game_hour_tracker.gd` — converts the day/night
+  clock's hour-of-day into deltas, handling the midnight wrap.
+- `resources/weather/{calm,snowfall,windy,blizzard}.tres` — the four states.
+- `tests/systems/test_thermal_model.gd` and `tests/systems/test_weather_profiles.gd`
+  — the project's first automated tests.
+- `tools/ci/run_tests.sh`, wired into the CI workflow ahead of the render step.
+- `docs/technical/THERMAL_MODEL.md` — architecture, the formula, the weather
+  table, how interiors work, and an honest cost breakdown of the snow/ice
+  presentation layer.
+
+Changed
+- `scripts/systems/world/WeatherController.gd` — was an empty stub, now the
+  global weather state machine: weighted scheduling, blended transitions,
+  seeded simplex gusts, and `conditions_updated` / `weather_changed` signals for
+  VFX and audio to listen on.
+
+Fixed (found by the new tests)
+- `ThermalZone.priority` collided with the native `Area3D.priority`; renamed to
+  `zone_priority`.
+- `HeatSource` kept freed instances in its static registry. A single stale
+  source aborted every subsequent temperature calculation and silently froze the
+  felt temperature at its last value.
+- `_ready()` does not run until the first frame, so headless-constructed systems
+  stayed uninitialised. Each system now has a public `initialize()` that
+  `_ready()` calls — also the seam save-game loading will need.
+
+Verified
+- `tools/ci/run_tests.sh`: both suites pass, exit code 0.
+- `TestScene` still imports and renders after the change.
+
+
 ### 2026-09-22 (2) — Sync with main, Terrain3D provisioning, slice definition
 
 Changed

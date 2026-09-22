@@ -20,6 +20,9 @@ jobs:
           export PATH="$HOME/.local/bin:$PATH"
           godot --headless --import --quit || true
 
+      - name: Run headless test suites
+        run: tools/ci/run_tests.sh
+
       - name: Render smoke scene
         run: tools/ci/render.sh res://tools/ci/render_smoke.tscn user://shots/smoke.png 25
 

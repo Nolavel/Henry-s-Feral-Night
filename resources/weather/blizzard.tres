@@ -1,0 +1,19 @@
+[gd_resource type="Resource" script_class="WeatherProfile" load_steps=2 format=3]
+
+[ext_resource type="Script" path="res://scripts/systems/survival/weather_profile.gd" id="1"]
+
+[resource]
+script = ExtResource("1")
+id = &"blizzard"
+name_key = "WEATHER_BLIZZARD"
+ambient_offset_c = -6.0
+wind_speed_mps = 17.0
+gust_speed_mps = 11.0
+gust_period_s = 3.0
+snowfall_density = 0.95
+visibility_m = 45.0
+wetness_rate_per_hour = 0.55
+blend_time_s = 35.0
+weight = 1.0
+min_duration_h = 0.75
+max_duration_h = 2.0

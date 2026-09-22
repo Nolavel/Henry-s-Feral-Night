@@ -1,0 +1,19 @@
+[gd_resource type="Resource" script_class="WeatherProfile" load_steps=2 format=3]
+
+[ext_resource type="Script" path="res://scripts/systems/survival/weather_profile.gd" id="1"]
+
+[resource]
+script = ExtResource("1")
+id = &"windy"
+name_key = "WEATHER_WINDY"
+ambient_offset_c = -1.0
+wind_speed_mps = 8.0
+gust_speed_mps = 6.0
+gust_period_s = 5.0
+snowfall_density = 0.15
+visibility_m = 400.0
+wetness_rate_per_hour = 0.06
+blend_time_s = 20.0
+weight = 2.0
+min_duration_h = 1.0
+max_duration_h = 3.0
