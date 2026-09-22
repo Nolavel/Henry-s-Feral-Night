@@ -76,17 +76,9 @@ func _run() -> void:
 
 
 func _prepare_scene() -> void:
-	var stats := _scene.get_node_or_null("StatsDisplay") as CanvasItem
-	if stats != null:
-		stats.visible = false
-
-	var hud := _player.get_node_or_null("HUD") as CanvasItem
-	if hud != null:
-		hud.visible = false
-
-	var in_game_ui := _player.get_node_or_null("InGameUI") as CanvasItem
-	if in_game_ui != null:
-		in_game_ui.visible = false
+	# Keep the A/B about the post-process only: hide every CanvasItem,
+	# including the world debug clock/timer panels and Player HUD.
+	_hide_canvas_items(_scene)
 
 	# Freeze gameplay. The comparison should be pixel-identical except for
 	# the outline material.
@@ -110,6 +102,13 @@ func _prepare_scene() -> void:
 		day_night.set("total_game_time_hours", 11.0)
 		if day_night.has_method("force_update_lighting"):
 			day_night.call("force_update_lighting")
+
+
+func _hide_canvas_items(node: Node) -> void:
+	if node is CanvasItem:
+		(node as CanvasItem).visible = false
+	for child: Node in node.get_children():
+		_hide_canvas_items(child)
 
 
 func _prepare_output_dir() -> void:
