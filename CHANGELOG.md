@@ -3,6 +3,22 @@
 All notable changes to Henry's Feral Night. Newest first.
 Maintained per branch; entries are added by whoever makes the change.
 
+## [Experiment] — gpt-freemans-sky-experiment
+
+### 2026-09-23 — Freeman's Sky controlled island preview
+
+Added
+- Official CC0 quarter-resolution Freeman's Sky shader from Niwl Games.
+- A capture harness that renders the same Henry eye-line view at 06:15, 12:00,
+  17:45 and 20:30 on the authored Graciosa island scene.
+- Cold maritime parameter tuning lives in the harness, not gameplay code, so the
+  experiment can be rejected without touching the current overcast day/night stack.
+- A branch-only render workflow produces all four PNGs in one job.
+
+Performance choice
+- The quarter-resolution sky pass is intentional. The upstream author recommends
+  half/quarter variants for performance, and HFN CI renders through lavapipe.
+
 ## [Unreleased] — `claudeflow`
 
 ### 2026-09-22 (12) — Fix CI: the environment, not the code
