@@ -6,10 +6,10 @@
 resource_local_to_scene = true
 shader = ExtResource("1_shader")
 shader_parameter/edge_color = Color(0.012, 0.016, 0.022, 1)
-shader_parameter/edge_opacity = 0.88
-shader_parameter/edge_width_px = 1.55
-shader_parameter/edge_threshold = 0.02
-shader_parameter/jitter_amount_px = 0.38
+shader_parameter/edge_opacity = 0.58
+shader_parameter/edge_width_px = 1.05
+shader_parameter/edge_threshold = 0.032
+shader_parameter/jitter_amount_px = 0.3
 
 [node name="HandDrawnOutlineEffect" type="ColorRect"]
 visible = false
