@@ -64,7 +64,8 @@ var _player: Node3D
 var _frame: int = 0
 var _configured: bool = false
 var _shot_index: int = -1
-var _settle_frames: int = 0\nvar _black_frames: int = 0
+var _settle_frames: int = 0
+var _black_frames: int = 0
 
 
 func _initialize() -> void:
