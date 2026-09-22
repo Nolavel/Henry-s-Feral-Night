@@ -1,6 +1,7 @@
-[gd_scene load_steps=3 format=3]
+[gd_scene load_steps=4 format=3]
 
 [ext_resource type="Shader" path="res://shaders/postprocess/hand_drawn_outline_screen_sobel.gdshader" id="1_shader"]
+[ext_resource type="Script" path="res://scripts/systems/rendering/MaskedHandDrawnOutline.gd" id="2_script"]
 
 [sub_resource type="ShaderMaterial" id="ShaderMaterial_outline"]
 resource_local_to_scene = true
@@ -10,9 +11,9 @@ shader_parameter/edge_opacity = 0.58
 shader_parameter/edge_width_px = 1.05
 shader_parameter/edge_threshold = 0.032
 shader_parameter/jitter_amount_px = 0.3
+shader_parameter/player_mask_dilate_px = 2.25
 
 [node name="HandDrawnOutlineEffect" type="ColorRect"]
-visible = false
 anchors_preset = 15
 anchor_right = 1.0
 anchor_bottom = 1.0
@@ -20,3 +21,6 @@ grow_horizontal = 2
 grow_vertical = 2
 mouse_filter = 2
 material = SubResource("ShaderMaterial_outline")
+script = ExtResource("2_script")
+excluded_layers = 16
+mask_dilate_px = 2.25
