@@ -158,6 +158,11 @@ func _apply_static_sky_parameters() -> void:
 	sky_material.set_shader_parameter("cloud_sag", settings.cloud_sag)
 	sky_material.set_shader_parameter("noise_tiling", settings.cloud_tiling)
 	sky_material.set_shader_parameter("wind_speed", settings.cloud_wind_speed)
+	sky_material.set_shader_parameter("parallax_strength", settings.cloud_parallax_strength)
+	sky_material.set_shader_parameter("parallax_layer_separation", settings.cloud_parallax_layer_separation)
+	sky_material.set_shader_parameter("parallax_detail_weight", settings.cloud_parallax_detail_weight)
+	sky_material.set_shader_parameter("parallax_mid_scale", settings.cloud_parallax_mid_scale)
+	sky_material.set_shader_parameter("parallax_high_scale", settings.cloud_parallax_high_scale)
 	sky_material.set_shader_parameter("directional_energy_scale", settings.cloud_light_energy_scale)
 	sky_material.set_shader_parameter("ground_curve", settings.ground_curve)
 
