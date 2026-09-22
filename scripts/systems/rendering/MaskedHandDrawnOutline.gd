@@ -12,6 +12,7 @@ extends ColorRect
 var _source_camera: Camera3D
 var _mask_viewport: SubViewport
 var _mask_camera: Camera3D
+var _mask_environment: Environment
 var _shader_material: ShaderMaterial
 
 
@@ -55,6 +56,20 @@ func _create_mask_viewport() -> void:
 	_mask_camera.name = "PlayerOutlineMaskCamera"
 	_mask_camera.cull_mask = excluded_layers
 	_mask_viewport.add_child(_mask_camera)
+
+	# The mask viewport must not inherit the main world's sky/fog alpha.
+	# Give it its own transparent-black environment so alpha is 1 only where
+	# Henry's layer-16 geometry is actually rendered.
+	_mask_environment = Environment.new()
+	_mask_environment.background_mode = Environment.BG_COLOR
+	_mask_environment.background_color = Color(0.0, 0.0, 0.0, 0.0)
+	_mask_environment.background_energy_multiplier = 0.0
+	_mask_environment.ambient_light_source = Environment.AMBIENT_SOURCE_COLOR
+	_mask_environment.ambient_light_color = Color.WHITE
+	_mask_environment.ambient_light_energy = 1.0
+	_mask_environment.fog_enabled = false
+	_mask_environment.volumetric_fog_enabled = false
+	_mask_camera.environment = _mask_environment
 
 	_shader_material.set_shader_parameter(
 		"player_mask_texture",
