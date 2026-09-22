@@ -1,13 +1,14 @@
 class_name MaskedHandDrawnOutline
 extends ColorRect
 
-## Readable production-preview Sobel with a soft screen-space exclusion mask
-## around Henry. This keeps the selected visual style on world/props while
-## preserving Henry's original shading without a second 3D render.
+## Readable production-preview Sobel with an exact screen-space exclusion box
+## derived from Henry's visible MeshInstance3D bounds.
+##
+## The outline remains the same selected production-preview look on the world
+## and props. Only the projected player bounds bypass the post-process.
 
-@export_range(1.0, 4.0, 0.05) var player_height_m: float = 2.05
-@export_range(1.0, 2.0, 0.05) var mask_scale: float = 1.22
-@export_range(0.2, 1.0, 0.05) var mask_width_to_height: float = 0.46
+@export_range(0.0, 24.0, 0.5) var mask_padding_px: float = 5.0
+@export_range(0.0, 0.25, 0.01) var mask_feather: float = 0.08
 
 var _source_camera: Camera3D
 var _player: Node3D
@@ -45,44 +46,79 @@ func _process(_delta: float) -> void:
 
 func _update_player_mask() -> void:
 	if not is_instance_valid(_player):
-		_shader_material.set_shader_parameter("player_mask_enabled", 0.0)
+		_disable_mask()
 		return
 
 	var viewport := _source_camera.get_viewport()
 	if viewport == null:
-		_shader_material.set_shader_parameter("player_mask_enabled", 0.0)
+		_disable_mask()
 		return
 
 	var viewport_size := Vector2(viewport.get_visible_rect().size)
 	if viewport_size.x <= 1.0 or viewport_size.y <= 1.0:
-		_shader_material.set_shader_parameter("player_mask_enabled", 0.0)
+		_disable_mask()
 		return
 
-	var feet: Vector3 = _player.global_position
-	var head: Vector3 = feet + Vector3.UP * player_height_m
-	var center_3d: Vector3 = feet + Vector3.UP * (player_height_m * 0.52)
+	var screen_min := Vector2(1.0e20, 1.0e20)
+	var screen_max := Vector2(-1.0e20, -1.0e20)
+	var found_mesh := false
 
-	if _source_camera.is_position_behind(center_3d):
-		_shader_material.set_shader_parameter("player_mask_enabled", 0.0)
+	var meshes: Array[MeshInstance3D] = []
+	_collect_visible_meshes(_player, meshes)
+
+	for mesh_instance: MeshInstance3D in meshes:
+		if mesh_instance.mesh == null:
+			continue
+
+		var local_aabb: AABB = mesh_instance.get_aabb()
+		for endpoint_index: int in range(8):
+			var world_point: Vector3 = mesh_instance.global_transform * local_aabb.get_endpoint(endpoint_index)
+			if _source_camera.is_position_behind(world_point):
+				continue
+
+			var screen_point: Vector2 = _source_camera.unproject_position(world_point)
+			screen_min.x = minf(screen_min.x, screen_point.x)
+			screen_min.y = minf(screen_min.y, screen_point.y)
+			screen_max.x = maxf(screen_max.x, screen_point.x)
+			screen_max.y = maxf(screen_max.y, screen_point.y)
+			found_mesh = true
+
+	if not found_mesh:
+		_disable_mask()
 		return
 
-	var feet_px: Vector2 = _source_camera.unproject_position(feet)
-	var head_px: Vector2 = _source_camera.unproject_position(head)
-	var center_px: Vector2 = _source_camera.unproject_position(center_3d)
+	screen_min -= Vector2.ONE * mask_padding_px
+	screen_max += Vector2.ONE * mask_padding_px
 
-	var height_px: float = maxf(absf(feet_px.y - head_px.y), 8.0)
-	var radius_y_px: float = height_px * 0.5 * mask_scale
-	var radius_x_px: float = radius_y_px * mask_width_to_height
+	var min_uv := Vector2(
+		clampf(screen_min.x / viewport_size.x, 0.0, 1.0),
+		clampf(screen_min.y / viewport_size.y, 0.0, 1.0)
+	)
+	var max_uv := Vector2(
+		clampf(screen_max.x / viewport_size.x, 0.0, 1.0),
+		clampf(screen_max.y / viewport_size.y, 0.0, 1.0)
+	)
 
-	var center_uv := Vector2(
-		center_px.x / viewport_size.x,
-		center_px.y / viewport_size.y
-	)
-	var radius_uv := Vector2(
-		radius_x_px / viewport_size.x,
-		radius_y_px / viewport_size.y
-	)
+	if min_uv.x >= max_uv.x or min_uv.y >= max_uv.y:
+		_disable_mask()
+		return
 
 	_shader_material.set_shader_parameter("player_mask_enabled", 1.0)
-	_shader_material.set_shader_parameter("player_mask_center", center_uv)
-	_shader_material.set_shader_parameter("player_mask_radius", radius_uv)
+	_shader_material.set_shader_parameter("player_mask_min", min_uv)
+	_shader_material.set_shader_parameter("player_mask_max", max_uv)
+	_shader_material.set_shader_parameter("player_mask_feather", mask_feather)
+
+
+func _collect_visible_meshes(node: Node, result: Array[MeshInstance3D]) -> void:
+	if node is MeshInstance3D:
+		var mesh_instance := node as MeshInstance3D
+		if mesh_instance.visible and mesh_instance.is_visible_in_tree():
+			result.append(mesh_instance)
+
+	for child: Node in node.get_children():
+		_collect_visible_meshes(child, result)
+
+
+func _disable_mask() -> void:
+	if _shader_material != null:
+		_shader_material.set_shader_parameter("player_mask_enabled", 0.0)
