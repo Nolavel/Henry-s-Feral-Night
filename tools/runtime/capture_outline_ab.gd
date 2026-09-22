@@ -10,7 +10,7 @@ const VIEWPORT_SIZE := Vector2i(1280, 720)
 var _scene: Node3D
 var _camera: Camera3D
 var _player: CharacterBody3D
-var _outline: MeshInstance3D
+var _outline: CanvasItem
 
 
 func _initialize() -> void:
@@ -33,7 +33,7 @@ func _run() -> void:
 
 	_camera = _scene.get_node_or_null("PlayerCamera") as Camera3D
 	_player = _scene.get_node_or_null("Player") as CharacterBody3D
-	_outline = _camera.get_node_or_null("HandDrawnOutlineEffect") as MeshInstance3D
+	_outline = _camera.get_node_or_null("HandDrawnOutlineEffect") as CanvasItem
 
 	if _camera == null or _player == null or _outline == null:
 		push_error("OutlineAB: camera/player/outline prototype missing.")
