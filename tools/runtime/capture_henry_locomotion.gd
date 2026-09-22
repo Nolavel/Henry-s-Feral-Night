@@ -51,6 +51,14 @@ func _run() -> void:
 	_hide_capture_noise()
 	_prepare_output_dir()
 
+	# TestScene has wall fixtures clustered around the origin / negative Z.
+	# Put Henry on the open part of the 80x80 plane so the locomotion capture
+	# measures animation/movement rather than collision with a test wall.
+	_player.global_position = Vector3(20.0, 1.0, 20.0)
+	_player.velocity = Vector3.ZERO
+	_player.reset_physics_interpolation()
+	await _wait_physics_seconds(0.25)
+
 	_release_motion_input()
 	await _wait_physics_seconds(0.65)
 	await _capture("idle")
