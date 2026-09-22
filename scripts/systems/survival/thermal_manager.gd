@@ -153,6 +153,19 @@ func reset_clock() -> void:
 	_hours.reset()
 
 
+## Applies a direct change to core temperature, for events the ambient model
+## does not cover, such as falling into freezing water.
+func apply_body_temperature_delta(degrees: float) -> void:
+	if _is_dead:
+		return
+	_body_temp_c = clampf(_body_temp_c + degrees, lethal_body_temp_c, normal_body_temp_c)
+	_emit_body_temperature()
+	_update_stage()
+	if _body_temp_c <= lethal_body_temp_c:
+		_is_dead = true
+		freezing_death_reached.emit()
+
+
 ## Instantly restores core temperature, for sleeping in a warm shelter.
 func restore_body_temperature() -> void:
 	_is_dead = false

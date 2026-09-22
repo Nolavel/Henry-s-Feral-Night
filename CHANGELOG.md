@@ -5,6 +5,43 @@ Maintained per branch; entries are added by whoever makes the change.
 
 ## [Unreleased] — `claudeflow`
 
+### 2026-09-22 (7) — The frozen sea
+
+Added
+- `scripts/systems/ice/ice_profile.gd` — all ice tuning as a Resource.
+- `scripts/systems/ice/ice_field.gd` — the frozen sea. Sparse tile grid,
+  thickness from distance to the island outline, gait-scaled load, recovery,
+  and the creak → crack → break ladder.
+- `scripts/systems/ice/cold_water_immersion.gd` — falling through soaks the
+  player, drains body heat on the game clock, and refuses to let them climb out
+  until they have thrashed. The trap is a story beat, not a reload.
+- `ThermalManager.apply_body_temperature_delta()` — public seam for events the
+  ambient model does not cover.
+- `resources/ice/bay_ice.tres`, `tests/systems/test_ice_field.gd`,
+  `tools/runtime/capture_ice_map.gd`, `docs/technical/ICE_SYSTEM.md`.
+
+Guarantees the tests hold
+- **Audio lands before visuals**: the first stage emitted walking a tile down is
+  `CREAKING`, never `CRACKING`. The player always gets a warning they can act on
+  before one they can only react to.
+- **Cost is constant**: the active window stays 5×5 whether the player is 60 m
+  or 4 km offshore.
+- A tile breaks exactly once and stays broken; abandoned tiles recover but never
+  past their natural thickness.
+
+Level-design finding
+- The map tool reports that on the illustrative bay the shortcut saves 54 % of
+  the distance but **a sprinted crossing survives** — thinnest ice on the route
+  is 0.74. The shortcut is free, so the ice mechanic would never fire. This is
+  the risk `VERTICAL_SLICE.md` §4 predicted, now measured. Two levers are
+  documented in `ICE_SYSTEM.md` §7; both are design decisions, not code ones.
+
+Note
+- GDScript lambdas capture local primitives **by value**, so a counter
+  incremented inside a signal handler lambda silently stays zero. Cost one
+  debugging round; the test now uses a reference type.
+
+
 ### 2026-09-22 (6) — Campfire fuel and the hold-to-sleep UI
 
 Added
