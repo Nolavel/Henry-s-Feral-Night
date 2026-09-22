@@ -5,6 +5,25 @@ Maintained per branch; entries are added by whoever makes the change.
 
 ## [Unreleased] — `claudeflow`
 
+### 2026-09-23 (1) — The project's own licence
+
+Fixed
+- **`/LICENSE` was an unrelated third party's MIT** — `Copyright (c) 2023
+  mohsenph69`, the author of the Godot-MTerrain addon. It arrived in commit
+  `5496269` alongside terrain experiments and was never replaced, so the whole
+  game was formally published under MIT, granting everyone the right to copy,
+  modify, sublicense and sell it, attributed to someone unconnected to the
+  project. Not Terrain3D's licence either — that one ships separately at
+  `addons/terrain_3d/LICENSE.txt`. Replaced with the project's own terms,
+  modelled on ADT's. See issue #5.
+
+Added
+- `docs/THIRD_PARTY_NOTICES.md` now records the licensing history, so the change
+  is explained rather than silently rewritten, and the author's permission to
+  port code from `Nolavel/ADT` (whose licence requires written permission from
+  the copyright holder, who owns both projects and granted it).
+
+
 ### 2026-09-22 (12) — Fix CI: the environment, not the code
 
 The first CI run on PR #2 went red. Every cause was in the harness I wrote.
