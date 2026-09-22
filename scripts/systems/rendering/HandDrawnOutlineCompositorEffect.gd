@@ -2,7 +2,7 @@
 class_name HandDrawnOutlineCompositorEffect
 extends CompositorEffect
 
-const SHADER_PATH: String = "res://shaders/postprocess/hand_drawn_outline_compositor.glsl"
+const SHADER_PATH: String = "res://shaders/postprocess/hand_drawn_outline_compositor_compute.txt"
 
 @export var edge_color: Color = Color(0.012, 0.016, 0.022, 1.0)
 @export_range(0.0, 1.0, 0.01) var edge_opacity: float = 0.58
@@ -14,6 +14,8 @@ const SHADER_PATH: String = "res://shaders/postprocess/hand_drawn_outline_compos
 @export_range(0.0, 1.0, 0.05) var jitter_amount_px: float = 0.30
 @export_range(0.0, 100.0, 0.5) var distance_fade_start: float = 18.0
 @export_range(1.0, 200.0, 0.5) var distance_fade_end: float = 60.0
+var camera_near: float = 0.05
+var camera_far: float = 4000.0
 
 var _rd: RenderingDevice
 var _shader: RID
@@ -51,14 +53,22 @@ func _initialize_compute() -> void:
 	if _rd == null:
 		return
 
-	var shader_file := load(SHADER_PATH) as RDShaderFile
-	if shader_file == null:
-		push_error("HandDrawnOutlineCompositorEffect: compute shader failed to load.")
+	var file := FileAccess.open(SHADER_PATH, FileAccess.READ)
+	if file == null:
+		push_error("HandDrawnOutlineCompositorEffect: compute shader source failed to open.")
 		return
 
-	var spirv: RDShaderSPIRV = shader_file.get_spirv()
+	var shader_code: String = file.get_as_text()
+	var shader_source := RDShaderSource.new()
+	shader_source.language = RenderingDevice.SHADER_LANGUAGE_GLSL
+	shader_source.source_compute = shader_code
+
+	var spirv: RDShaderSPIRV = _rd.shader_compile_spirv_from_source(shader_source)
 	if spirv == null:
-		push_error("HandDrawnOutlineCompositorEffect: shader has no SPIR-V.")
+		push_error("HandDrawnOutlineCompositorEffect: runtime SPIR-V compilation returned null.")
+		return
+	if not spirv.compile_error_compute.is_empty():
+		push_error("HandDrawnOutlineCompositorEffect GLSL: " + spirv.compile_error_compute)
 		return
 
 	_shader = _rd.shader_create_from_spirv(spirv)
@@ -67,6 +77,9 @@ func _initialize_compute() -> void:
 		return
 
 	_pipeline = _rd.compute_pipeline_create(_shader)
+	if not _pipeline.is_valid():
+		push_error("HandDrawnOutlineCompositorEffect: compute pipeline is invalid.")
+		return
 
 	var sampler_state := RDSamplerState.new()
 	sampler_state.min_filter = RenderingDevice.SAMPLER_FILTER_NEAREST
@@ -74,6 +87,8 @@ func _initialize_compute() -> void:
 	sampler_state.repeat_u = RenderingDevice.SAMPLER_REPEAT_MODE_CLAMP_TO_EDGE
 	sampler_state.repeat_v = RenderingDevice.SAMPLER_REPEAT_MODE_CLAMP_TO_EDGE
 	_nearest_sampler = _rd.sampler_create(sampler_state)
+
+	print("[HFN_OUTLINE_COMPOSITOR] pipeline ready")
 
 
 func _render_callback(
@@ -89,8 +104,7 @@ func _render_callback(
 		return
 
 	var render_scene_buffers := p_render_data.get_render_scene_buffers() as RenderSceneBuffersRD
-	var scene_data := p_render_data.get_render_scene_data()
-	if render_scene_buffers == null or scene_data == null:
+	if render_scene_buffers == null:
 		return
 
 	if not render_scene_buffers.has_texture(&"forward_clustered", &"normal_roughness"):
@@ -98,10 +112,6 @@ func _render_callback(
 
 	var size: Vector2i = render_scene_buffers.get_internal_size()
 	if size.x <= 0 or size.y <= 0:
-		return
-
-	var scene_data_buffer: RID = scene_data.get_uniform_buffer()
-	if not scene_data_buffer.is_valid():
 		return
 
 	var normal_context: StringName = &"forward_clustered"
@@ -132,32 +142,27 @@ func _render_callback(
 		):
 			continue
 
-		var scene_uniform := RDUniform.new()
-		scene_uniform.uniform_type = RenderingDevice.UNIFORM_TYPE_UNIFORM_BUFFER
-		scene_uniform.binding = 0
-		scene_uniform.add_id(scene_data_buffer)
-
 		var color_uniform := RDUniform.new()
 		color_uniform.uniform_type = RenderingDevice.UNIFORM_TYPE_IMAGE
-		color_uniform.binding = 1
+		color_uniform.binding = 0
 		color_uniform.add_id(color_image)
 
 		var depth_uniform := RDUniform.new()
 		depth_uniform.uniform_type = RenderingDevice.UNIFORM_TYPE_SAMPLER_WITH_TEXTURE
-		depth_uniform.binding = 2
+		depth_uniform.binding = 1
 		depth_uniform.add_id(_nearest_sampler)
 		depth_uniform.add_id(depth_image)
 
 		var normal_uniform := RDUniform.new()
 		normal_uniform.uniform_type = RenderingDevice.UNIFORM_TYPE_SAMPLER_WITH_TEXTURE
-		normal_uniform.binding = 3
+		normal_uniform.binding = 2
 		normal_uniform.add_id(_nearest_sampler)
 		normal_uniform.add_id(normal_image)
 
 		var uniform_set: RID = UniformSetCacheRD.get_cache(
 			_shader,
 			0,
-			[scene_uniform, color_uniform, depth_uniform, normal_uniform]
+			[color_uniform, depth_uniform, normal_uniform]
 		)
 		if not uniform_set.is_valid():
 			continue
@@ -175,6 +180,10 @@ func _render_callback(
 			maxf(distance_fade_end, distance_fade_start + 0.5),
 			wide_normal_radius_px,
 			curvature_boost,
+			maxf(camera_near, 0.001),
+			maxf(camera_far, camera_near + 1.0),
+			0.0,
+			0.0,
 			edge_color.r,
 			edge_color.g,
 			edge_color.b,
