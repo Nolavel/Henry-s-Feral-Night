@@ -1,0 +1,86 @@
+name: Rebuild Henry UAL Rig Candidate
+
+on:
+  push:
+    branches:
+      - codex
+    paths:
+      - .github/workflows/rebuild_henry_ual_candidate.yml
+
+permissions:
+  contents: write
+
+jobs:
+  rig:
+    if: github.actor != 'github-actions[bot]'
+    runs-on: ubuntu-latest
+    timeout-minutes: 25
+
+    steps:
+      - name: Checkout codex
+        uses: actions/checkout@v4
+        with:
+          ref: codex
+          fetch-depth: 0
+
+      - name: Install Blender headless dependencies
+        shell: bash
+        run: |
+          set -euo pipefail
+          sudo apt-get update -qq
+          sudo apt-get install -y blender python3-numpy xvfb libegl1 libgl1-mesa-dri libglu1-mesa
+          blender --version
+
+      - name: Rig Henry and render validation poses
+        shell: bash
+        run: |
+          set -euo pipefail
+          export LIBGL_ALWAYS_SOFTWARE=1
+          xvfb-run -a blender --background --factory-startup             --python tools/blender/rig_henry_ual.py
+          test -s assets/models/characters/henry_ual/Henry_UAL_Rigged.glb
+
+      - name: Validate structural output
+        shell: bash
+        run: |
+          set -euo pipefail
+          for file in             tpose_front.png             idle_front.png             walk_3q.png             sprint_side.png             stress_pose.png; do
+            test -s "docs/rig_previews/henry_ual/$file"
+          done
+          test -s docs/rig_previews/henry_ual/rig_report.json
+          python3 - <<'PY'
+          import json
+          with open("docs/rig_previews/henry_ual/rig_report.json", encoding="utf-8") as f:
+              r = json.load(f)
+          assert r["bone_count"] == 65, r["bone_count"]
+          assert r["weight_stats"]["Henry_Body"]["unweighted_vertices"] == 0
+          assert abs(r["alignment_rotation_z_deg"]) == 90.0, r["alignment_rotation_z_deg"]
+          print(json.dumps({
+              "bones": r["bone_count"],
+              "rotation": r["alignment_rotation_z_deg"],
+              "scores": r["alignment_scores"],
+              "weights": r["weight_stats"],
+              "previews": r["previews"],
+          }, indent=2))
+          PY
+
+      - name: Upload candidate artifact
+        uses: actions/upload-artifact@v4
+        with:
+          name: henry-ual-rig-candidate-v2
+          path: |
+            assets/models/characters/henry_ual/Henry_UAL_Rigged.glb
+            docs/rig_previews/henry_ual/*.png
+            docs/rig_previews/henry_ual/rig_report.json
+          if-no-files-found: error
+          retention-days: 14
+
+      - name: Commit candidate and remove one-shot workflow
+        shell: bash
+        run: |
+          set -euo pipefail
+          git config user.name "codex-rig-pipeline"
+          git config user.email "codex-rig-pipeline@users.noreply.github.com"
+          git add             assets/models/characters/henry_ual/Henry_UAL_Rigged.glb             docs/rig_previews/henry_ual
+          git rm .github/workflows/rebuild_henry_ual_candidate.yml
+          git commit -m "rebuild Henry UAL rig candidate with rest-pose alignment"
+          git push origin HEAD:codex
