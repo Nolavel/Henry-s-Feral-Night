@@ -256,6 +256,8 @@ func _setup_hand_drawn_outline() -> void:
 	_outline_effect.jitter_amount_px = outline_jitter_px
 	_outline_effect.distance_fade_start = outline_fade_start
 	_outline_effect.distance_fade_end = maxf(outline_fade_end, outline_fade_start + 0.5)
+	_outline_effect.camera_near = near
+	_outline_effect.camera_far = far
 
 	var outline_compositor := Compositor.new()
 	var effects: Array[CompositorEffect] = []
