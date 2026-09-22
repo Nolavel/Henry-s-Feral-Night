@@ -16,8 +16,9 @@ uniform sampler2D normal_roughness_texture : hint_normal_roughness_texture, repe
 uniform vec4 edge_color : source_color = vec4(0.025, 0.032, 0.045, 1.0);
 uniform float edge_opacity : hint_range(0.0, 1.0) = 0.82;
 uniform float edge_width_px : hint_range(0.5, 3.0, 0.1) = 1.15;
-uniform float depth_threshold : hint_range(0.001, 0.2, 0.001) = 0.018;
-uniform float normal_threshold : hint_range(0.01, 0.6, 0.01) = 0.11;
+uniform float depth_threshold : hint_range(0.001, 0.2, 0.001) = 0.004;
+uniform float raw_depth_threshold : hint_range(0.00001, 0.02, 0.00001) = 0.00035;
+uniform float normal_threshold : hint_range(0.01, 0.6, 0.01) = 0.035;
 uniform float jitter_amount_px : hint_range(0.0, 2.0, 0.05) = 0.35;
 uniform float jitter_speed : hint_range(0.0, 4.0, 0.05) = 0.30;
 uniform float distance_fade_start : hint_range(0.0, 100.0, 0.5) = 18.0;
@@ -35,7 +36,8 @@ float linear_depth(vec2 uv) {
 	float raw_depth = texture(depth_texture, uv).r;
 	vec3 ndc = vec3(uv * 2.0 - 1.0, raw_depth);
 	vec4 view = INV_PROJECTION_MATRIX * vec4(ndc, 1.0);
-	view.xyz /= max(abs(view.w), 0.000001);
+	float safe_w = abs(view.w) < 0.000001 ? (view.w < 0.0 ? -0.000001 : 0.000001) : view.w;
+	view.xyz /= safe_w;
 	return max(-view.z, 0.0);
 }
 
@@ -88,7 +90,18 @@ void fragment() {
 	float gx = d2 + 2.0 * d5 + d8 - d0 - 2.0 * d3 - d6;
 	float gy = d0 + 2.0 * d1 + d2 - d6 - 2.0 * d7 - d8;
 	float relative_depth_edge = length(vec2(gx, gy)) / max(d4, 0.20);
-	float depth_edge = smoothstep(depth_threshold, depth_threshold * 2.35, relative_depth_edge);
+	float depth_edge = smoothstep(depth_threshold, depth_threshold * 2.0, relative_depth_edge);
+
+	// Reverse-Z raw depth is intentionally also sampled as a silhouette
+	// fallback. This is insensitive to linear-depth reconstruction details and
+	// makes object/background discontinuities reliable on Forward+.
+	float raw_c = texture(depth_texture, uv).r;
+	float raw_delta = 0.0;
+	raw_delta = max(raw_delta, abs(texture(depth_texture, uv + vec2( p.x, 0.0)).r - raw_c));
+	raw_delta = max(raw_delta, abs(texture(depth_texture, uv + vec2(-p.x, 0.0)).r - raw_c));
+	raw_delta = max(raw_delta, abs(texture(depth_texture, uv + vec2(0.0,  p.y)).r - raw_c));
+	raw_delta = max(raw_delta, abs(texture(depth_texture, uv + vec2(0.0, -p.y)).r - raw_c));
+	float silhouette_edge = smoothstep(raw_depth_threshold, raw_depth_threshold * 5.0, raw_delta);
 
 	vec3 nc = decoded_normal(uv);
 	float normal_delta = 0.0;
@@ -98,7 +111,7 @@ void fragment() {
 	normal_delta = max(normal_delta, 1.0 - dot(nc, decoded_normal(uv + vec2(0.0, -p.y))));
 	float normal_edge = smoothstep(normal_threshold, normal_threshold * 2.0, normal_delta);
 
-	float edge = max(depth_edge, normal_edge);
+	float edge = max(max(depth_edge, silhouette_edge), normal_edge);
 	float distance_fade = 1.0 - smoothstep(distance_fade_start, distance_fade_end, d4);
 	edge *= distance_fade * edge_opacity;
 
