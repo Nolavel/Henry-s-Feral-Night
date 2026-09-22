@@ -20,31 +20,19 @@ jobs:
           ref: codex
           fetch-depth: 0
 
-      - name: Copy Quaternius UAL assets from DOGWATCH
+      - name: Vendor Quaternius UAL binaries
         shell: bash
         run: |
           set -euo pipefail
           mkdir -p assets/animation/ual/Unreal-Godot
           mkdir -p assets/animation/ual/Unreal-Godot_2
 
-          curl --fail --location --retry 3 \
-            "https://raw.githubusercontent.com/Nolavel/DOGWATCH/main/assets/skeletons_and_animation_for_demo/Unreal-Godot/UAL1_Standard.glb" \
-            --output assets/animation/ual/Unreal-Godot/UAL1_Standard.glb
+          curl --fail --location --retry 3             "https://raw.githubusercontent.com/richardanaya/metaverse-avatar/master/anims/UAL1_Standard.glb"             --output assets/animation/ual/Unreal-Godot/UAL1_Standard.glb
 
-          curl --fail --location --retry 3 \
-            "https://raw.githubusercontent.com/Nolavel/DOGWATCH/main/assets/skeletons_and_animation_for_demo/Unreal-Godot_2/UAL2_Standard.glb" \
-            --output assets/animation/ual/Unreal-Godot_2/UAL2_Standard.glb
+          curl --fail --location --retry 3             "https://raw.githubusercontent.com/richardanaya/metaverse-avatar/master/anims/UAL2_Standard.glb"             --output assets/animation/ual/Unreal-Godot_2/UAL2_Standard.glb
 
-          curl --fail --location --retry 3 \
-            "https://raw.githubusercontent.com/Nolavel/DOGWATCH/main/assets/skeletons_and_animation_for_demo/License.txt" \
-            --output assets/animation/ual/License.txt
-
-          curl --fail --location --retry 3 \
-            "https://raw.githubusercontent.com/Nolavel/DOGWATCH/main/assets/skeletons_and_animation_for_demo/README.txt" \
-            --output assets/animation/ual/README.txt
-
-          test "$(stat -c%s assets/animation/ual/Unreal-Godot/UAL1_Standard.glb)" -gt 7000000
-          test "$(stat -c%s assets/animation/ual/Unreal-Godot_2/UAL2_Standard.glb)" -gt 7000000
+          test "$(git hash-object assets/animation/ual/Unreal-Godot/UAL1_Standard.glb)" = "410b30c617cc3097f7d82e36d4c28ef130f66388"
+          test "$(git hash-object assets/animation/ual/Unreal-Godot_2/UAL2_Standard.glb)" = "dc684c2a664927964307e8eb7b27b0000ebf6a18"
 
       - name: Commit vendored assets and remove one-shot workflow
         shell: bash
@@ -54,5 +42,5 @@ jobs:
           git config user.email "codex-asset-vendor@users.noreply.github.com"
           git add assets/animation/ual
           git rm .github/workflows/vendor_ual_assets.yml
-          git commit -m "vendor Quaternius UAL skeleton and animations from DOGWATCH"
+          git commit -m "vendor Quaternius UAL skeleton and animations"
           git push origin HEAD:codex
