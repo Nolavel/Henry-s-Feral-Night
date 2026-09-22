@@ -27,11 +27,10 @@ jobs:
         shell: bash
         run: |
           set -euo pipefail
-          if ! command -v blender >/dev/null 2>&1; then
-            sudo apt-get update -qq
-            sudo apt-get install -y blender
-          fi
+          sudo apt-get update -qq
+          sudo apt-get install -y blender python3-numpy
           blender --version
+          blender --background --factory-startup --python-expr "import numpy; print('numpy', numpy.__version__)"
 
       - name: Rig Henry and render previews
         shell: bash
@@ -39,6 +38,7 @@ jobs:
           set -euo pipefail
           blender --background --factory-startup \
             --python tools/blender/rig_henry_ual.py
+          test -s assets/models/characters/henry_ual/Henry_UAL_Rigged.glb
 
       - name: Validate outputs
         shell: bash
