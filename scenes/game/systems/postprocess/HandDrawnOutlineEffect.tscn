@@ -1,0 +1,28 @@
+[gd_scene load_steps=3 format=3]
+
+[ext_resource type="Shader" path="res://shaders/postprocess/hand_drawn_outline_forward_plus.gdshader" id="1_shader"]
+
+[sub_resource type="ShaderMaterial" id="ShaderMaterial_outline"]
+resource_local_to_scene = true
+shader = ExtResource("1_shader")
+shader_parameter/edge_color = Color(0.025, 0.032, 0.045, 1)
+shader_parameter/edge_opacity = 0.82
+shader_parameter/edge_width_px = 1.15
+shader_parameter/depth_threshold = 0.018
+shader_parameter/normal_threshold = 0.11
+shader_parameter/jitter_amount_px = 0.35
+shader_parameter/jitter_speed = 0.3
+shader_parameter/distance_fade_start = 18.0
+shader_parameter/distance_fade_end = 55.0
+
+[sub_resource type="QuadMesh" id="QuadMesh_outline"]
+material = SubResource("ShaderMaterial_outline")
+size = Vector2(2, 2)
+flip_faces = true
+
+[node name="HandDrawnOutlineEffect" type="MeshInstance3D"]
+visible = false
+position = Vector3(0, 0, -1)
+cast_shadow = 0
+extra_cull_margin = 16384.0
+mesh = SubResource("QuadMesh_outline")
