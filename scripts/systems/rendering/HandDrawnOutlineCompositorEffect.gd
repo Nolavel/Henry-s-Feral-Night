@@ -21,6 +21,8 @@ var _rd: RenderingDevice
 var _shader: RID
 var _pipeline: RID
 var _nearest_sampler: RID
+var _dispatch_logged: bool = false
+var _missing_normal_logged: bool = false
 
 
 func _init() -> void:
@@ -108,6 +110,9 @@ func _render_callback(
 		return
 
 	if not render_scene_buffers.has_texture(&"forward_clustered", &"normal_roughness"):
+		if not _missing_normal_logged:
+			_missing_normal_logged = true
+			print("[HFN_OUTLINE_COMPOSITOR] normal_roughness missing")
 		return
 
 	var size: Vector2i = render_scene_buffers.get_internal_size()
@@ -200,4 +205,11 @@ func _render_callback(
 		)
 		_rd.compute_list_dispatch(compute_list, x_groups, y_groups, 1)
 		_rd.compute_list_end()
+
+		if not _dispatch_logged:
+			_dispatch_logged = true
+			print(
+				"[HFN_OUTLINE_COMPOSITOR] dispatch ready size=%dx%d views=%d"
+				% [size.x, size.y, view_count]
+			)
 #endregion
