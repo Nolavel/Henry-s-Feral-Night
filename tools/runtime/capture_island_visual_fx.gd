@@ -14,32 +14,32 @@ const SHOTS := [
 		"camera_offset": Vector3(165.0, 92.0, 185.0),
 		"target_offset": Vector3(-35.0, 5.0, -55.0),
 		"fov": 60.0,
-		"volume_t": 0.58,
-		"volume_scale": Vector3(28.0, 18.0, 24.0),
+		"volume_t": 0.72,
+		"volume_scale": Vector3(18.0, 3.0, 12.0),
 	},
 	{
 		"name": "02_ground_tps",
 		"camera_offset": Vector3(42.0, 12.0, 52.0),
 		"target_offset": Vector3(-22.0, 3.0, -34.0),
 		"fov": 64.0,
-		"volume_t": 0.66,
-		"volume_scale": Vector3(13.0, 7.0, 10.0),
+		"volume_t": 0.72,
+		"volume_scale": Vector3(8.0, 2.0, 6.0),
 	},
 	{
 		"name": "03_cross_slope",
 		"camera_offset": Vector3(-175.0, 58.0, 48.0),
 		"target_offset": Vector3(78.0, 7.0, -88.0),
 		"fov": 58.0,
-		"volume_t": 0.63,
-		"volume_scale": Vector3(30.0, 17.0, 22.0),
+		"volume_t": 0.70,
+		"volume_scale": Vector3(20.0, 3.5, 14.0),
 	},
 	{
 		"name": "04_overlook",
 		"camera_offset": Vector3(30.0, 175.0, 250.0),
 		"target_offset": Vector3(-45.0, 4.0, -75.0),
 		"fov": 55.0,
-		"volume_t": 0.62,
-		"volume_scale": Vector3(44.0, 25.0, 34.0),
+		"volume_t": 0.75,
+		"volume_scale": Vector3(26.0, 4.0, 18.0),
 	},
 ]
 
@@ -149,6 +149,7 @@ func _install_capture_terrain_shader() -> bool:
 
 	_terrain.set("show_grid", false)
 	_terrain.set("show_region_grid", false)
+	_terrain.set("show_checkered", false)
 	return true
 
 
@@ -243,6 +244,16 @@ func _place_fade_volume(
 	volume_scale: Vector3
 ) -> void:
 	var center := camera_pos.lerp(target_pos, t)
+
+	# Fade Volume is an enclosed mesh volume. Keep it sunk into the island so
+	# its top/side boundaries are hidden by terrain instead of reading as a box
+	# floating over the sea.
+	var data: Object = _terrain.get("data")
+	if data != null and data.has_method("get_height"):
+		var ground_value = data.call("get_height", Vector3(center.x, 0.0, center.z))
+		if ground_value is float and not is_nan(float(ground_value)):
+			center.y = float(ground_value) + 2.2
+
 	var direction := target_pos - camera_pos
 	direction.y = 0.0
 	if direction.length_squared() < 0.001:
