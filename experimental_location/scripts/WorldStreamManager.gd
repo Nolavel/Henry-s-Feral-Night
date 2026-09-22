@@ -190,7 +190,7 @@ func _poll_chunk_loading() -> void:
 				var resource: Resource = ResourceLoader.load_threaded_get(path)
 				_loading_paths.erase(chunk_name)
 
-				if not resource is PackedScene:
+				if not (resource is PackedScene):
 					push_warning("WorldStreamManager: %s did not load as PackedScene." % chunk_name)
 					continue
 
@@ -364,7 +364,7 @@ func _polygon_area(vertices: PackedVector2Array) -> float:
 		return 0.0
 
 	var twice_area: float = 0.0
-	for index in vertices.size():
+	for index in range(vertices.size()):
 		var current: Vector2 = vertices[index]
 		var next: Vector2 = vertices[(index + 1) % vertices.size()]
 		twice_area += current.x * next.y - next.x * current.y
