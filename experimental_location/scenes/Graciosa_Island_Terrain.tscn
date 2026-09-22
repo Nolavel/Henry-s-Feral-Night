@@ -1,11 +1,10 @@
-[gd_scene load_steps=18 format=3 uid="uid://cg14lfow57cog"]
+[gd_scene load_steps=17 format=3 uid="uid://cg14lfow57cog"]
 
 [ext_resource type="Script" path="res://world/world.gd" id="1_8hwqn"]
 [ext_resource type="PackedScene" uid="uid://dputwp1am8vfu" path="res://scenes/game/systems/camera/PlayerCamera.tscn" id="1_ftega"]
 [ext_resource type="PackedScene" uid="uid://ciy301x7wh6ie" path="res://scenes/actors/player/player.tscn" id="2_8hwqn"]
 [ext_resource type="PackedScene" uid="uid://duxn5rqcau5dw" path="res://tools/StatsDisplay/StatsDisplay.tscn" id="5_h70bg"]
 [ext_resource type="PackedScene" uid="uid://cvv8y27vmgjfi" path="res://scenes/game/systems/world/WorldEnvironmentSystem.tscn" id="6_pbfqm"]
-[ext_resource type="Script" uid="uid://bw0s7ptu6faor" path="res://experimental_location/scripts/WorldStreamManager.gd" id="7_ftega"]
 
 [sub_resource type="NavigationMesh" id="NavigationMesh_gciob"]
 
@@ -337,7 +336,6 @@ text = "Сhunk info"
 scroll_active = false
 
 [node name="WorldStreamManager" type="Node3D" parent="."]
-script = ExtResource("7_ftega")
 
 [node name="Silvan Heights" type="Node3D" parent="WorldStreamManager"]
 transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, -669.59204, 0, -547.3395)

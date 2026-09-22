@@ -31,6 +31,7 @@ const WORLD_READY_METHOD: StringName = &"on_world_ready"
 const WORLD_SYSTEM_SCRIPTS: Array[GDScript] = [
 	preload("res://scripts/systems/world/WeatherController.gd"),
 	preload("res://scripts/systems/save/save_manager.gd"),
+	preload("res://core/world/streaming_system.gd"),
 ]
 
 ## Standalone 3D scenes — instantiate(), parented to StreamContainer.

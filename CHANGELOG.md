@@ -5,6 +5,58 @@ Maintained per branch; entries are added by whoever makes the change.
 
 ## [Unreleased] — `claudeflow`
 
+### 2026-09-22 (10) — Data-driven streaming
+
+Closes the last item `AGENTS.md` had against this project: chunk definitions
+are data now, not code.
+
+Added
+- `core/world/resources/chunk_data.gd` and `world_data.gd` — mirroring ADT's
+  `BlockData`/`WorldData`: id, display name, location, position, radius and the
+  two ring scene paths.
+- `tools/world/generate_world_data.gd` — **generates** `data/world_data.tres`
+  from the authored island scene. Position comes from each `Area3D`, radius is
+  measured from its `CollisionPolygon3D`, the display name from its `Label3D`,
+  and content scenes are matched by naming convention rather than a table. Nine
+  chunks came out with every content scene resolved and nothing re-authored by
+  hand. It matches both spellings of `Chunk_`, so the Cyrillic homoglyph in the
+  authored names is handled rather than tripped over.
+- `core/world/streaming_system.gd` — the pipeline, reading the resource and
+  nothing else. **No per-chunk variable and no per-chunk `match` arm exists in
+  the file.** ADT's cell machine (`UNLOADED → QUEUED → LOADING → READY →
+  ACTIVE`, with rollback), ADT's budgets (2 concurrent loads, 1 instantiation
+  per frame), and its non-optional `_packed_cache`.
+- `tests/systems/test_streaming.gd` — generated data, approach and activation,
+  hysteresis, the instantiation budget, rollback, and reset.
+
+Removed
+- `experimental_location/scripts/WorldStreamManager.gd` (558 lines), replaced
+  rather than patched. `CHUNK_DEFINITIONS` and `LOCATION_AREAS` go with it; the
+  authored `Area3D` markers stay as the generator's source of truth.
+
+Fixed (found by the new tests)
+- A chunk whose background load landed **after** the player had walked away was
+  still instantiated, because the pump activated anything `READY` without
+  re-checking distance. Both the poll and the activation now re-check the band,
+  and the packed scene stays cached for the next approach.
+
+Deliberate difference from ADT
+- The load band is **per chunk** — its own authored radius plus a margin — not
+  one flat radius. Our chunks range from 190 m to 312 m across, so a single
+  number would either thrash the small ones or load the big ones far too late.
+- `StreamingSystem` is not an autoload. It has one owner and one lifetime, which
+  is what `WORLD_SYSTEM_SCRIPTS` is for.
+
+Open
+- Ring 0 is built but empty: no silhouette scenes exist yet, so
+  `silhouette_scene_path` is blank on every chunk. The island's terrain is the
+  floor in the meantime, as in ADT after its own island move.
+
+Verified
+- Eight suites pass. The island boots through the composition root with the
+  pipeline live (`[World] initialized with 3 systems`) and renders.
+
+
 ### 2026-09-22 (9) — Composition root, WorldContext and InputSystems, from ADT
 
 Read `Nolavel/ADT` and ported its architectural spine. Details and the full

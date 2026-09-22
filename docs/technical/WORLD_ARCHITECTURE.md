@@ -105,9 +105,20 @@ instances. `ThermalManager` is the same. Renaming them is a mechanical commit
 that touches scenes as well as scripts, so it is **not** done here — it is
 recorded so the next person does not add a fourth wrong name.
 
-## 6. What was deliberately NOT ported
+## 6. Autoloads
 
-**The streaming pipeline.** ADT's is genuinely good — two rings, a cell state
+**Autoloads.** ADT holds a closed set of four and requires discussion to add a
+fifth. This project had **none**; `InputSystems` is the first, and it is the
+kind that earns it — a global relay with no state of its own. The same rule
+applies from here: a new autoload needs an argument, not a convenience.
+
+Note that `StreamingSystem` is deliberately **not** an autoload here, unlike
+ADT's. It has one owner (the composition root) and one lifetime (the world's),
+which is exactly what `WORLD_SYSTEM_SCRIPTS` is for.
+
+## 7. Streaming — ported, and how
+
+Done in the pass after this document was first written. ADT's is genuinely good — two rings, a cell state
 machine with hysteresis, threaded loads budgeted at 2 concurrent and **1
 instantiation per frame**, scanning no more than once per 50 m travelled. Ours
 (`experimental_location/scripts/WorldStreamManager.gd`, 558 lines) already has
@@ -118,28 +129,68 @@ The gap is the one `AGENTS.md` already names: **`CHUNK_DEFINITIONS` is a
 hardcoded dictionary**, one entry per chunk, exactly the "one `@onready` and one
 `match` arm per chunk" the rules forbid. ADT solves this with
 `WorldData`/`BlockData` resources exported from a `map_source` scene — layout is
-data, not code.
+data, not code. That is what happened here.
 
-The port is bounded and concrete:
+### The data
 
-1. `WorldData` / `ChunkData` resources mirroring `BlockData`
-   (`id`, `position`, `silhouette_scene_path`, `content_scene_path`).
-2. A generator that reads the existing `locations_data.json` polygons and writes
-   `data/world_data.tres`, so nothing is re-authored by hand.
-3. `WorldStreamManager` reads the resource; `CHUNK_DEFINITIONS` and
-   `LOCATION_AREAS` are deleted.
-4. Ring 0 silhouettes with permanent collision, so a chunk swap can never drop
-   the floor out from under the player.
+`core/world/resources/chunk_data.gd` and `world_data.gd` mirror ADT's
+`BlockData` / `WorldData`: id, display name, location, position, radius, and the
+two ring scene paths.
 
-It was left out of this pass because doing it half way is worse than not
-starting: the generator and the rewrite land together or not at all.
+`data/world_data.tres` is **generated, never hand-written**:
 
-**Autoloads.** ADT holds a closed set of four and requires discussion to add a
-fifth. This project had **none**; `InputSystems` is the first, and it is the
-kind that earns it — a global relay with no state of its own. The same rule
-applies from here: a new autoload needs an argument, not a convenience.
+```bash
+godot --headless --script tools/world/generate_world_data.gd
+```
 
-## 7. Two Godot traps this pass confirmed
+The generator loads the island scene and reads the authored `Area3D` markers
+that were already there — position from the node, radius measured from its
+`CollisionPolygon3D`, display name from its `Label3D`, location from the parent.
+Content scenes are matched by naming convention (`chunk_<id>.tscn`), not by a
+table. Nine chunks came out with every content scene resolved and nothing
+re-authored by hand.
+
+A side benefit: the generator matches both spellings of `Chunk_`, so the
+**Cyrillic homoglyph** in the authored names (`Сhunk_`, §3.10 of the commercial
+assessment) is handled rather than tripped over.
+
+### The pipeline
+
+`core/world/streaming_system.gd` replaces `WorldStreamManager.gd`, which is
+deleted rather than patched. It reads the resource and nothing else — **there is
+no per-chunk variable and no per-chunk `match` arm in the file**, which is what
+`AGENTS.md` asked for.
+
+ADT's cell machine, carried over: `UNLOADED → QUEUED → LOADING → READY →
+ACTIVE`, with rollback from `QUEUED`/`READY` straight back to `UNLOADED` when
+the player leaves early. Budgets are ADT's too — 2 concurrent background loads,
+**1 instantiation per frame**, because background loading is cheap and
+`instantiate()` + `add_child()` is what costs a frame.
+
+One deliberate difference: the load band is **per chunk**, its own authored
+radius plus a margin, rather than one flat radius for everything. Our chunks
+range from 190 m to 312 m across, so a single number would either thrash the
+small ones or load the big ones far too late. Hysteresis is the gap between the
+load and unload bands, as in ADT.
+
+`_packed_cache` is non-optional for the same reason ADT documents:
+`load_threaded_get()` consumes the task, so two chunks sharing a scene path
+would false-fail without it.
+
+**The test found a real bug here.** A chunk whose background load landed *after*
+the player had walked away was still instantiated, because the pump activated
+anything `READY` without re-checking distance. Both the poll and the activation
+now re-check the band, and the packed scene stays cached for the next approach.
+That is precisely the case ADT's rollback rule exists to prevent.
+
+### Ring 0
+
+Built, but empty: `silhouette_scene_path` is blank on every generated chunk
+because no silhouette scenes exist yet. The island's terrain is the floor, as in
+ADT after its own island move, so nothing falls through in the meantime. When
+silhouettes are authored the generator picks them up by the same convention.
+
+## 8. Two Godot traps this pass confirmed
 
 Both were already costing debugging rounds in this project before ADT was read,
 and both are the same underlying fact — **the scene tree is not ready during
