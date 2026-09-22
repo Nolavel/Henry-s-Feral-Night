@@ -1,5 +1,5 @@
 shader_type spatial;
-render_mode unshaded, blend_mix, cull_disabled, depth_draw_never;
+render_mode unshaded, blend_mix;
 
 // HFN adaptation of "Fade Volume" by dairycultist.
 // Source: https://godotshaders.com/shader/fade-volume/
@@ -48,7 +48,7 @@ void fragment() {
 		INV_PROJECTION_MATRIX
 	);
 
-	float offset_into_fragment = max(scene_depth - volume_surface_depth, 0.0);
+	float offset_into_fragment = scene_depth - volume_surface_depth;
 	vec3 position = pos_object + cam_dir_object * offset_into_fragment;
 
 	float gradient = smoothstep(-x_len * 0.5, x_len * 0.5, position.x);

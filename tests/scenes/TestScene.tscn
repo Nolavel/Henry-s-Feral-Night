@@ -41,11 +41,11 @@ roughness = 0.82
 
 [sub_resource type="BoxMesh" id="BoxMesh_showcase_floor_standard"]
 material = SubResource("StandardMaterial3D_showcase")
-size = Vector3(6, 0.2, 7)
+size = Vector3(6, 5, 0.2)
 
 [sub_resource type="BoxMesh" id="BoxMesh_showcase_floor_stylized"]
 material = ExtResource("11_shadow")
-size = Vector3(6, 0.2, 7)
+size = Vector3(6, 5, 0.2)
 
 [sub_resource type="BoxMesh" id="BoxMesh_showcase_occluder"]
 material = SubResource("StandardMaterial3D_occluder")
@@ -54,6 +54,10 @@ size = Vector3(1.5, 3.2, 1.5)
 [sub_resource type="BoxMesh" id="BoxMesh_fade_probe"]
 material = SubResource("StandardMaterial3D_showcase")
 size = Vector3(0.7, 2.4, 0.7)
+
+[sub_resource type="BoxMesh" id="BoxMesh_fade_backdrop"]
+material = SubResource("StandardMaterial3D_showcase")
+size = Vector3(7, 3.4, 0.2)
 
 [node name="TestScene" type="Node3D"]
 
@@ -154,73 +158,81 @@ highlight_color = Color(1, 1, 0, 0.0470588)
 transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 20, 0, -18)
 
 [node name="ShowcaseCamera" type="Camera3D" parent="VisualFXShowcase"]
-position = Vector3(0, 7.2, 17)
+position = Vector3(0, 5.5, 16)
 current = false
-fov = 62.0
+fov = 56.0
 cull_mask = 2
 
 [node name="ShowcaseLight" type="DirectionalLight3D" parent="VisualFXShowcase"]
-rotation = Vector3(-0.92, -0.62, 0.0)
-light_energy = 1.65
+rotation = Vector3(-0.25, -0.35, 0.0)
+light_energy = 2.15
+light_angular_distance = 1.4
 shadow_enabled = true
+shadow_bias = 0.035
+shadow_normal_bias = 0.8
 directional_shadow_max_distance = 80.0
 light_cull_mask = 2
 
 [node name="StandardReceiver" type="MeshInstance3D" parent="VisualFXShowcase"]
-position = Vector3(-4, 0, 3)
+position = Vector3(-4, 2.5, 2)
 layers = 2
 mesh = SubResource("BoxMesh_showcase_floor_standard")
 
 [node name="StandardOccluder" type="MeshInstance3D" parent="VisualFXShowcase"]
-position = Vector3(-4, 1.7, 3)
+position = Vector3(-4, 2.4, 4)
 layers = 2
 mesh = SubResource("BoxMesh_showcase_occluder")
 
 [node name="StandardLabel" type="Label3D" parent="VisualFXShowcase"]
-position = Vector3(-4, 4.1, 3)
+position = Vector3(-4, 5.6, 2)
 layers = 2
 text = "STANDARD"
 font_size = 42
 outline_size = 8
 
 [node name="StylizedReceiver" type="MeshInstance3D" parent="VisualFXShowcase"]
-position = Vector3(4, 0, 3)
+position = Vector3(4, 2.5, 2)
 layers = 2
 mesh = SubResource("BoxMesh_showcase_floor_stylized")
 
 [node name="StylizedOccluder" type="MeshInstance3D" parent="VisualFXShowcase"]
-position = Vector3(4, 1.7, 3)
+position = Vector3(4, 2.4, 4)
 layers = 2
 mesh = SubResource("BoxMesh_showcase_occluder")
 
 [node name="StylizedLabel" type="Label3D" parent="VisualFXShowcase"]
-position = Vector3(4, 4.1, 3)
+position = Vector3(4, 5.6, 2)
 layers = 2
 text = "STYLIZED SHADOWS"
 font_size = 42
 outline_size = 8
 
 [node name="FadeVolume" parent="VisualFXShowcase" instance=ExtResource("10_fade")]
-position = Vector3(0, 1.5, -5)
+position = Vector3(0, 2.0, -4)
 layers = 2
 
+[node name="FadeBackdrop" type="MeshInstance3D" parent="VisualFXShowcase"]
+position = Vector3(0, 2.0, -6.2)
+layers = 2
+mesh = SubResource("BoxMesh_fade_backdrop")
+
 [node name="FadeProbeLeft" type="MeshInstance3D" parent="VisualFXShowcase"]
-position = Vector3(-2, 1.2, -5.8)
+position = Vector3(-2, 2.0, -6.0)
 layers = 2
 mesh = SubResource("BoxMesh_fade_probe")
 
 [node name="FadeProbeCenter" type="MeshInstance3D" parent="VisualFXShowcase"]
-position = Vector3(0, 1.2, -5.8)
+position = Vector3(0, 2.0, -6.0)
 layers = 2
 mesh = SubResource("BoxMesh_fade_probe")
 
 [node name="FadeProbeRight" type="MeshInstance3D" parent="VisualFXShowcase"]
-position = Vector3(2, 1.2, -5.8)
+position = Vector3(2, 2.0, -6.0)
 layers = 2
 mesh = SubResource("BoxMesh_fade_probe")
 
 [node name="FadeLabel" type="Label3D" parent="VisualFXShowcase"]
-position = Vector3(0, 4.0, -5)
+position = Vector3(0, 4.3, -4)
 layers = 2
 text = "FADE VOLUME"
 font_size = 42

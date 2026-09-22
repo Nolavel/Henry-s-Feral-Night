@@ -29,24 +29,27 @@ func _initialize() -> void:
 	if player_camera != null:
 		player_camera.current = false
 
+	var world_system := _scene_root.get_node_or_null("WorldEnvironmentSystem")
+	if world_system != null:
+		world_system.process_mode = Node.PROCESS_MODE_DISABLED
+
 	var sun := _scene_root.get_node_or_null("WorldEnvironmentSystem/Lighting/SunLight") as DirectionalLight3D
 	if sun != null:
 		sun.visible = false
 
-	var world_env := _scene_root.get_node_or_null("WorldEnvironmentSystem/Environment/WorldEnvironment") as WorldEnvironment
-	if world_env != null and world_env.environment != null:
-		var env := world_env.environment.duplicate() as Environment
-		env.fog_enabled = false
-		env.volumetric_fog_enabled = false
-		env.background_mode = 1
-		env.background_color = Color(0.018, 0.021, 0.027, 1.0)
-		env.background_energy_multiplier = 1.0
-		world_env.environment = env
+	var env := Environment.new()
+	env.background_mode = Environment.BG_COLOR
+	env.background_color = Color(0.055, 0.065, 0.08, 1.0)
+	env.background_energy_multiplier = 1.0
+	env.ambient_light_source = Environment.AMBIENT_SOURCE_COLOR
+	env.ambient_light_color = Color(0.34, 0.38, 0.45, 1.0)
+	env.ambient_light_energy = 0.62
+	_camera.environment = env
 
 	_hide_canvas(_scene_root)
 
 	var target := _scene_root.get_node("VisualFXShowcase") as Node3D
-	_camera.look_at(target.global_position + Vector3(0.0, 1.4, -0.5), Vector3.UP)
+	_camera.look_at(target.global_position + Vector3(0.0, 2.5, 0.0), Vector3.UP)
 	_camera.current = true
 
 

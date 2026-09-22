@@ -40,7 +40,8 @@ jobs:
           XDG_RUNTIME_DIR: /tmp/xdg
         run: |
           mkdir -p "$XDG_RUNTIME_DIR"
-          xvfb-run -a "$GODOT_BIN"             --path .             --rendering-method gl_compatibility             --audio-driver Dummy             --script tools/runtime/capture_visual_fx_showcase.gd
+          xvfb-run -a "$GODOT_BIN"             --path .             --rendering-method forward_plus \
+            --rendering-driver vulkan             --audio-driver Dummy             --script tools/runtime/capture_visual_fx_showcase.gd
 
       - name: Upload preview
         uses: actions/upload-artifact@v4
