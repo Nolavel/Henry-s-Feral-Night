@@ -1,16 +1,21 @@
 shader_type canvas_item;
 render_mode unshaded;
 
-// Readable A/B prototype for Henry's Feral Night.
-// The production direction remains depth/normal based, but this screen-space
-// Sobel pass lets us judge the hand-drawn outline style directly in TestScene.
+// Production-preview look selected for HFN:
+// readable hand-drawn screen Sobel on environment/props,
+// with Henry excluded through a dedicated render-layer mask.
 
 uniform sampler2D screen_texture : hint_screen_texture, repeat_disable, filter_nearest;
+uniform sampler2D player_mask_texture : source_color, repeat_disable, filter_linear;
+
 uniform vec4 edge_color : source_color = vec4(0.012, 0.016, 0.022, 1.0);
 uniform float edge_opacity : hint_range(0.0, 1.0) = 0.58;
 uniform float edge_width_px : hint_range(0.5, 4.0, 0.1) = 1.05;
 uniform float edge_threshold : hint_range(0.001, 0.5, 0.001) = 0.032;
 uniform float jitter_amount_px : hint_range(0.0, 2.0, 0.05) = 0.30;
+
+uniform vec2 player_mask_texel_size = vec2(0.00078125, 0.00138889);
+uniform float player_mask_dilate_px : hint_range(0.0, 6.0, 0.25) = 2.25;
 
 
 float luma(vec3 c) {
@@ -25,12 +30,25 @@ float hand_offset(float y_px) {
 }
 
 
+float player_mask(vec2 uv) {
+	vec2 m = player_mask_texel_size * player_mask_dilate_px;
+	float a = texture(player_mask_texture, uv).a;
+	a = max(a, texture(player_mask_texture, uv + vec2( m.x, 0.0)).a);
+	a = max(a, texture(player_mask_texture, uv + vec2(-m.x, 0.0)).a);
+	a = max(a, texture(player_mask_texture, uv + vec2(0.0,  m.y)).a);
+	a = max(a, texture(player_mask_texture, uv + vec2(0.0, -m.y)).a);
+	a = max(a, texture(player_mask_texture, uv + vec2( m.x,  m.y)).a);
+	a = max(a, texture(player_mask_texture, uv + vec2(-m.x,  m.y)).a);
+	a = max(a, texture(player_mask_texture, uv + vec2( m.x, -m.y)).a);
+	a = max(a, texture(player_mask_texture, uv + vec2(-m.x, -m.y)).a);
+	return smoothstep(0.02, 0.30, a);
+}
+
+
 void fragment() {
 	vec2 base_uv = SCREEN_UV;
 	vec2 px = SCREEN_PIXEL_SIZE * edge_width_px;
 
-	// Slightly irregular horizontal sampling keeps long architectural edges
-	// from looking like a perfect CAD line.
 	float y_px = base_uv.y / max(SCREEN_PIXEL_SIZE.y, 0.000001);
 	vec2 jitter = vec2(hand_offset(y_px) * SCREEN_PIXEL_SIZE.x, 0.0);
 	vec2 uv = base_uv + jitter;
@@ -48,6 +66,9 @@ void fragment() {
 	float gy = s00 + 2.0 * s10 + s20 - s02 - 2.0 * s12 - s22;
 	float magnitude = length(vec2(gx, gy));
 	float edge = smoothstep(edge_threshold, edge_threshold * 3.5, magnitude);
+
+	// Preserve Henry exactly as the main scene rendered him.
+	edge *= 1.0 - player_mask(base_uv);
 
 	vec3 scene_color = texture(screen_texture, base_uv).rgb;
 	COLOR = vec4(mix(scene_color, edge_color.rgb, edge * edge_opacity), 1.0);
