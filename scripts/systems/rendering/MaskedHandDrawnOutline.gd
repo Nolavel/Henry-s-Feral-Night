@@ -1,17 +1,20 @@
 class_name MaskedHandDrawnOutline
 extends ColorRect
 
-## Readable production-preview Sobel with an exact screen-space exclusion box
-## derived from Henry's visible MeshInstance3D bounds.
+## Canvas Sobel + exact Henry ID mask.
 ##
-## The outline remains the same selected production-preview look on the world
-## and props. Only the projected player bounds bypass the post-process.
+## A secondary SubViewport shares the main World3D but its camera renders only
+## Henry's dedicated render layer (16). With transparent_bg enabled, the
+## viewport texture alpha becomes a pixel-accurate player silhouette.
+## The Sobel pass simply skips those pixels.
 
-@export_range(0.0, 24.0, 0.5) var mask_padding_px: float = 5.0
-@export_range(0.0, 0.25, 0.01) var mask_feather: float = 0.08
+@export_flags_3d_render var player_render_layer: int = 16
+@export_range(0.0, 4.0, 0.25) var mask_dilate_px: float = 1.5
 
 var _source_camera: Camera3D
-var _player: Node3D
+var _mask_viewport: SubViewport
+var _mask_camera: Camera3D
+var _mask_environment: Environment
 var _shader_material: ShaderMaterial
 
 
@@ -29,96 +32,83 @@ func _ready() -> void:
 		visible = false
 		return
 
-	_player = _source_camera.get("player") as Node3D
+	_create_mask_viewport()
+	_sync_mask_camera()
 	set_process(true)
-	_update_player_mask()
 
 
 func _process(_delta: float) -> void:
-	if _source_camera == null or _shader_material == null:
+	_sync_mask_camera()
+
+
+func get_mask_texture() -> ViewportTexture:
+	if _mask_viewport == null:
+		return null
+	return _mask_viewport.get_texture()
+
+
+func _create_mask_viewport() -> void:
+	_mask_viewport = SubViewport.new()
+	_mask_viewport.name = "HenryIDMaskViewport"
+	_mask_viewport.transparent_bg = true
+	_mask_viewport.disable_2d = true
+	_mask_viewport.disable_3d = false
+	_mask_viewport.render_target_update_mode = SubViewport.UPDATE_ALWAYS
+	_mask_viewport.render_target_clear_mode = SubViewport.CLEAR_MODE_ALWAYS
+	_mask_viewport.world_3d = _source_camera.get_world_3d()
+	add_child(_mask_viewport)
+
+	_mask_camera = Camera3D.new()
+	_mask_camera.name = "HenryIDMaskCamera"
+	_mask_camera.cull_mask = player_render_layer
+	_mask_viewport.add_child(_mask_camera)
+
+	# Override the shared world's sky/fog for this camera only. The viewport
+	# itself is transparent, so pixels with no Henry geometry stay alpha=0.
+	_mask_environment = Environment.new()
+	_mask_environment.background_mode = Environment.BG_COLOR
+	_mask_environment.background_color = Color(0.0, 0.0, 0.0, 0.0)
+	_mask_environment.background_energy_multiplier = 0.0
+	_mask_environment.ambient_light_source = Environment.AMBIENT_SOURCE_COLOR
+	_mask_environment.ambient_light_color = Color.WHITE
+	_mask_environment.ambient_light_energy = 1.0
+	_mask_environment.fog_enabled = false
+	_mask_environment.volumetric_fog_enabled = false
+	_mask_camera.environment = _mask_environment
+
+	_shader_material.set_shader_parameter("player_mask_texture", _mask_viewport.get_texture())
+	_shader_material.set_shader_parameter("player_mask_dilate_px", mask_dilate_px)
+
+
+func _sync_mask_camera() -> void:
+	if _source_camera == null or _mask_camera == null or _mask_viewport == null:
 		return
 
-	if not is_instance_valid(_player):
-		_player = _source_camera.get("player") as Node3D
-
-	_update_player_mask()
-
-
-func _update_player_mask() -> void:
-	if not is_instance_valid(_player):
-		_disable_mask()
+	var source_viewport := _source_camera.get_viewport()
+	if source_viewport == null:
 		return
 
-	var viewport := _source_camera.get_viewport()
-	if viewport == null:
-		_disable_mask()
-		return
-
-	var viewport_size := Vector2(viewport.get_visible_rect().size)
-	if viewport_size.x <= 1.0 or viewport_size.y <= 1.0:
-		_disable_mask()
-		return
-
-	var screen_min := Vector2(1.0e20, 1.0e20)
-	var screen_max := Vector2(-1.0e20, -1.0e20)
-	var found_mesh := false
-
-	var meshes: Array[MeshInstance3D] = []
-	_collect_visible_meshes(_player, meshes)
-
-	for mesh_instance: MeshInstance3D in meshes:
-		if mesh_instance.mesh == null:
-			continue
-
-		var local_aabb: AABB = mesh_instance.get_aabb()
-		for endpoint_index: int in range(8):
-			var world_point: Vector3 = mesh_instance.global_transform * local_aabb.get_endpoint(endpoint_index)
-			if _source_camera.is_position_behind(world_point):
-				continue
-
-			var screen_point: Vector2 = _source_camera.unproject_position(world_point)
-			screen_min.x = minf(screen_min.x, screen_point.x)
-			screen_min.y = minf(screen_min.y, screen_point.y)
-			screen_max.x = maxf(screen_max.x, screen_point.x)
-			screen_max.y = maxf(screen_max.y, screen_point.y)
-			found_mesh = true
-
-	if not found_mesh:
-		_disable_mask()
-		return
-
-	screen_min -= Vector2.ONE * mask_padding_px
-	screen_max += Vector2.ONE * mask_padding_px
-
-	var min_uv := Vector2(
-		clampf(screen_min.x / viewport_size.x, 0.0, 1.0),
-		clampf(screen_min.y / viewport_size.y, 0.0, 1.0)
-	)
-	var max_uv := Vector2(
-		clampf(screen_max.x / viewport_size.x, 0.0, 1.0),
-		clampf(screen_max.y / viewport_size.y, 0.0, 1.0)
+	var visible_size := source_viewport.get_visible_rect().size
+	var viewport_size := Vector2i(
+		maxi(int(round(visible_size.x)), 1),
+		maxi(int(round(visible_size.y)), 1)
 	)
 
-	if min_uv.x >= max_uv.x or min_uv.y >= max_uv.y:
-		_disable_mask()
-		return
+	if _mask_viewport.size != viewport_size:
+		_mask_viewport.size = viewport_size
+		_shader_material.set_shader_parameter(
+			"player_mask_texel_size",
+			Vector2(1.0 / float(viewport_size.x), 1.0 / float(viewport_size.y))
+		)
 
-	_shader_material.set_shader_parameter("player_mask_enabled", 1.0)
-	_shader_material.set_shader_parameter("player_mask_min", min_uv)
-	_shader_material.set_shader_parameter("player_mask_max", max_uv)
-	_shader_material.set_shader_parameter("player_mask_feather", mask_feather)
-
-
-func _collect_visible_meshes(node: Node, result: Array[MeshInstance3D]) -> void:
-	if node is MeshInstance3D:
-		var mesh_instance := node as MeshInstance3D
-		if mesh_instance.visible and mesh_instance.is_visible_in_tree():
-			result.append(mesh_instance)
-
-	for child: Node in node.get_children():
-		_collect_visible_meshes(child, result)
-
-
-func _disable_mask() -> void:
-	if _shader_material != null:
-		_shader_material.set_shader_parameter("player_mask_enabled", 0.0)
+	_mask_camera.global_transform = _source_camera.global_transform
+	_mask_camera.projection = _source_camera.projection
+	_mask_camera.keep_aspect = _source_camera.keep_aspect
+	_mask_camera.fov = _source_camera.fov
+	_mask_camera.size = _source_camera.size
+	_mask_camera.frustum_offset = _source_camera.frustum_offset
+	_mask_camera.near = _source_camera.near
+	_mask_camera.far = _source_camera.far
+	_mask_camera.h_offset = _source_camera.h_offset
+	_mask_camera.v_offset = _source_camera.v_offset
+	_mask_camera.current = true
