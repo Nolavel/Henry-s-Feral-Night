@@ -39,6 +39,11 @@ class_name DayNightSettings
 @export_range(0.25, 6.0, 0.05) var cloud_sag: float = 2.0
 @export var cloud_tiling: Vector2 = Vector2(1.0, 1.0)
 @export var cloud_wind_speed: Vector2 = Vector2(0.24, 0.08)
+@export_range(0.0, 1.0, 0.01) var cloud_parallax_strength: float = 0.22
+@export_range(0.0, 1.0, 0.01) var cloud_parallax_layer_separation: float = 0.35
+@export_range(0.0, 1.0, 0.01) var cloud_parallax_detail_weight: float = 0.45
+@export_range(1.0, 4.0, 0.05) var cloud_parallax_mid_scale: float = 1.65
+@export_range(1.0, 6.0, 0.05) var cloud_parallax_high_scale: float = 2.55
 @export_range(0.1, 20.0, 0.1) var cloud_light_energy_scale: float = 5.0
 @export_range(0.001, 0.2, 0.001) var ground_curve: float = 0.04
 
