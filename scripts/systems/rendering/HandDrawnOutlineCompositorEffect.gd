@@ -8,7 +8,9 @@ const SHADER_PATH: String = "res://shaders/postprocess/hand_drawn_outline_compos
 @export_range(0.0, 1.0, 0.01) var edge_opacity: float = 0.58
 @export_range(0.5, 3.0, 0.05) var edge_width_px: float = 1.05
 @export_range(0.001, 0.25, 0.001) var depth_threshold: float = 0.018
-@export_range(0.005, 0.6, 0.005) var normal_threshold: float = 0.085
+@export_range(0.005, 0.6, 0.005) var normal_threshold: float = 0.055
+@export_range(1.0, 8.0, 0.25) var wide_normal_radius_px: float = 3.5
+@export_range(0.0, 1.5, 0.05) var curvature_boost: float = 0.80
 @export_range(0.0, 1.0, 0.05) var jitter_amount_px: float = 0.30
 @export_range(0.0, 100.0, 0.5) var distance_fade_start: float = 18.0
 @export_range(1.0, 200.0, 0.5) var distance_fade_end: float = 60.0
@@ -171,8 +173,8 @@ func _render_callback(
 			jitter_amount_px,
 			distance_fade_start,
 			maxf(distance_fade_end, distance_fade_start + 0.5),
-			0.0,
-			0.0,
+			wide_normal_radius_px,
+			curvature_boost,
 			edge_color.r,
 			edge_color.g,
 			edge_color.b,
