@@ -102,7 +102,8 @@ def _alignment_score(henry_meshes, donor_bvh, transform):
     samples = 0
     for obj in henry_meshes:
         step = max(1, len(obj.data.vertices) // 600)
-        for vertex in obj.data.vertices[::step]:
+        for vertex_index in range(0, len(obj.data.vertices), step):
+            vertex = obj.data.vertices[vertex_index]
             point = transform @ obj.matrix_world @ vertex.co
             nearest = donor_bvh.find_nearest(point)
             if nearest is None:
