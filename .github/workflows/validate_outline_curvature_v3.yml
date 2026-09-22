@@ -1,0 +1,90 @@
+name: Validate Curvature Compositor V3
+
+on:
+  push:
+    branches:
+      - codex
+    paths:
+      - .github/workflows/validate_outline_curvature_v3.yml
+
+permissions:
+  contents: write
+
+jobs:
+  validate:
+    runs-on: ubuntu-latest
+    timeout-minutes: 25
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          ref: codex
+          fetch-depth: 0
+
+      - uses: actions/setup-dotnet@v4
+        with:
+          dotnet-version: 8.0.x
+
+      - name: Install Vulkan
+        shell: bash
+        run: |
+          set -euo pipefail
+          sudo apt-get update -qq
+          sudo apt-get install -y unzip xvfb libegl1 libgl1-mesa-dri libglu1-mesa mesa-vulkan-drivers
+          VULKAN_ICD="$(find /usr/share/vulkan/icd.d -type f -name '*lvp*.json' | head -n 1)"
+          test -n "$VULKAN_ICD"
+          echo "VK_ICD_FILENAMES=$VULKAN_ICD" >> "$GITHUB_ENV"
+
+      - name: Install Godot
+        shell: bash
+        run: |
+          set -euo pipefail
+          mkdir -p .godot-bin
+          curl --fail --location --retry 3             "https://github.com/godotengine/godot-builds/releases/download/4.8-dev6/Godot_v4.8-dev6_mono_linux_x86_64.zip"             -o /tmp/godot.zip
+          unzip -q /tmp/godot.zip -d .godot-bin
+          GODOT_BIN="$(find "$PWD/.godot-bin" -type f -name 'Godot_v4.8-dev6_mono_linux.x86_64' | head -n 1)"
+          chmod +x "$GODOT_BIN"
+          echo "GODOT_BIN=$GODOT_BIN" >> "$GITHUB_ENV"
+
+      - name: Build and import
+        shell: bash
+        run: |
+          set -euo pipefail
+          dotnet build 'Henry`s Feral Night.csproj' -c Debug
+          rm -rf .godot
+          "$GODOT_BIN" --headless --editor --import --path . --rendering-method forward_plus
+
+      - name: Capture strict A-B
+        shell: bash
+        run: |
+          set -euo pipefail
+          rm -rf docs/runtime_previews/outline_curvature
+          timeout 90s xvfb-run -a -s "-screen 0 1280x720x24"             "$GODOT_BIN" --path . --rendering-method forward_plus             --script res://tools/runtime/capture_outline_curvature.gd             2>&1 | tee /tmp/outline_v3.log
+
+          grep -q "\[HFN_OUTLINE_COMPOSITOR\] pipeline ready" /tmp/outline_v3.log
+          grep -q "\[HFN_OUTLINE_COMPOSITOR\] dispatch ready" /tmp/outline_v3.log
+          ! grep -q "\[HFN_OUTLINE_COMPOSITOR\] normal_roughness missing" /tmp/outline_v3.log
+
+          test -s docs/runtime_previews/outline_curvature/before.png
+          test -s docs/runtime_previews/outline_curvature/after.png
+          BEFORE="$(sha256sum docs/runtime_previews/outline_curvature/before.png | awk '{print $1}')"
+          AFTER="$(sha256sum docs/runtime_previews/outline_curvature/after.png | awk '{print $1}')"
+          test "$BEFORE" != "$AFTER"
+
+      - name: Upload A-B
+        uses: actions/upload-artifact@v4
+        with:
+          name: hfn-outline-curvature-v3
+          path: docs/runtime_previews/outline_curvature
+          if-no-files-found: error
+          retention-days: 14
+
+      - name: Commit after preview and remove one-shot workflow
+        shell: bash
+        run: |
+          set -euo pipefail
+          git config user.name "codex-outline-curvature"
+          git config user.email "codex-outline-curvature@users.noreply.github.com"
+          git add docs/runtime_previews/outline_curvature/after.png
+          git rm .github/workflows/validate_outline_curvature_v3.yml
+          git commit -m "validate rounded-form compositor outline"
+          git push origin HEAD:codex
