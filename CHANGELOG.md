@@ -5,6 +5,47 @@ Maintained per branch; entries are added by whoever makes the change.
 
 ## [Unreleased] — `claudeflow`
 
+### 2026-09-22 (5) — Save system and sleep-to-save
+
+Added
+- `scripts/systems/save/save_manager.gd` — participant registry, atomic slot
+  writes, slot metadata for a load menu, and a real version-migration seam.
+- `scripts/systems/save/sleep_controller.gd` — the only path to a save. Gates on
+  shelter, felt temperature and tiredness, returning a typed `Refusal` with a
+  localisation key rather than a bare bool.
+- `ThermalManager` and `WeatherController` now implement the save contract
+  (`save_id` / `get_save_data` / `load_save_data`), matching the convention
+  `DayNightManager` already used.
+- `tests/systems/test_save_system.gd` — round trip, metadata, corrupt files,
+  out-of-range slots, the sleep gate, and the two guarantees below.
+- `docs/technical/SAVE_SYSTEM.md`.
+
+Design decisions
+- **Sleeping is not a free reset.** `try_sleep()` steps the thermal model
+  through the night in quarter-hour increments, so a shelter that goes cold
+  still costs body heat while asleep. A test asserts it. This is the hook the
+  "shelter is too safe" problem needs.
+- Saves are plain JSON while the project is in development: a save can be read
+  and diffed. `metadata` sits outside `payload` so a load menu can list slots
+  without deserialising game systems.
+- Writes go to `slot_N.json.tmp` and are renamed, so a crash mid-write cannot
+  corrupt an existing save.
+
+Fixed (found by the new tests)
+- `SaveManager` originally discovered participants only through the `saveable`
+  group, which returns nothing until the scene tree settles — so it silently
+  wrote an **empty save file** and reported success. A save that contains
+  nothing is the worst failure a save system can have: the player believes they
+  are safe. It now refuses to write an empty save, explains why, and offers
+  explicit `register()` alongside the group.
+- Corrupt slots are reported as `corrupt` in `list_slots()` rather than hidden,
+  so a damaged save is visible to the player instead of vanishing.
+
+Verified
+- All four suites pass via `tools/ci/run_tests.sh`.
+- `TestScene` still imports and renders.
+
+
 ### 2026-09-22 (4) — HUD thermometer bound to the model; metabolism fix
 
 Added

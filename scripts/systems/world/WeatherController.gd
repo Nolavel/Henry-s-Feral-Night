@@ -76,6 +76,29 @@ func _process(delta: float) -> void:
 	conditions_updated.emit(_ambient_offset_c, _wind_speed_mps, _snowfall_density)
 
 
+## Stable key this system uses inside a save file.
+func save_id() -> StringName:
+	return &"weather"
+
+
+## State the save system persists for this system.
+func get_save_data() -> Dictionary:
+	return {
+		"profile_id": String(_current.id) if _current != null else "",
+		"remaining_h": _remaining_h,
+	}
+
+
+## Restores the active profile, snapping rather than blending into it.
+func load_save_data(data: Dictionary) -> void:
+	var id := StringName(String(data.get("profile_id", "")))
+	var profile: WeatherProfile = _find_profile(id)
+	if profile != null:
+		_activate(profile, true)
+	_remaining_h = float(data.get("remaining_h", _remaining_h))
+	_hours.reset()
+
+
 ## Forces a profile by id, blending in over its own blend time.
 func set_weather(id: StringName, instant: bool = false) -> void:
 	var profile: WeatherProfile = _find_profile(id)

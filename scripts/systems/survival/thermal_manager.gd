@@ -161,6 +161,32 @@ func restore_body_temperature() -> void:
 	_update_stage()
 
 
+## Stable key this system uses inside a save file.
+func save_id() -> StringName:
+	return &"thermal"
+
+
+## State the save system persists for this system.
+func get_save_data() -> Dictionary:
+	return {
+		"body_temp_c": _body_temp_c,
+		"wetness": _wetness,
+		"is_dead": _is_dead,
+	}
+
+
+## Restores persisted state and re-derives everything downstream of it.
+func load_save_data(data: Dictionary) -> void:
+	_body_temp_c = clampf(
+		float(data.get("body_temp_c", normal_body_temp_c)), lethal_body_temp_c, normal_body_temp_c
+	)
+	_is_dead = bool(data.get("is_dead", false))
+	_set_wetness(float(data.get("wetness", 0.0)))
+	_hours.reset()
+	_emit_body_temperature()
+	_update_stage()
+
+
 ## Advances every hourly rate. Driven by the day/night clock, not by frames.
 func _on_time_update(current_hour: float) -> void:
 	var hours: float = _hours.consume(current_hour)
