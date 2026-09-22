@@ -28,7 +28,10 @@ uniform vec3 uv_offset_2 = vec3(11.7, -4.3, 7.1);
 uniform bool use_world = true;
 uniform float shadow_strength : hint_range(0.0, 1.0) = 0.95;
 uniform float shadow_threshold : hint_range(0.0, 1.0) = 0.52;
-uniform float shadow_softness : hint_range(0.001, 0.35) = 0.055;
+uniform float shadow_softness : hint_range(0.001, 0.35) = 0.035;
+uniform float shadow_floor : hint_range(0.0, 0.5) = 0.035;
+uniform float shadow_pattern_light : hint_range(0.0, 0.5) = 0.17;
+uniform float shadow_pattern_threshold : hint_range(0.0, 1.0) = 0.52;
 
 varying vec3 sample_position;
 varying vec3 sample_normal;
@@ -91,12 +94,19 @@ void light() {
 
 	if (LIGHT_IS_DIRECTIONAL) {
 		float noisy_shadow_sample = clamp(ATTENUATION + shadow_noise, 0.0, 1.0);
-		float stylized_shadow = smoothstep(
+		float stylized_edge = smoothstep(
 			shadow_threshold - shadow_softness,
 			shadow_threshold + shadow_softness,
 			noisy_shadow_sample
 		);
-		float shadow_term = mix(1.0, stylized_shadow, shadow_strength);
+
+		float pattern_sample = clamp(0.5 + shadow_noise * 2.8, 0.0, 1.0);
+		float graphic_pattern = step(shadow_pattern_threshold, pattern_sample);
+		float shadow_fill = mix(shadow_floor, shadow_pattern_light, graphic_pattern);
+		float stylized_shadow = mix(shadow_fill, 1.0, stylized_edge);
+
+		float is_shadowed = 1.0 - step(0.999, ATTENUATION);
+		float shadow_term = mix(ATTENUATION, stylized_shadow, shadow_strength * is_shadowed);
 
 		DIFFUSE_LIGHT += ndotl * shadow_term * LIGHT_COLOR / PI;
 	} else {
