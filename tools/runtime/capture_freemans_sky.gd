@@ -43,14 +43,14 @@ const SHOTS: Array[Dictionary] = [
 		"ambient_energy": 0.40,
 	},
 	{
-		"name": "2030_blue_hour",
-		"hour": 20.5,
-		"altitude": -6.0,
-		"azimuth": -142.5,
-		"light_color": Color(0.44, 0.53, 0.72),
-		"light_energy": 0.22,
-		"sun_intensity": 18.0,
-		"ambient_energy": 0.16,
+		"name": "1900_twilight",
+		"hour": 19.0,
+		"altitude": -1.5,
+		"azimuth": 195.0,
+		"light_color": Color(0.55, 0.61, 0.78),
+		"light_energy": 0.42,
+		"sun_intensity": 32.0,
+		"ambient_energy": 0.22,
 	},
 ]
 
@@ -61,6 +61,7 @@ var _sun: DirectionalLight3D
 var _environment: Environment
 var _sky_material: ShaderMaterial
 var _player: Node3D
+var _anchor: Vector3 = Vector3(1420.0, 3.0, -943.0)
 var _frame: int = 0
 var _configured: bool = false
 var _shot_index: int = -1
@@ -80,6 +81,10 @@ func _initialize() -> void:
 		push_error("Freeman sky capture: island root is not Node3D.")
 		quit(1)
 		return
+
+	var spawner: Marker3D = _scene_root.get_node_or_null("FirstSpawner") as Marker3D
+	if spawner != null:
+		_anchor = spawner.position
 
 	_terrain = _scene_root.get_node_or_null("NavigationRegion3D/Terrain3D")
 	if _terrain == null:
@@ -208,8 +213,8 @@ func _configure_scene() -> void:
 	_sky_material.set_shader_parameter("mie_weight", 0.78)
 	_sky_material.set_shader_parameter("mie_multi_scattering", 0.24)
 	_sky_material.set_shader_parameter("ground_color", Vector3(0.10, 0.13, 0.16))
-	_sky_material.set_shader_parameter("view_samples", 20)
-	_sky_material.set_shader_parameter("sun_samples", 6)
+	_sky_material.set_shader_parameter("view_samples", 12)
+	_sky_material.set_shader_parameter("sun_samples", 4)
 	## GitHub's lavapipe path currently falls back to Compatibility, where the
 	## sky shader may not receive LIGHT0. Runtime Forward+ leaves this false.
 	_sky_material.set_shader_parameter("use_manual_sun_direction", true)
@@ -219,16 +224,20 @@ func _configure_scene() -> void:
 	_sun.shadow_enabled = true
 	_sun.directional_shadow_max_distance = 1800.0
 
-	var camera_position: Vector3 = _player.global_position + Vector3(0.0, 1.62, 0.0)
-	var forward: Vector3 = -_player.global_transform.basis.z
-	forward.y = 0.0
-	if forward.length_squared() < 0.001:
-		forward = Vector3.FORWARD
-	forward = forward.normalized()
+	var camera_position: Vector3 = _position_above_terrain(
+		Vector2(_anchor.x, _anchor.z),
+		1.62
+	)
+	## Matches the inward-looking direction already used by the island VFX
+	## ground preview, but starts at Henry's authored spawn/eye height.
+	var forward: Vector3 = Vector3(-64.0, 0.0, -86.0).normalized()
 
 	_camera.global_position = camera_position
 	_camera.fov = 68.0
-	_camera.look_at(camera_position + forward * 14.0 + Vector3.UP * 11.0, Vector3.UP)
+	_camera.look_at(
+		camera_position + forward * 40.0 + Vector3.UP * 10.0,
+		Vector3.UP
+	)
 	_camera.current = true
 
 	_hide_player_visuals(_player)
@@ -287,6 +296,16 @@ func _capture_current_shot() -> void:
 		quit(1)
 		return
 	print("Freeman sky capture saved: %s" % absolute)
+
+
+func _position_above_terrain(xz: Vector2, above: float) -> Vector3:
+	var ground: float = _anchor.y
+	var data: Object = _terrain.get("data")
+	if data != null and data.has_method("get_height"):
+		var value: Variant = data.call("get_height", Vector3(xz.x, 0.0, xz.y))
+		if value is float and not is_nan(float(value)):
+			ground = float(value)
+	return Vector3(xz.x, ground + above, xz.y)
 
 
 func _sun_direction_from_angles(altitude_deg: float, azimuth_deg: float) -> Vector3:
