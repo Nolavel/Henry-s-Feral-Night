@@ -4,7 +4,8 @@ on:
   push:
     branches: [gpt-freemans-sky-experiment]
     paths:
-      - "shaders/environment/freemans_sky_full.gdshader"\n      - "shaders/environment/freemans_sky_quarter.gdshader"
+      - "shaders/environment/freemans_sky_full.gdshader"
+      - "shaders/environment/freemans_sky_quarter.gdshader"
       - "tools/runtime/capture_freemans_sky.gd"
       - ".github/workflows/freemans-sky-preview.yml"
 
