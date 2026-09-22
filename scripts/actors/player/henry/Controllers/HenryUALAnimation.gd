@@ -7,10 +7,10 @@ extends Node3D
 
 const MOVEMENT_EPSILON: float = 0.05
 
-const IDLE_ALIASES := [&"Idle", &"Idle_Loop"]
-const WALK_ALIASES := [&"Walk", &"Walk_Loop"]
-const JOG_ALIASES := [&"Jog_Fwd", &"Jog_Fwd_Loop"]
-const SPRINT_ALIASES := [&"Sprint", &"Sprint_Loop"]
+const IDLE_ALIASES := [&"Idle_Loop", &"Idle"]
+const WALK_ALIASES := [&"Walk_Loop", &"Walk"]
+const JOG_ALIASES := [&"Jog_Fwd_Loop", &"Jog_Fwd"]
+const SPRINT_ALIASES := [&"Sprint_Loop", &"Sprint"]
 
 @export var portrait_render_layers: int = 16
 
@@ -123,11 +123,31 @@ func _clip(animation_name: StringName) -> AnimationNodeAnimation:
 
 
 func _resolve_clip(candidates: Array) -> StringName:
+	# First prefer the exact Godot import name.
 	for candidate: Variant in candidates:
 		var animation_name := StringName(candidate)
 		if animation_player.has_animation(animation_name):
 			return animation_name
+
+	# Blender/glTF may preserve the action suffix as "_Armature".
+	# Compare normalized names rather than falling back to an unrelated clip.
+	var available: PackedStringArray = animation_player.get_animation_list()
+	for candidate: Variant in candidates:
+		var expected: String = _normalize_clip_name(StringName(candidate))
+		for actual_text: String in available:
+			var actual := StringName(actual_text)
+			if _normalize_clip_name(actual) == expected:
+				return actual
 	return &""
+
+
+func _normalize_clip_name(animation_name: StringName) -> String:
+	var normalized := String(animation_name).to_lower().replace(" ", "_")
+	if normalized.ends_with("_armature"):
+		normalized = normalized.trim_suffix("_armature")
+	if normalized.contains("|"):
+		normalized = normalized.get_slice("|", normalized.get_slice_count("|") - 1)
+	return normalized
 
 
 func _first_available_clip() -> StringName:
