@@ -4,7 +4,7 @@ extends SceneTree
 ## The island scene is untouched; all tuning exists only in this harness.
 
 const ISLAND_SCENE: String = "res://experimental_location/scenes/Graciosa_Island_Terrain.tscn"
-const SKY_SHADER: String = "res://shaders/environment/freemans_sky_quarter.gdshader"
+const SKY_SHADER: String = "res://shaders/environment/freemans_sky_full.gdshader"
 const TERRAIN_CAPTURE_SHADER: String = "res://shaders/environment/terrain3d_stylized_capture.gdshader"
 const SHADOW_MATERIAL: String = "res://scenes/environment/visual_fx/StylizedShadowMaterial.tres"
 const OUTPUT_DIR: String = "res://artifacts/freemans_sky"
@@ -64,7 +64,7 @@ var _player: Node3D
 var _frame: int = 0
 var _configured: bool = false
 var _shot_index: int = -1
-var _settle_frames: int = 0
+var _settle_frames: int = 0\nvar _black_frames: int = 0
 
 
 func _initialize() -> void:
@@ -112,7 +112,11 @@ func _process(_delta: float) -> bool:
 
 	_shot_index += 1
 	if _shot_index >= SHOTS.size():
-		quit(0)
+		if _black_frames == SHOTS.size():
+			push_error("Freeman sky capture: every rendered frame is black.")
+			quit(2)
+		else:
+			quit(0)
 		return true
 
 	_apply_shot(SHOTS[_shot_index])
@@ -205,6 +209,9 @@ func _configure_scene() -> void:
 	_sky_material.set_shader_parameter("ground_color", Vector3(0.10, 0.13, 0.16))
 	_sky_material.set_shader_parameter("view_samples", 20)
 	_sky_material.set_shader_parameter("sun_samples", 6)
+	## GitHub's lavapipe path currently falls back to Compatibility, where the
+	## sky shader may not receive LIGHT0. Runtime Forward+ leaves this false.
+	_sky_material.set_shader_parameter("use_manual_sun_direction", true)
 
 	_sun.visible = true
 	_sun.sky_mode = DirectionalLight3D.SKY_MODE_LIGHT_AND_SKY
@@ -238,6 +245,10 @@ func _apply_shot(shot: Dictionary) -> void:
 	_sun.light_energy = float(shot["light_energy"])
 	_environment.ambient_light_energy = float(shot["ambient_energy"])
 	_sky_material.set_shader_parameter("sun_intensity", float(shot["sun_intensity"]))
+	_sky_material.set_shader_parameter(
+		"manual_sun_direction",
+		_sun_direction_from_angles(float(shot["altitude"]), float(shot["azimuth"]))
+	)
 
 	print(
 		"Freeman sky shot %s hour=%.2f altitude=%.2f azimuth=%.2f"
@@ -258,6 +269,11 @@ func _capture_current_shot() -> void:
 		quit(1)
 		return
 
+	var mean_luma: float = _sample_mean_luma(image)
+	if mean_luma < 0.0005:
+		_black_frames += 1
+	print("Freeman sky frame mean luma: %.6f" % mean_luma)
+
 	var path: String = "%s/freemans_sky_%s.png" % [
 		OUTPUT_DIR,
 		String(shot["name"]),
@@ -270,6 +286,28 @@ func _capture_current_shot() -> void:
 		quit(1)
 		return
 	print("Freeman sky capture saved: %s" % absolute)
+
+
+func _sun_direction_from_angles(altitude_deg: float, azimuth_deg: float) -> Vector3:
+	var altitude: float = deg_to_rad(altitude_deg)
+	var azimuth: float = deg_to_rad(azimuth_deg)
+	var cos_altitude: float = cos(altitude)
+	return Vector3(
+		cos_altitude * sin(azimuth),
+		sin(altitude),
+		cos_altitude * cos(azimuth)
+	).normalized()
+
+
+func _sample_mean_luma(image: Image) -> float:
+	var total: float = 0.0
+	var count: int = 0
+	for y: int in range(0, image.get_height(), 64):
+		for x: int in range(0, image.get_width(), 64):
+			var pixel: Color = image.get_pixel(x, y)
+			total += pixel.r * 0.2126 + pixel.g * 0.7152 + pixel.b * 0.0722
+			count += 1
+	return total / float(maxi(count, 1))
 
 
 func _hide_player_visuals(node: Node) -> void:

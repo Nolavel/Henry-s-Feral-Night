@@ -4,7 +4,7 @@ on:
   push:
     branches: [gpt-freemans-sky-experiment]
     paths:
-      - "shaders/environment/freemans_sky_quarter.gdshader"
+      - "shaders/environment/freemans_sky_full.gdshader"\n      - "shaders/environment/freemans_sky_quarter.gdshader"
       - "tools/runtime/capture_freemans_sky.gd"
       - ".github/workflows/freemans-sky-preview.yml"
 
@@ -62,6 +62,7 @@ jobs:
             --script tools/runtime/capture_freemans_sky.gd
 
       - name: Upload Freeman sky PNGs
+        if: always()
         uses: actions/upload-artifact@v4
         with:
           name: freemans-sky-preview
