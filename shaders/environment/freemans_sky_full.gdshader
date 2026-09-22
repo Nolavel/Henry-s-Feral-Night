@@ -334,6 +334,10 @@ vec3 integrate_radiance(vec3 ray_origin, vec3 ray_direction, float target_distan
 Main integrator for the sky.
 Renders the atmosphere, the sun disk and the planet.
 */
+group_uniforms PreviewFallback;
+uniform bool use_manual_sun_direction = false;
+uniform vec3 manual_sun_direction = vec3(0.0, 1.0, 0.0);
+
 void sky() {
 	vec3 final_color = vec3(0.0);
 	vec3 sun_direction = normalize(manual_sun_direction);
