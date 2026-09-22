@@ -21,14 +21,15 @@
 ## Freeman's Sky Shader
 
 - Source: https://godotshaders.com/shader/freemans-sky-shader/
-- Upstream: NiwlGames/GodotStarterAssets, shaders/sky_quarter.gdshader.
+- Upstream: NiwlGames/GodotStarterAssets, shaders/sky_full.gdshader and
+  shaders/sky_quarter.gdshader.
 - Author: Niwl Games.
 - Published: June 16, 2026.
 - License: CC0-1.0.
 - HFN experiment: official full-resolution and quarter-resolution variants are
-  included. The GitHub preview uses the full-resolution variant with a
-  capture-only manual sun-direction fallback because the hosted runner falls
-  back to OpenGL Compatibility; runtime Forward+ keeps the upstream LIGHT0 path.
+  included. The capture harness may use the full-resolution variant with a
+  capture-only manual sun-direction fallback on renderers that cannot expose
+  LIGHT0 correctly; runtime Forward+ keeps the upstream LIGHT0 path.
   Island-specific atmospheric tuning is applied only by
   tools/runtime/capture_freemans_sky.gd.
 
