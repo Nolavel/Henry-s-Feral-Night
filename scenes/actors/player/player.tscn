@@ -1,4 +1,4 @@
-[gd_scene load_steps=105 format=4 uid="uid://ciy301x7wh6ie"]
+[gd_scene load_steps=106 format=4 uid="uid://ciy301x7wh6ie"]
 
 [ext_resource type="Script" uid="uid://b50rnmqk3m8fr" path="res://scripts/actors/player/henry/Player.gd" id="1_irk3a"]
 [ext_resource type="Texture2D" uid="uid://b1vpe3iqs2wgh" path="res://assets/textures/player_test/player/SUIT_albedo.jpeg" id="2_cat03"]
@@ -33,6 +33,7 @@
 [ext_resource type="Script" uid="uid://buc8iltj8gtn0" path="res://scripts/actors/player/henry/components/equipment_component.gd" id="90_equip"]
 [ext_resource type="Script" uid="uid://jwbyt4ch7e7l" path="res://scripts/actors/player/henry/components/inventory_component.gd" id="91_inv"]
 [ext_resource type="Script" uid="uid://0rnwid612a8i" path="res://scripts/systems/survival/consumption_controller.gd" id="92_consume"]
+[ext_resource type="Script" uid="uid://ddo2xkwqouann" path="res://scripts/actors/player/henry/components/foot_contact_sensor.gd" id="94_feet"]
 [ext_resource type="Resource" path="res://data/equipment/player_layout.tres" id="93_layout"]
 [ext_resource type="Texture2D" uid="uid://c4cgxd2syf1dl" path="res://assets/textures/player_test/player/Armor_roughness.jpeg" id="10_w0i13"]
 [ext_resource type="Shader" uid="uid://cq0cewnu86jod" path="res://assets/materials/Shaders/BG_indicatorSURV.gdshader" id="11_7mm2c"]
@@ -2406,6 +2407,11 @@ script = ExtResource("92_consume")
 inventory = NodePath("../InventoryComponent")
 equipment = NodePath("../EquipmentComponent")
 bio_monitor = NodePath("../BioMonitorManager")
+
+[node name="FootContactSensor" type="Node" parent="." node_paths=PackedStringArray("body", "visual")]
+script = ExtResource("94_feet")
+body = NodePath("..")
+visual = NodePath("../HenryUALVisual")
 
 [node name="CameraFaceHenryForUI" type="Node3D" parent="."]
 script = ExtResource("11_atp51")

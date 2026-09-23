@@ -56,3 +56,38 @@ Nothing is ever zero: the island is never bare.
   `get_written_snow_cover()` / `get_written_frost_amount()` instead.
 - **Frost follows the air outside, not the felt temperature.** A warm shelter
   does not melt rime off the outside of its walls.
+
+## Footprints
+
+```
+HenryUALVisual skeleton (read only)
+        │  foot_l / ball_l / ball_leaf_l, and _r
+        ▼
+FootContactSensor (on player.tscn)
+        │  foot_planted(side, ground_point, heel→toe forward, speed)
+        ▼
+FootprintSystem (composition root) — pooled Decals
+```
+
+- **Contact rule.** The ball of the foot within 6 cm of the ground, after it
+  has risen past 9 cm since the last print, with Henry on the floor and moving
+  faster than 0.35 m/s. The ground is found by a short ray under the foot, so
+  the rule works on any surface. The rule itself is a pure method
+  (`update_foot`) and is tested without a scene.
+- **Orientation.** The print image has the toe at the top, which a decal maps
+  to its −Z; the decal's −Z is set to the heel→toe direction of the foot. Left
+  and right prints are cropped from the ADT stamp `pin_step_walk.png`.
+- **Terrain-agnostic.** Decals project onto whatever is below. Nothing is
+  deformed; real depth belongs to a later local snow shell.
+- **Fill.** A print lasts 240 s with no snow falling and 25 s in a whiteout,
+  scaled by `WeatherController.get_snowfall_density()`. A pool of 64 reuses the
+  oldest print first.
+- **The sensor is the shared source** for anything that needs to know a foot
+  landed: footstep audio and ice load can listen to the same signal.
+
+### Known: stride length comes from the animation, not from here
+
+Walking at `MovementController.walk_speed` (4 m/s) with the current walk clip
+plants a foot roughly every 1.3–2.7 m. The prints are honest about that: the
+clip's cadence is slow for the ground speed, so Henry glides. Tightening it is
+an animation/locomotion blend change in `HenryUALAnimation`, not in this system.
