@@ -9,6 +9,10 @@ signal picked_up(item_id: StringName, count: int)
 ## Emitted when the pack refused it, carrying the item id.
 signal pickup_refused(item_id: StringName)
 
+## Stand-in shape and colour for items that have no mesh of their own yet.
+const PLACEHOLDER_SIZE: Vector3 = Vector3(0.32, 0.16, 0.22)
+const PLACEHOLDER_COLOR: Color = Color(0.42, 0.3, 0.2)
+
 @export_group("Item")
 ## Catalog id of what lies here.
 @export var item_id: StringName = &""
@@ -19,6 +23,10 @@ var _inventory: InventoryComponent
 
 
 func _ready() -> void:
+	## The base class sizes its highlight ring from a mesh; without one a pickup
+	## is invisible and unhighlighted, so a placeholder crate stands in.
+	if interactive_mesh == null:
+		interactive_mesh = _make_placeholder()
 	super()
 	var item: ItemResource = ItemCatalog.get_item(item_id)
 	if item != null:
@@ -50,6 +58,21 @@ func pick_up() -> bool:
 
 func _on_interaction_performed() -> void:
 	pick_up()
+
+
+## A small crate until items have their own meshes.
+func _make_placeholder() -> MeshInstance3D:
+	var crate := MeshInstance3D.new()
+	crate.name = "Placeholder"
+	var box := BoxMesh.new()
+	box.size = PLACEHOLDER_SIZE
+	var material := StandardMaterial3D.new()
+	material.albedo_color = PLACEHOLDER_COLOR
+	box.material = material
+	crate.mesh = box
+	crate.position.y = PLACEHOLDER_SIZE.y * 0.5
+	add_child(crate)
+	return crate
 
 
 func _get_inventory() -> InventoryComponent:

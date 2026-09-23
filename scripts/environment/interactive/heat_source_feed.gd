@@ -31,9 +31,12 @@ var _inventory: InventoryComponent
 
 
 func _ready() -> void:
-	super()
+	## Found before super(), which sizes the highlight ring from a mesh.
 	if heat_source == null:
 		heat_source = _find_source()
+	if interactive_mesh == null and heat_source != null:
+		interactive_mesh = _first_mesh(heat_source)
+	super()
 	set_item_name(tr(PROMPT_KEY))
 	set_description("")
 
@@ -115,6 +118,15 @@ func _get_inventory() -> InventoryComponent:
 		return _inventory
 	_inventory = BreachBoardUp._search_inventory(get_tree().get_first_node_in_group("player"))
 	return _inventory
+
+
+## The stove's own body, for the highlight ring to sit under.
+static func _first_mesh(node: Node) -> MeshInstance3D:
+	for child: Node in node.get_children():
+		var mesh := child as MeshInstance3D
+		if mesh != null:
+			return mesh
+	return null
 
 
 ## A fire among the siblings, or the parent itself.

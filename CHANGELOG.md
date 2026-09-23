@@ -68,6 +68,19 @@ Performance choice
 
 ## [Unreleased] — `claudeflow`
 
+### 2026-09-23 (14) — Pickups you can see, prompts that highlight
+
+Fixed
+- Every pickup and shelter prompt from #17 logged "interactive_mesh не
+  назначен". Not only noise: `InteractiveArea` sizes its highlight ring from
+  that mesh, so none of them highlighted, and pickups had no body in the world
+  at all — only a floating icon.
+  - `ItemPickup` builds a small placeholder crate until items have meshes.
+  - `BreachBoardUp` rings under the breach's boards; `HeatSourceFeed` under the
+    stove's body.
+  - The base class is untouched; each subclass supplies its mesh before
+    `super()._ready()`.
+
 ### 2026-09-23 (13) — Snow step 3: foot contact and footprints
 
 Added
