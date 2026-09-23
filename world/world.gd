@@ -30,6 +30,7 @@ const WORLD_READY_METHOD: StringName = &"on_world_ready"
 ## Node systems — .new(), parented to World.
 const WORLD_SYSTEM_SCRIPTS: Array[GDScript] = [
 	preload("res://scripts/systems/world/WeatherController.gd"),
+	preload("res://scripts/systems/world/weather/snowfall_vfx.gd"),
 	preload("res://scripts/systems/save/save_manager.gd"),
 	preload("res://core/world/streaming_system.gd"),
 	preload("res://scripts/systems/survival/thermal_manager.gd"),
@@ -39,9 +40,7 @@ const WORLD_SYSTEM_SCRIPTS: Array[GDScript] = [
 ]
 
 ## Standalone 3D scenes — instantiate(), parented to StreamContainer.
-const WORLD_3D_ENTITY_SCENES: Array[PackedScene] = [
-	preload("res://scenes/environment/visual_fx/weather/SnowfallVFX.tscn"),
-]
+const WORLD_3D_ENTITY_SCENES: Array[PackedScene] = []
 
 ## Screen-space UI scenes — instantiate(), parented to a shared CanvasLayer.
 const WORLD_UI_SCENES: Array[PackedScene] = [

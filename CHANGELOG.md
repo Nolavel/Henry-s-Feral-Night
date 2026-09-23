@@ -8,8 +8,9 @@ Maintained per branch; entries are added by whoever makes the change.
 ### 2026-09-23 — Weather-driven snowfall promoted to production
 
 Added
-- Production `SnowfallVFX.tscn` under `scenes/environment/visual_fx/weather/`
-  and one declarative registration in `WORLD_3D_ENTITY_SCENES`.
+- Production `SnowfallVFX` as a Node3D world-system under
+  `scripts/systems/world/weather/`, registered next to WeatherController in
+  `WORLD_SYSTEM_SCRIPTS`. Headless runs skip GPU VFX construction entirely.
 - The VFX resolves the authoritative WeatherController from WorldContext; it
   does not create or own a second weather state.
 - Local `SnowHeightFieldService` follows Henry by coarse 8 m cells, using a
@@ -20,7 +21,7 @@ Added
 - High-wind velocity stretch is render-only on the small world flakes; it does
   not add another emitter and does not enlarge particle collision.
 - One island regression capture remains under `tools/runtime/`; the synthetic
-  experimental snow scene and old capture harness are removed.
+  experimental snow scene, production-scene detour and old capture harness are removed.
 
 Performance
 - HeightField no longer follows the camera every frame.

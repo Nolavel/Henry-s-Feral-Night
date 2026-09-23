@@ -38,13 +38,17 @@ var _foreground_material: ShaderMaterial
 var _visual_wind_velocity: Vector3 = Vector3.ZERO
 var _last_direction: Vector3 = Vector3.FORWARD
 
-@onready var heightfield_service: SnowHeightFieldService = $HeightFieldService
+var heightfield_service: SnowHeightFieldService
+var _runtime_visuals_enabled: bool = true
 
 
 func on_world_ready(context: WorldContext) -> void:
 	follow_target = context.player
 	foreground_target = context.camera
 	weather_controller = context.get_system(WEATHER_CONTROLLER_SCRIPT) as WeatherController
+	if not _runtime_visuals_enabled:
+		return
+	_ensure_heightfield_service()
 	if heightfield_service != null:
 		heightfield_service.configure(follow_target)
 	_bind_weather()
@@ -53,11 +57,26 @@ func on_world_ready(context: WorldContext) -> void:
 
 
 func _ready() -> void:
+	_runtime_visuals_enabled = DisplayServer.get_name() != "headless"
+	if not _runtime_visuals_enabled:
+		set_process(false)
+		return
+	_ensure_heightfield_service()
 	_build_particles()
 	_bind_weather()
 
 
+func _ensure_heightfield_service() -> void:
+	if heightfield_service != null:
+		return
+	heightfield_service = SnowHeightFieldService.new()
+	heightfield_service.name = "HeightFieldService"
+	add_child(heightfield_service)
+
+
 func _process(_delta: float) -> void:
+	if not _runtime_visuals_enabled:
+		return
 	if is_instance_valid(follow_target):
 		global_position = follow_target.global_position + Vector3.UP * WORLD_EMITTER_HEIGHT
 

@@ -1,11 +1,11 @@
 extends SceneTree
 
 ## Production snowfall regression on the authored island around Henry.
-## Captures the exact SnowfallVFX.tscn that world.gd instantiates.
+## Captures the exact SnowfallVFX world-system script that world.gd instantiates.
 
 const ISLAND_SCENE: String = "res://experimental_location/scenes/Graciosa_Island_Terrain.tscn"
-const SNOW_SCENE: PackedScene = preload(
-	"res://scenes/environment/visual_fx/weather/SnowfallVFX.tscn"
+const SNOW_SCRIPT: GDScript = preload(
+	"res://scripts/systems/world/weather/snowfall_vfx.gd"
 )
 const TERRAIN_CAPTURE_SHADER: String = "res://shaders/environment/terrain3d_stylized_capture.gdshader"
 const SHADOW_MATERIAL: String = "res://scenes/environment/visual_fx/StylizedShadowMaterial.tres"
@@ -134,9 +134,9 @@ func _configure() -> void:
 	_scene_root.add_child(_weather)
 	_weather.initialize()
 
-	_snow = SNOW_SCENE.instantiate() as SnowfallVFX
+	_snow = SNOW_SCRIPT.new() as SnowfallVFX
 	if _snow == null:
-		push_error("Production snow capture: SnowfallVFX scene failed to instantiate.")
+		push_error("Production snow capture: SnowfallVFX system failed to instantiate.")
 		quit(1)
 		return
 	_scene_root.add_child(_snow)
