@@ -7,6 +7,7 @@ on:
 
 jobs:
   render:
+    if: github.event_name == 'push'
     runs-on: ubuntu-latest
     timeout-minutes: 30
     steps:
@@ -28,6 +29,20 @@ jobs:
 
       - name: Render smoke scene
         run: tools/ci/render.sh res://tools/ci/render_smoke.tscn user://shots/smoke.png 25
+
+      - name: Render Freeman + parallax cloud matrix
+        if: github.ref == 'refs/heads/codex'
+        run: |
+          export PATH="$HOME/.local/bin:$PATH"
+          export VK_DRIVER_FILES="${VK_DRIVER_FILES:-/usr/share/vulkan/icd.d/lvp_icd.json}"
+          export XDG_RUNTIME_DIR="${XDG_RUNTIME_DIR:-/tmp/xdg}"
+          mkdir -p "$XDG_RUNTIME_DIR"
+          xvfb-run -a godot \
+            --path . \
+            --rendering-driver vulkan \
+            --rendering-method forward_plus \
+            --audio-driver Dummy \
+            --script tools/runtime/capture_freemans_sky.gd
 
       - name: Collect renders
         if: always()
