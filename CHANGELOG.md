@@ -24,6 +24,35 @@ Performance choice
 
 ## [Unreleased] — `claudeflow`
 
+### 2026-09-23 (4) — Phase A step 3: the survival loop closes
+
+Closes issue #6. The two ends of the loop that were stubs now meet.
+
+Added
+- `BioMonitorManager.rest_sleep()` is no longer a `pass`. A night restores
+  energy, charges its own metabolism (the clock jump skips the hourly tick),
+  and rests worse on an empty stomach — `get_rest_quality()` takes the worse of
+  hunger and thirst and never drops below a floor.
+- `ConsumptionController` — eating reaches the body at last. Finds the item in
+  the inventory or in a garment pocket, spends one, pushes calories, hydration
+  and energy onto the biomonitor, charges `body_heat_cost_c` to the thermal
+  model, and puts whatever is left behind back where it fits.
+- Items `empty_tin` and `snow_handful`. Snow is water bought with body heat,
+  which is the first content that exercises the heat cost.
+- `EquipmentComponent`, `InventoryComponent` and `ConsumptionController` are
+  now nodes on `player.tscn`, wired to the existing `BioMonitorManager`, so the
+  loop runs in game and not only in tests.
+
+Tests
+- `tests/systems/test_survival_loop.gd` — eight checks: sleep restores, sleep
+  costs, a starved night restores less, eating from the inventory and from a
+  pocket, the empty tin, snow costing heat, and the four refusals.
+- Eleven suites green; `TestScene` renders with no new errors.
+
+Not done here
+- `ThermalManager` and `SleepController` are still not in the composition root,
+  so nothing yet drives them at runtime. That is the head of Phase B.
+
 ### 2026-09-23 (3) — Phase A step 2: items, equipment, inventory, and clothing that matters
 
 Ported from ADT with permission; the full record of what crossed over, what was

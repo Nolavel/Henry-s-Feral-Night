@@ -3,19 +3,19 @@
 [ext_resource type="Script" path="res://core/items/item_resource.gd" id="item"]
 [ext_resource type="Script" path="res://core/items/consumable_data.gd" id="consumable"]
 
-[sub_resource type="Resource" id="C_tinned_stew"]
+[sub_resource type="Resource" id="C_snow_handful"]
 script = ExtResource("consumable")
-calories = 480.0
-hydration = 6.0
+calories = 0.0
+hydration = 12.0
 energy = 0.0
-body_heat_cost_c = 0.0
-leaves_behind_id = &"empty_tin"
+body_heat_cost_c = 0.35
+leaves_behind_id = &""
 
 [resource]
 script = ExtResource("item")
-id = &"tinned_stew"
-display_name = "Tinned stew"
-weight = 0.45
-max_stack = 4
+id = &"snow_handful"
+display_name = "Handful of snow"
+weight = 0.2
+max_stack = 2
 size_class = 0
-consumable = SubResource("C_tinned_stew")
+consumable = SubResource("C_snow_handful")
