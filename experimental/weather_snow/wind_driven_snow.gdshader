@@ -88,26 +88,25 @@ void process() {
 	// bounce or rest on the floor: it disappears on first contact.
 	if (COLLIDED) {
 		ACTIVE = false;
-		return;
+	} else {
+		USERDATA1.x += DELTA;
+		float normalized_age = clamp(USERDATA1.x / max(LIFETIME, 0.001), 0.0, 1.0);
+
+		float flutter_x = sin(TIME * 2.3 + USERDATA1.z) * turbulence_strength;
+		float flutter_z = cos(TIME * 1.9 + USERDATA1.w) * turbulence_strength;
+		float flutter_y = sin(TIME * 2.7 + USERDATA1.z + USERDATA1.w)
+			* turbulence_strength * 0.10;
+
+		// wind_velocity is a live uniform updated every WeatherController tick.
+		// This deliberately steers particles that are already airborne.
+		vec3 target_velocity = wind_velocity + vec3(
+			flutter_x,
+			-USERDATA1.y + flutter_y,
+			flutter_z
+		);
+		float response = clamp(1.0 - exp(-drag * DELTA), 0.0, 1.0);
+		VELOCITY = mix(VELOCITY, target_velocity, response);
+
+		COLOR.a = color.a * (1.0 - smoothstep(fade_from, 1.0, normalized_age));
 	}
-
-	USERDATA1.x += DELTA;
-	float normalized_age = clamp(USERDATA1.x / max(LIFETIME, 0.001), 0.0, 1.0);
-
-	float flutter_x = sin(TIME * 2.3 + USERDATA1.z) * turbulence_strength;
-	float flutter_z = cos(TIME * 1.9 + USERDATA1.w) * turbulence_strength;
-	float flutter_y = sin(TIME * 2.7 + USERDATA1.z + USERDATA1.w)
-		* turbulence_strength * 0.10;
-
-	// wind_velocity is a live uniform updated every WeatherController tick.
-	// This deliberately steers particles that are already airborne.
-	vec3 target_velocity = wind_velocity + vec3(
-		flutter_x,
-		-USERDATA1.y + flutter_y,
-		flutter_z
-	);
-	float response = clamp(1.0 - exp(-drag * DELTA), 0.0, 1.0);
-	VELOCITY = mix(VELOCITY, target_velocity, response);
-
-	COLOR.a = color.a * (1.0 - smoothstep(fade_from, 1.0, normalized_age));
 }
