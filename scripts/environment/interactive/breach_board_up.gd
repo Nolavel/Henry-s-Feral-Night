@@ -17,9 +17,12 @@ var _inventory: InventoryComponent
 
 
 func _ready() -> void:
-	super()
+	## Found before super(), which sizes the highlight ring from a mesh.
 	if breach == null:
 		breach = _find_breach()
+	if interactive_mesh == null and breach != null:
+		interactive_mesh = breach.boarded_visual as MeshInstance3D
+	super()
 	if breach != null:
 		set_item_name(tr(breach.name_key))
 	set_description("")
