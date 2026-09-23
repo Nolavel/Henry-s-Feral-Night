@@ -110,10 +110,10 @@ func on_world_ready(context: WorldContext) -> void:
 
 ## Loads every WeatherProfile in a directory, sorted for a stable order.
 static func load_profiles_from(directory: String) -> Array[WeatherProfile]:
-	var profiles: Array[WeatherProfile] = []
+	var found: Array[WeatherProfile] = []
 	var dir := DirAccess.open(directory)
 	if dir == null:
-		return profiles
+		return found
 	var names: Array[String] = []
 	for file_name: String in dir.get_files():
 		var clean: String = file_name.trim_suffix(".remap")
@@ -123,8 +123,8 @@ static func load_profiles_from(directory: String) -> Array[WeatherProfile]:
 	for clean: String in names:
 		var profile := load("%s/%s" % [directory, clean]) as WeatherProfile
 		if profile != null:
-			profiles.append(profile)
-	return profiles
+			found.append(profile)
+	return found
 
 
 ## Key this system owns in a save file, stated explicitly so renaming the
