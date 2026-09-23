@@ -1,8 +1,8 @@
 class_name VitalCluster
 extends Control
 
-## Four pentagons in a diamond, tips to the centre: warmth top, water left,
-## food right, sleep bottom. A drain nudges its cell out, a refill grows it.
+## Four pentagons in an X, tips to the centre: warmth top-left, water top-right,
+## food bottom-right, sleep bottom-left. A drain draws a cell in, a refill grows it.
 
 const THERMAL_SCRIPT: GDScript = preload("res://scripts/systems/survival/thermal_manager.gd")
 const ICON_THIRST: Texture2D = preload("res://assets/textures/ui/game/biomonitor/thirst_icon.png")
@@ -19,25 +19,30 @@ const ICON_WARMTH: Texture2D = preload("res://assets/textures/ui/game/biomonitor
 ## Depth of the pointed end, from tip to where the sides start.
 @export var cell_tip: float = 29.0
 ## Gap between each tip and the centre.
-@export var centre_gap: float = 5.0
+@export var centre_gap: float = 22.0
 @export var outline_width: float = 2.0
 @export var icon_size: float = 26.0
 
 @export_group("Motion")
 ## A change smaller than this is not a pulse, so steady drift stays quiet.
 @export_range(0.0, 0.2, 0.005) var pulse_threshold: float = 0.01
+## A drain draws the cell this far toward the centre.
 @export var drain_push_px: float = 6.0
 @export var drain_duration: float = 0.35
 @export var refill_scale: float = 0.15
 @export var refill_duration: float = 2.0
-## A critical cell sits this far out and breathes.
+## A critical cell sits this far in and breathes.
 @export var critical_push_px: float = 3.0
+## Whole-cell opacity at rest, and while it drains, refills or is critical.
+@export_range(0.0, 1.0, 0.05) var idle_alpha: float = 0.45
+@export_range(0.0, 1.0, 0.05) var active_alpha: float = 1.0
 
 @export_group("Colours")
 @export var base_color: Color = Color("#2A2E33CC")
 @export var outline_color: Color = Color("#C9CED2")
-@export var fill_high: Color = Color("#D8DADB")
-@export var fill_mid: Color = Color("#D9A441")
+## Neutral level fill; only a low level turns it rust.
+@export var fill_high: Color = Color("#C9CED2")
+@export var fill_mid: Color = Color("#9BA3AA")
 @export var fill_low: Color = Color("#B8452F")
 @export var drain_flash: Color = Color("#A34A3A")
 @export var refill_flash: Color = Color("#A8C47A")
@@ -51,10 +56,10 @@ var _time: float = 0.0
 
 func _ready() -> void:
 	mouse_filter = Control.MOUSE_FILTER_IGNORE
-	cells[&"warmth"] = VitalCell.new(&"warmth", Vector2.UP, ICON_WARMTH)
-	cells[&"thirst"] = VitalCell.new(&"thirst", Vector2.LEFT, ICON_THIRST)
-	cells[&"hunger"] = VitalCell.new(&"hunger", Vector2.RIGHT, ICON_HUNGER)
-	cells[&"sleep"] = VitalCell.new(&"sleep", Vector2.DOWN, ICON_SLEEP)
+	cells[&"warmth"] = VitalCell.new(&"warmth", Vector2(-1.0, -1.0), ICON_WARMTH)
+	cells[&"thirst"] = VitalCell.new(&"thirst", Vector2(1.0, -1.0), ICON_THIRST)
+	cells[&"hunger"] = VitalCell.new(&"hunger", Vector2(1.0, 1.0), ICON_HUNGER)
+	cells[&"sleep"] = VitalCell.new(&"sleep", Vector2(-1.0, 1.0), ICON_SLEEP)
 	_bind_bio_monitor()
 	_bind_thermal()
 
@@ -158,13 +163,14 @@ func _draw() -> void:
 
 func _draw_cell(cell: VitalCell, centre: Vector2, shape: PackedVector2Array) -> void:
 	var breathe: float = 0.0
-	var alpha: float = 1.0
+	var active: float = maxf(cell.flash, cell.grow / maxf(refill_scale, 0.001))
 	if cell.critical:
 		breathe = critical_push_px
-		alpha = 0.65 + 0.35 * (0.5 + 0.5 * sin(_time * 3.0))
+		active = maxf(active, 0.6 + 0.4 * (0.5 + 0.5 * sin(_time * 3.0)))
+	var alpha: float = lerpf(idle_alpha, active_alpha, clampf(active, 0.0, 1.0))
 	var out: Vector2 = cell.direction
 	var angle: float = Vector2.UP.angle_to(out)
-	var anchor: Vector2 = centre + out * (centre_gap + cell.push + breathe)
+	var anchor: Vector2 = centre + out * maxf(centre_gap - cell.push - breathe, 0.0)
 	var xform := Transform2D(angle, Vector2.ONE * (1.0 + cell.grow), 0.0, anchor)
 	var outline: PackedVector2Array = xform * shape
 	draw_colored_polygon(outline, _faded(base_color, alpha))
@@ -213,7 +219,7 @@ func _fill_color(cell: VitalCell) -> Color:
 		colour = fill_low.lerp(fill_mid, (cell.level - 0.25) * 4.0)
 	else:
 		colour = fill_low
-	colour.a = 0.85
+	colour.a = 0.55
 	return colour
 
 

@@ -83,6 +83,15 @@ Performance choice
 
 ## [Unreleased] — `claudeflow`
 
+### 2026-09-23 — Vital HUD: X layout, quieter cells
+
+Changed
+- Cells turned 45° into an X with a wider centre; the health band starts from
+  the centre of the X and runs right beneath the cells.
+- No coloured fill at rest: neutral translucent level, rust only when low.
+  Cells sit at 45% opacity and go opaque while draining, refilling or critical.
+- A drain now draws the cell toward the centre instead of pushing it out.
+
 ### 2026-09-23 — Experimental vital HUD: pentagon diamond and health band
 
 Added
