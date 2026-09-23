@@ -68,6 +68,32 @@ Performance choice
 
 ## [Unreleased] — `claudeflow`
 
+### 2026-09-23 (13) — Snow step 3: foot contact and footprints
+
+Added
+- **`FootContactSensor`** on `player.tscn` reads Henry's animated `foot_*`,
+  `ball_*` and `ball_leaf_*` bones and emits `foot_planted(side, point, forward,
+  speed)` each time a foot lands: the ball of the foot within 6 cm of the ground
+  after lifting past 9 cm, on the floor, moving. The ground is found by a short
+  ray, so any surface works. The shared source for footprints, and later for
+  footstep audio and ice load.
+- **`FootprintSystem`** in the composition root stamps pooled decals: the left
+  or right print cropped from the ADT stamp, toe along heel→toe, tinted as
+  compressed snow. Snowfall buries them — 240 s calm, 25 s in a whiteout. No
+  geometry is deformed; terrain stays untouched.
+- `assets/textures/snow/footprint_left.png` / `_right.png`.
+
+Found
+- Henry's walk clip plants a foot every 1.3–2.7 m at 4 m/s, so he glides. That
+  is a locomotion blend matter in `HenryUALAnimation`, documented in
+  `SNOW_COVER.md`, not patched here.
+
+Tests
+- `tests/systems/test_footprints.gd`: one print per stride; none standing still
+  or in the air; the real rig has every bone; the toe points where the foot
+  points; each foot leaves its own print; a full pool reuses the oldest; a
+  blizzard buries a trail a calm minute keeps.
+
 ### 2026-09-23 (12) — Snow step 2: the shared snow and rime surface
 
 Added
