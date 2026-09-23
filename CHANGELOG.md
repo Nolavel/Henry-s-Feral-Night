@@ -5,6 +5,47 @@ Maintained per branch; entries are added by whoever makes the change.
 
 ## [Unreleased] — `claudeflow`
 
+### 2026-09-23 (3) — Phase A step 2: items, equipment, inventory, and clothing that matters
+
+Ported from ADT with permission; the full record of what crossed over, what was
+dropped and what was added is in `docs/technical/PORTED_FROM_ADT.md`.
+
+Added
+- `core/items/` — `ItemTraits`, `GarmentData`, `ItemResource`, `ConsumableData`,
+  `ItemCatalog`. Items are Resources authored as `.tres` now, not an inner class
+  that could never be edited. The catalog loads **by path, never by scanning**:
+  an exported build hides `.tres` behind a `.remap` and a `DirAccess` scan finds
+  nothing.
+- `core/equipment/` — `EquipmentSlotDefinition`, `EquipmentLayout`.
+- `scripts/actors/player/henry/components/equipment_component.gd` — body slots
+  are fixed by a layout resource, **pockets are brought by the garment**. Take
+  the coat off and its pockets, and their contents, go with it. `equip()` into an
+  occupied slot refuses rather than swapping; `unequip()` refuses while the
+  garment's own pockets hold anything.
+- `.../inventory_component.gd` — loose carry, gated by weight.
+- `data/items/` and `data/equipment/player_layout.tres` — a worn coat, knit hat,
+  work trousers, worn boots and a tin of stew; slots `head`, `torso`, `legs`,
+  `feet`, `pack` and `back_fixture` (Kenny's, excluded from auto-stow).
+- `tests/systems/test_equipment.gd`.
+
+**The point of the exercise**
+- `GarmentData.insulation_c` and `EquipmentComponent.get_total_insulation_c()`
+  — the axis ADT's garments do not have. `ThermalManager` now reads what Henry
+  is actually wearing, falling back to its exported constant when no equipment
+  is wired, so every earlier test kept passing untouched. Fully dressed is about
+  11 °C against the old flat 6 °C, and a test asserts a dressed Henry cools
+  measurably slower than a bare one and that removing the coat is felt at once.
+
+Removed
+- `InventoryManager.gd` and its node in `player.tscn`. It was never wired
+  (`setup()` had no callers), `Item` was an inner class that could not be
+  authored, `_create_item_by_id()` returned null so loading restored nothing,
+  and `_input()` read raw keycodes including `KEY_E`, colliding with `interact`.
+
+Verified
+- Ten suites pass; `TestScene` and the island both render after the removal;
+  the filename gate is clean.
+
 ### 2026-09-23 (2) — Phase A step 1: player state and the interact claim
 
 Both ported from ADT with permission; see `docs/THIRD_PARTY_NOTICES.md`.
