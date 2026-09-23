@@ -54,6 +54,8 @@ const ACTION_SLEEP: StringName = &"sleep"
 const ACTION_SLEEP_CANCEL: StringName = &"sleep_cancel"
 const ACTION_SLEEP_LESS: StringName = &"sleep_hours_less"
 const ACTION_SLEEP_MORE: StringName = &"sleep_hours_more"
+## Radians of camera turn per pixel of mouse travel.
+const MOUSE_SENSITIVITY: float = 0.003
 
 var _sleep_held_for: float = 0.0
 var _is_sleep_held: bool = false
@@ -61,6 +63,21 @@ var _was_sprinting: bool = false
 var _interact_claimant: Node = null
 var _interact_duration: float = 0.0
 var _interact_active: bool = false
+var _look_accum: Vector2 = Vector2.ZERO
+var _frame_look_delta: Vector2 = Vector2.ZERO
+var _look_capture: bool = false
+
+
+func _ready() -> void:
+	var state: Node = get_node_or_null(^"/root/PlayerState")
+	if state != null and state.has_signal(&"mode_changed"):
+		state.connect(&"mode_changed", func(_old: int, _new: int) -> void: _apply_mouse_mode())
+
+
+## Mouse motion is accumulated per event and handed out once per physics frame.
+func _input(event: InputEvent) -> void:
+	if event is InputEventMouseMotion and _look_capture and not _is_gameplay_blocked():
+		_look_accum += (event as InputEventMouseMotion).relative * MOUSE_SENSITIVITY
 
 
 func _unhandled_input(event: InputEvent) -> void:
@@ -94,6 +111,8 @@ func _unhandled_input(event: InputEvent) -> void:
 
 
 func _physics_process(delta: float) -> void:
+	_frame_look_delta = Vector2.ZERO if _is_gameplay_blocked() else _look_accum
+	_look_accum = Vector2.ZERO
 	_tick_interact(delta)
 	var sprinting: bool = is_sprinting()
 	if sprinting != _was_sprinting:
@@ -205,6 +224,24 @@ func is_sprinting() -> bool:
 	if _is_movement_blocked():
 		return false
 	return InputMap.has_action(ACTION_SPRINT) and Input.is_action_pressed(ACTION_SPRINT)
+
+
+## Mouse look this physics frame in radians; zero while paused or not captured.
+func get_look_delta() -> Vector2:
+	return _frame_look_delta
+
+
+## A mouse-look camera asks for the pointer; menus get it back while open.
+func set_look_capture(active: bool) -> void:
+	_look_capture = active
+	_apply_mouse_mode()
+
+
+func _apply_mouse_mode() -> void:
+	if not _look_capture:
+		return
+	var captured: bool = not _is_gameplay_blocked()
+	Input.mouse_mode = Input.MOUSE_MODE_CAPTURED if captured else Input.MOUSE_MODE_VISIBLE
 
 
 ## Seconds the sleep key has been held, answered from this file's own latch

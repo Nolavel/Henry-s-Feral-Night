@@ -1,4 +1,4 @@
-[gd_scene load_steps=106 format=4 uid="uid://ciy301x7wh6ie"]
+[gd_scene format=4 uid="uid://ciy301x7wh6ie"]
 
 [ext_resource type="Script" uid="uid://b50rnmqk3m8fr" path="res://scripts/actors/player/henry/Player.gd" id="1_irk3a"]
 [ext_resource type="Texture2D" uid="uid://b1vpe3iqs2wgh" path="res://assets/textures/player_test/player/SUIT_albedo.jpeg" id="2_cat03"]
@@ -14,7 +14,6 @@
 [ext_resource type="Script" uid="uid://g61q2r54tbha" path="res://scripts/actors/player/henry/Controllers/MovementController.gd" id="5_ep65o"]
 [ext_resource type="Texture2D" uid="uid://e8c2wdgtco77" path="res://assets/textures/player_test/player/Body_metallic.jpeg" id="5_msxka"]
 [ext_resource type="Texture2D" uid="uid://re2gj53qwutt" path="res://assets/textures/player_test/player/Body_normal.png" id="6_3f3m1"]
-[ext_resource type="Script" uid="uid://dtpnfwdmfe7xn" path="res://scripts/actors/player/henry/Controllers/RotationController.gd" id="6_ggxw4"]
 [ext_resource type="Script" uid="uid://rd1kyphwhfvi" path="res://scripts/actors/player/henry/Managers/StaminaManager.gd" id="6_oh6um"]
 [ext_resource type="Texture2D" uid="uid://be0em6nyi7met" path="res://assets/textures/player_test/player/Armor_albedo.jpeg" id="7_75awx"]
 [ext_resource type="Texture2D" uid="uid://bg00nlljt7ojc" path="res://assets/textures/player_test/player/Material__7_albedo.jpeg" id="7_jk84i"]
@@ -52,7 +51,6 @@
 [ext_resource type="Texture2D" uid="uid://b3dwojen2500n" path="res://assets/textures/ui/game/biomonitor/Grenade_icon.png" id="20_v5r82"]
 [ext_resource type="FontFile" uid="uid://dl57dggictqy0" path="res://assets/fonts/Averia Libre _ Averia Gruesa Libre _ Averia Serif Libre _ Averia Sans Libre/AveriaLibre-Regular.ttf" id="24_2uy4f"]
 [ext_resource type="FontFile" uid="uid://c3ns1xlotoc62" path="res://assets/fonts/Special Elite/SpecialElite-Regular.ttf" id="24_sdm1e"]
-[ext_resource type="PackedScene" uid="uid://wxp413rki005" path="res://scenes/ui/hud/dynamic_cursor/mouse_cursor_ui.tscn" id="49_lguxi"]
 
 [ext_resource type="PackedScene" path="res://scenes/actors/player/HenryUALVisual.tscn" id="50_ual"]
 
@@ -2385,9 +2383,6 @@ script = ExtResource("6_oh6um")
 debug_show_stamina = true
 debug_label_path = NodePath("../DebugLBL")
 
-[node name="RotationController" type="Node3D" parent="."]
-script = ExtResource("6_ggxw4")
-
 [node name="PlayerHealthSystem" type="Node3D" parent="."]
 script = ExtResource("8_re6ll")
 
@@ -2724,10 +2719,5 @@ texture = ExtResource("20_v5r82")
 expand_mode = 2
 stretch_mode = 5
 flip_h = true
-
-[node name="MouseCursorUI" parent="." node_paths=PackedStringArray("player", "movement_controller", "stamina_manager") instance=ExtResource("49_lguxi")]
-player = NodePath("..")
-movement_controller = NodePath("../MovementController")
-stamina_manager = NodePath("../MovementController/StaminaManager")
 
 [editable path="Henry_Test_player"]
