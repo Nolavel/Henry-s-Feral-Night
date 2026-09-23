@@ -1,0 +1,9 @@
+[gd_resource type="Resource" script_class="ColorGradeProfile" load_steps=3 format=3]
+
+[ext_resource type="Script" path="res://scripts/systems/world/ColorGradeProfile.gd" id="1_profile"]
+[ext_resource type="Texture3D" path="res://assets/textures/color_grading/HFN_ColdAsh_Shelter.png" id="2_lut"]
+
+[resource]
+script = ExtResource("1_profile")
+profile_id = &"HFN_ColdAsh_Shelter"
+lut = ExtResource("2_lut")

@@ -1,4 +1,4 @@
-[gd_scene load_steps=10 format=3 uid="uid://cvv8y27vmgjfi"]
+[gd_scene load_steps=13 format=3 uid="uid://cvv8y27vmgjfi"]
 
 [ext_resource type="Script" uid="uid://naxaityb4qy1" path="res://scripts/systems/world/WorldEnvironmentController.gd" id="1_tiy4q"]
 [ext_resource type="Script" uid="uid://drvu6b4aca7sh" path="res://scripts/systems/world/DayNightManager.gd" id="2_n3v7b"]
@@ -7,6 +7,9 @@
 [ext_resource type="Script" uid="uid://b2y7elksxt0yp" path="res://scripts/systems/world/WeatherController.gd" id="4_n0ipa"]
 [ext_resource type="Script" uid="uid://8gru2hyu4uym" path="res://scripts/systems/world/DayNightSettings.gd" id="5_prwu1"]
 [ext_resource type="Shader" path="res://shaders/environment/freemans_parallax_clouds.gdshader" id="6_sky"]
+[ext_resource type="Script" path="res://scripts/systems/world/ColorGradeController.gd" id="7_grade_controller"]
+[ext_resource type="Resource" path="res://resources/environment/color_grading/HFN_ColdAsh_Night.tres" id="8_night_grade"]
+[ext_resource type="Resource" path="res://resources/environment/color_grading/HFN_ColdAsh_Shelter.tres" id="9_shelter_grade"]
 
 [sub_resource type="Environment" id="Environment_himop"]
 background_mode = 2
@@ -20,13 +23,14 @@ volumetric_fog_enabled = true
 [sub_resource type="LabelSettings" id="LabelSettings_u2kgs"]
 font_color = Color(0.03, 0.03, 0.03, 1)
 
-[node name="WorldEnvironmentSystem" type="Node3D" node_paths=PackedStringArray("day_night_manager", "weather_controller", "time_accelerator", "world_environment", "sun_light")]
+[node name="WorldEnvironmentSystem" type="Node3D" node_paths=PackedStringArray("day_night_manager", "weather_controller", "time_accelerator", "world_environment", "sun_light", "color_grade_controller")]
 script = ExtResource("1_tiy4q")
 day_night_manager = NodePath("DayNightManager")
 weather_controller = NodePath("WeatherController")
 time_accelerator = NodePath("TimeAccelerator")
 world_environment = NodePath("Environment/WorldEnvironment")
 sun_light = NodePath("Lighting/SunLight")
+color_grade_controller = NodePath("ColorGradeController")
 
 [node name="Lighting" type="Node3D" parent="."]
 
@@ -42,6 +46,12 @@ directional_shadow_max_distance = 200.0
 
 [node name="WorldEnvironment" type="WorldEnvironment" parent="Environment"]
 environment = SubResource("Environment_himop")
+
+[node name="ColorGradeController" type="Node" parent="." node_paths=PackedStringArray("world_environment")]
+script = ExtResource("7_grade_controller")
+world_environment = NodePath("../Environment/WorldEnvironment")
+outdoor_profile = ExtResource("8_night_grade")
+shelter_profile = ExtResource("9_shelter_grade")
 
 [node name="WeatherController" type="Node" parent="."]
 script = ExtResource("4_n0ipa")
