@@ -3,6 +3,19 @@
 All notable changes to Henry's Feral Night. Newest first.
 Maintained per branch; entries are added by whoever makes the change.
 
+## [Experiment] — `codex`
+
+### 2026-09-23 — Weather-driven local snow particle test
+
+Added
+- Isolated local snow GPUParticles3D test based on the CC0 Wind Driven Falling
+  Particles idea.
+- Real calm / snowfall / windy / blizzard profiles drive emission density,
+  gust speed and wind direction.
+- Source shader autonomous wind and vortex are deliberately removed to avoid
+  competing with WeatherController.
+- Capture harness renders all four profiles in one CI run.
+
 ## [Unreleased] — `codex`
 
 ### 2026-09-23 — Freeman atmosphere + parallax clouds promoted to runtime
