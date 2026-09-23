@@ -57,21 +57,9 @@ func _get_inventory() -> InventoryComponent:
 	if is_instance_valid(_inventory):
 		return _inventory
 	var player: Node = get_tree().get_first_node_in_group("player")
-	_inventory = _search_inventory(player)
+	_inventory = InventoryComponent.find_in(player)
 	return _inventory
 
-
-static func _search_inventory(node: Node) -> InventoryComponent:
-	if node == null:
-		return null
-	var found := node as InventoryComponent
-	if found != null:
-		return found
-	for child: Node in node.get_children():
-		var nested: InventoryComponent = _search_inventory(child)
-		if nested != null:
-			return nested
-	return null
 
 
 ## A breach among the siblings, or the parent itself.

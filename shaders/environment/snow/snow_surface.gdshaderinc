@@ -34,14 +34,27 @@ float snow_weight(vec3 world_normal, vec3 world_pos, float softness) {
 	return smoothstep(threshold - softness, threshold + softness, up + jitter);
 }
 
-// Rime on steep and vertical faces, patchy, grown by cold outdoor air.
-float frost_weight(vec3 world_normal, vec3 world_pos) {
+// How close a point on a box is to its edges and base, 0 mid-face to 1 on an
+// edge. Rime needs something to grow from; it starts at corners, not mid-wall.
+float box_edge_factor(vec3 local_pos, vec3 half_extents, float edge_width, float base_height) {
+	vec3 d = max(half_extents - abs(local_pos), vec3(0.0));
+	float lo = min(d.x, min(d.y, d.z));
+	float hi = max(d.x, max(d.y, d.z));
+	float to_edge = d.x + d.y + d.z - lo - hi;
+	float edge = 1.0 - smoothstep(0.0, edge_width, to_edge);
+	float base = 1.0 - smoothstep(0.0, base_height, local_pos.y + half_extents.y);
+	return max(edge, base * 0.85);
+}
+
+// Rime on steep faces, growing inward from edges as frost_amount rises. `edge`
+// is 1 on edges, corners and cavities; noise only breaks up the growth front.
+float frost_weight(vec3 world_normal, vec3 world_pos, float edge) {
 	float up = abs(dot(normalize(world_normal), vec3(0.0, 1.0, 0.0)));
 	float steep = smoothstep(0.25, 0.85, 1.0 - up);
-	// Sampled in the wall's own plane; XZ noise would streak on vertical faces.
-	vec2 wall_plane = vec2(world_pos.x + world_pos.z, world_pos.y) * 2.3;
-	float patches = smoothstep(
-		0.35, 0.75, snow_noise(wall_plane) * 0.65 + snow_noise(wall_plane * 3.1 + 5.0) * 0.35
-	);
-	return clamp(frost_amount, 0.0, 1.0) * steep * mix(0.35, 1.0, patches);
+	vec2 wall_plane = vec2(world_pos.x + world_pos.z, world_pos.y);
+	float grain = snow_noise(wall_plane * 7.0) * 0.6 + snow_noise(wall_plane * 19.0 + 3.0) * 0.4;
+	float reach = clamp(frost_amount, 0.0, 1.0);
+	float front = edge + (grain - 0.5) * 0.35;
+	float threshold = 1.0 - reach * 1.3;
+	return steep * smoothstep(threshold, threshold + 0.2, front);
 }

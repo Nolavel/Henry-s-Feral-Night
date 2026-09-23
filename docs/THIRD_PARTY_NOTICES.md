@@ -21,6 +21,15 @@ projects are owned by the same copyright holder, who granted that permission for
 this port on 2026-09-23. What was taken, and what changed on the way across, is
 recorded in [`technical/PORTED_FROM_ADT.md`](technical/PORTED_FROM_ADT.md).
 
+### Asset from Nolavel/ADT: foot print stamp
+
+- Source: `Nolavel/ADT` → `assets/textures/pins/pin_step_walk.png` (500×500 RGBA).
+- Used as: `assets/textures/snow/footprint_left.png` and `footprint_right.png`,
+  each foot cropped with a 6 px margin; pixels otherwise unchanged. Tinted at
+  runtime as compressed snow by `FootprintSystem`.
+- Same copyright holder and the same written permission as the code port
+  above; the author pointed to this asset for footprints on 2026-09-23 (#16).
+
 ## Fade Volume
 
 - Source: https://godotshaders.com/shader/fade-volume/

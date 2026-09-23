@@ -26,11 +26,16 @@ func _physics_process(_delta: float) -> void:
 	# Проверяем все коллизии ShapeCast с группой "interactables"
 	for i in range(shape_cast.get_collision_count()):
 		var collider = shape_cast.get_collider(i)
-		if collider.is_in_group("interactables"):
+		## An InteractiveArea hit directly counts too; placeholder pickups have no body.
+		if collider is InteractiveArea or collider.is_in_group("interactables"):
 			var area = _find_parent_interactive_area(collider)
 			if area and area not in new_areas:
 				new_areas.append(area)
 				
+	## A picked-up item frees itself; drop it before touching the list.
+	for i: int in range(detected_areas.size() - 1, -1, -1):
+		if not is_instance_valid(detected_areas[i]):
+			detected_areas.remove_at(i)
 	# Обновляем состояния областей
 	for area in detected_areas:
 		if area not in new_areas:

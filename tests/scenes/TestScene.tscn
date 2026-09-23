@@ -5,7 +5,7 @@
 [ext_resource type="Script" path="res://scripts/environment/interactive/item_pickup.gd" id="92_pickup"]
 [ext_resource type="PackedScene" uid="uid://cvv8y27vmgjfi" path="res://scenes/game/systems/world/WorldEnvironmentSystem.tscn" id="2_2ompc"]
 [ext_resource type="PackedScene" uid="uid://duxn5rqcau5dw" path="res://tools/StatsDisplay/StatsDisplay.tscn" id="2_h763q"]
-[ext_resource type="PackedScene" uid="uid://dputwp1am8vfu" path="res://scenes/game/systems/camera/PlayerCamera.tscn" id="3_4vd7y"]
+[ext_resource type="PackedScene" uid="uid://dputwp1am8vfu" path="res://scenes/game/systems/camera/tps_camera.tscn" id="3_4vd7y"]
 [ext_resource type="PackedScene" uid="uid://ciy301x7wh6ie" path="res://scenes/actors/player/player.tscn" id="4_vhdnb"]
 [ext_resource type="PackedScene" uid="uid://btnxy5t02bhtw" path="res://scenes/environment/interactive/InteractiveArea.tscn" id="8_loucq"]
 [ext_resource type="PackedScene" uid="uid://dj0m3h8m8d6wh" path="res://scenes/environment/props/Masks/AFM/Airlock_Filter_Mask.tscn" id="9_inqvh"]

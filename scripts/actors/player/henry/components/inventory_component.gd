@@ -91,6 +91,29 @@ func get_total_weight() -> float:
 	return total
 
 
+## The first inventory under a node, the player usually. Level objects and
+## systems cannot be wired to the player in the editor, so they search.
+static func find_in(node: Node) -> InventoryComponent:
+	if node == null:
+		return null
+	var found := node as InventoryComponent
+	if found != null:
+		return found
+	for child: Node in node.get_children():
+		var nested: InventoryComponent = find_in(child)
+		if nested != null:
+			return nested
+	return null
+
+
+## How full the pack is, 0 empty to 1 at the carry limit. The one number the
+## ice, fatigue and, later, movement read to make weight cost something.
+func get_load_fraction() -> float:
+	if max_carry_weight <= 0.0:
+		return 0.0
+	return clampf(get_total_weight() / max_carry_weight, 0.0, 1.0)
+
+
 ## Carried items as {id, count} pairs, for a HUD or a debug readout.
 func get_entries() -> Array[Dictionary]:
 	var out: Array[Dictionary] = []

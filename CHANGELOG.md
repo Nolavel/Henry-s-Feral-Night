@@ -68,6 +68,83 @@ Performance choice
 
 ## [Unreleased] — `claudeflow`
 
+### 2026-09-23 — Debugger warnings cleaned
+
+Changed
+- Triple-quoted "docstrings" in `BioMonitorManager` and `vital_signs.gd`
+  (standalone-expression warnings) became `##` doc comments in English.
+- Unused parameters prefixed with `_`; `load_profiles_from` no longer shadows
+  the `profiles` export; dead `shake_intensity` local removed.
+
+### 2026-09-23 — Picked-up items no longer crash the interaction scan
+
+Fixed
+- `InteractionManager` kept a freed pickup in `detected_areas` and errored
+  every physics frame after a pickup; freed areas are now dropped first.
+
+### 2026-09-23 — TPS camera replaces the cursor camera; pickups fixed
+
+Added
+- `TpsCamera` (`scripts/systems/camera/tps_camera.gd`), ported from ADT's
+  on-foot camera without view toggle, lock-on, aim or lean: captured mouse
+  look, follow smoothing, sprint pull-back, movement lead, sphere-cast wall
+  clamp. New: eight rods plus a ceiling ray judge how open the space is and
+  ease the boom between 1.2 m (doorways, rooms) and 3 m (open ground).
+- `InputSystems.get_look_delta()` / `set_look_capture()`; pause frees the mouse.
+
+Changed
+- Movement is camera-relative and Henry turns to face where he walks.
+  `RotationController` and `MouseCursorUI` are removed from the player scene
+  (files kept for reference). `PlayerCamera.gd` deleted; the scene is now
+  `tps_camera.tscn` (node name `PlayerCamera` kept for `World`).
+
+Fixed
+- Interact (E) never reached placeholder pickups, board-up or stove feed: the
+  shape cast hit the `InteractiveArea` itself, which was not counted.
+
+### 2026-09-23 — #24: existing systems start costing each other
+
+Added
+- `IceField` save contract (key `ice`, group `saveable`): holes survive
+  sleep-save; loading never emits `tile_broke`.
+- Carry weight has a cost: `IceGaitBinder` scales ice drain by pack load,
+  `BioMonitorManager` raises fatigue above half load.
+  `InventoryComponent.get_load_fraction()` / `find_in()` are shared hooks.
+- `ThermalManager` dries clothes by felt temperature (0 °C none, 25 °C full)
+  anywhere out of precipitation.
+
+Changed
+- `VERTICAL_SLICE.md` now describes the route experience; stale pillar table removed.
+
+### 2026-09-23 (15) — Snow A+: rime from edges, settled snow as state, prints on slopes
+
+From the author's review and the Grok and Codex reviews in #16.
+
+Changed
+- **Rime grows from edges, corners and the cold base of an object**, not as
+  uniform noise across a face. The author called the old spread amateurish, and
+  it was. `frost_weight()` takes an edge factor; as `frost_amount` rises the
+  front moves inward, and noise only breaks up that front. Real assets bake an
+  `edge_mask`; placeholder boxes set `box_half_extents` / `box_center_offset`
+  for the **whole surface**, so seams between pieces of one wall do not read as
+  edges.
+- **Settled snow is world state, not a weather mirror.** `snow_cover` used to
+  jump to the active profile's level; a blizzard's 1.0 fell to calm's 0.35 the
+  moment it stopped. It now builds with snowfall, settles slowly (about a day
+  from blizzard to calm), melts above 0 °C, and is saved under `snow`.
+- **Rime grows and sheds over hours** instead of snapping across a threshold.
+- **`foot_planted` carries the ground normal**, and prints lie along it: on a
+  slope a print sits on the slope instead of hovering flat above it or cutting
+  into it. Heel-to-toe runs along the ground.
+
+Added
+- A test that fails if anything but `SnowPresentationSystem` writes the snow
+  globals.
+- `SNOW_COVER.md`: the settled-snow model, rime from edges, quality tiers, a
+  material checklist for the slice, and why decals are the low tier rather than
+  persistence.
+- `THIRD_PARTY_NOTICES.md`: the ADT foot-print asset, alongside the code port.
+
 ### 2026-09-23 (14) — Pickups you can see, prompts that highlight
 
 Fixed

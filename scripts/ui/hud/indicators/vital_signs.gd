@@ -85,14 +85,14 @@ func _ready() -> void:
 	# Инициализация начального состояния
 	call_deferred("initialize_ui_state")
 
+## Sets visibility of the Temperature device.
 func setup_device_visibility():
-	"""Настройка видимости устройства Temperature"""
 	# Показываем только иконки в зависимости от equip (остальное скрыто через modulate)
 	if temperature_icon:
 		temperature_icon.visible = temperature_device_equip
 
+## Hides every warning, upper and lower by default via modulate.
 func hide_all_temporary_elements():
-	"""Скрывает все warnings, uppers и lowers по умолчанию через modulate"""
 	# Скрываем все warning signs
 	if hunger_warning_sign:
 		hunger_warning_sign.modulate = Color(1.0, 1.0, 1.0, 0.0)
@@ -123,8 +123,8 @@ func hide_all_temporary_elements():
 	if temperature_lower:
 		temperature_lower.modulate = Color(1.0, 1.0, 1.0, 0.0)
 
+## Subscribes to BioMonitorManager signals.
 func setup_bio_monitor_connections():
-	"""Подписка на сигналы BioMonitorManager"""
 	if bio_monitor:
 		# === ГОЛОД ===
 		bio_monitor.hunger_level_changed.connect(_on_hunger_level_changed)
@@ -182,8 +182,8 @@ func initialize_thermal_state() -> void:
 		temperature_upper.modulate = Color(1.0, 1.0, 1.0, 0.0)
 
 
+## Sets the initial UI state.
 func initialize_ui_state():
-	"""Инициализация начального состояния UI"""
 	if not bio_monitor:
 		return
 	
@@ -205,20 +205,20 @@ func initialize_ui_state():
 	update_warning_signs()
 
 # === ОБРАБОТЧИКИ ИЗМЕНЕНИЯ УРОВНЕЙ ===
+## Updates hunger icon alpha (0 starving, 1 fed).
 func _on_hunger_level_changed(progress: float):
-	"""Обновляет прозрачность иконки голода (0.0 = голоден, 1.0 = сыт)"""
 	if hunger_icon:
 		var alpha_value = lerp(ICON_MAX_ALPHA, ICON_MIN_ALPHA, progress)
 		hunger_icon.modulate = Color(1.0, 1.0, 1.0, alpha_value)
 
+## Updates thirst icon alpha (0 dehydrated, 1 hydrated).
 func _on_thirst_level_changed(progress: float):
-	"""Обновляет прозрачность иконки жажды (0.0 = обезвожен, 1.0 = гидратирован)"""
 	if thirst_icon:
 		var alpha_value = lerp(ICON_MAX_ALPHA, ICON_MIN_ALPHA, progress)
 		thirst_icon.modulate = Color(1.0, 1.0, 1.0, alpha_value)
 
+## Updates energy icon alpha (0 exhausted, 1 rested).
 func _on_energy_level_changed(progress: float):
-	"""Обновляет прозрачность иконки энергии (0.0 = истощен, 1.0 = бодр)"""
 	if sleep_icon:
 		var alpha_value = lerp(ICON_MAX_ALPHA, ICON_MIN_ALPHA, progress)
 		sleep_icon.modulate = Color(1.0, 1.0, 1.0, alpha_value)
@@ -279,40 +279,40 @@ func trigger_temperature_upper_alert() -> void:
 
 
 # === ОБРАБОТЧИКИ КРИТИЧЕСКИХ СОСТОЯНИЙ ===
+## Handles entering critical hunger.
 func _on_critical_hunger_reached():
-	"""Обработка достижения критического голода"""
 	is_critically_hungry_in_hud = true
 	update_warning_signs()
 	# В критическом состоянии показываем постоянно lower индикатор
 	if hunger_lower:
 		hunger_lower.modulate = Color(1.0, 0.0, 0.0, 1.0) # Красный цвет для критического состояния
 
+## Handles leaving critical hunger.
 func _on_not_critical_hunger():
-	"""Обработка выхода из критического голода"""
 	is_critically_hungry_in_hud = false
 	update_warning_signs()
 	# Скрываем lower индикатор при выходе из критического состояния
 	if hunger_lower:
 		hunger_lower.modulate = Color(1.0, 1.0, 1.0, 0.0)
 
+## Handles entering critical thirst.
 func _on_critical_dehydration_reached():
-	"""Обработка достижения критического обезвоживания"""
 	is_critically_thirsty_in_hud = true
 	update_warning_signs()
 	# В критическом состоянии показываем постоянно lower индикатор
 	if thirst_lower:
 		thirst_lower.modulate = Color(1.0, 0.0, 0.0, 1.0) # Красный цвет для критического состояния
 
+## Handles recovery from critical thirst.
 func _on_dehydration_recovered():
-	"""Обработка восстановления после критического обезвоживания"""
 	is_critically_thirsty_in_hud = false
 	update_warning_signs()
 	# Скрываем lower индикатор при выходе из критического состояния
 	if thirst_lower:
 		thirst_lower.modulate = Color(1.0, 1.0, 1.0, 0.0)
 
+## Handles entering critical fatigue.
 func _on_critical_exhaustion_reached():
-	"""Обработка достижения критической усталости"""
 	is_critically_tired_in_hud = true
 	update_warning_signs()
 	# В критическом состоянии показываем постоянно lower индикатор
@@ -322,8 +322,8 @@ func _on_critical_exhaustion_reached():
 	#if energy_tween and is_instance_valid(energy_tween) and energy_tween.is_running():
 		#energy_tween.kill()
 
+## Handles recovery from critical fatigue.
 func _on_exhaustion_recovered():
-	"""Обработка восстановления после критической усталости"""
 	is_critically_tired_in_hud = false
 	update_warning_signs()
 	# Скрываем lower индикатор при выходе из критического состояния
@@ -331,8 +331,8 @@ func _on_exhaustion_recovered():
 		energy_tween.kill()
 
 # === МЕТОДЫ ДЛЯ УПРАВЛЕНИЯ WARNING SIGNS ===
+## Updates every warning sign via modulate.
 func update_warning_signs():
-	"""Обновляет видимость всех warning signs через modulate"""
 	if hunger_warning_sign:
 		hunger_warning_sign.modulate = Color(1.0, 1.0, 1.0, 1.0 if is_critically_hungry_in_hud else 0.0)
 		
@@ -346,58 +346,55 @@ func update_warning_signs():
 		temperature_warning_sign.modulate = Color(1.0, 1.0, 1.0, 1.0 if is_freezing_in_hud else 0.0)
 
 
+## Shows the hunger lower indicator for 3.5 s.
 func trigger_hourly_hunger_alert():
-	"""Показывает Lower индикатор для голода на 3.5 секунды"""
 	if not hunger_lower or is_critically_hungry_in_hud:
 		return # Не показываем если в критическом состоянии
 	
 	await get_tree().create_timer(1.0).timeout
 	show_temporary_indicator(hunger_lower, "hunger_tween")
 
+## Shows the thirst lower indicator for 3.5 s.
 func trigger_hourly_thirst_alert():
-	"""Показывает Lower индикатор для жажды на 3.5 секунды"""
 	if not thirst_lower or is_critically_thirsty_in_hud:
 		return # Не показываем если в критическом состоянии
 	
 
 	show_temporary_indicator(thirst_lower, "thirst_tween")
 
+## Shows the energy lower indicator for 3.5 s.
 func trigger_hourly_energy_alert():
-	"""Показывает Lower индикатор для энергии на 3.5 секунды"""
 	if not sleep_lower or is_critically_tired_in_hud:
 		return # Не показываем если в критическом состоянии
 	
 	await get_tree().create_timer(2.0).timeout
 	show_temporary_indicator(sleep_lower, "energy_tween")
 
+## Shows the hunger upper indicator for 3.5 s on refill.
 func trigger_hunger_upper_alert():
-	"""Показывает Upper индикатор для голода на 3.5 секунды (при восполнении)"""
 	if not hunger_upper:
 		return
 
 	show_temporary_indicator(hunger_upper, "hunger_tween")
 
+## Shows the thirst upper indicator for 3.5 s on refill.
 func trigger_thirst_upper_alert():
-	"""Показывает Upper индикатор для жажды на 3.5 секунды (при восполнении)"""
 	if not thirst_upper:
 		return
 	
 
 	show_temporary_indicator(thirst_upper, "thirst_tween")
 
+## Shows the energy upper indicator for 3.5 s on refill.
 func trigger_energy_upper_alert():
-	"""Показывает Upper индикатор для энергии на 3.5 секунды (при восполнении)"""
 	if not sleep_upper:
 		return
 	
 
 	show_temporary_indicator(sleep_upper, "energy_tween")
 
+## Shows a temporary indicator; takes the tween variable name as a string.
 func show_temporary_indicator(indicator: TextureRect, var_name: String):
-	"""
-	Универсальный метод для показа временного индикатора. 
-	ИСПРАВЛЕНИЕ: Принимает имя переменной-твина в виде строки для корректного обновления.
-	"""
 	if not indicator:
 		return
 
