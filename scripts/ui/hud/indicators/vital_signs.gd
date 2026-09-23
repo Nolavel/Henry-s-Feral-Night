@@ -33,13 +33,6 @@ const THERMAL_SCRIPT: GDScript = preload("res://scripts/systems/survival/thermal
 @export var temperature_icon: TextureRect
 @export var temperature_lower: TextureRect
 
-@export_group("Radiation")
-@export var radiation_device_equip: bool = true
-@export var radiation_warning_sign: TextureRect
-@export var radiation_upper: TextureRect
-@export var radiation_icon: TextureRect
-@export var radiation_lower: TextureRect
-
 @export_group("Important References")
 @export var player: CharacterBody3D
 @export var bio_monitor: BioMonitorManager # Ссылка на BioMonitor
@@ -72,19 +65,15 @@ func _ready() -> void:
 		visible = false
 		return
 		
-		# Логика видимости для Temperature и Radiation 
+		# Логика видимости для Temperature
 	for temperature_device in [temperature_warning_sign, temperature_upper, temperature_icon, temperature_lower]:
 		if temperature_device:
 			temperature_device.visible = temperature_device_equip
-		
-	for radiation_device in [radiation_warning_sign, radiation_upper, radiation_icon, radiation_lower]:
-		if radiation_device:
-			radiation_device.visible = radiation_device_equip
 	
 	# Скрываем все warnings, uppers и lowers по умолчанию
 	hide_all_temporary_elements()
 	
-	# Логика видимости для Temperature и Radiation 
+	# Логика видимости для Temperature
 	setup_device_visibility()
 	
 	# Подписка на сигналы BioMonitorManager
@@ -97,13 +86,10 @@ func _ready() -> void:
 	call_deferred("initialize_ui_state")
 
 func setup_device_visibility():
-	"""Настройка видимости устройств Temperature и Radiation"""
+	"""Настройка видимости устройства Temperature"""
 	# Показываем только иконки в зависимости от equip (остальное скрыто через modulate)
 	if temperature_icon:
 		temperature_icon.visible = temperature_device_equip
-		
-	if radiation_icon:
-		radiation_icon.visible = radiation_device_equip
 
 func hide_all_temporary_elements():
 	"""Скрывает все warnings, uppers и lowers по умолчанию через modulate"""
@@ -116,8 +102,6 @@ func hide_all_temporary_elements():
 		sleep_warning_sign.modulate = Color(1.0, 1.0, 1.0, 0.0)
 	if temperature_warning_sign:
 		temperature_warning_sign.modulate = Color(1.0, 1.0, 1.0, 0.0)
-	if radiation_warning_sign:
-		radiation_warning_sign.modulate = Color(1.0, 1.0, 1.0, 0.0)
 	
 	# Скрываем все uppers 
 	if hunger_upper:
@@ -128,8 +112,6 @@ func hide_all_temporary_elements():
 		sleep_upper.modulate = Color(1.0, 1.0, 1.0, 0.0)
 	if temperature_upper:
 		temperature_upper.modulate = Color(1.0, 1.0, 1.0, 0.0)
-	if radiation_upper:
-		radiation_upper.modulate = Color(1.0, 1.0, 1.0, 0.0)
 	
 	# Скрываем все lowers 
 	if hunger_lower:
@@ -140,8 +122,6 @@ func hide_all_temporary_elements():
 		sleep_lower.modulate = Color(1.0, 1.0, 1.0, 0.0)
 	if temperature_lower:
 		temperature_lower.modulate = Color(1.0, 1.0, 1.0, 0.0)
-	if radiation_lower:
-		radiation_lower.modulate = Color(1.0, 1.0, 1.0, 0.0)
 
 func setup_bio_monitor_connections():
 	"""Подписка на сигналы BioMonitorManager"""
