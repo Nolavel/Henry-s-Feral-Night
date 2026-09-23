@@ -1,6 +1,6 @@
-// Henry's Feral Night combined atmosphere + parallax-cloud experiment.
+// Henry's Feral Night production atmosphere + parallax-cloud sky.
 // Upstream: NiwlGames/GodotStarterAssets shaders/sky_full.gdshader (CC0-1.0).
-// The manual sun fallback is for headless Compatibility CI only; gameplay keeps LIGHT0.
+// Freeman uses a dedicated solar direction; HFN clouds keep LIGHT0 for sun/moon lighting.
 
 shader_type sky;
 group_uniforms Sun;
@@ -10,7 +10,7 @@ The intensity of the sun.
 Simple Lambertian light contains 1/PI in its formulation. For that reason, PI usually represents a full low dynamic range.
 We recommend keeping contrast between the sky and the directional light. The default value assumes a directional light of 10PI and a sky of 20PI.
 */
-uniform float sun_intensity : hint_range(0.0, 314.159, 0.1) = 62.832;
+uniform float sun_intensity : hint_range(0.0, 314.159, 0.1) = 48.0;
 uniform vec3 sun_wavelengths = vec3(0.680, 0.550, 0.480);
 
 /*
@@ -24,14 +24,14 @@ group_uniforms Atmosphere.Rayleigh;
 Defines the thickness of the layer in which Rayleigh scattering happens.
 A thicker layer can provide more vibrant reds at sunrise/sunset, but may stain the blue of the sky when the sun is at its zenith.
 */
-uniform float rayleigh_scale_height : hint_range(0.0, 100000.0, 1.0) = 8000.0;
+uniform float rayleigh_scale_height : hint_range(0.0, 100000.0, 1.0) = 9000.0;
 
 /**
 Defines the intensity of the Rayleigh multi-bounce approximation.
 After many bounces, Rayleigh becomes isotropic. We take advantage of that to "inject" some light in order to avoid pitch black planet shadows.
 The injection is done naively, so it is recommended to keep this value as low as possible to prevent contrast loss.
 */
-uniform float rayleigh_multi_scattering : hint_range(0.0, 1.0, 0.001 ) = 0.025;
+uniform float rayleigh_multi_scattering : hint_range(0.0, 1.0, 0.001 ) = 0.018;
 
 /*
 Mie scattering is responsible for the glow around the sun and phenomena such as fog and clouds.
@@ -44,19 +44,19 @@ group_uniforms Atmosphere.Mie;
 Defines the thickness of the layer in which Mie scattering happens.
 A thicker layer can create some interesting effects, but for realistic setups it is recommended to increase mie_scattering instead.
 */
-uniform float mie_scale_height : hint_range(0.0, 1e5, 1.00) = 1200.0;
+uniform float mie_scale_height : hint_range(0.0, 1e5, 1.00) = 1600.0;
 
 /**
 The strength of the scattering effect. Lower values result in a clearer day. */
-uniform float mie_scattering : hint_range(0.0, 1.0, 1e-7) = 5e-6;
-uniform float mie_albedo : hint_range(0.0, 1.0, 0.01) = 0.9;
+uniform float mie_scattering : hint_range(0.0, 1.0, 1e-7) = 8e-6;
+uniform float mie_albedo : hint_range(0.0, 1.0, 0.01) = 0.88;
 
 /**
 We use a Double-Lobe Henyey-Greenstein phase function for Mie.
 While Mie scatters light predominantly forward, the double lobe allows for a more natural behaviour by scattering some of the light backwards.
 The value of the forward lobe.
 */
-uniform float mie_g_forward : hint_range(0.0, 1.0,  0.01) = 0.85;
+uniform float mie_g_forward : hint_range(0.0, 1.0,  0.01) = 0.80;
 
 /** The value of the backward lobe. */
 uniform float mie_g_backward : hint_range(-1.0, 0.0,  0.01) = -0.15;
@@ -65,13 +65,13 @@ uniform float mie_g_backward : hint_range(-1.0, 0.0,  0.01) = -0.15;
 The weight used to interpolate between the forward and backward lobes.
 This value should usually remain close to one, but lowering it can help convey denser/foggier/humid atmospheres.
 */
-uniform float mie_weight : hint_range(0.0, 1.0, 0.01) = 0.85;
+uniform float mie_weight : hint_range(0.0, 1.0, 0.01) = 0.78;
 
 /**
 Defines the intensity of the Mie multi-bounce approximation.
 Unlike Rayleigh, Mie remains anisotropic after many bounces. In order to simulate multiple bounces, we use a secondary softer, less directional lobe.
 */
-uniform float mie_multi_scattering : hint_range(0.0, 1.0, 0.01) = 0.30;
+uniform float mie_multi_scattering : hint_range(0.0, 1.0, 0.01) = 0.24;
 
 /** The multiscattering value of the forward lobe. */
 uniform float multiscattering_mie_g_forward : hint_range(0.0, 1.0, 0.01) = 0.5;
@@ -122,7 +122,7 @@ group_uniforms Clouds;
 uniform sampler2D cloud_noise_texture : filter_linear_mipmap, repeat_enable;
 uniform vec4 cloud_color : source_color = vec4(0.30, 0.39, 0.48, 1.0);
 uniform float cloud_density : hint_range(0.1, 12.0, 0.1) = 4.8;
-uniform float cloud_depth : hint_range(0.0, 6.0, 0.1) = 2.0;
+uniform float cloud_depth : hint_range(0.0, 6.0, 0.1) = 2.35;
 uniform float cloud_sag : hint_range(0.25, 6.0, 0.05) = 2.0;
 uniform vec2 cloud_noise_tiling = vec2(1.0);
 uniform vec2 cloud_wind_speed = vec2(0.24, 0.08);
@@ -133,11 +133,14 @@ uniform float cloud_parallax_mid_scale : hint_range(1.0, 4.0, 0.05) = 1.65;
 uniform float cloud_parallax_high_scale : hint_range(1.0, 6.0, 0.05) = 2.55;
 uniform float cloud_shape_contrast : hint_range(0.0, 1.0, 0.01) = 0.52;
 uniform float cloud_shadow_strength : hint_range(0.0, 1.0, 0.01) = 0.34;
-uniform float cloud_coverage : hint_range(0.0, 0.95, 0.01) = 0.39;
-uniform float cloud_opacity : hint_range(0.0, 1.0, 0.01) = 0.88;
+uniform float cloud_coverage : hint_range(0.0, 0.95, 0.01) = 0.34;
+uniform float cloud_opacity : hint_range(0.0, 1.0, 0.01) = 0.92;
 uniform vec4 cloud_sun_color : source_color = vec4(1.0);
-uniform float cloud_sun_energy : hint_range(0.0, 32.0, 0.1) = 5.0;
+uniform float cloud_sun_energy : hint_range(0.0, 32.0, 0.1) = 1.0;
+uniform float cloud_light_energy_scale : hint_range(0.1, 20.0, 0.1) = 5.0;
 group_uniforms;
+
+uniform float exposure : hint_range(0.0, 4.0, 0.01) = 1.0;
 
 /* Quality and performance settings */
 group_uniforms Quality;
@@ -146,13 +149,13 @@ group_uniforms Quality;
 The amount of samples along the view path (out-scattering).
 Defines the volumetric resolution of the volume.
 */
-uniform int view_samples : hint_range(0, 256) = 24;
+uniform int view_samples : hint_range(0, 256) = 12;
 
 /**
 The amount of samples along the sun path (in-scattering).
 Defines how accurately the light traverses the medium.
 */
-uniform int sun_samples : hint_range(0, 256) = 8;
+uniform int sun_samples : hint_range(0, 256) = 4;
 
 
 /* Returns the full diameter of the atmospheric sphere */
@@ -411,11 +414,12 @@ float hfn_cloud_beer(float absorption, float distance_through_cloud) {
 
 
 vec3 hfn_cloud_light(vec3 sun_direction) {
-	float elevation = max(sun_direction.y, 0.0);
 	if (LIGHT0_ENABLED) {
-		return LIGHT0_COLOR * LIGHT0_ENERGY * elevation * 5.0;
+		float light_elevation = max(LIGHT0_DIRECTION.y, 0.0);
+		return LIGHT0_COLOR * LIGHT0_ENERGY * light_elevation * cloud_light_energy_scale;
 	}
-	return cloud_sun_color.rgb * cloud_sun_energy * elevation;
+	float solar_elevation = max(sun_direction.y, 0.0);
+	return cloud_sun_color.rgb * cloud_sun_energy * solar_elevation * cloud_light_energy_scale;
 }
 
 
@@ -597,5 +601,5 @@ void sky() {
 		}
 	}
 	final_color = hfn_apply_parallax_clouds(final_color, sun_direction, EYEDIR);
-	COLOR = final_color;
+	COLOR = final_color * exposure;
 }

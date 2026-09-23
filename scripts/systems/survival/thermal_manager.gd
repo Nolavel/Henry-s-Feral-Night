@@ -43,8 +43,12 @@ const HOURS_PER_DAY: float = 24.0
 @export var critical_below_c: float = 31.0
 
 @export_group("Insulation")
-## Degrees of protection from clothing; raised by better gear.
+## Fallback protection used only when no EquipmentComponent is wired. Once one
+## is, what Henry is actually wearing decides this instead.
 @export var clothing_insulation_c: float = 6.0
+## What Henry is wearing. When present its summed garment insulation replaces
+## the fallback above, so a coat is a survival decision rather than a costume.
+@export var equipment: EquipmentComponent
 ## Fraction of insulation lost when clothing is fully soaked.
 @export_range(0.0, 1.0) var wetness_insulation_penalty: float = 0.8
 ## Wetness units lost per in-game hour while sheltered and warm.
@@ -103,6 +107,14 @@ func initialize() -> void:
 	if zone_probe != null:
 		zone_probe.area_entered.connect(_on_zone_entered)
 		zone_probe.area_exited.connect(_on_zone_exited)
+
+
+## Dry insulation in degrees: what Henry is wearing when equipment is wired,
+## the exported fallback otherwise.
+func get_insulation_c() -> float:
+	if equipment != null:
+		return equipment.get_total_insulation_c()
+	return clothing_insulation_c
 
 
 ## Current core temperature in degrees Celsius.
@@ -243,7 +255,7 @@ func _compute_felt_temperature(current_hour: float) -> float:
 
 ## Moves body temperature toward the felt temperature through insulation.
 func _integrate_body_temperature(hours: float) -> void:
-	var insulation: float = clothing_insulation_c * (1.0 - _wetness * wetness_insulation_penalty)
+	var insulation: float = get_insulation_c() * (1.0 - _wetness * wetness_insulation_penalty)
 	var effective: float = _felt_temp_c + insulation + basal_heat_c
 	var deficit: float = comfort_temp_c - effective
 	var previous: float = _body_temp_c

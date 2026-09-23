@@ -43,6 +43,17 @@ signal exhaustion_recovered # Восстановление после крити
 @export var critical_thirst_threshold: float = 10.0 # 20% от максимальной гидратации
 @export var critical_energy_threshold: float = 10.0 # 20% от максимальной энергии
 
+# === ЭКСПОРТ ПАРАМЕТРЫ - СОН ===
+@export_group("Sleep")
+## Percent of the energy track returned per hour slept. Eight hours is a night.
+@export var energy_restored_per_hour: float = 12.5
+## Metabolism while asleep, as a fraction of the waking rate.
+@export_range(0.0, 1.0) var sleep_metabolism_factor: float = 0.65
+## Hydration loss while asleep, as a fraction of the waking rate.
+@export_range(0.0, 1.0) var sleep_thirst_factor: float = 0.5
+## Worst rest quality an empty stomach can drag a night down to.
+@export_range(0.0, 1.0) var minimum_rest_quality: float = 0.25
+
 # === ТЕКУЩИЕ ЗНАЧЕНИЯ ===
 var current_calories: float
 var current_hydration: float
@@ -272,11 +283,27 @@ func add_energy(amount: float):
 	if bio_monitor_ui:
 		bio_monitor_ui.trigger_energy_upper_alert()
 
-func rest_sleep(hours: float):
-	"""Восстанавливает энергию через сон."""
-	# TODO: Реализовать восстановление через сон
-	# Примерная логика: add_energy(hours * 12.5) # ~100% за 8 часов
-	pass
+## Restores energy over a night and charges the night's own metabolism.
+## Sleep is not a free reset: a starving or parched body rests badly.
+func rest_sleep(hours: float) -> void:
+	if hours <= 0.0:
+		return
+
+	## The clock jumps past _on_time_changed, so sleep bills its own hours.
+	var slept_metabolism: float = base_metabolism_rate * sleep_metabolism_factor
+	current_calories = max(0.0, current_calories - slept_metabolism * hours)
+	current_hydration = max(0.0, current_hydration - base_thirst_rate * sleep_thirst_factor * hours)
+
+	add_energy(hours * energy_restored_per_hour * get_rest_quality())
+	update_ui_signals()
+	check_critical_states()
+
+
+## How well the body rests, from the worse of hunger and thirst. Full quality
+## above half on both tracks, never below the floor.
+func get_rest_quality() -> float:
+	var worst: float = min(calculate_hunger_progress(), calculate_thirst_progress())
+	return clamp(worst * 2.0, minimum_rest_quality, 1.0)
 
 # === МОДИФИКАТОРЫ (ЗАГЛУШКИ ДЛЯ БУДУЩЕГО ФУНКЦИОНАЛА) ===
 func apply_hunger_modifiers(base_rate: float) -> float:

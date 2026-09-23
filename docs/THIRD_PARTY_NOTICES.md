@@ -1,5 +1,26 @@
 # Third-Party Notices
 
+## Licensing of this project itself
+
+`/LICENSE` holds Henry's Feral Night's own terms: copyright reserved, not open
+source. Until 2026-09-23 that path held an unrelated third party's MIT licence
+(`Copyright (c) 2023 mohsenph69`, author of the Godot-MTerrain addon), which
+arrived in commit `5496269` with terrain experiments and was never replaced —
+so the project was formally published as MIT by someone unconnected to it. That
+was never an intentional grant. See issue #5.
+
+## Code ported from Nolavel/ADT
+
+Parts of the body and interaction layer (items, catalog, garments, equipment,
+inventory, interaction, hold prompt, input claim, player state) are ported from
+`Nolavel/ADT` — *Vertical Trespass* / *Another Digital Thriller*.
+
+ADT's licence reserves all rights and forbids reuse of its source in another
+project **without prior written permission from the copyright holder**. Both
+projects are owned by the same copyright holder, who granted that permission for
+this port on 2026-09-23. What was taken, and what changed on the way across, is
+recorded in [`technical/PORTED_FROM_ADT.md`](technical/PORTED_FROM_ADT.md).
+
 ## Fade Volume
 
 - Source: https://godotshaders.com/shader/fade-volume/
@@ -18,6 +39,14 @@
   `sample_directional_shadow()` engine-pipeline modification. The HFN version
   stylizes the built-in `ATTENUATION` shadow result inside `light()`.
 
+## Simple Overcast cloud layer
+
+- Source: https://godotshaders.com/shader/simple-overcast/
+- Author: tentabrobpy
+- License: CC0
+- HFN changes: multi-layer angular parallax, depth sampling, wind, cloud-shape
+  contrast and integration into the combined Freeman atmosphere shader.
+
 ## Freeman's Sky Shader
 
 - Source: https://godotshaders.com/shader/freemans-sky-shader/
@@ -26,10 +55,10 @@
 - Author: Niwl Games.
 - Published: June 16, 2026.
 - License: CC0-1.0.
-- HFN experiment: official full-resolution and quarter-resolution variants are
-  included. The capture harness may use the full-resolution variant with a
-  capture-only manual sun-direction fallback on renderers that cannot expose
-  LIGHT0 correctly; runtime Forward+ keeps the upstream LIGHT0 path.
-  Island-specific atmospheric tuning is applied only by
-  tools/runtime/capture_freemans_sky.gd.
+- HFN integration: official full-resolution and quarter-resolution variants are
+  retained for reference. Production uses
+  shaders/environment/freemans_parallax_clouds.gdshader, which combines the
+  Freeman atmosphere with HFN's CC0 Simple Overcast-derived parallax cloud layer.
+  The atmosphere receives a dedicated solar direction from DayNightManager,
+  while scene LIGHT0 continues to illuminate clouds as sun or moon.
 

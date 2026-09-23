@@ -26,6 +26,7 @@ settings/addon_root_folder="res://addons/debug_draw_3d"
 
 [autoload]
 
+PlayerState="*res://core/player_state/player_state.gd"
 InputSystems="*res://core/input/input_systems.gd"
 
 [display]
