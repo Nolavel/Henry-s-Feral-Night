@@ -419,22 +419,22 @@ vec3 hfn_cloud_light(vec3 sun_direction) {
 }
 
 
-vec3 hfn_apply_parallax_clouds(vec3 atmosphere_color, vec3 sun_direction) {
-	if (EYEDIR.y <= 0.005) {
+vec3 hfn_apply_parallax_clouds(vec3 atmosphere_color, vec3 sun_direction, vec3 eye_direction) {
+	if (eye_direction.y <= 0.005) {
 		return atmosphere_color;
 	}
 
-	float t = hfn_cloud_plane_intersection(EYEDIR);
+	float t = hfn_cloud_plane_intersection(eye_direction);
 	if (t < 0.0) {
 		return atmosphere_color;
 	}
 
 	vec2 wind_uv = cloud_wind_speed * TIME * 0.1;
 	vec3 tiling = vec3(cloud_noise_tiling.x, 1.0, cloud_noise_tiling.y) * 0.2;
-	vec3 cloud_position = EYEDIR * t * tiling;
+	vec3 cloud_position = eye_direction * t * tiling;
 
-	float safe_up = max(EYEDIR.y, 0.08);
-	vec2 view_slant = EYEDIR.xz / safe_up;
+	float safe_up = max(eye_direction.y, 0.08);
+	vec2 view_slant = eye_direction.xz / safe_up;
 	float cloud_height = hfn_layered_clouds(
 		cloud_position.xz,
 		view_slant,
@@ -442,7 +442,7 @@ vec3 hfn_apply_parallax_clouds(vec3 atmosphere_color, vec3 sun_direction) {
 	);
 
 	vec3 depth_position =
-		cloud_position + EYEDIR * cloud_height * cloud_depth * 0.12;
+		cloud_position + eye_direction * cloud_height * cloud_depth * 0.12;
 	float depth_height = hfn_layered_clouds(
 		depth_position.xz,
 		view_slant * 1.08,
@@ -451,7 +451,7 @@ vec3 hfn_apply_parallax_clouds(vec3 atmosphere_color, vec3 sun_direction) {
 	cloud_height = mix(cloud_height, depth_height, 0.42);
 
 	float cloud_mask = smoothstep(cloud_coverage, 0.92, cloud_height);
-	float view_up = clamp(EYEDIR.y, 0.0, 1.0);
+	float view_up = clamp(eye_direction.y, 0.0, 1.0);
 	float transmission = hfn_cloud_beer(
 		cloud_density,
 		1.0 - cloud_height * view_up
@@ -473,7 +473,7 @@ vec3 hfn_apply_parallax_clouds(vec3 atmosphere_color, vec3 sun_direction) {
 	cloud_lit += light_color * transmission * (0.035 + rim * 0.045);
 
 	vec3 cloud_rgb = mix(cloud_lit, cloud_shadow, shape * 0.72);
-	float horizon_factor = 1.0 - smoothstep(0.02, 0.30, EYEDIR.y);
+	float horizon_factor = 1.0 - smoothstep(0.02, 0.30, eye_direction.y);
 	cloud_rgb = mix(cloud_rgb, atmosphere_color, horizon_factor * 0.12);
 
 	float alpha = clamp(cloud_mask * cloud_opacity, 0.0, 0.94);
@@ -596,6 +596,6 @@ void sky() {
 			final_color += ground_albedo * transmittance_to_eye;
 		}
 	}
-	final_color = hfn_apply_parallax_clouds(final_color, sun_direction);
+	final_color = hfn_apply_parallax_clouds(final_color, sun_direction, EYEDIR);
 	COLOR = final_color;
 }
