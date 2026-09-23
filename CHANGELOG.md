@@ -83,6 +83,23 @@ Performance choice
 
 ## [Unreleased] — `claudeflow`
 
+### 2026-09-23 — Colour grade follows the shelter; Cold Ash LUTs retuned
+
+Added
+- `ShelterGradeBinder` world system: `ThermalManager.sheltered_changed` drives
+  `ColorGradeController.initialize_for_interior()`; the grade module still knows
+  nothing about shelters. `test_shelter_grade.gd` walks Henry in and out of
+  the real test shelter.
+
+Changed
+- Cold Ash LUTs regenerated from `generate_cold_ash_luts.py`. Night no longer
+  darkens the frame (−5% instead of −18%) and puts the cold where #31 asked:
+  shadows go from warm to graphite-teal, highlights and snow stay neutral, warm
+  sources keep their colour. Shelter warms darks and mids and keeps bright
+  openings cool.
+- Preview PNGs are now live in-engine captures, not LUTs sampled over an old
+  screenshot.
+
 ### 2026-09-23 — ADT head look; shelter edge signal for the colour grade
 
 Added
