@@ -23,6 +23,7 @@ func _process(_delta: float) -> bool:
 
 
 func _run() -> void:
+	_test_sprinting_the_bay_breaks_walking_it_does_not()
 	_test_ice_thins_with_distance_from_shore()
 	_test_land_is_not_ice()
 	_test_standing_still_drains_slower_than_sprinting()
@@ -71,7 +72,8 @@ func _sea_point(metres_out: float) -> Vector3:
 func _test_ice_thins_with_distance_from_shore() -> void:
 	var field := _make_field()
 	var near: float = field.get_base_thickness(field.world_to_tile(_sea_point(4.0)))
-	var mid: float = field.get_base_thickness(field.world_to_tile(_sea_point(50.0)))
+	## Inside the gradient: past thinnest_from_m every tile sits on the floor.
+	var mid: float = field.get_base_thickness(field.world_to_tile(_sea_point(16.0)))
 	var far: float = field.get_base_thickness(field.world_to_tile(_sea_point(200.0)))
 
 	_check(is_equal_approx(near, 1.0), "ice next to the shore was not solid: %.2f" % near)
@@ -180,7 +182,8 @@ func _test_a_tile_breaks_once_and_stays_broken() -> void:
 
 func _test_leaving_a_tile_lets_it_recover() -> void:
 	var field := _make_field()
-	var here: Vector3 = _sea_point(60.0)
+	## Thick enough that three seconds of walking loads it without breaking it.
+	var here: Vector3 = _sea_point(16.0)
 	var tile: Vector2i = field.world_to_tile(here)
 
 	field.set_gait(IceField.Gait.WALK)
@@ -336,3 +339,50 @@ func _test_climbing_out_requires_thrashing_first() -> void:
 	_check(field._enabled, "the ice did not resume simulating after climbing out")
 	_dispose(water)
 	_dispose(field)
+
+
+## The author's call in issue #7: the bay is a real gamble at a sprint and a
+## safe, slow crossing on foot. Same bay and route as capture_ice_map.gd.
+func _test_sprinting_the_bay_breaks_walking_it_does_not() -> void:
+	var walk: float = _cross_bay(IceField.Gait.WALK, 4.0)
+	var sprint: float = _cross_bay(IceField.Gait.SPRINT, 8.0)
+	_check(walk < 0.0, "walking the bay broke through at %.0f m" % walk)
+	_check(sprint >= 0.0, "sprinting the bay survived, so the shortcut is free")
+	## Mid-bay, not at the first step off the shore.
+	_check(sprint > 20.0, "sprint broke only %.0f m in, at the shoreline" % sprint)
+
+
+## Metres along the bay route where the ice gave way, or -1.0 if it held.
+func _cross_bay(gait: IceField.Gait, speed_mps: float) -> float:
+	var field := IceField.new()
+	field.profile = load("res://resources/ice/bay_ice.tres") as IceProfile
+	field.shore_polygon = PackedVector2Array([
+		Vector2(-90.0, -80.0), Vector2(60.0, -95.0), Vector2(85.0, -30.0),
+		Vector2(5.0, -12.0), Vector2(0.0, 30.0), Vector2(80.0, 42.0),
+		Vector2(70.0, 95.0), Vector2(-85.0, 85.0),
+	])
+	root.add_child(field)
+	var route := PackedVector2Array([Vector2(78.0, -34.0), Vector2(96.0, 6.0), Vector2(74.0, 46.0)])
+	var broke: Array[bool] = []
+	field.tile_broke.connect(func(_tile: Vector2i, _where: Vector3) -> void: broke.append(true))
+	field.set_gait(gait)
+
+	var total: float = route[0].distance_to(route[1]) + route[1].distance_to(route[2])
+	var travelled: float = 0.0
+	var result: float = -1.0
+	while travelled < total:
+		travelled += speed_mps * 0.1
+		var remaining: float = travelled
+		var point: Vector2 = route[route.size() - 1]
+		for i: int in range(route.size() - 1):
+			var length: float = route[i].distance_to(route[i + 1])
+			if remaining <= length:
+				point = route[i].lerp(route[i + 1], remaining / length)
+				break
+			remaining -= length
+		field.step(Vector3(point.x, 0.0, point.y), 0.1)
+		if not broke.is_empty():
+			result = travelled
+			break
+	_dispose(field)
+	return result

@@ -6,12 +6,12 @@
 script = ExtResource("1")
 tile_size_m = 4.0
 active_radius_tiles = 2
-solid_until_m = 12.0
-thinnest_from_m = 90.0
-minimum_thickness = 0.18
-drain_per_second = 0.055
+solid_until_m = 8.0
+thinnest_from_m = 26.0
+minimum_thickness = 0.11
+drain_per_second = 0.0375
 walk_multiplier = 1.6
-sprint_multiplier = 3.2
+sprint_multiplier = 8.0
 crouch_multiplier = 0.45
 recovery_per_second = 0.02
 creak_below = 0.62

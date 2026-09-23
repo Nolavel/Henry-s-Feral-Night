@@ -88,7 +88,7 @@ func get_integrity(tile: Vector2i) -> float:
 func get_stage(tile: Vector2i) -> Stage:
 	if _broken.has(tile):
 		return Stage.BROKEN
-	return _stage_for(get_integrity(tile))
+	return _stage_for(get_integrity(tile), tile)
 
 
 ## True once a tile has given way; broken tiles never come back.
@@ -163,7 +163,7 @@ func _recover_window(delta: float) -> void:
 
 ## Reports a tile's new stage, and breaks it through the floor exactly once.
 func _settle(tile: Vector2i, value: float) -> void:
-	var stage: Stage = _stage_for(value)
+	var stage: Stage = _stage_for(value, tile)
 	if value <= profile.break_at:
 		if _broken.has(tile):
 			return
@@ -178,12 +178,16 @@ func _settle(tile: Vector2i, value: float) -> void:
 	stage_changed.emit(tile, stage)
 
 
-func _stage_for(value: float) -> Stage:
+## Stages are read against the tile's own natural thickness, so thin ice far
+## out starts SOLID and still creaks before it cracks rather than sitting cracked.
+func _stage_for(value: float, tile: Vector2i) -> Stage:
 	if value <= profile.break_at:
 		return Stage.BROKEN
-	if value < profile.crack_below:
+	var base: float = maxf(0.0001, get_base_thickness(tile))
+	var fraction: float = value / base
+	if fraction < profile.crack_below:
 		return Stage.CRACKING
-	if value < profile.creak_below:
+	if fraction < profile.creak_below:
 		return Stage.CREAKING
 	return Stage.SOLID
 
