@@ -172,10 +172,6 @@ func _configure_island_test() -> void:
 	_scene_root.add_child(_snow)
 	_snow.sync_from_weather()
 
-	RenderingServer.particles_collision_height_field_update(
-		_heightfield.get_rid()
-	)
-
 	print(
 		"Island snow HeightField size=%s resolution=256 follow_camera=false snap=8m anchor=%s"
 		% [str(_heightfield.size), str(ground_anchor)]

@@ -40,6 +40,10 @@ Added
 - HeightField candidate drops from 512² to 256² and no longer follows the camera;
   it is positioned on an 8 m Henry-centered grid to avoid rebuilding on every
   TPS camera movement.
+- Render-only streak revision keeps collision scale fixed: the particle shader
+  writes stretch to CUSTOM.z and the WorldSnow draw shader elongates vertices.
+  The failed manual HeightField RID update was removed; moving the collider
+  already triggers Godot's native heightfield refresh.
 - The island capture includes a test-only collision-debug shot that freezes
   collided flakes in red; normal gameplay/test behavior still kills them.
 

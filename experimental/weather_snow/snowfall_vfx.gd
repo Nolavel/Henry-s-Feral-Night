@@ -73,9 +73,9 @@ func _build_particles() -> void:
 		GPUParticles3D.TRANSFORM_ALIGN_Z_BILLBOARD_Y_TO_VELOCITY
 	)
 	_process_material.set_shader_parameter("velocity_stretch_enabled", true)
-	_process_material.set_shader_parameter("stretch_speed_start", 3.2)
+	_process_material.set_shader_parameter("stretch_speed_start", 4.0)
 	_process_material.set_shader_parameter("stretch_speed_full", 7.0)
-	_process_material.set_shader_parameter("stretch_max", 2.25)
+	_process_material.set_shader_parameter("stretch_max", 1.90)
 	particles.visibility_aabb = AABB(
 		Vector3(-48.0, -26.0, -48.0),
 		Vector3(96.0, 52.0, 96.0)
@@ -181,18 +181,36 @@ func _build_snowflake_mesh(
 	var mesh := ArrayMesh.new()
 	mesh.add_surface_from_arrays(Mesh.PRIMITIVE_TRIANGLES, arrays)
 
-	var material := StandardMaterial3D.new()
-	material.transparency = BaseMaterial3D.TRANSPARENCY_ALPHA
-	material.shading_mode = BaseMaterial3D.SHADING_MODE_UNSHADED
-	material.billboard_mode = (
-		BaseMaterial3D.BILLBOARD_ENABLED
-		if use_material_billboard
-		else BaseMaterial3D.BILLBOARD_DISABLED
-	)
-	material.vertex_color_use_as_albedo = true
-	material.albedo_color = Color(0.94, 0.97, 1.0, 0.94)
-	material.cull_mode = BaseMaterial3D.CULL_DISABLED
-	mesh.surface_set_material(0, material)
+	if use_material_billboard:
+		var material := StandardMaterial3D.new()
+		material.transparency = BaseMaterial3D.TRANSPARENCY_ALPHA
+		material.shading_mode = BaseMaterial3D.SHADING_MODE_UNSHADED
+		material.billboard_mode = BaseMaterial3D.BILLBOARD_ENABLED
+		material.vertex_color_use_as_albedo = true
+		material.albedo_color = Color(0.94, 0.97, 1.0, 0.94)
+		material.cull_mode = BaseMaterial3D.CULL_DISABLED
+		mesh.surface_set_material(0, material)
+	else:
+		# WorldSnow already uses GPUParticles velocity alignment. Stretch only
+		# the rendered vertices using INSTANCE_CUSTOM.z; particle collision and
+		# transform scale remain unchanged.
+		var material := ShaderMaterial.new()
+		var draw_shader := Shader.new()
+		draw_shader.code = """
+shader_type spatial;
+render_mode unshaded, cull_disabled;
+
+void vertex() {
+	VERTEX.y *= max(INSTANCE_CUSTOM.z, 1.0);
+}
+
+void fragment() {
+	ALBEDO = COLOR.rgb;
+	ALPHA = COLOR.a;
+}
+"""
+		material.shader = draw_shader
+		mesh.surface_set_material(0, material)
 	return mesh
 
 
