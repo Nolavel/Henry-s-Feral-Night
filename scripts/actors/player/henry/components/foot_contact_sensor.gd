@@ -4,9 +4,11 @@ extends Node
 ## Watches Henry's animated feet and reports each moment a foot is planted on
 ## the ground. The honest source for footprints, footstep audio and ice load.
 
-## Emitted when a foot lands. Position is on the ground under the sole; forward
-## runs heel to toe in the ground plane.
-signal foot_planted(side: Side, position: Vector3, forward: Vector3, speed_mps: float)
+## Emitted when a foot lands. Position is on the ground under the sole; normal
+## is the ground's; forward runs heel to toe along that ground.
+signal foot_planted(
+	side: Side, position: Vector3, normal: Vector3, forward: Vector3, speed_mps: float
+)
 
 enum Side { LEFT, RIGHT }
 
@@ -53,14 +55,14 @@ func _physics_process(_delta: float) -> void:
 		var centre: Vector3 = (feet["heel"] + feet["toe"]) * 0.5
 		centre.y = hit["position"].y
 		var forward: Vector3 = feet["toe"] - feet["heel"]
-		update_foot(side, height, centre, forward, body.is_on_floor(), speed)
+		update_foot(side, height, centre, forward, body.is_on_floor(), speed, hit["normal"])
 
 
 ## The contact rule, kept free of scene access so it can be tested directly.
 ## Returns true on the frame the foot is planted.
 func update_foot(
 	side: int, height_m: float, ground_point: Vector3, forward: Vector3,
-	on_floor: bool, speed_mps: float
+	on_floor: bool, speed_mps: float, ground_normal: Vector3 = Vector3.UP
 ) -> bool:
 	if height_m > lift_height_m:
 		_lifted[side] = true
@@ -70,10 +72,12 @@ func update_foot(
 	if not on_floor or speed_mps < min_speed_mps:
 		return false
 	_lifted[side] = false
-	var flat := Vector3(forward.x, 0.0, forward.z)
-	if flat.length_squared() < 0.0001:
-		flat = Vector3.FORWARD
-	foot_planted.emit(side, ground_point, flat.normalized(), speed_mps)
+	var normal: Vector3 = ground_normal.normalized() if ground_normal.length_squared() > 0.0001 else Vector3.UP
+	## Heel to toe, laid along the ground rather than the horizontal.
+	var along: Vector3 = forward - normal * forward.dot(normal)
+	if along.length_squared() < 0.0001:
+		along = Vector3.FORWARD - normal * Vector3.FORWARD.dot(normal)
+	foot_planted.emit(side, ground_point, normal, along.normalized(), speed_mps)
 	return true
 
 

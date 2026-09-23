@@ -54,16 +54,19 @@ func _process(delta: float) -> void:
 
 ## Presses one print. Public so tests and other walkers can stamp too.
 func stamp(
-	side: int, ground: Vector3, forward: Vector3, _speed_mps: float = 0.0
+	side: int, ground: Vector3, normal: Vector3, forward: Vector3, _speed_mps: float = 0.0
 ) -> Decal:
 	var decal: Decal = _take()
 	decal.texture_albedo = LEFT_PRINT if side == FootContactSensor.Side.LEFT else RIGHT_PRINT
-	## The print image has the toe at the top, which a decal maps to its -Z.
-	var toe := Vector3(forward.x, 0.0, forward.z).normalized()
+	## The decal projects along its -Y, so its +Y is the ground normal; the print
+	## image has the toe at the top, which a decal maps to its -Z.
+	var up: Vector3 = normal.normalized() if normal.length_squared() > 0.0001 else Vector3.UP
+	var toe: Vector3 = forward - up * forward.dot(up)
 	if toe.length_squared() < 0.0001:
-		toe = Vector3.FORWARD
-	var right: Vector3 = Vector3.UP.cross(-toe).normalized()
-	decal.global_transform = Transform3D(Basis(right, Vector3.UP, -toe), ground + Vector3.UP * 0.05)
+		toe = Vector3.FORWARD - up * Vector3.FORWARD.dot(up)
+	toe = toe.normalized()
+	var right: Vector3 = up.cross(-toe).normalized()
+	decal.global_transform = Transform3D(Basis(right, up, -toe), ground + up * 0.05)
 	decal.modulate = print_tint
 	decal.visible = true
 	return decal
