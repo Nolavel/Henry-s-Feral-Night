@@ -412,7 +412,7 @@ float hfn_cloud_beer(float absorption, float distance_through_cloud) {
 
 vec3 hfn_cloud_light(vec3 sun_direction) {
 	float elevation = max(sun_direction.y, 0.0);
-	if (LIGHT0_ENABLED && !use_manual_sun_direction) {
+	if (LIGHT0_ENABLED) {
 		return LIGHT0_COLOR * LIGHT0_ENERGY * elevation * 5.0;
 	}
 	return cloud_sun_color.rgb * cloud_sun_energy * elevation;
