@@ -24,6 +24,10 @@ static var _registry: Array[HeatSource] = []
 ## going out stops heating the room without any scene wiring.
 @export var heats_zone: ThermalZone
 
+@export_group("Visual")
+## Light shown while the source burns, so a lit stove reads at a glance.
+@export var flame_light: Light3D
+
 @export_group("Fuel")
 ## Starts lit when the scene loads.
 @export var starts_burning: bool = true
@@ -47,6 +51,8 @@ func initialize() -> void:
 		return
 	_registry.append(self)
 	burning_changed.connect(_on_burning_changed)
+	if flame_light != null:
+		flame_light.visible = false
 	if starts_burning:
 		ignite()
 
@@ -65,6 +71,8 @@ func _notification(what: int) -> void:
 
 ## Keeps the zone's heating count in step with this source's flame.
 func _on_burning_changed(burning: bool) -> void:
+	if flame_light != null:
+		flame_light.visible = burning
 	if heats_zone == null:
 		return
 	if burning:

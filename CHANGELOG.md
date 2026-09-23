@@ -44,6 +44,37 @@ Performance choice
 
 ## [Unreleased] — `claudeflow`
 
+### 2026-09-23 (10) — A test shelter: the whole loop by hand in TestScene
+
+Every slice system was in `main`, yet no scene let anyone play the loop.
+
+Added
+- `scenes/environment/shelter/test_shelter.tscn` — placeholder-box shelter:
+  a west window facing into the blizzard (a `ShelterBreach` with a board-up
+  prompt), a door in the lee, a `ThermalZone` interior, and a stove that starts
+  cold with a feed prompt and a flame light.
+- **`ItemPickup`**, the third `InteractiveArea` subclass. No pickup in the game
+  put anything into the pack before; firewood and boards could not be had.
+  All or nothing: a stack too heavy for the pack stays on the ground.
+- `HeatSource.flame_light` and `ShelterBreach.boarded_visual`, so a lit stove
+  and a boarded window read at a glance and on a render.
+- `World.streaming_enabled`. Off in a scene that brings its own floor, so the
+  island's chunks do not stream on top of it.
+- Interaction prompts on the new interactables go through localisation.
+
+Changed
+- **`TestScene` is now a `World`** (streaming off), with the shelter at
+  (0, 0, 14) and firewood ×2, tinder, boards and a tin on the path to it. The
+  cold, sleep, save, pause and weather all run there now.
+
+Tests
+- `tests/systems/test_shelter_scene.gd` loads the real scene and checks its
+  wiring, not the classes alone: prompts find their breach and stove, the
+  window faces the blizzard, boarding and lighting spend real items and flip
+  the visuals, pickups go into the pack or refuse. It caught the window facing
+  downwind on the first draft.
+- `test_world_composition.gd`: streaming off means no chunks.
+
 ### 2026-09-23 (9) — Minimal shell: title, Continue, pause
 
 The last non-content item on #7's must-have list: title → New / Continue →

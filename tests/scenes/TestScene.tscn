@@ -1,5 +1,8 @@
-[gd_scene load_steps=23 format=3 uid="uid://bcxsh1dufbls3"]
+[gd_scene load_steps=27 format=3 uid="uid://bcxsh1dufbls3"]
 
+[ext_resource type="Script" path="res://world/world.gd" id="90_world"]
+[ext_resource type="PackedScene" path="res://scenes/environment/shelter/test_shelter.tscn" id="91_shelter"]
+[ext_resource type="Script" path="res://scripts/environment/interactive/item_pickup.gd" id="92_pickup"]
 [ext_resource type="PackedScene" uid="uid://cvv8y27vmgjfi" path="res://scenes/game/systems/world/WorldEnvironmentSystem.tscn" id="2_2ompc"]
 [ext_resource type="PackedScene" uid="uid://duxn5rqcau5dw" path="res://tools/StatsDisplay/StatsDisplay.tscn" id="2_h763q"]
 [ext_resource type="PackedScene" uid="uid://dputwp1am8vfu" path="res://scenes/game/systems/camera/PlayerCamera.tscn" id="3_4vd7y"]
@@ -78,7 +81,12 @@ size = Vector3(6.2, 4.2, 0.35)
 material = SubResource("StandardMaterial3D_fx_target")
 size = Vector3(1.25, 2.6, 1.25)
 
+[sub_resource type="SphereShape3D" id="SphereShape3D_pickup"]
+radius = 1.4
+
 [node name="TestScene" type="Node3D"]
+script = ExtResource("90_world")
+streaming_enabled = false
 
 [node name="StatsDisplay" parent="." instance=ExtResource("2_h763q")]
 
@@ -227,6 +235,59 @@ omni_range = 10.5
 position = Vector3(-8.5, 2.0, -11)
 rotation = Vector3(0, 1.5708, 0)
 scale = Vector3(2.2, 1.33, 1.45)
+
+[node name="TestShelter" parent="." instance=ExtResource("91_shelter")]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 0, 0, 14)
+
+[node name="PickupFirewoodA" parent="." instance=ExtResource("8_loucq")]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, -2, 0.1, 6)
+script = ExtResource("92_pickup")
+interactable_scene = null
+item_id = &"firewood"
+count = 1
+
+[node name="CollisionShape3D" parent="PickupFirewoodA" index="1"]
+shape = SubResource("SphereShape3D_pickup")
+
+[node name="PickupFirewoodB" parent="." instance=ExtResource("8_loucq")]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 2, 0.1, 6)
+script = ExtResource("92_pickup")
+interactable_scene = null
+item_id = &"firewood"
+count = 1
+
+[node name="CollisionShape3D" parent="PickupFirewoodB" index="1"]
+shape = SubResource("SphereShape3D_pickup")
+
+[node name="PickupTinder" parent="." instance=ExtResource("8_loucq")]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 0, 0.1, 8)
+script = ExtResource("92_pickup")
+interactable_scene = null
+item_id = &"tinder"
+count = 1
+
+[node name="CollisionShape3D" parent="PickupTinder" index="1"]
+shape = SubResource("SphereShape3D_pickup")
+
+[node name="PickupBoards" parent="." instance=ExtResource("8_loucq")]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, -3.5, 0.1, 9)
+script = ExtResource("92_pickup")
+interactable_scene = null
+item_id = &"boards"
+count = 1
+
+[node name="CollisionShape3D" parent="PickupBoards" index="1"]
+shape = SubResource("SphereShape3D_pickup")
+
+[node name="PickupStew" parent="." instance=ExtResource("8_loucq")]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 3.5, 0.1, 9)
+script = ExtResource("92_pickup")
+interactable_scene = null
+item_id = &"tinned_stew"
+count = 1
+
+[node name="CollisionShape3D" parent="PickupStew" index="1"]
+shape = SubResource("SphereShape3D_pickup")
 
 [editable path="WorldEnvironmentSystem"]
 [editable path="Player"]

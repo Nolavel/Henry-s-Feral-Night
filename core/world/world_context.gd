@@ -12,6 +12,8 @@ var camera: Camera3D
 var stream_container: Node3D
 ## The composition root itself, so systems can search the scene it owns.
 var world: Node3D
+## False in a scene that brings its own ground, so no island chunks stream in.
+var streaming_enabled: bool = true
 ## Every system world.gd created, in the order it created them.
 var systems: Array[Node] = []
 

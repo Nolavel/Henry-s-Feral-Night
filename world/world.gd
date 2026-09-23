@@ -60,6 +60,9 @@ const SPAWN_CLEARANCE: float = 1.0
 @export var camera: Camera3D
 ## Where the player starts. Freed after use, as the old GameRouter did.
 @export var first_spawner_marker: Marker3D
+## Off for a scene with its own floor, such as TestScene, so the island's
+## chunks are not streamed on top of it.
+@export var streaming_enabled: bool = true
 
 var _systems: Array[Node] = []
 var _context: WorldContext
@@ -130,6 +133,7 @@ func _build_context() -> WorldContext:
 	context.camera = camera
 	context.stream_container = stream_container
 	context.world = self
+	context.streaming_enabled = streaming_enabled
 	context.systems = _systems
 	return context
 
