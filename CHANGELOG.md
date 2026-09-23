@@ -5,6 +5,21 @@ Maintained per branch; entries are added by whoever makes the change.
 
 ## [Unreleased] — `codex`
 
+### 2026-09-23 — Cold Ash color grading profiles
+
+Added
+- Two weak 33×33×33 display LUTs: `HFN_ColdAsh_Night` for the outdoor default
+  and `HFN_ColdAsh_Shelter` for safe interiors.
+- `ColorGradeController` owns only the existing Environment adjustments and
+  exposes explicit outdoor, shelter and interior-initialization entry points.
+- A deterministic standard-library LUT generator, a focused headless test and
+  a same-camera TestScene capture tool.
+
+Kept
+- Day/night, weather, Freeman sky and parallax clouds retain their existing
+  ownership. Automatic shelter detection is deliberately deferred until the
+  gameplay system has one authoritative interior-state hook.
+
 ### 2026-09-23 — Weather-driven snowfall promoted to production
 
 Added
