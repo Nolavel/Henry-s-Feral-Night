@@ -25,7 +25,8 @@ var _far: ItemPickup
 var _behind: ItemPickup
 
 
-func _process(_delta: float) -> bool:
+## Stages step on physics frames: detection and the walk both run there.
+func _physics_process(_delta: float) -> bool:
 	_frame += 1
 	match _frame:
 		1:

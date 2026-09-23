@@ -49,6 +49,10 @@ var animation_player: AnimationPlayer
 var skeleton: Skeleton3D
 var animation_tree: AnimationTree
 
+## Placeholder meshes a garment names in GarmentData.mesh_node_name.
+var _garment_meshes: Dictionary = {}
+var _equipment: EquipmentComponent
+
 var _blend_position: float = 0.0
 var _resolved_idle: StringName = &""
 var _resolved_walk: StringName = &""
@@ -76,6 +80,7 @@ func _ready() -> void:
 
 	_paint_body()
 	_attach_backpack()
+	_bind_equipment()
 	_make_animation_library_local()
 	_add_secondary_library()
 	_setup_animation_tree()
@@ -174,7 +179,31 @@ func _attach_backpack() -> void:
 	pack.layers = portrait_render_layers
 	var rest: Transform3D = skeleton.get_bone_global_rest(bone)
 	pack.transform = rest.affine_inverse() * Transform3D(Basis.IDENTITY, rest.origin + backpack_offset)
+	pack.visible = false
 	attachment.add_child(pack)
+	_garment_meshes[StringName(pack.name)] = pack
+
+
+## Shows a garment's mesh only while that garment is worn.
+func _bind_equipment() -> void:
+	if player == null:
+		return
+	_equipment = player.get_node_or_null(^"EquipmentComponent") as EquipmentComponent
+	if _equipment == null:
+		return
+	_equipment.slot_changed.connect(func(_path: StringName, _item: StringName) -> void: refresh_garment_meshes())
+	refresh_garment_meshes()
+
+
+func refresh_garment_meshes() -> void:
+	var worn: Dictionary = {}
+	if _equipment != null and _equipment.layout != null:
+		for slot: EquipmentSlotDefinition in _equipment.layout.body_slots:
+			var item: ItemResource = ItemCatalog.get_item(_equipment.get_equipped(slot.id))
+			if item != null and item.garment != null and item.garment.mesh_node_name != &"":
+				worn[item.garment.mesh_node_name] = true
+	for mesh_name: StringName in _garment_meshes:
+		(_garment_meshes[mesh_name] as Node3D).visible = worn.has(mesh_name)
 
 
 ## ADT convention: build the complete graph in code. No editor-authored

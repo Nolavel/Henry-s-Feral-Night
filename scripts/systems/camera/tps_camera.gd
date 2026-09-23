@@ -32,6 +32,8 @@ const SHOULDER_RATIO: float = 0.82
 ## Share of the shoulder offset done as a lens shift; the rest moves the camera.
 @export_range(0.0, 1.0, 0.05) var shoulder_frustum_ratio: float = 0.6
 @export_range(1.0, 30.0, 0.5) var lens_offset_smoothing: float = 8.0
+## Share of the shoulder offset kept in the tightest space; eased by the boom.
+@export_range(0.0, 1.0, 0.05) var tight_shoulder_fraction: float = 0.2
 
 @export_group("Lean")
 @export var lean_camera_offset: float = 0.45
@@ -52,7 +54,7 @@ const SHOULDER_RATIO: float = 0.82
 
 @export_group("Adaptive distance")
 ## Boom length in the tightest space and in the open.
-@export var near_distance: float = 1.2
+@export var near_distance: float = 0.95
 @export var far_distance: float = 3.0
 ## Rods cast around Henry's head to judge how open the space is.
 @export_range(4, 16) var probe_count: int = 8
@@ -62,7 +64,7 @@ const SHOULDER_RATIO: float = 0.82
 ## Above 1 favours closing in: half-open space sits nearer the near distance.
 @export_range(0.5, 4.0, 0.1) var openness_exponent: float = 2.0
 @export_range(1.0, 60.0, 1.0) var probe_rate_hz: float = 10.0
-@export_range(0.1, 20.0, 0.1) var close_in_rate: float = 4.0
+@export_range(0.1, 20.0, 0.1) var close_in_rate: float = 2.5
 @export_range(0.1, 20.0, 0.1) var open_out_rate: float = 1.2
 
 @export_group("Collision")
@@ -85,6 +87,7 @@ var _pullback: float = 0.0
 var _openness: float = 1.0
 var _boom: float = 3.0
 var _collision_distance: float = -1.0
+var _side_limit: float = -1.0
 var _probe_timer: float = 0.0
 var _has_position: bool = false
 var _lean: float = 0.0
@@ -208,9 +211,11 @@ func _update_transform(delta: float) -> void:
 	var distance: float = _boom + _pullback
 	var back := Vector3(sin(_yaw), 0.0, cos(_yaw))
 	var right := Vector3(cos(_yaw), 0.0, -sin(_yaw))
-	var shoulder: float = _shoulder.update(delta)
-	var side: Vector3 = right * (shoulder * (1.0 - shoulder_frustum_ratio) + _lean * lean_camera_offset)
+	var roominess: float = clampf(inverse_lerp(near_distance, far_distance, _boom), 0.0, 1.0)
+	var shoulder: float = _shoulder.update(delta) * lerpf(tight_shoulder_fraction, 1.0, roominess)
 	var pivot: Vector3 = _feet_position() + Vector3.UP * body_height * SHOULDER_RATIO + _lead
+	var side_amount: float = shoulder * (1.0 - shoulder_frustum_ratio) + _lean * lean_camera_offset
+	var side: Vector3 = right * _clamp_side(delta, pivot, right, side_amount)
 	var target_pos: Vector3 = pivot + back * distance * cos(pitch_rad) \
 			+ Vector3.UP * (-distance * sin(pitch_rad)) + side
 
@@ -248,6 +253,33 @@ func _feet_position() -> Vector3:
 
 func _eye_position() -> Vector3:
 	return _feet_position() + Vector3.UP * body_height * EYE_RATIO
+
+
+## Keeps the shoulder and lean shift out of a wall beside Henry; eases back out.
+func _clamp_side(delta: float, pivot: Vector3, right: Vector3, amount: float) -> float:
+	var reach: float = absf(amount)
+	if reach < 0.01:
+		_side_limit = -1.0
+		return amount
+	var direction: Vector3 = right * signf(amount)
+	var safe: float = reach
+	var space := get_world_3d().direct_space_state
+	if space != null:
+		_collision_shape.radius = collision_radius
+		_collision_query.shape = _collision_shape
+		_collision_query.transform = Transform3D(Basis.IDENTITY, pivot)
+		_collision_query.motion = direction * reach
+		_collision_query.collision_mask = collision_mask
+		_collision_query.collide_with_areas = false
+		_collision_query.exclude = [player.get_rid()]
+		var result: PackedFloat32Array = space.cast_motion(_collision_query)
+		if not result.is_empty() and result[0] < 1.0:
+			safe = maxf(reach * result[0] - 0.05, 0.0)
+	if _side_limit < 0.0 or safe < _side_limit:
+		_side_limit = safe
+	else:
+		_side_limit = lerpf(_side_limit, safe, _damp(collision_restore_rate, delta))
+	return signf(amount) * minf(reach, _side_limit)
 
 
 ## Sphere-casts from the eyes to the camera; retracts at once, returns slowly.

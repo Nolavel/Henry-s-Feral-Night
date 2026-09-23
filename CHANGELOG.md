@@ -68,6 +68,22 @@ Performance choice
 
 ## [Unreleased] — `claudeflow`
 
+### 2026-09-23 — Camera in tight spaces; the backpack is an item
+
+Changed
+- `TpsCamera`: the shoulder offset shrinks with the boom (to 20% in the
+  tightest space), a side sphere cast keeps the shoulder/lean shift out of a
+  wall beside Henry, the near boom is 0.95 m and closing in is softer (2.5).
+
+Added
+- `backpack` item: a garment for the `pack` slot with a BULKY main
+  compartment and a lid pocket, worn from the start. `GarmentData.mesh_node_name`
+  now drives the body: the pack box shows only while the backpack is worn.
+
+Fixed
+- Interaction and camera tests stepped on idle frames and could miss physics
+  ticks under load; they now step on physics frames.
+
 ### 2026-09-23 — Cursor ring carries stamina again
 
 Fixed

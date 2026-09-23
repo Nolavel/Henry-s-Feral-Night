@@ -2328,7 +2328,7 @@ script = ExtResource("10_mvyhi")
 [node name="EquipmentComponent" type="Node" parent="."]
 script = ExtResource("90_equip")
 layout = ExtResource("93_layout")
-starter_garment_ids = Array[StringName]([&"worn_coat", &"knit_hat", &"work_trousers", &"worn_boots"])
+starter_garment_ids = Array[StringName]([&"worn_coat", &"knit_hat", &"work_trousers", &"worn_boots", &"backpack"])
 
 [node name="InventoryComponent" type="Node" parent="."]
 script = ExtResource("91_inv")
