@@ -17,13 +17,13 @@ const SNOW_SHADER: Shader = preload(
 @export var foreground_target: Node3D
 
 @export_group("World snow")
-@export_range(256, 6000, 64) var max_particles: int = 3200
+@export_range(256, 6000, 64) var max_particles: int = 3840
 @export_range(1.0, 12.0, 0.25) var emitter_height: float = 6.0
 @export_range(0.0, 12.0, 0.25) var max_upwind_offset: float = 9.0
 
 @export_group("Foreground snow")
-@export_range(16, 256, 8) var foreground_particles_max: int = 64
-@export_range(0.0, 1.0, 0.01) var foreground_density_scale: float = 0.10
+@export_range(8, 128, 8) var foreground_particles_max: int = 32
+@export_range(0.0, 1.0, 0.01) var foreground_density_scale: float = 0.08
 @export_range(0.5, 5.0, 0.1) var foreground_distance: float = 2.4
 @export_range(0.0, 3.0, 0.1) var foreground_height: float = 1.0
 
@@ -58,15 +58,15 @@ func _process(_delta: float) -> void:
 func _build_particles() -> void:
 	_process_material = _make_process_material(
 		Vector3(24.0, 1.8, 18.0),
-		0.54,
-		0.98
+		0.55,
+		1.00
 	)
 	particles = _make_particle_layer(
 		"WorldSnow",
 		max_particles,
 		6.5,
-		0.025,
-		_build_snowflake_mesh(0.028, 0.0028, 0.011, 0.0021),
+		0.012,
+		_build_snowflake_mesh(0.010, 0.0016, 0.0042, 0.00115),
 		_process_material
 	)
 	particles.visibility_aabb = AABB(
@@ -76,19 +76,19 @@ func _build_particles() -> void:
 	add_child(particles)
 
 	_foreground_material = _make_process_material(
-		Vector3(4.6, 2.2, 3.2),
-		0.82,
-		1.28
+		Vector3(4.2, 2.0, 2.8),
+		0.66,
+		1.10
 	)
 	foreground_particles = _make_particle_layer(
 		"ForegroundSnow",
 		foreground_particles_max,
 		3.4,
-		0.055,
-		_build_snowflake_mesh(0.055, 0.0048, 0.020, 0.0034),
+		0.026,
+		_build_snowflake_mesh(0.022, 0.0030, 0.0085, 0.0022),
 		_foreground_material
 	)
-	foreground_particles.randomness = 0.35
+	foreground_particles.randomness = 0.42
 	foreground_particles.visibility_aabb = AABB(
 		Vector3(-10.0, -8.0, -10.0),
 		Vector3(20.0, 16.0, 20.0)

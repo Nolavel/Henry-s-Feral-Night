@@ -17,9 +17,10 @@ const INITIAL_WARMUP_FRAMES: int = 90
 const STATE_SETTLE_FRAMES: int = 120
 
 const SHOTS: Array[Dictionary] = [
-	{"name": "snowfall", "weather": &"snowfall", "collision_debug": false},
-	{"name": "blizzard", "weather": &"blizzard", "collision_debug": false},
-	{"name": "heightfield_probe", "weather": &"snowfall", "collision_debug": true},
+	{"name": "01_snowfall", "weather": &"snowfall", "collision_debug": false},
+	{"name": "02_windy", "weather": &"windy", "collision_debug": false},
+	{"name": "03_blizzard", "weather": &"blizzard", "collision_debug": false},
+	{"name": "04_heightfield_probe", "weather": &"snowfall", "collision_debug": true},
 ]
 
 var _scene_root: Node3D

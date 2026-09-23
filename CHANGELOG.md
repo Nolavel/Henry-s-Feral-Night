@@ -28,8 +28,11 @@ Added
 - A real-island capture now places a 56×28×56 m, 512²
   GPUParticlesCollisionHeightField3D around Henry with follow-camera updates to
   verify whether Godot's HeightField collision can see the Terrain3D renderer.
-- Foreground snow is deliberately rare (64 capacity at 10% of weather density);
-  normal snowfall is dominated by the 1.5–3 cm world layer.
+- Final scale pass reduces the main world layer to roughly 1–2 cm across and
+  the foreground layer to roughly 3–5 cm. Foreground capacity is cut to 32 at
+  8% of weather density so large flakes become occasional near-camera events.
+- Island preview now captures snowfall, windy and blizzard profiles in sequence
+  using the same Henry anchor and HeightField collider.
 - The island capture includes a test-only collision-debug shot that freezes
   collided flakes in red; normal gameplay/test behavior still kills them.
 
