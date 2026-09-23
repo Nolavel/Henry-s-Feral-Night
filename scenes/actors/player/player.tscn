@@ -35,12 +35,9 @@
 [ext_resource type="Resource" path="res://data/equipment/player_layout.tres" id="93_layout"]
 [ext_resource type="Texture2D" uid="uid://c4cgxd2syf1dl" path="res://assets/textures/player_test/player/Armor_roughness.jpeg" id="10_w0i13"]
 [ext_resource type="Shader" uid="uid://cq0cewnu86jod" path="res://assets/materials/Shaders/BG_indicatorSURV.gdshader" id="11_7mm2c"]
-[ext_resource type="Script" uid="uid://x6kekeaur64p" path="res://scripts/ui/hud/camera_face_for_ui.gd" id="11_atp51"]
 [ext_resource type="Texture2D" uid="uid://ckk71xxqgus15" path="res://assets/textures/player_test/player/Head_normal.png" id="11_u0jtt"]
 [ext_resource type="Texture2D" uid="uid://bp5vim0fdiuwm" path="res://assets/textures/player_test/player/Head_roughness.jpeg" id="12_eltio"]
 [ext_resource type="Texture2D" uid="uid://dsc7d56n14klw" path="res://assets/textures/ui/game/biomonitor/fists_default.png" id="12_u1ijy"]
-[ext_resource type="Shader" uid="uid://ql5g8xoo1y81" path="res://assets/materials/Shaders/Face_Monitor_Diamond.gdshader" id="13_57880"]
-[ext_resource type="Texture2D" uid="uid://dnmn77dghrhtp" path="res://assets/textures/ui/game/biomonitor/bg_biomarker_1.png" id="14_ofj7d"]
 [ext_resource type="Script" uid="uid://b246kf84820ms" path="res://scripts/ui/hud/combat_hud.gd" id="16_4q622"]
 [ext_resource type="Texture2D" uid="uid://b6t14flngae5f" path="res://assets/textures/ui/game/biomonitor/Untitled-removebg-preview.png" id="17_beujx"]
 [ext_resource type="Shader" uid="uid://b3pkp50e88f7y" path="res://assets/materials/Shaders/glow_icon.gdshader" id="17_enlny"]
@@ -1237,19 +1234,6 @@ ao_texture = ExtResource("9_shibf")
 
 [sub_resource type="CylinderShape3D" id="CylinderShape3D_0w3ce"]
 
-[sub_resource type="Environment" id="Environment_edegv"]
-
-[sub_resource type="ShaderMaterial" id="ShaderMaterial_0owi0"]
-shader = ExtResource("13_57880")
-shader_parameter/diamond_softness = 0.02
-shader_parameter/aspect = 1.0
-shader_parameter/modulate_color = Color(1, 1, 1, 1)
-shader_parameter/border_thickness = 0.05
-shader_parameter/border_softness = 0.02
-shader_parameter/border_color = Color(1, 0.8, 0.2, 1)
-shader_parameter/fade_amount = 0.0
-shader_parameter/fade_softness = 0.05
-
 [sub_resource type="ShaderMaterial" id="ShaderMaterial_ujwvv"]
 shader = ExtResource("11_7mm2c")
 shader_parameter/fade_start = 0.0
@@ -2343,75 +2327,6 @@ bio_monitor = NodePath("../BioMonitorManager")
 script = ExtResource("94_feet")
 body = NodePath("..")
 visual = NodePath("../HenryUALVisual")
-
-[node name="CameraFaceHenryForUI" type="Node3D" parent="."]
-script = ExtResource("11_atp51")
-sh_border_color = Color(0.78, 0.1768, 0.156, 1)
-
-[node name="SubViewport" type="SubViewport" parent="CameraFaceHenryForUI"]
-transparent_bg = true
-handle_input_locally = false
-canvas_cull_mask = 4293918736
-size = Vector2i(128, 128)
-
-[node name="CameraFaceHenry" type="Camera3D" parent="CameraFaceHenryForUI/SubViewport"]
-transform = Transform3D(1.31134e-07, 0, -1, 0, 1, 0, 1, 0, 1.31134e-07, -0.45, 0.7, 0)
-keep_aspect = 0
-cull_mask = 16
-environment = SubResource("Environment_edegv")
-near = 0.01
-
-[node name="HenryFeedbackHUD" type="Control" parent="CameraFaceHenryForUI"]
-z_index = 100
-layout_mode = 3
-anchors_preset = 7
-anchor_left = 0.5
-anchor_top = 1.0
-anchor_right = 0.5
-anchor_bottom = 1.0
-offset_left = -20.0
-offset_top = -60.0
-offset_right = 20.0
-offset_bottom = -20.0
-grow_horizontal = 2
-grow_vertical = 0
-
-[node name="TextureCFH_Frame" type="TextureRect" parent="CameraFaceHenryForUI/HenryFeedbackHUD"]
-material = SubResource("ShaderMaterial_0owi0")
-layout_mode = 1
-anchors_preset = 7
-anchor_left = 0.5
-anchor_top = 1.0
-anchor_right = 0.5
-anchor_bottom = 1.0
-offset_left = -100.0
-offset_top = -200.0
-offset_right = 100.0
-grow_horizontal = 2
-grow_vertical = 0
-texture = ExtResource("14_ofj7d")
-
-[node name="TextureCFH" type="TextureRect" parent="CameraFaceHenryForUI/HenryFeedbackHUD"]
-material = SubResource("ShaderMaterial_0owi0")
-layout_mode = 1
-anchors_preset = 7
-anchor_left = 0.5
-anchor_top = 1.0
-anchor_right = 0.5
-anchor_bottom = 1.0
-offset_left = -100.0
-offset_top = -200.0
-offset_right = 100.0
-grow_horizontal = 2
-grow_vertical = 0
-
-[node name="SpotLight3D" type="OmniLight3D" parent="CameraFaceHenryForUI"]
-transform = Transform3D(0.959491, 0, -0.281739, 0, 1, 0, 0.281739, 0, 0.959491, 0.151, 1.0479, -0.594)
-layers = 16
-light_bake_mode = 1
-light_cull_mask = 4293918736
-omni_range = 0.8
-omni_attenuation = 0.198
 
 [node name="WeaponSlot" type="Node3D" parent="."]
 
