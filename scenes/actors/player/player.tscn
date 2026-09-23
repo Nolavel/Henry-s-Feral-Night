@@ -1,4 +1,4 @@
-[gd_scene load_steps=102 format=4 uid="uid://ciy301x7wh6ie"]
+[gd_scene load_steps=101 format=4 uid="uid://ciy301x7wh6ie"]
 
 [ext_resource type="Script" uid="uid://b50rnmqk3m8fr" path="res://scripts/actors/player/henry/Player.gd" id="1_irk3a"]
 [ext_resource type="Texture2D" uid="uid://b1vpe3iqs2wgh" path="res://assets/textures/player_test/player/SUIT_albedo.jpeg" id="2_cat03"]
@@ -19,7 +19,6 @@
 [ext_resource type="Texture2D" uid="uid://be0em6nyi7met" path="res://assets/textures/player_test/player/Armor_albedo.jpeg" id="7_75awx"]
 [ext_resource type="Texture2D" uid="uid://bg00nlljt7ojc" path="res://assets/textures/player_test/player/Material__7_albedo.jpeg" id="7_jk84i"]
 [ext_resource type="Texture2D" uid="uid://d1dsyxpjhtp2g" path="res://assets/textures/player_test/player/Body_roughness.jpeg" id="7_sn63g"]
-[ext_resource type="Script" uid="uid://2xuupb25mhs7" path="res://scripts/actors/player/henry/Managers/InventoryManager.gd" id="7_xt5ix"]
 [ext_resource type="Texture2D" uid="uid://ckrbvguep8fpy" path="res://assets/textures/player_test/player/Head_albedo.jpeg" id="8_eh6yv"]
 [ext_resource type="Texture2D" uid="uid://cht3x06jqvtq8" path="res://assets/textures/player_test/player/Material__7_AO.jpeg" id="8_eltio"]
 [ext_resource type="Texture2D" uid="uid://w2jus0dhp7j0" path="res://assets/textures/player_test/player/Armor_AO.jpeg" id="8_lguxi"]
@@ -2383,9 +2382,6 @@ debug_label_path = NodePath("../DebugLBL")
 
 [node name="RotationController" type="Node3D" parent="."]
 script = ExtResource("6_ggxw4")
-
-[node name="InventoryManager" type="Node3D" parent="."]
-script = ExtResource("7_xt5ix")
 
 [node name="PlayerHealthSystem" type="Node3D" parent="."]
 script = ExtResource("8_re6ll")

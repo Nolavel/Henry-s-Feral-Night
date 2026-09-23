@@ -1,0 +1,36 @@
+# =============================================================================
+# equipment_slot_definition.gd — one socket, described as data.
+#
+# The same class describes a BODY slot (what Henry has: head, torso, legs,
+# feet, pack, the fixture Kenny rides on) and a POCKET (what a garment brings
+# with it). They are the same thing — a place that holds exactly one item,
+# with a limit on what may go there — so they are not two classes.
+#
+# A socket, not a grid. Fit is one comparison against max_size; there is no
+# packing, no rotation and no cell layout.
+#
+# Ported from ADT. Its `refuses_threatening` flag went with the Readability
+# axis; the role it played here is `excluded_from_auto_stow`.
+# =============================================================================
+class_name EquipmentSlotDefinition
+extends Resource
+
+## Stable authored identity, unique within its owner (a layout, or one
+## garment). A garment names the body slot it occupies by this id, so a typo
+## surfaces as "no such slot" rather than doing nothing quietly.
+@export var id: StringName = &""
+
+## Human-facing label, for debug output and a future inventory screen.
+@export var display_name: String = ""
+
+## The largest item this socket accepts. A coat pocket is POCKET, the pack
+## slot is BULKY.
+@export var max_size: ItemTraits.SizeClass = ItemTraits.SizeClass.POCKET
+
+## May something that is NOT a garment go here. False wherever clothing is
+## worn and on every pocket; true on the pack and on Kenny's fixture.
+@export var accepts_non_garment: bool = false
+
+## Skipped by stow_anywhere(). Kenny's fixture carries this: what rides there
+## is a decision Henry makes, never a place the game drops spare weight.
+@export var excluded_from_auto_stow: bool = false

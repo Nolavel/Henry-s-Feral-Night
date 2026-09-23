@@ -24,6 +24,104 @@ Performance choice
 
 ## [Unreleased] — `claudeflow`
 
+### 2026-09-23 (3) — Phase A step 2: items, equipment, inventory, and clothing that matters
+
+Ported from ADT with permission; the full record of what crossed over, what was
+dropped and what was added is in `docs/technical/PORTED_FROM_ADT.md`.
+
+Added
+- `core/items/` — `ItemTraits`, `GarmentData`, `ItemResource`, `ConsumableData`,
+  `ItemCatalog`. Items are Resources authored as `.tres` now, not an inner class
+  that could never be edited. The catalog loads **by path, never by scanning**:
+  an exported build hides `.tres` behind a `.remap` and a `DirAccess` scan finds
+  nothing.
+- `core/equipment/` — `EquipmentSlotDefinition`, `EquipmentLayout`.
+- `scripts/actors/player/henry/components/equipment_component.gd` — body slots
+  are fixed by a layout resource, **pockets are brought by the garment**. Take
+  the coat off and its pockets, and their contents, go with it. `equip()` into an
+  occupied slot refuses rather than swapping; `unequip()` refuses while the
+  garment's own pockets hold anything.
+- `.../inventory_component.gd` — loose carry, gated by weight.
+- `data/items/` and `data/equipment/player_layout.tres` — a worn coat, knit hat,
+  work trousers, worn boots and a tin of stew; slots `head`, `torso`, `legs`,
+  `feet`, `pack` and `back_fixture` (Kenny's, excluded from auto-stow).
+- `tests/systems/test_equipment.gd`.
+
+**The point of the exercise**
+- `GarmentData.insulation_c` and `EquipmentComponent.get_total_insulation_c()`
+  — the axis ADT's garments do not have. `ThermalManager` now reads what Henry
+  is actually wearing, falling back to its exported constant when no equipment
+  is wired, so every earlier test kept passing untouched. Fully dressed is about
+  11 °C against the old flat 6 °C, and a test asserts a dressed Henry cools
+  measurably slower than a bare one and that removing the coat is felt at once.
+
+Removed
+- `InventoryManager.gd` and its node in `player.tscn`. It was never wired
+  (`setup()` had no callers), `Item` was an inner class that could not be
+  authored, `_create_item_by_id()` returned null so loading restored nothing,
+  and `_input()` read raw keycodes including `KEY_E`, colliding with `interact`.
+
+Verified
+- Ten suites pass; `TestScene` and the island both render after the removal;
+  the filename gate is clean.
+
+### 2026-09-23 (2) — Phase A step 1: player state and the interact claim
+
+Both ported from ADT with permission; see `docs/THIRD_PARTY_NOTICES.md`.
+
+Added
+- `core/player_state/player_state.gd` — autoload, the single source of truth for
+  what the player is doing: `ON_FOOT`, `WORKING`, `SWIMMING`, `SLEEPING`, `MENU`.
+  **`MENU` is reachable only through `open_menu()`/`close_menu()`**; `set_mode(MENU)`
+  push_errors, and so does any mode change while a menu is open, so pause and
+  mode can never diverge. Pause is set **before** the signal fires, so every
+  listener sees a consistent tree. A menu opened while swimming returns to
+  swimming.
+- The **interact claim** in `InputSystems`. While a claim is held the key
+  belongs entirely to the claimant and `interact_pressed/held/released` stay
+  silent — one owner decides what the key means instead of subscribers racing.
+  The claimant duck-types `on_interact_claimed()` plus optional
+  `on_interact_held(duration)` / `on_interact_released(duration)`. This is what
+  Phase B's "hold to seal a breach" will use.
+- `tests/systems/test_player_state.gd` — the pause coupling, mode restoration,
+  movement blocking, and the claim taking and returning the key.
+
+Changed
+- `InputSystems` now gates on `PlayerState`: `get_move_axis()` returns zero and
+  `is_sprinting()` returns false whenever the mode holds the player still, so
+  no caller has to check. Gameplay edges are suppressed in `MENU`, except the
+  cancel key, which must still reach the menu that is open.
+- `SleepPrompt` no longer sets `get_tree().paused` itself — it calls
+  `PlayerState.open_menu()`/`close_menu()`. Pause has one owner now.
+
+Notes
+- `_tick_interact()` level-polls `Input` as a safety net: if the release event
+  never arrives (a Control ate it, focus was lost, the claimant was freed) the
+  key would otherwise read as held forever. The test presses the key for real
+  rather than working around that net.
+
+Verified
+- Nine suites pass; `TestScene` renders; the filename gate is clean.
+
+### 2026-09-23 (1) — The project's own licence
+
+Fixed
+- **`/LICENSE` was an unrelated third party's MIT** — `Copyright (c) 2023
+  mohsenph69`, the author of the Godot-MTerrain addon. It arrived in commit
+  `5496269` alongside terrain experiments and was never replaced, so the whole
+  game was formally published under MIT, granting everyone the right to copy,
+  modify, sublicense and sell it, attributed to someone unconnected to the
+  project. Not Terrain3D's licence either — that one ships separately at
+  `addons/terrain_3d/LICENSE.txt`. Replaced with the project's own terms,
+  modelled on ADT's. See issue #5.
+
+Added
+- `docs/THIRD_PARTY_NOTICES.md` now records the licensing history, so the change
+  is explained rather than silently rewritten, and the author's permission to
+  port code from `Nolavel/ADT` (whose licence requires written permission from
+  the copyright holder, who owns both projects and granted it).
+
+
 ### 2026-09-22 (12) — Fix CI: the environment, not the code
 
 The first CI run on PR #2 went red. Every cause was in the harness I wrote.

@@ -49,7 +49,6 @@ const MOVE_ACTIONS: Array[StringName] = [
 var _hold_time: float = 0.0
 var _is_open: bool = false
 var _hours: int = 8
-var _was_paused: bool = false
 
 
 func _ready() -> void:
@@ -140,9 +139,9 @@ func open() -> void:
 	hold_progress_changed.emit(0.0)
 	_set_hours(_hours)
 	_set_dialog_visible(true)
-	_was_paused = get_tree().paused if is_inside_tree() else false
-	if is_inside_tree():
-		get_tree().paused = true
+	## Pause belongs to PlayerState, which owns the coupling between it and
+	## mode. Setting get_tree().paused here would be a second owner.
+	_player_state_call(&"open_menu")
 
 
 ## Closes the dialog without sleeping and unpauses the world.
@@ -153,8 +152,7 @@ func close() -> void:
 	_hold_time = 0.0
 	hold_progress_changed.emit(0.0)
 	_set_dialog_visible(false)
-	if is_inside_tree():
-		get_tree().paused = _was_paused
+	_player_state_call(&"close_menu")
 
 
 ## Attempts the sleep with the selected duration, then closes.
@@ -169,6 +167,16 @@ func confirm() -> bool:
 	var slept: bool = sleep_controller.try_sleep(float(_hours))
 	close()
 	return slept
+
+
+## PlayerState is an autoload, but this scene is also driven directly by tests
+## where it may not exist, so the call is guarded rather than assumed.
+func _player_state_call(method: StringName) -> void:
+	if not is_inside_tree():
+		return
+	var state: Node = get_node_or_null(^"/root/PlayerState")
+	if state != null:
+		state.call(method)
 
 
 func _update_hold(delta: float) -> void:

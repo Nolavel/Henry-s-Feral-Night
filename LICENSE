@@ -1,21 +1,45 @@
-MIT License
+# Licence
 
-Copyright (c) 2023 mohsenph69
+**Henry's Feral Night**
 
-Permission is hereby granted, free of charge, to any person obtaining a copy
-of this software and associated documentation files (the "Software"), to deal
-in the Software without restriction, including without limitation the rights
-to use, copy, modify, merge, publish, distribute, sublicense, and/or sell
-copies of the Software, and to permit persons to whom the Software is
-furnished to do so, subject to the following conditions:
+Copyright © 2025–2026 Nolavel. All rights reserved.
 
-The above copyright notice and this permission notice shall be included in all
-copies or substantial portions of the Software.
+This repository is published for review, collaboration and portfolio purposes.
+**It is not open source.**
 
-THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR
-IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY,
-FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT. IN NO EVENT SHALL THE
-AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER
-LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM,
-OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
-SOFTWARE.
+## You may
+
+- Read, clone and build the project in order to evaluate it, review it, or
+  contribute to it.
+- Reuse short, generic code fragments as reference, in the way one learns from
+  reading any published code.
+
+## You may not
+
+Without prior written permission from the copyright holder:
+
+- Redistribute this project or substantial parts of it, modified or not.
+- Use its source code, assets, world, characters, names or narrative material in
+  another project, commercial or otherwise.
+- Publish builds of this project.
+
+## Third-party components
+
+Components bundled in this repository are licensed separately and are **not**
+covered by the terms above. Their own licence terms govern their use, and they
+are listed in [`docs/THIRD_PARTY_NOTICES.md`](docs/THIRD_PARTY_NOTICES.md).
+
+In particular:
+
+- This project is built with the **Godot Engine**, which is MIT-licensed.
+  See <https://godotengine.org/license>.
+- **Terrain3D** is bundled under `addons/terrain_3d/` and carries its own MIT
+  licence at [`addons/terrain_3d/LICENSE.txt`](addons/terrain_3d/LICENSE.txt).
+
+## History of this file
+
+Until 2026-09-23 this path held an unrelated third party's MIT licence
+(`Copyright (c) 2023 mohsenph69`, the author of the Godot-MTerrain addon), which
+arrived in commit `5496269` alongside terrain experiments and was never
+replaced. It was never an intentional licence grant for this project. See
+issue #5.
