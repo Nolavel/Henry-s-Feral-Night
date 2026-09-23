@@ -115,6 +115,26 @@ func refuel(units: float = 1.0) -> void:
 		burning_changed.emit(true)
 
 
+## Whether another unit of fuel would do anything. A full fire refuses, so a
+## caller does not burn an item for nothing.
+func can_refuel() -> bool:
+	if burn_duration_h <= 0.0:
+		return false
+	return _remaining_h < burn_duration_h
+
+
+## Restores exact fuel state, for a save rather than for gameplay. Gameplay
+## goes through refuel(), which is capped and relights.
+func restore_fuel(hours: float, burning: bool) -> void:
+	_remaining_h = clampf(hours, 0.0, maxf(burn_duration_h, hours))
+	fuel_changed.emit(get_fuel_fraction())
+	var should_burn: bool = burning and (_remaining_h > 0.0 or burn_duration_h <= 0.0)
+	if should_burn == _is_burning:
+		return
+	_is_burning = should_burn
+	burning_changed.emit(_is_burning)
+
+
 ## Lights the source and refills it to its full burn duration.
 func ignite() -> void:
 	_remaining_h = burn_duration_h

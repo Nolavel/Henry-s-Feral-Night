@@ -44,6 +44,35 @@ Performance choice
 
 ## [Unreleased] — `claudeflow`
 
+### 2026-09-23 (7) — Phase B step 3: a fire you have to light and feed
+
+`HeatSource.refuel()` had no caller anywhere — the same shape `add_calories`
+had before Phase A. Fuel did burn on the game clock, and `burn_duration_h` is
+deliberately shorter than a night, so every fire went out and nothing the
+player did could stop it. The sleep prompt already warned about it; now the
+warning has an answer.
+
+Added
+- Items `firewood` (bulky, heavy — carrying it should cost space) and `tinder`
+  (spent only to start a dead fire).
+- **`HeatSourceFeed`** — the second `InteractiveArea` subclass that does
+  something. A dead fire costs tinder and wood; a burning one costs wood. A full
+  fire refuses, and nothing is spent on any refusal.
+- `HeatSource.can_refuel()` and `restore_fuel(hours, burning)` — the second for
+  saves only; gameplay goes through the capped `refuel()`.
+- **`ShelterState` remembers fires** next to boards, so sleeping beside a
+  half-burnt stove does not wake up to a full one. Fires are found under their
+  zone in the scene; no new system.
+
+Not done, deliberately
+- A placeable stove. Free placement is a new system, and #7's scope lock says
+  no new systems. An authored stove that starts unlit gives the same verb.
+
+Tests
+- `tests/systems/test_fire.gd`: tinder only for a dead fire, a full fire spends
+  nothing, feeding carries a fire past its own burn duration, a dead fire stops
+  warming the room, and fuel survives a save round trip at the exact level.
+
 ### 2026-09-23 (6) — Phase B step 2: a shelter you have to prepare
 
 A shelter was a flat safe zone: step inside and the wind stopped, and a fire
