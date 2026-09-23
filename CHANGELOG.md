@@ -68,6 +68,17 @@ Performance choice
 
 ## [Unreleased] — `claudeflow`
 
+### 2026-09-23 — ADT head look; shelter edge signal for the colour grade
+
+Added
+- ADT's procedural head look on the UAL mannequin: standing, the `Head` bone
+  eases toward where the camera looks (up to 55° each way); walking, the clips
+  own the head and the look fades out. The UAL head rests ~13° off the body,
+  so the limits are asymmetric to make the turn equal both ways.
+  `test_head_look.gd` measures the turn through a BoneAttachment3D.
+- `ThermalManager.sheltered_changed(is_sheltered)`: one edge per real change
+  of being inside an interior zone, for #31's LUT switch.
+
 ### 2026-09-23 — Smart camera against walls
 
 Fixed

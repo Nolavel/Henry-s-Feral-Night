@@ -35,6 +35,25 @@ const SPRINT_ALIASES: Array[StringName] = [&"Sprint_Loop", &"Sprint"]
 @export var secondary_library_scene: PackedScene
 @export var secondary_library_name: StringName = &"UAL2"
 
+@export_group("Head look")
+## Bone the procedural look turns; ADT's head look, on the UAL rig.
+@export var head_bone: StringName = &"Head"
+## Side-to-side head turn each way from straight ahead, degrees.
+@export var head_look_primary_limit_deg: float = 55.0
+## The UAL head's rest pose is yawed off the body; this re-centres the limit.
+@export var head_rest_yaw_offset_deg: float = 13.0
+@export var head_look_secondary_limit_deg: float = 45.0
+@export var head_look_duration: float = 0.25
+## Below this speed Henry counts as standing and the head follows the camera, m/s.
+@export var head_look_idle_speed: float = 0.15
+## How fast the look marker chases its point, and the influence fade per second.
+@export var head_look_smooth: float = 8.0
+@export var head_look_fade_speed: float = 4.0
+## Distance the look point is held at, metres.
+@export var head_look_distance: float = 5.0
+## Head forward axis in bone space; flip it if the head looks sideways or back.
+@export var head_forward_axis: SkeletonModifier3D.BoneAxis = SkeletonModifier3D.BONE_AXIS_PLUS_Z
+
 @export_group("Backpack placeholder")
 @export var backpack_bone: StringName = &"spine_03"
 @export var backpack_size: Vector3 = Vector3(0.34, 0.44, 0.2)
@@ -52,6 +71,9 @@ var animation_tree: AnimationTree
 ## Placeholder meshes a garment names in GarmentData.mesh_node_name.
 var _garment_meshes: Dictionary = {}
 var _equipment: EquipmentComponent
+var _head_lookat: LookAtModifier3D
+var _head_target: Node3D
+var _head_influence: float = 0.0
 
 var _blend_position: float = 0.0
 var _resolved_idle: StringName = &""
@@ -81,6 +103,7 @@ func _ready() -> void:
 	_paint_body()
 	_attach_backpack()
 	_bind_equipment()
+	_setup_head_look()
 	_make_animation_library_local()
 	_add_secondary_library()
 	_setup_animation_tree()
@@ -104,6 +127,57 @@ func update_animation_blend(_delta: float) -> void:
 		_blend_position = 0.0
 
 	animation_tree.set("parameters/locomotion/blend_position", _blend_position)
+
+
+## ADT head look: standing, the head eases toward where the camera looks;
+## moving, the clips own the head and the look fades out.
+func update_head_look(delta: float) -> void:
+	if _head_lookat == null or player == null:
+		return
+	var planar_speed: float = Vector2(player.velocity.x, player.velocity.z).length()
+	var want: bool = planar_speed < head_look_idle_speed and player.has_method(&"get_view_direction")
+	var eye: Vector3 = _head_bone_position()
+	var direction: Vector3 = -player.global_transform.basis.z
+	if want:
+		direction = player.call(&"get_view_direction")
+	direction.y = 0.0
+	var target: Vector3 = eye + direction.normalized() * head_look_distance
+	if want and _head_influence <= 0.001:
+		_head_target.global_position = target
+	else:
+		_head_target.global_position = _head_target.global_position.lerp(target, clampf(delta * head_look_smooth, 0.0, 1.0))
+	_head_influence = move_toward(_head_influence, 1.0 if want else 0.0, delta * head_look_fade_speed)
+	_head_lookat.influence = _head_influence
+	_head_lookat.active = _head_influence > 0.001
+
+
+func _setup_head_look() -> void:
+	if skeleton == null or skeleton.find_bone(head_bone) < 0:
+		push_warning("HenryUALAnimation: no %s bone, head look disabled." % head_bone)
+		return
+	_head_target = Node3D.new()
+	_head_target.name = "HeadLookTarget"
+	add_child(_head_target)
+	_head_lookat = LookAtModifier3D.new()
+	_head_lookat.name = "HeadLook"
+	skeleton.add_child(_head_lookat)
+	_head_lookat.bone_name = head_bone
+	_head_lookat.forward_axis = head_forward_axis
+	## ADT: the flag is use_angle_limitation, and it needs explicit limits and duration.
+	_head_lookat.use_angle_limitation = true
+	_head_lookat.symmetry_limitation = false
+	_head_lookat.primary_positive_limit_angle = deg_to_rad(head_look_primary_limit_deg + head_rest_yaw_offset_deg)
+	_head_lookat.primary_negative_limit_angle = deg_to_rad(head_look_primary_limit_deg - head_rest_yaw_offset_deg)
+	_head_lookat.secondary_limit_angle = deg_to_rad(head_look_secondary_limit_deg)
+	_head_lookat.duration = head_look_duration
+	_head_lookat.target_node = _head_lookat.get_path_to(_head_target)
+	_head_lookat.influence = 0.0
+	_head_lookat.active = false
+
+
+func _head_bone_position() -> Vector3:
+	var bone: int = skeleton.find_bone(head_bone)
+	return (skeleton.global_transform * skeleton.get_bone_global_pose(bone)).origin
 
 
 func get_locomotion_blend_position() -> float:

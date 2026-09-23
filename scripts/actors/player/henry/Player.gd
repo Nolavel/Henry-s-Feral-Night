@@ -79,12 +79,22 @@ func _physics_process(delta: float) -> void:
 	# post-collision velocity, not input intent and not scene-tree process order.
 	if is_instance_valid(animation_component):
 		animation_component.update_animation_blend(delta)
+		animation_component.update_head_look(delta)
 	
 	var on_floor_now := is_on_floor()
 	cam_landed_this_frame = (not _was_on_floor_for_cam and on_floor_now)
 	_was_on_floor_for_cam = on_floor_now
 	cam_jump_hold_active = on_floor_now and jump_is_pressed
 	cam_jump_release_fired = movement.get_jump_release_fired()
+
+
+## Flat direction the active camera looks, for the head look; Henry's facing
+## when there is no camera.
+func get_view_direction() -> Vector3:
+	var camera: Camera3D = get_viewport().get_camera_3d()
+	var forward: Vector3 = -(camera.global_transform.basis.z if camera != null else global_transform.basis.z)
+	forward.y = 0.0
+	return forward.normalized() if forward.length() > 0.001 else -global_transform.basis.z
 
 
 ## Starts a walk to a point; WASD takes control back at once.
