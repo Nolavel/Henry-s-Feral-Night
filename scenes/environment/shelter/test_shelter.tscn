@@ -1,4 +1,4 @@
-[gd_scene load_steps=35 format=3]
+[gd_scene load_steps=36 format=3]
 
 [ext_resource type="Script" path="res://scripts/systems/survival/thermal_zone.gd" id="zone"]
 
@@ -11,11 +11,13 @@
 [ext_resource type="Script" path="res://scripts/environment/interactive/heat_source_feed.gd" id="feed"]
 
 [ext_resource type="PackedScene" path="res://scenes/environment/interactive/InteractiveArea.tscn" id="ia"]
+[ext_resource type="Shader" path="res://shaders/environment/snow/snow_prop.gdshader" id="snow_shader"]
 
 
-[sub_resource type="StandardMaterial3D" id="wall_mat"]
-albedo_color = Color(0.32, 0.3, 0.28, 1)
-roughness = 0.95
+[sub_resource type="ShaderMaterial" id="wall_mat"]
+shader = ExtResource("snow_shader")
+shader_parameter/base_color = Color(0.32, 0.3, 0.28, 1)
+shader_parameter/base_roughness = 0.95
 
 [sub_resource type="StandardMaterial3D" id="board_mat"]
 albedo_color = Color(0.45, 0.32, 0.2, 1)
