@@ -33,6 +33,13 @@ Added
   8% of weather density so large flakes become occasional near-camera events.
 - Island preview now captures snowfall, windy and blizzard profiles in sequence
   using the same Henry anchor and HeightField collider.
+- Optimization pass: WorldSnow allocation drops from 3840 to 3072 particles and
+  GPU particle simulation drops from 60 Hz to 30 Hz with interpolation.
+- Only WorldSnow uses velocity alignment/stretching above strong-wind speed;
+  foreground flakes keep their snowflake silhouette and never grow in size.
+- HeightField candidate drops from 512² to 256² and no longer follows the camera;
+  it is positioned on an 8 m Henry-centered grid to avoid rebuilding on every
+  TPS camera movement.
 - The island capture includes a test-only collision-debug shot that freezes
   collided flakes in red; normal gameplay/test behavior still kills them.
 

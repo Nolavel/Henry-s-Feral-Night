@@ -14,7 +14,7 @@ const SHADOW_MATERIAL: String = "res://scenes/environment/visual_fx/StylizedShad
 const OUTPUT_DIR: String = "user://shots/island_snow_heightfield"
 
 const INITIAL_WARMUP_FRAMES: int = 90
-const STATE_SETTLE_FRAMES: int = 120
+const STATE_SETTLE_FRAMES: int = 100
 
 const SHOTS: Array[Dictionary] = [
 	{"name": "01_snowfall", "weather": &"snowfall", "collision_debug": false},
@@ -36,6 +36,9 @@ var _configured: bool = false
 var _frame: int = 0
 var _shot_index: int = -1
 var _settle: int = 0
+var _sample_count: int = 0
+var _sample_delta_sum: float = 0.0
+var _sample_delta_max: float = 0.0
 
 
 func _initialize() -> void:
@@ -80,8 +83,13 @@ func _initialize() -> void:
 	root.add_child(_scene_root)
 
 
-func _process(_delta: float) -> bool:
+func _process(delta: float) -> bool:
 	_frame += 1
+
+	if _settle > 0 and _settle < 80:
+		_sample_count += 1
+		_sample_delta_sum += delta
+		_sample_delta_max = maxf(_sample_delta_max, delta)
 
 	if not _configured:
 		if _frame < INITIAL_WARMUP_FRAMES:
@@ -106,6 +114,9 @@ func _process(_delta: float) -> bool:
 	_snow.foreground_particles.visible = not bool(shot["collision_debug"])
 	_snow.sync_from_weather()
 	_snow.restart_particles()
+	_sample_count = 0
+	_sample_delta_sum = 0.0
+	_sample_delta_max = 0.0
 	_settle = STATE_SETTLE_FRAMES
 	return false
 
@@ -132,12 +143,18 @@ func _configure_island_test() -> void:
 
 	_heightfield = GPUParticlesCollisionHeightField3D.new()
 	_heightfield.name = "HenrySnowHeightField"
-	_heightfield.size = Vector3(56.0, 28.0, 56.0)
-	_heightfield.resolution = GPUParticlesCollisionHeightField3D.RESOLUTION_512
+	_heightfield.size = Vector3(48.0, 24.0, 48.0)
+	_heightfield.resolution = GPUParticlesCollisionHeightField3D.RESOLUTION_256
 	_heightfield.update_mode = GPUParticlesCollisionHeightField3D.UPDATE_MODE_WHEN_MOVED
-	_heightfield.follow_camera_enabled = true
+	_heightfield.follow_camera_enabled = false
 	_scene_root.add_child(_heightfield)
-	_heightfield.global_position = _camera.global_position
+	# Production candidate: move this collider only when Henry crosses a coarse
+	# world-space cell. Do not follow the TPS camera every frame.
+	_heightfield.global_position = Vector3(
+		snappedf(ground_anchor.x, 8.0),
+		ground_anchor.y + 2.0,
+		snappedf(ground_anchor.z, 8.0)
+	)
 
 	_weather = WeatherController.new()
 	_weather.name = "SnowCaptureWeather"
@@ -155,13 +172,12 @@ func _configure_island_test() -> void:
 	_scene_root.add_child(_snow)
 	_snow.sync_from_weather()
 
-	# Moving the current camera after the collider is in-tree forces the first
-	# heightfield refresh in UPDATE_MODE_WHEN_MOVED + follow-camera mode.
-	_camera.global_position += Vector3(0.02, 0.0, 0.0)
-	_camera.global_position -= Vector3(0.02, 0.0, 0.0)
+	RenderingServer.particles_collision_height_field_update(
+		_heightfield.get_rid()
+	)
 
 	print(
-		"Island snow HeightField size=%s resolution=512 follow_camera=true anchor=%s"
+		"Island snow HeightField size=%s resolution=256 follow_camera=false snap=8m anchor=%s"
 		% [str(_heightfield.size), str(ground_anchor)]
 	)
 	_configured = true
@@ -174,14 +190,23 @@ func _capture_shot(shot: Dictionary) -> void:
 		quit(1)
 		return
 
+	var avg_ms: float = (
+		(_sample_delta_sum / float(_sample_count)) * 1000.0
+		if _sample_count > 0
+		else 0.0
+	)
+	var approx_fps: float = 1000.0 / avg_ms if avg_ms > 0.0 else 0.0
 	print(
-		"Island snow shot=%s density=%.2f weather_wind=%.2f visual_wind=%s collision_debug=%s"
+		"Island snow shot=%s density=%.2f weather_wind=%.2f visual_wind=%s collision_debug=%s avg_frame_ms=%.2f approx_fps=%.1f max_frame_ms=%.2f"
 		% [
 			String(shot["name"]),
 			_weather.get_snowfall_density(),
 			_weather.get_wind_speed_mps(),
 			str(_snow.get_visual_wind_velocity()),
 			str(bool(shot["collision_debug"])),
+			avg_ms,
+			approx_fps,
+			_sample_delta_max * 1000.0,
 		]
 	)
 

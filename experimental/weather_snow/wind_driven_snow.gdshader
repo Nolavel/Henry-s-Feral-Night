@@ -20,6 +20,10 @@ uniform float size_min : hint_range(0.1, 2.0, 0.05) = 0.62;
 uniform float size_max : hint_range(0.1, 2.0, 0.05) = 1.22;
 uniform float fade_from : hint_range(0.0, 1.0, 0.01) = 0.88;
 uniform bool collision_debug = false;
+uniform bool velocity_stretch_enabled = false;
+uniform float stretch_speed_start : hint_range(0.0, 12.0, 0.1) = 3.2;
+uniform float stretch_speed_full : hint_range(0.0, 12.0, 0.1) = 7.0;
+uniform float stretch_max : hint_range(1.0, 4.0, 0.05) = 2.25;
 
 uint hfn_hash(uint x) {
 	x = ((x >> uint(16)) ^ x) * uint(73244475);
@@ -48,6 +52,8 @@ void start() {
 
 	if (RESTART_ROT_SCALE) {
 		float size = mix(size_min, size_max, hfn_rand(seed));
+		CUSTOM.x = size;
+		CUSTOM.y = mix(0.88, 1.08, hfn_rand(seed));
 		TRANSFORM[0].xyz = vec3(size, 0.0, 0.0);
 		TRANSFORM[1].xyz = vec3(0.0, size, 0.0);
 		TRANSFORM[2].xyz = vec3(0.0, 0.0, size);
@@ -112,6 +118,23 @@ void process() {
 		);
 		float response = clamp(1.0 - exp(-drag * DELTA), 0.0, 1.0);
 		VELOCITY = mix(VELOCITY, target_velocity, response);
+
+		// Cheap high-wind streak: no trails, no extra particles, no extra draw
+		// pass. WorldSnow aligns Y to velocity at the GPUParticles3D level and
+		// this only changes the existing particle transform scale.
+		float base_size = max(CUSTOM.x, 0.001);
+		float stretch = 1.0;
+		if (velocity_stretch_enabled) {
+			float speed_factor = smoothstep(
+				stretch_speed_start,
+				max(stretch_speed_full, stretch_speed_start + 0.01),
+				length(VELOCITY)
+			);
+			stretch = mix(1.0, stretch_max * CUSTOM.y, speed_factor);
+		}
+		TRANSFORM[0].xyz = vec3(base_size, 0.0, 0.0);
+		TRANSFORM[1].xyz = vec3(0.0, base_size * stretch, 0.0);
+		TRANSFORM[2].xyz = vec3(0.0, 0.0, base_size);
 
 		COLOR.a = color.a * (1.0 - smoothstep(fade_from, 1.0, normalized_age));
 	}

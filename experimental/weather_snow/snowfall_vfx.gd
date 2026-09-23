@@ -17,7 +17,7 @@ const SNOW_SHADER: Shader = preload(
 @export var foreground_target: Node3D
 
 @export_group("World snow")
-@export_range(256, 6000, 64) var max_particles: int = 3840
+@export_range(256, 6000, 64) var max_particles: int = 3072
 @export_range(1.0, 12.0, 0.25) var emitter_height: float = 6.0
 @export_range(0.0, 12.0, 0.25) var max_upwind_offset: float = 9.0
 
@@ -66,9 +66,16 @@ func _build_particles() -> void:
 		max_particles,
 		6.5,
 		0.012,
-		_build_snowflake_mesh(0.010, 0.0016, 0.0042, 0.00115),
+		_build_snowflake_mesh(0.010, 0.0016, 0.0042, 0.00115, false),
 		_process_material
 	)
+	particles.transform_align = (
+		GPUParticles3D.TRANSFORM_ALIGN_Z_BILLBOARD_Y_TO_VELOCITY
+	)
+	_process_material.set_shader_parameter("velocity_stretch_enabled", true)
+	_process_material.set_shader_parameter("stretch_speed_start", 3.2)
+	_process_material.set_shader_parameter("stretch_speed_full", 7.0)
+	_process_material.set_shader_parameter("stretch_max", 2.25)
 	particles.visibility_aabb = AABB(
 		Vector3(-48.0, -26.0, -48.0),
 		Vector3(96.0, 52.0, 96.0)
@@ -85,10 +92,11 @@ func _build_particles() -> void:
 		foreground_particles_max,
 		3.4,
 		0.026,
-		_build_snowflake_mesh(0.022, 0.0030, 0.0085, 0.0022),
+		_build_snowflake_mesh(0.022, 0.0030, 0.0085, 0.0022, true),
 		_foreground_material
 	)
 	foreground_particles.randomness = 0.42
+	_foreground_material.set_shader_parameter("velocity_stretch_enabled", false)
 	foreground_particles.visibility_aabb = AABB(
 		Vector3(-10.0, -8.0, -10.0),
 		Vector3(20.0, 16.0, 20.0)
@@ -125,7 +133,7 @@ func _make_particle_layer(
 	layer.randomness = 0.22
 	layer.preprocess = 2.0
 	layer.local_coords = false
-	layer.fixed_fps = 60
+	layer.fixed_fps = 30
 	layer.interpolate = true
 	layer.collision_base_size = collision_size
 	layer.process_material = material
@@ -137,7 +145,8 @@ func _build_snowflake_mesh(
 	arm_length: float,
 	arm_width: float,
 	branch_length: float,
-	branch_width: float
+	branch_width: float,
+	use_material_billboard: bool
 ) -> ArrayMesh:
 	var vertices := PackedVector3Array()
 	var indices := PackedInt32Array()
@@ -175,7 +184,11 @@ func _build_snowflake_mesh(
 	var material := StandardMaterial3D.new()
 	material.transparency = BaseMaterial3D.TRANSPARENCY_ALPHA
 	material.shading_mode = BaseMaterial3D.SHADING_MODE_UNSHADED
-	material.billboard_mode = BaseMaterial3D.BILLBOARD_ENABLED
+	material.billboard_mode = (
+		BaseMaterial3D.BILLBOARD_ENABLED
+		if use_material_billboard
+		else BaseMaterial3D.BILLBOARD_DISABLED
+	)
 	material.vertex_color_use_as_albedo = true
 	material.albedo_color = Color(0.94, 0.97, 1.0, 0.94)
 	material.cull_mode = BaseMaterial3D.CULL_DISABLED
