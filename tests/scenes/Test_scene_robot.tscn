@@ -4,7 +4,7 @@
 [ext_resource type="PackedScene" uid="uid://duxn5rqcau5dw" path="res://tools/StatsDisplay/StatsDisplay.tscn" id="2_5k4rk"]
 [ext_resource type="PackedScene" uid="uid://cvuw2ef72te81" path="res://tools/InputDebugger/InputDebugger.tscn" id="3_4wpjc"]
 [ext_resource type="PackedScene" uid="uid://cvv8y27vmgjfi" path="res://scenes/game/systems/world/WorldEnvironmentSystem.tscn" id="4_hfn24"]
-[ext_resource type="PackedScene" uid="uid://dputwp1am8vfu" path="res://scenes/game/systems/camera/PlayerCamera.tscn" id="5_icinr"]
+[ext_resource type="PackedScene" uid="uid://dputwp1am8vfu" path="res://scenes/game/systems/camera/tps_camera.tscn" id="5_icinr"]
 
 [sub_resource type="StandardMaterial3D" id="StandardMaterial3D_mbw63"]
 albedo_color = Color(0.04, 0.04, 0.04, 1)

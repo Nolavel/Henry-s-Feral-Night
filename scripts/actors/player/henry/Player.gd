@@ -4,13 +4,15 @@ class_name Player
 
 # === КОМПОНЕНТЫ ===
 @onready var movement: MovementController = $MovementController
-@onready var rotation_controller: RotationController = $RotationController
 @onready var interactiom_manager: InteractionManager = $InteractionManager
 @onready var animation_component: HenryUALAnimation = $HenryUALVisual
 
 # === ПАРАМЕТРЫ ДВИЖЕНИЯ, оставшиеся для управления движком ===
 @export var jump_velocity: float = 5.0
 @export var gravity: float = 9.8
+
+## How fast Henry turns to face where he walks, as a damping rate.
+@export_range(1.0, 30.0, 0.5) var turn_rate: float = 10.0
 
 # === Флаги для камеры ===
 var cam_jump_hold_active: bool = false
@@ -20,9 +22,6 @@ var cam_landed_this_frame: bool = false
 # === Служебные переменные ===
 var _was_on_floor_for_cam: bool = false
 
-# === SNAP: Детектор двойного нажатия ===
-var _snap_timer: float = 0.0
-var _snap_ready: bool = false
 
 
 func _physics_process(delta: float) -> void:
@@ -45,15 +44,11 @@ func _physics_process(delta: float) -> void:
 	var sprint_is_pressed: bool = Input.is_action_pressed("sprint")
 	var sprint_just_released: bool = Input.is_action_just_released("sprint")
 	
-	# Детектор двойного нажатия для Snap-поворота
-	_snap_double_tap_check(delta)
-	var snap_just_activated: bool = false
-	if Input.is_action_just_pressed("move_backward"):
-		if _snap_ready:
-			snap_just_activated = true
-		_snap_ready = true
-		_snap_timer = 0.0
-	
+	## Input is camera-relative; movement still takes it in Henry's own frame.
+	var world_dir: Vector3 = _camera_relative(input_dir)
+	_face_towards(world_dir, delta)
+	input_dir = global_transform.basis.orthonormalized().inverse() * world_dir
+
 	# Обновление движения
 	movement.process_movement(
 		self,
@@ -66,8 +61,6 @@ func _physics_process(delta: float) -> void:
 		sprint_just_released
 	)
 	
-	rotation_controller.process_rotation(self, delta, snap_just_activated)
-
 	move_and_slide()
 
 	# ADT-style explicit animation ordering: the component sees the REAL
@@ -82,13 +75,20 @@ func _physics_process(delta: float) -> void:
 	cam_jump_release_fired = movement.get_jump_release_fired()
 
 
-func _snap_double_tap_check(delta: float) -> void:
-	# Если таймер активен, считаем время
-	if _snap_ready:
-		_snap_timer += delta
-		if _snap_timer > rotation_controller.snap_double_tap_time:
-			_snap_ready = false
-			_snap_timer = 0.0
+## Turns a local WASD vector into a world direction by the active camera yaw.
+func _camera_relative(input_dir: Vector3) -> Vector3:
+	if input_dir.length_squared() < 0.0001:
+		return Vector3.ZERO
+	var camera := get_viewport().get_camera_3d() as TpsCamera
+	var yaw: float = camera.get_yaw() if camera != null else global_rotation.y
+	return input_dir.rotated(Vector3.UP, yaw)
+
+
+func _face_towards(world_dir: Vector3, delta: float) -> void:
+	if world_dir.length_squared() < 0.0001:
+		return
+	var target_yaw: float = atan2(-world_dir.x, -world_dir.z)
+	rotation.y = lerp_angle(rotation.y, target_yaw, 1.0 - exp(-turn_rate * delta))
 
 
 ## Horizontal movement ratio for the animation component, 0..1.

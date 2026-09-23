@@ -68,6 +68,26 @@ Performance choice
 
 ## [Unreleased] — `claudeflow`
 
+### 2026-09-23 — TPS camera replaces the cursor camera; pickups fixed
+
+Added
+- `TpsCamera` (`scripts/systems/camera/tps_camera.gd`), ported from ADT's
+  on-foot camera without view toggle, lock-on, aim or lean: captured mouse
+  look, follow smoothing, sprint pull-back, movement lead, sphere-cast wall
+  clamp. New: eight rods plus a ceiling ray judge how open the space is and
+  ease the boom between 1.2 m (doorways, rooms) and 3 m (open ground).
+- `InputSystems.get_look_delta()` / `set_look_capture()`; pause frees the mouse.
+
+Changed
+- Movement is camera-relative and Henry turns to face where he walks.
+  `RotationController` and `MouseCursorUI` are removed from the player scene
+  (files kept for reference). `PlayerCamera.gd` deleted; the scene is now
+  `tps_camera.tscn` (node name `PlayerCamera` kept for `World`).
+
+Fixed
+- Interact (E) never reached placeholder pickups, board-up or stove feed: the
+  shape cast hit the `InteractiveArea` itself, which was not counted.
+
 ### 2026-09-23 — #24: existing systems start costing each other
 
 Added
