@@ -68,6 +68,22 @@ Performance choice
 
 ## [Unreleased] — `claudeflow`
 
+### 2026-09-23 — Grey UAL mannequin, backpack placeholder, fonts, menu pointer
+
+Changed
+- Player visual is the Quaternius UAL mannequin from `UAL1_Standard.glb`,
+  painted flat grey; UAL2 clips are added as library `UAL2`. The Henry glbs
+  (`henry_ual`, `henry_test_model`) and their hidden nodes are removed.
+- A box on `spine_03` stands in for the backpack.
+
+Added
+- CGF Locust Resistance font from ADT with its licence note; font table in
+  `docs/THIRD_PARTY_NOTICES.md`. BlackRock stays ADT-only.
+
+Fixed
+- Quitting to the title left the mouse captured: releasing look capture now
+  always shows the pointer, and the title menu releases it on open.
+
 ### 2026-09-23 — Debugger warnings cleaned
 
 Changed

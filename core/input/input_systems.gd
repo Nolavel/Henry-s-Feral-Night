@@ -232,8 +232,13 @@ func get_look_delta() -> Vector2:
 
 
 ## A mouse-look camera asks for the pointer; menus get it back while open.
+## Releasing always shows the pointer, so a title menu reached from a game has one.
 func set_look_capture(active: bool) -> void:
 	_look_capture = active
+	_look_accum = Vector2.ZERO
+	if not active:
+		Input.mouse_mode = Input.MOUSE_MODE_VISIBLE
+		return
 	_apply_mouse_mode()
 
 

@@ -82,3 +82,17 @@ recorded in [`technical/PORTED_FROM_ADT.md`](technical/PORTED_FROM_ADT.md).
   collision, rare foreground flakes and render-only high-wind velocity stretch.
   The source shader's autonomous wind range/change and vortex are not used.
 
+
+## Fonts
+
+| Font | Author | Licence | Files |
+|---|---|---|---|
+| Averia Libre | © 2011 Dan Sayers | SIL Open Font License 1.1 | `assets/fonts/Averia Libre …/OFL.txt` |
+| IM Fell English SC | © 2010 Igino Marini | SIL Open Font License 1.1 | `assets/fonts/IM Fell English SC/OFL.txt` |
+| Special Elite | © 2011 Astigmatic (AOETI) | Apache License 2.0 | `assets/fonts/Special Elite/LICENSE.txt` |
+| CGF Locust Resistance | Chris Garrett | Free for personal and commercial use | `assets/fonts/CGF Locust Resistance/LICENSE.txt` |
+
+CGF Locust Resistance came over from `Nolavel/ADT` (same copyright holder and
+permission as the port above); ADT's `docs/CREDITS.md` records its licence.
+ADT's BlackRock is a project-only typeface and was deliberately not brought over.
+OFL and Apache-2.0 notices must ship with builds.

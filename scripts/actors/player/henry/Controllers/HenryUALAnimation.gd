@@ -29,6 +29,18 @@ const SPRINT_ALIASES: Array[StringName] = [&"Sprint_Loop", &"Sprint"]
 
 @export_group("Visual")
 @export var portrait_render_layers: int = 16
+## Flat colour for the placeholder mannequin until Henry has a final model.
+@export var body_color: Color = Color(0.55, 0.56, 0.58)
+## Second UAL clip set, added to the player under its own library name.
+@export var secondary_library_scene: PackedScene
+@export var secondary_library_name: StringName = &"UAL2"
+
+@export_group("Backpack placeholder")
+@export var backpack_bone: StringName = &"spine_03"
+@export var backpack_size: Vector3 = Vector3(0.34, 0.44, 0.2)
+## Offset from the bone in model space; the mannequin faces +Z, so back is -Z.
+@export var backpack_offset: Vector3 = Vector3(0.0, 0.0, -0.2)
+@export var backpack_color: Color = Color(0.36, 0.33, 0.28)
 
 @onready var player: CharacterBody3D = get_parent() as CharacterBody3D
 @onready var model: Node = $Model
@@ -62,7 +74,10 @@ func _ready() -> void:
 	else:
 		print("Henry UAL skeleton ready: %d bones" % skeleton.get_bone_count())
 
+	_paint_body()
+	_attach_backpack()
 	_make_animation_library_local()
+	_add_secondary_library()
 	_setup_animation_tree()
 
 
@@ -108,6 +123,58 @@ func _make_animation_library_local() -> void:
 	var local_library := source_library.duplicate(true) as AnimationLibrary
 	animation_player.remove_animation_library(&"")
 	animation_player.add_animation_library(&"", local_library)
+
+
+func _add_secondary_library() -> void:
+	if secondary_library_scene == null or animation_player.has_animation_library(secondary_library_name):
+		return
+	var source: Node = secondary_library_scene.instantiate()
+	var source_player: AnimationPlayer = _find_animation_player(source)
+	if source_player != null and source_player.has_animation_library(&""):
+		var library := source_player.get_animation_library(&"").duplicate(true) as AnimationLibrary
+		animation_player.add_animation_library(secondary_library_name, library)
+	source.free()
+
+
+func _paint_body() -> void:
+	var material := StandardMaterial3D.new()
+	material.albedo_color = body_color
+	material.roughness = 0.85
+	_override_materials(model, material)
+
+
+func _override_materials(node: Node, material: Material) -> void:
+	if node is MeshInstance3D:
+		(node as MeshInstance3D).material_override = material
+	for child: Node in node.get_children():
+		_override_materials(child, material)
+
+
+## A box on the upper spine standing in for the pack until it has a mesh.
+func _attach_backpack() -> void:
+	if skeleton == null:
+		return
+	var bone: int = skeleton.find_bone(backpack_bone)
+	if bone < 0:
+		push_warning("HenryUALAnimation: no bone %s for the backpack." % backpack_bone)
+		return
+	var attachment := BoneAttachment3D.new()
+	attachment.name = "BackpackAttachment"
+	attachment.bone_name = backpack_bone
+	skeleton.add_child(attachment)
+	var box := BoxMesh.new()
+	box.size = backpack_size
+	var material := StandardMaterial3D.new()
+	material.albedo_color = backpack_color
+	material.roughness = 0.9
+	box.material = material
+	var pack := MeshInstance3D.new()
+	pack.name = "Backpack"
+	pack.mesh = box
+	pack.layers = portrait_render_layers
+	var rest: Transform3D = skeleton.get_bone_global_rest(bone)
+	pack.transform = rest.affine_inverse() * Transform3D(Basis.IDENTITY, rest.origin + backpack_offset)
+	attachment.add_child(pack)
 
 
 ## ADT convention: build the complete graph in code. No editor-authored
