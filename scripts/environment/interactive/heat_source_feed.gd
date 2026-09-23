@@ -41,9 +41,9 @@ func _ready() -> void:
 	set_description("")
 
 
-## Only offers itself when feeding would actually do something.
+## Offers itself while the fire can take fuel; a missing item is said on F.
 func can_interact() -> bool:
-	return super() and can_feed() == Refusal.NONE
+	return super() and heat_source != null and heat_source.can_refuel()
 
 
 ## Whether the fire can be fed right now, without feeding it.
@@ -86,7 +86,9 @@ func feed() -> Refusal:
 
 
 func _on_interaction_performed() -> void:
-	feed()
+	var refusal: Refusal = feed()
+	if refusal != Refusal.NONE:
+		show_message(tr(describe_refusal(refusal)))
 
 
 ## Names a refusal as a localisation key, never as a hardcoded sentence.

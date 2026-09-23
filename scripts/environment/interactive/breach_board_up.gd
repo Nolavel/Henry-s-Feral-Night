@@ -9,6 +9,8 @@ signal breach_boarded(breach: ShelterBreach)
 ## Emitted when the player has nothing to board it with.
 signal repair_refused(missing_item_id: StringName)
 
+const REFUSED_KEY: String = "BREACH_REFUSED_NO_BOARDS"
+
 @export_group("Breach")
 ## The hole this prompt repairs. Defaults to a ShelterBreach sibling or parent.
 @export var breach: ShelterBreach
@@ -41,11 +43,9 @@ func _on_interaction_performed() -> void:
 	var cost: StringName = breach.repair_item_id
 	if cost != &"":
 		var inventory: InventoryComponent = _get_inventory()
-		if inventory == null or not inventory.has_item(cost):
+		if inventory == null or not inventory.has_item(cost) or not inventory.try_remove(cost):
 			repair_refused.emit(cost)
-			return
-		if not inventory.try_remove(cost):
-			repair_refused.emit(cost)
+			show_message(tr(REFUSED_KEY))
 			return
 	if breach.board_up():
 		breach_boarded.emit(breach)

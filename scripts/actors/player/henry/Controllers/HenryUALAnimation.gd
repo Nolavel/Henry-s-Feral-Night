@@ -29,6 +29,37 @@ const SPRINT_ALIASES: Array[StringName] = [&"Sprint_Loop", &"Sprint"]
 
 @export_group("Visual")
 @export var portrait_render_layers: int = 16
+## Flat colour for the placeholder mannequin until Henry has a final model.
+@export var body_color: Color = Color(0.55, 0.56, 0.58)
+## Second UAL clip set, added to the player under its own library name.
+@export var secondary_library_scene: PackedScene
+@export var secondary_library_name: StringName = &"UAL2"
+
+@export_group("Head look")
+## Bone the procedural look turns; ADT's head look, on the UAL rig.
+@export var head_bone: StringName = &"Head"
+## Side-to-side head turn each way from straight ahead, degrees.
+@export var head_look_primary_limit_deg: float = 55.0
+## The UAL head's rest pose is yawed off the body; this re-centres the limit.
+@export var head_rest_yaw_offset_deg: float = 13.0
+@export var head_look_secondary_limit_deg: float = 45.0
+@export var head_look_duration: float = 0.25
+## Below this speed Henry counts as standing and the head follows the camera, m/s.
+@export var head_look_idle_speed: float = 0.15
+## How fast the look marker chases its point, and the influence fade per second.
+@export var head_look_smooth: float = 8.0
+@export var head_look_fade_speed: float = 4.0
+## Distance the look point is held at, metres.
+@export var head_look_distance: float = 5.0
+## Head forward axis in bone space; flip it if the head looks sideways or back.
+@export var head_forward_axis: SkeletonModifier3D.BoneAxis = SkeletonModifier3D.BONE_AXIS_PLUS_Z
+
+@export_group("Backpack placeholder")
+@export var backpack_bone: StringName = &"spine_03"
+@export var backpack_size: Vector3 = Vector3(0.34, 0.44, 0.2)
+## Offset from the bone in model space; the mannequin faces +Z, so back is -Z.
+@export var backpack_offset: Vector3 = Vector3(0.0, 0.0, -0.2)
+@export var backpack_color: Color = Color(0.36, 0.33, 0.28)
 
 @onready var player: CharacterBody3D = get_parent() as CharacterBody3D
 @onready var model: Node = $Model
@@ -36,6 +67,13 @@ const SPRINT_ALIASES: Array[StringName] = [&"Sprint_Loop", &"Sprint"]
 var animation_player: AnimationPlayer
 var skeleton: Skeleton3D
 var animation_tree: AnimationTree
+
+## Placeholder meshes a garment names in GarmentData.mesh_node_name.
+var _garment_meshes: Dictionary = {}
+var _equipment: EquipmentComponent
+var _head_lookat: LookAtModifier3D
+var _head_target: Node3D
+var _head_influence: float = 0.0
 
 var _blend_position: float = 0.0
 var _resolved_idle: StringName = &""
@@ -62,7 +100,12 @@ func _ready() -> void:
 	else:
 		print("Henry UAL skeleton ready: %d bones" % skeleton.get_bone_count())
 
+	_paint_body()
+	_attach_backpack()
+	_bind_equipment()
+	_setup_head_look()
 	_make_animation_library_local()
+	_add_secondary_library()
 	_setup_animation_tree()
 
 
@@ -84,6 +127,57 @@ func update_animation_blend(_delta: float) -> void:
 		_blend_position = 0.0
 
 	animation_tree.set("parameters/locomotion/blend_position", _blend_position)
+
+
+## ADT head look: standing, the head eases toward where the camera looks;
+## moving, the clips own the head and the look fades out.
+func update_head_look(delta: float) -> void:
+	if _head_lookat == null or player == null:
+		return
+	var planar_speed: float = Vector2(player.velocity.x, player.velocity.z).length()
+	var want: bool = planar_speed < head_look_idle_speed and player.has_method(&"get_view_direction")
+	var eye: Vector3 = _head_bone_position()
+	var direction: Vector3 = -player.global_transform.basis.z
+	if want:
+		direction = player.call(&"get_view_direction")
+	direction.y = 0.0
+	var target: Vector3 = eye + direction.normalized() * head_look_distance
+	if want and _head_influence <= 0.001:
+		_head_target.global_position = target
+	else:
+		_head_target.global_position = _head_target.global_position.lerp(target, clampf(delta * head_look_smooth, 0.0, 1.0))
+	_head_influence = move_toward(_head_influence, 1.0 if want else 0.0, delta * head_look_fade_speed)
+	_head_lookat.influence = _head_influence
+	_head_lookat.active = _head_influence > 0.001
+
+
+func _setup_head_look() -> void:
+	if skeleton == null or skeleton.find_bone(head_bone) < 0:
+		push_warning("HenryUALAnimation: no %s bone, head look disabled." % head_bone)
+		return
+	_head_target = Node3D.new()
+	_head_target.name = "HeadLookTarget"
+	add_child(_head_target)
+	_head_lookat = LookAtModifier3D.new()
+	_head_lookat.name = "HeadLook"
+	skeleton.add_child(_head_lookat)
+	_head_lookat.bone_name = head_bone
+	_head_lookat.forward_axis = head_forward_axis
+	## ADT: the flag is use_angle_limitation, and it needs explicit limits and duration.
+	_head_lookat.use_angle_limitation = true
+	_head_lookat.symmetry_limitation = false
+	_head_lookat.primary_positive_limit_angle = deg_to_rad(head_look_primary_limit_deg + head_rest_yaw_offset_deg)
+	_head_lookat.primary_negative_limit_angle = deg_to_rad(head_look_primary_limit_deg - head_rest_yaw_offset_deg)
+	_head_lookat.secondary_limit_angle = deg_to_rad(head_look_secondary_limit_deg)
+	_head_lookat.duration = head_look_duration
+	_head_lookat.target_node = _head_lookat.get_path_to(_head_target)
+	_head_lookat.influence = 0.0
+	_head_lookat.active = false
+
+
+func _head_bone_position() -> Vector3:
+	var bone: int = skeleton.find_bone(head_bone)
+	return (skeleton.global_transform * skeleton.get_bone_global_pose(bone)).origin
 
 
 func get_locomotion_blend_position() -> float:
@@ -108,6 +202,82 @@ func _make_animation_library_local() -> void:
 	var local_library := source_library.duplicate(true) as AnimationLibrary
 	animation_player.remove_animation_library(&"")
 	animation_player.add_animation_library(&"", local_library)
+
+
+func _add_secondary_library() -> void:
+	if secondary_library_scene == null or animation_player.has_animation_library(secondary_library_name):
+		return
+	var source: Node = secondary_library_scene.instantiate()
+	var source_player: AnimationPlayer = _find_animation_player(source)
+	if source_player != null and source_player.has_animation_library(&""):
+		var library := source_player.get_animation_library(&"").duplicate(true) as AnimationLibrary
+		animation_player.add_animation_library(secondary_library_name, library)
+	source.free()
+
+
+func _paint_body() -> void:
+	var material := StandardMaterial3D.new()
+	material.albedo_color = body_color
+	material.roughness = 0.85
+	_override_materials(model, material)
+
+
+func _override_materials(node: Node, material: Material) -> void:
+	if node is MeshInstance3D:
+		(node as MeshInstance3D).material_override = material
+	for child: Node in node.get_children():
+		_override_materials(child, material)
+
+
+## A box on the upper spine standing in for the pack until it has a mesh.
+func _attach_backpack() -> void:
+	if skeleton == null:
+		return
+	var bone: int = skeleton.find_bone(backpack_bone)
+	if bone < 0:
+		push_warning("HenryUALAnimation: no bone %s for the backpack." % backpack_bone)
+		return
+	var attachment := BoneAttachment3D.new()
+	attachment.name = "BackpackAttachment"
+	attachment.bone_name = backpack_bone
+	skeleton.add_child(attachment)
+	var box := BoxMesh.new()
+	box.size = backpack_size
+	var material := StandardMaterial3D.new()
+	material.albedo_color = backpack_color
+	material.roughness = 0.9
+	box.material = material
+	var pack := MeshInstance3D.new()
+	pack.name = "Backpack"
+	pack.mesh = box
+	pack.layers = portrait_render_layers
+	var rest: Transform3D = skeleton.get_bone_global_rest(bone)
+	pack.transform = rest.affine_inverse() * Transform3D(Basis.IDENTITY, rest.origin + backpack_offset)
+	pack.visible = false
+	attachment.add_child(pack)
+	_garment_meshes[StringName(pack.name)] = pack
+
+
+## Shows a garment's mesh only while that garment is worn.
+func _bind_equipment() -> void:
+	if player == null:
+		return
+	_equipment = player.get_node_or_null(^"EquipmentComponent") as EquipmentComponent
+	if _equipment == null:
+		return
+	_equipment.slot_changed.connect(func(_path: StringName, _item: StringName) -> void: refresh_garment_meshes())
+	refresh_garment_meshes()
+
+
+func refresh_garment_meshes() -> void:
+	var worn: Dictionary = {}
+	if _equipment != null and _equipment.layout != null:
+		for slot: EquipmentSlotDefinition in _equipment.layout.body_slots:
+			var item: ItemResource = ItemCatalog.get_item(_equipment.get_equipped(slot.id))
+			if item != null and item.garment != null and item.garment.mesh_node_name != &"":
+				worn[item.garment.mesh_node_name] = true
+	for mesh_name: StringName in _garment_meshes:
+		(_garment_meshes[mesh_name] as Node3D).visible = worn.has(mesh_name)
 
 
 ## ADT convention: build the complete graph in code. No editor-authored

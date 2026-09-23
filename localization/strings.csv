@@ -27,3 +27,10 @@ WEATHER_WINDY,Windy,Ветер
 WEATHER_SNOWFALL,Snowfall,Снегопад
 WEATHER_BLIZZARD,Blizzard,Буря
 FEED_PROMPT,Light or feed the stove,Разжечь или подкинуть в печь
+INTERACT_PUSH,Push,Толкнуть
+INTERACT_PICKUP,Pick up,Подобрать
+INTERACT_PRESS,Press,Нажать
+INTERACT_OPEN,Open,Открыть
+INTERACT_USE,Use,Использовать
+BREACH_REFUSED_NO_BOARDS,You need boards,Нужны доски
+PICKUP_REFUSED_TOO_HEAVY,Too heavy to carry,Слишком тяжело нести

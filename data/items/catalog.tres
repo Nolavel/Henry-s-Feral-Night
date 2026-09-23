@@ -1,8 +1,9 @@
-[gd_resource type="Resource" script_class="ItemCatalog" load_steps=12 format=3]
+[gd_resource type="Resource" script_class="ItemCatalog" format=3]
 
 [ext_resource type="Script" path="res://core/items/item_catalog.gd" id="catalog"]
 [ext_resource type="Resource" path="res://data/items/worn_coat.tres" id="worn_coat"]
 [ext_resource type="Resource" path="res://data/items/knit_hat.tres" id="knit_hat"]
+[ext_resource type="Resource" path="res://data/items/backpack.tres" id="backpack"]
 [ext_resource type="Resource" path="res://data/items/work_trousers.tres" id="work_trousers"]
 [ext_resource type="Resource" path="res://data/items/worn_boots.tres" id="worn_boots"]
 [ext_resource type="Resource" path="res://data/items/tinned_stew.tres" id="tinned_stew"]
@@ -14,4 +15,4 @@
 
 [resource]
 script = ExtResource("catalog")
-items = [ExtResource("worn_coat"), ExtResource("knit_hat"), ExtResource("work_trousers"), ExtResource("worn_boots"), ExtResource("tinned_stew"), ExtResource("empty_tin"), ExtResource("snow_handful"), ExtResource("boards"), ExtResource("firewood"), ExtResource("tinder")]
+items = [ExtResource("worn_coat"), ExtResource("knit_hat"), ExtResource("work_trousers"), ExtResource("worn_boots"), ExtResource("tinned_stew"), ExtResource("empty_tin"), ExtResource("snow_handful"), ExtResource("boards"), ExtResource("firewood"), ExtResource("tinder"), ExtResource("backpack")]

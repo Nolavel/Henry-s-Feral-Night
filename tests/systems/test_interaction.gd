@@ -1,75 +1,102 @@
 extends SceneTree
 
-## The interact key must reach a pickup with no body of its own: the shape cast
-## hits the InteractiveArea itself.
+## InteractComponent: picks the target in front, acts at arm's length, walks
+## over to a farther one, ignores what is behind, survives the item freeing.
 ## Run: godot --headless --script tests/systems/test_interaction.gd
 
 const AREA_SCENE: String = "res://scenes/environment/interactive/InteractiveArea.tscn"
 const PICKUP_SCRIPT: String = "res://scripts/environment/interactive/item_pickup.gd"
-const SETTLE_FRAMES: int = 6
-const AFTER_PICKUP_FRAMES: int = 4
+## A body with the walk contract; the walk arrives at once.
+const WALKER_SOURCE: String = """extends CharacterBody3D
+signal movement_stopped
+func move_to_position(point: Vector3) -> void:
+	global_position = point
+func stop_moving() -> void:
+	movement_stopped.emit()
+"""
 
 var _failures: int = 0
 var _frame: int = 0
-var _pickup: ItemPickup
-var _manager: InteractionManager
+var _player: CharacterBody3D
+var _component: InteractComponent
 var _inventory: InventoryComponent
+var _near: ItemPickup
+var _far: ItemPickup
+var _behind: ItemPickup
 
 
-func _process(_delta: float) -> bool:
+## Stages step on physics frames: detection and the walk both run there.
+func _physics_process(_delta: float) -> bool:
 	_frame += 1
-	if _frame == 1:
-		_build()
-	elif _frame == SETTLE_FRAMES:
-		_check_pickup()
-	elif _frame == SETTLE_FRAMES + AFTER_PICKUP_FRAMES:
-		_finish()
+	match _frame:
+		1:
+			_build()
+		4:
+			_check_near_first()
+		7:
+			_check_far_next()
+		10:
+			_check_after_walk()
+		13:
+			_check_behind_ignored()
+			_finish()
 	return false
 
 
 func _build() -> void:
-	var player := CharacterBody3D.new()
-	player.add_to_group("player")
+	var walker := GDScript.new()
+	walker.source_code = WALKER_SOURCE
+	walker.reload()
+	_player = CharacterBody3D.new()
+	_player.set_script(walker)
+	_player.add_to_group("player")
 	var body_shape := CollisionShape3D.new()
 	body_shape.shape = CapsuleShape3D.new()
-	player.add_child(body_shape)
+	_player.add_child(body_shape)
 	_inventory = InventoryComponent.new()
 	_inventory.max_carry_weight = 60.0
-	player.add_child(_inventory)
+	_player.add_child(_inventory)
+	_component = InteractComponent.new()
+	_player.add_child(_component)
+	root.add_child(_player)
+	_near = _spawn(Vector3(0.0, 0.0, -0.6))
+	_far = _spawn(Vector3(0.3, 0.0, -2.2))
+	_behind = _spawn(Vector3(0.0, 0.0, 2.0))
 
-	_manager = InteractionManager.new()
-	var cast := ShapeCast3D.new()
-	var sphere := SphereShape3D.new()
-	sphere.radius = 2.0
-	cast.shape = sphere
-	cast.target_position = Vector3.ZERO
-	cast.collide_with_areas = true
-	_manager.add_child(cast)
-	_manager.shape_cast = cast
-	_manager.player = player
-	player.add_child(_manager)
-	root.add_child(player)
 
+func _spawn(at: Vector3) -> ItemPickup:
 	var area: Node = (load(AREA_SCENE) as PackedScene).instantiate()
 	area.set_script(load(PICKUP_SCRIPT))
-	_pickup = area as ItemPickup
-	_pickup.item_id = &"firewood"
-	_pickup.position = Vector3(0.5, 0.0, 0.0)
-	root.add_child(_pickup)
+	var pickup := area as ItemPickup
+	pickup.item_id = &"firewood"
+	pickup.position = at
+	root.add_child(pickup)
+	return pickup
 
 
-func _check_pickup() -> void:
-	_check(_pickup.can_interact(), "the pickup is in reach but cannot be interacted with")
-	var press := InputEventAction.new()
-	press.action = &"interact"
-	press.pressed = true
-	_manager._input(press)
-	_check(_inventory.get_count(&"firewood") == 1, "interact did not put the firewood in the pack")
+func _check_near_first() -> void:
+	_check(_component.current_target == _near, "the item at arm's length is not the target")
+	_check(_component.is_target_in_reach(), "the item at 0.6 m is not in reach")
+	_component.try_interact()
+	_check(_inventory.get_count(&"firewood") == 1, "F did not pick up the near item")
 
 
-## Frames after pickup must not touch the freed item.
+func _check_far_next() -> void:
+	_check(_component.current_target == _far, "the item 2.2 m ahead is not the next target")
+	_check(not _component.is_target_in_reach(), "the item 2.2 m ahead counts as in reach")
+	_component.try_interact()
+
+
+func _check_after_walk() -> void:
+	_check(_inventory.get_count(&"firewood") == 2, "Henry did not walk over and pick up the far item")
+
+
+func _check_behind_ignored() -> void:
+	_check(_component.current_target == null, "an item behind Henry was targeted")
+	_check(_inventory.get_count(&"firewood") == 2, "something else was picked up")
+
+
 func _finish() -> void:
-	_check(_manager.detected_areas.is_empty(), "the manager still holds the picked-up item")
 	if _failures > 0:
 		push_error("interaction: %d check(s) failed" % _failures)
 		quit(1)

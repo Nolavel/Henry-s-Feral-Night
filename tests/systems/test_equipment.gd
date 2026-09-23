@@ -26,6 +26,7 @@ func _run() -> void:
 	_test_equipment_survives_a_save_round_trip()
 	_test_weight_gates_the_inventory()
 	_test_clothing_slows_freezing()
+	_test_the_backpack_is_worn_in_the_pack_slot()
 	if _failures > 0:
 		push_error("equipment: %d check(s) failed" % _failures)
 		quit(1)
@@ -57,7 +58,7 @@ func _make_equipment(starters: Array[StringName] = []) -> EquipmentComponent:
 
 
 func _test_the_catalog_resolves_the_shipped_items() -> void:
-	for id: StringName in [&"worn_coat", &"knit_hat", &"work_trousers", &"worn_boots"]:
+	for id: StringName in [&"worn_coat", &"knit_hat", &"work_trousers", &"worn_boots", &"backpack"]:
 		var item: ItemResource = ItemCatalog.get_item(id)
 		_check(item != null, "the catalog does not resolve '%s'" % id)
 		if item != null:
@@ -299,3 +300,25 @@ func _simulate(thermal: ThermalManager, hours: float) -> void:
 		clock = fmod(clock + step, 24.0)
 		thermal._on_time_update(clock)
 		elapsed += step
+
+
+## The pack is a garment: it goes on the pack slot, brings its own
+## compartments, and its box shows on the body only while worn.
+func _test_the_backpack_is_worn_in_the_pack_slot() -> void:
+	var player := CharacterBody3D.new()
+	var equipment := EquipmentComponent.new()
+	equipment.name = "EquipmentComponent"
+	equipment.layout = load(LAYOUT) as EquipmentLayout
+	equipment.starter_garment_ids = [&"backpack"]
+	player.add_child(equipment)
+	var visual := (load("res://scenes/actors/player/HenryUALVisual.tscn") as PackedScene).instantiate() as HenryUALAnimation
+	player.add_child(visual)
+	root.add_child(player)
+	_check(equipment.get_equipped(&"pack") == &"backpack", "the backpack is not in the pack slot")
+	_check(equipment.can_stow(&"pack", &"pack_main", &"firewood") == EquipmentComponent.Refusal.NONE,
+		"firewood does not fit the main compartment")
+	var pack := visual.find_child("Backpack", true, false) as Node3D
+	_check(pack != null and pack.visible, "the backpack box is not shown while worn")
+	equipment.unequip(&"pack")
+	_check(pack != null and not pack.visible, "the backpack box still shows after taking it off")
+	_dispose(player)

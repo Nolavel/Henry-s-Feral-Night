@@ -96,6 +96,103 @@ Performance choice
 
 ## [Unreleased] — `claudeflow`
 
+### 2026-09-23 — ADT head look; shelter edge signal for the colour grade
+
+Added
+- ADT's procedural head look on the UAL mannequin: standing, the `Head` bone
+  eases toward where the camera looks (up to 55° each way); walking, the clips
+  own the head and the look fades out. The UAL head rests ~13° off the body,
+  so the limits are asymmetric to make the turn equal both ways.
+  `test_head_look.gd` measures the turn through a BoneAttachment3D.
+- `ThermalManager.sheltered_changed(is_sheltered)`: one edge per real change
+  of being inside an interior zone, for #31's LUT switch.
+
+### 2026-09-23 — Smart camera against walls
+
+Fixed
+- With Henry's back to a wall, turning the camera into it put the camera
+  through the wall: the ADT 0.7 m minimum boom overrode the wall probe.
+
+Added
+- Wall assist in `TpsCamera`: when the boom behind Henry lacks ~0.9 m, it
+  searches angles along the wall (up to 90°) and a little above (up to 30°),
+  judging each by where the camera would really sit (shoulder shift and wall
+  clearance included), and glides there; it glides back once the mouse angle
+  has room. It keeps the side it chose so it does not flip.
+- The camera goal is cleared of walls before the follow, and the post-contact
+  restore is faster (5.0), so a sweep along a wall does not leave the camera
+  hugging the head. As a last resort only, the main camera stops drawing the
+  body when closer than 0.3 m to the eyes (the HUD portrait is unaffected).
+- `test_tps_camera_orbit.gd`: back to a wall, a full 360° mouse sweep never
+  enters the wall, never settles closer than 0.55 m and never hides Henry.
+
+### 2026-09-23 — Camera in tight spaces; the backpack is an item
+
+Changed
+- `TpsCamera`: the shoulder offset shrinks with the boom (to 20% in the
+  tightest space), a side sphere cast keeps the shoulder/lean shift out of a
+  wall beside Henry, the near boom is 0.95 m and closing in is softer (2.5).
+
+Added
+- `backpack` item: a garment for the `pack` slot with a BULKY main
+  compartment and a lid pocket, worn from the start. `GarmentData.mesh_node_name`
+  now drives the body: the pack box shows only while the backpack is worn.
+
+Fixed
+- Interaction and camera tests stepped on idle frames and could miss physics
+  ticks under load; they now step on physics frames.
+
+### 2026-09-23 — Cursor ring carries stamina again
+
+Fixed
+- The ADT ring port had dropped this project's movement dot, stamina-coloured
+  sprint arcs and jump-charge arc; they are back around the centre ring.
+
+### 2026-09-23 — Interaction ported from ADT; cursor ring back
+
+Added
+- `InteractComponent` (ADT): a focus cast ahead, then a 2.5 m / 240° intent
+  cone pick the target; F acts within 0.9 m, otherwise Henry walks over and
+  acts on arrival (WASD cancels). Replaces `InteractionManager`.
+- `Player.move_to_position()` / `stop_moving()` / `movement_stopped`.
+- ADT's dynamic cursor ring at screen centre, brightening over interactables.
+- Refusals are said on the object: no boards, no firewood/tinder, too heavy.
+
+Changed
+- `InteractiveArea` visuals are driven by the component: marker when targeted
+  far, prompt and ground ring within 2 m. `can_interact()` now means only
+  "offers itself"; the stove stays targetable while it can take fuel.
+- Prompt text is localised and shows the bound key.
+
+### 2026-09-23 — TPS camera: the rest of ADT's framing; ADT key layout
+
+Added
+- Over-the-shoulder framing from ADT: 0.85 m shoulder offset split 60/40
+  between lens shift and camera move, Z swaps shoulders (`TpsShoulderState`).
+- Q/E lean of the camera, breathing sway on pitch, ADT lead smoothing and
+  start pitch. Pivot and probes use ADT body ratios from the feet, not the
+  capsule centre (the old pivot sat a metre too high).
+
+Changed
+- Keys follow ADT: interact F, lean Q/E, shoulder Z; flashlight moved to L;
+  unused `use_ability_henry` action removed.
+
+### 2026-09-23 — Grey UAL mannequin, backpack placeholder, fonts, menu pointer
+
+Changed
+- Player visual is the Quaternius UAL mannequin from `UAL1_Standard.glb`,
+  painted flat grey; UAL2 clips are added as library `UAL2`. The Henry glbs
+  (`henry_ual`, `henry_test_model`) and their hidden nodes are removed.
+- A box on `spine_03` stands in for the backpack.
+
+Added
+- CGF Locust Resistance font from ADT with its licence note; font table in
+  `docs/THIRD_PARTY_NOTICES.md`. BlackRock stays ADT-only.
+
+Fixed
+- Quitting to the title left the mouse captured: releasing look capture now
+  always shows the pointer, and the title menu releases it on open.
+
 ### 2026-09-23 — Debugger warnings cleaned
 
 Changed
