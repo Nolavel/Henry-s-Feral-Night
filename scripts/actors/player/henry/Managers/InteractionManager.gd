@@ -32,6 +32,10 @@ func _physics_process(_delta: float) -> void:
 			if area and area not in new_areas:
 				new_areas.append(area)
 				
+	## A picked-up item frees itself; drop it before touching the list.
+	for i: int in range(detected_areas.size() - 1, -1, -1):
+		if not is_instance_valid(detected_areas[i]):
+			detected_areas.remove_at(i)
 	# Обновляем состояния областей
 	for area in detected_areas:
 		if area not in new_areas:

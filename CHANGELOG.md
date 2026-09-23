@@ -68,6 +68,12 @@ Performance choice
 
 ## [Unreleased] — `claudeflow`
 
+### 2026-09-23 — Picked-up items no longer crash the interaction scan
+
+Fixed
+- `InteractionManager` kept a freed pickup in `detected_areas` and errored
+  every physics frame after a pickup; freed areas are now dropped first.
+
 ### 2026-09-23 — TPS camera replaces the cursor camera; pickups fixed
 
 Added
