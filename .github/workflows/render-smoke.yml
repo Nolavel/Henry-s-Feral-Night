@@ -29,6 +29,32 @@ jobs:
       - name: Render smoke scene
         run: tools/ci/render.sh res://tools/ci/render_smoke.tscn user://shots/smoke.png 25
 
+      - name: Record Claude snow walk
+        if: github.ref == 'refs/heads/codex'
+        run: |
+          export PATH="$HOME/.local/bin:$PATH"
+          export VK_DRIVER_FILES="${VK_DRIVER_FILES:-/usr/share/vulkan/icd.d/lvp_icd.json}"
+          export XDG_RUNTIME_DIR="${XDG_RUNTIME_DIR:-/tmp/xdg}"
+          mkdir -p "$XDG_RUNTIME_DIR"
+          xvfb-run -a godot \
+            --path . \
+            --rendering-driver vulkan \
+            --rendering-method forward_plus \
+            --audio-driver Dummy \
+            --script tools/runtime/capture_snow_walk_video.gd
+          command -v ffmpeg >/dev/null 2>&1 || sudo apt-get install -y -qq ffmpeg
+          ffmpeg -y \
+            -framerate 15 \
+            -start_number 0 \
+            -i artifacts/snow_walk_video/frames/frame_%04d.jpg \
+            -c:v libx264 \
+            -preset medium \
+            -crf 20 \
+            -pix_fmt yuv420p \
+            -movflags +faststart \
+            artifacts/snow_walk_video/henry_snow_walk_20s.mp4
+          rm -rf artifacts/snow_walk_video/frames
+
       - name: Collect renders
         if: always()
         run: |
