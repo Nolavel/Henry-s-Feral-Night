@@ -12,6 +12,7 @@ signal pickup_refused(item_id: StringName)
 ## Stand-in shape and colour for items that have no mesh of their own yet.
 const PLACEHOLDER_SIZE: Vector3 = Vector3(0.32, 0.16, 0.22)
 const PLACEHOLDER_COLOR: Color = Color(0.42, 0.3, 0.2)
+const TOO_HEAVY_KEY: String = "PICKUP_REFUSED_TOO_HEAVY"
 
 @export_group("Item")
 ## Catalog id of what lies here.
@@ -27,6 +28,7 @@ func _ready() -> void:
 	## is invisible and unhighlighted, so a placeholder crate stands in.
 	if interactive_mesh == null:
 		interactive_mesh = _make_placeholder()
+	interaction_type = InteractionType.PICKUP
 	super()
 	var item: ItemResource = ItemCatalog.get_item(item_id)
 	if item != null:
@@ -48,6 +50,7 @@ func pick_up() -> bool:
 		return false
 	if inventory.get_total_weight() + item.weight * float(count) > inventory.max_carry_weight:
 		pickup_refused.emit(item_id)
+		show_message(tr(TOO_HEAVY_KEY))
 		return false
 	for i: int in range(count):
 		inventory.try_add(item)

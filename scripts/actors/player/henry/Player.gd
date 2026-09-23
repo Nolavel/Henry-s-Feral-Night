@@ -2,9 +2,11 @@
 extends CharacterBody3D
 class_name Player
 
+## Emitted when a scripted walk ends: arrived, stopped, or taken over by WASD.
+signal movement_stopped
+
 # === КОМПОНЕНТЫ ===
 @onready var movement: MovementController = $MovementController
-@onready var interactiom_manager: InteractionManager = $InteractionManager
 @onready var animation_component: HenryUALAnimation = $HenryUALVisual
 
 # === ПАРАМЕТРЫ ДВИЖЕНИЯ, оставшиеся для управления движком ===
@@ -18,6 +20,10 @@ class_name Player
 var cam_jump_hold_active: bool = false
 var cam_jump_release_fired: bool = false
 var cam_landed_this_frame: bool = false
+
+## Point a scripted walk heads for, e.g. InteractComponent's approach.
+var _walk_target: Vector3 = Vector3.ZERO
+var _walking_to_target: bool = false
 
 # === Служебные переменные ===
 var _was_on_floor_for_cam: bool = false
@@ -46,6 +52,12 @@ func _physics_process(delta: float) -> void:
 	
 	## Input is camera-relative; movement still takes it in Henry's own frame.
 	var world_dir: Vector3 = _camera_relative(input_dir)
+	if _walking_to_target:
+		if world_dir != Vector3.ZERO:
+			stop_moving()
+		else:
+			world_dir = _walk_direction()
+			sprint_is_pressed = false
 	_face_towards(world_dir, delta)
 	input_dir = global_transform.basis.orthonormalized().inverse() * world_dir
 
@@ -73,6 +85,32 @@ func _physics_process(delta: float) -> void:
 	_was_on_floor_for_cam = on_floor_now
 	cam_jump_hold_active = on_floor_now and jump_is_pressed
 	cam_jump_release_fired = movement.get_jump_release_fired()
+
+
+## Starts a walk to a point; WASD takes control back at once.
+func move_to_position(point: Vector3) -> void:
+	_walk_target = point
+	_walking_to_target = true
+
+
+func stop_moving() -> void:
+	if not _walking_to_target:
+		return
+	_walking_to_target = false
+	movement_stopped.emit()
+
+
+func is_walking_to_target() -> bool:
+	return _walking_to_target
+
+
+func _walk_direction() -> Vector3:
+	var offset: Vector3 = _walk_target - global_position
+	offset.y = 0.0
+	if offset.length() < 0.05:
+		stop_moving()
+		return Vector3.ZERO
+	return offset.normalized()
 
 
 ## Turns a local WASD vector into a world direction by the active camera yaw.

@@ -3,7 +3,8 @@
 [ext_resource type="Script" uid="uid://b50rnmqk3m8fr" path="res://scripts/actors/player/henry/Player.gd" id="1_irk3a"]
 [ext_resource type="Texture2D" uid="uid://b1vpe3iqs2wgh" path="res://assets/textures/player_test/player/SUIT_albedo.jpeg" id="2_cat03"]
 [ext_resource type="PackedScene" uid="uid://cmt2el3xqdir5" path="res://scenes/ui/hud/bars/InGameUI.tscn" id="2_kqf2x"]
-[ext_resource type="Script" uid="uid://eqxhilyjvx0p" path="res://scripts/actors/player/henry/Managers/InteractionManager.gd" id="3_4fuql"]
+[ext_resource type="Script" path="res://scripts/actors/player/henry/components/interact_component.gd" id="3_4fuql"]
+[ext_resource type="PackedScene" uid="uid://wxp413rki005" path="res://scenes/ui/hud/dynamic_cursor/mouse_cursor_ui.tscn" id="49_cursor"]
 [ext_resource type="Texture2D" uid="uid://dxtpqu5g4coku" path="res://assets/textures/player_test/player/SUIT_roughness.jpeg" id="3_7i6t6"]
 [ext_resource type="Texture2D" uid="uid://bm5av7swjwdh0" path="res://assets/textures/player_test/player/SUIT_AO.jpeg" id="3_msxka"]
 [ext_resource type="Texture2D" uid="uid://dnqgepa528k5j" path="res://assets/textures/player_test/player/SUIT_metallic.jpeg" id="4_sn63g"]
@@ -1236,9 +1237,6 @@ ao_texture = ExtResource("9_shibf")
 
 [sub_resource type="CylinderShape3D" id="CylinderShape3D_0w3ce"]
 
-[sub_resource type="SphereShape3D" id="SphereShape3D_cxwvb"]
-radius = 2.0
-
 [sub_resource type="Environment" id="Environment_edegv"]
 
 [sub_resource type="ShaderMaterial" id="ShaderMaterial_0owi0"]
@@ -2285,16 +2283,8 @@ shape = SubResource("CylinderShape3D_0w3ce")
 transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 0, 0, -1)
 gizmo_extents = 1.0
 
-[node name="InteractionManager" type="Node3D" parent="." node_paths=PackedStringArray("player", "shape_cast")]
-transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 0, 0, -2)
+[node name="InteractComponent" type="Node3D" parent="."]
 script = ExtResource("3_4fuql")
-player = NodePath("..")
-shape_cast = NodePath("ShapeCast3D")
-
-[node name="ShapeCast3D" type="ShapeCast3D" parent="InteractionManager"]
-shape = SubResource("SphereShape3D_cxwvb")
-target_position = Vector3(0, 0, 0)
-collide_with_areas = true
 
 [node name="MovementController" type="Node3D" parent="." node_paths=PackedStringArray("stamina_manager")]
 script = ExtResource("5_ep65o")
@@ -2666,3 +2656,4 @@ expand_mode = 2
 stretch_mode = 5
 flip_h = true
 
+[node name="MouseCursorUI" parent="." instance=ExtResource("49_cursor")]

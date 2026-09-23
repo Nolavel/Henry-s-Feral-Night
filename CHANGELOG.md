@@ -68,6 +68,22 @@ Performance choice
 
 ## [Unreleased] — `claudeflow`
 
+### 2026-09-23 — Interaction ported from ADT; cursor ring back
+
+Added
+- `InteractComponent` (ADT): a focus cast ahead, then a 2.5 m / 240° intent
+  cone pick the target; F acts within 0.9 m, otherwise Henry walks over and
+  acts on arrival (WASD cancels). Replaces `InteractionManager`.
+- `Player.move_to_position()` / `stop_moving()` / `movement_stopped`.
+- ADT's dynamic cursor ring at screen centre, brightening over interactables.
+- Refusals are said on the object: no boards, no firewood/tinder, too heavy.
+
+Changed
+- `InteractiveArea` visuals are driven by the component: marker when targeted
+  far, prompt and ground ring within 2 m. `can_interact()` now means only
+  "offers itself"; the stove stays targetable while it can take fuel.
+- Prompt text is localised and shows the bound key.
+
 ### 2026-09-23 — TPS camera: the rest of ADT's framing; ADT key layout
 
 Added
