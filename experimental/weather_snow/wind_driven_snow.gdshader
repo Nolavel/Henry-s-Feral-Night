@@ -2,22 +2,23 @@
 // "Wind Driven Falling Particles" (CC0).
 // Source: https://godotshaders.com/shader/wind-driven-falling-particles-leaves-petals-feathers/
 //
-// The original self-driven wind range/change and vortex are intentionally
-// removed. WeatherController is the single source of wind direction/speed.
+// WeatherController is the only wind authority. Existing particles continuously
+// steer toward the live wind vector, so gusts and direction wander affect flakes
+// already in flight instead of only newly spawned flakes.
 
 shader_type particles;
-render_mode keep_data;
+render_mode keep_data, collision_use_scale;
 
-uniform vec4 color : source_color = vec4(0.94, 0.97, 1.0, 0.92);
-uniform vec3 box_emit_size = vec3(22.0, 2.0, 16.0);
+uniform vec4 color : source_color = vec4(0.94, 0.97, 1.0, 0.96);
+uniform vec3 box_emit_size = vec3(24.0, 1.8, 18.0);
 uniform vec3 wind_velocity = vec3(0.0);
-uniform float fall_speed_min : hint_range(0.1, 5.0, 0.05) = 0.9;
-uniform float fall_speed_max : hint_range(0.1, 5.0, 0.05) = 1.7;
+uniform float fall_speed_min : hint_range(0.1, 5.0, 0.05) = 1.35;
+uniform float fall_speed_max : hint_range(0.1, 5.0, 0.05) = 2.15;
 uniform float turbulence_strength : hint_range(0.0, 4.0, 0.05) = 0.25;
-uniform float drag : hint_range(0.1, 12.0, 0.1) = 3.2;
-uniform float size_min : hint_range(0.1, 2.0, 0.05) = 0.55;
-uniform float size_max : hint_range(0.1, 2.0, 0.05) = 1.25;
-uniform float fade_from : hint_range(0.0, 1.0, 0.01) = 0.82;
+uniform float drag : hint_range(0.1, 12.0, 0.1) = 5.4;
+uniform float size_min : hint_range(0.1, 2.0, 0.05) = 0.62;
+uniform float size_max : hint_range(0.1, 2.0, 0.05) = 1.22;
+uniform float fade_from : hint_range(0.0, 1.0, 0.01) = 0.88;
 
 uint hfn_hash(uint x) {
 	x = ((x >> uint(16)) ^ x) * uint(73244475);
@@ -58,8 +59,6 @@ void start() {
 			(hfn_rand(seed) - 0.5) * box_emit_size.z
 		);
 		TRANSFORM[3].xyz = p;
-		// With GPUParticles3D.local_coords = false, new particles are born in
-		// the emitter's current world transform while older flakes stay behind.
 		TRANSFORM = EMISSION_TRANSFORM * TRANSFORM;
 	}
 
@@ -71,11 +70,11 @@ void start() {
 			hfn_rand(seed) * TAU
 		);
 		vec3 initial_flutter = vec3(
-			(hfn_rand(seed) - 0.5) * 0.4,
+			(hfn_rand(seed) - 0.5) * 0.35,
 			0.0,
-			(hfn_rand(seed) - 0.5) * 0.4
+			(hfn_rand(seed) - 0.5) * 0.35
 		);
-		VELOCITY = wind_velocity * 0.2 + initial_flutter;
+		VELOCITY = wind_velocity * 0.15 + initial_flutter;
 		VELOCITY.y = -USERDATA1.y;
 	}
 
@@ -85,14 +84,23 @@ void start() {
 }
 
 void process() {
+	// Particle colliders are the weather-VFX contact authority. Snow does not
+	// bounce or rest on the floor: it disappears on first contact.
+	if (COLLIDED) {
+		ACTIVE = false;
+		return;
+	}
+
 	USERDATA1.x += DELTA;
 	float normalized_age = clamp(USERDATA1.x / max(LIFETIME, 0.001), 0.0, 1.0);
 
 	float flutter_x = sin(TIME * 2.3 + USERDATA1.z) * turbulence_strength;
 	float flutter_z = cos(TIME * 1.9 + USERDATA1.w) * turbulence_strength;
 	float flutter_y = sin(TIME * 2.7 + USERDATA1.z + USERDATA1.w)
-		* turbulence_strength * 0.12;
+		* turbulence_strength * 0.10;
 
+	// wind_velocity is a live uniform updated every WeatherController tick.
+	// This deliberately steers particles that are already airborne.
 	vec3 target_velocity = wind_velocity + vec3(
 		flutter_x,
 		-USERDATA1.y + flutter_y,

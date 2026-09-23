@@ -15,6 +15,14 @@ Added
 - Source shader autonomous wind and vortex are deliberately removed to avoid
   competing with WeatherController.
 - Capture harness renders all four profiles in one CI run.
+- Square quads were replaced by procedural six-arm snowflake geometry.
+- Test floor and posts use GPUParticles collision boxes; the custom shader kills
+  a flake immediately on COLLIDED instead of bouncing or letting it pass through.
+- Airborne flakes continuously steer toward the live WeatherController vector,
+  and a second snowfall capture is taken later in the same profile to verify
+  direction wander affects already-spawned particles.
+- Strong-wind emission is offset upwind and real m/s is compressed into visual
+  velocity so blizzard density remains visible around the player volume.
 
 ## [Unreleased] — `codex`
 
