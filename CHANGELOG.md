@@ -23,6 +23,11 @@ Added
   direction wander affects already-spawned particles.
 - Strong-wind emission is offset upwind and real m/s is compressed into visual
   velocity so blizzard density remains visible around the player volume.
+- World snowflake geometry is reduced to roughly 1.5–3 cm while a separate
+  96-particle foreground layer keeps only rare 4–8 cm flakes near the camera.
+- A real-island capture now places a 56×28×56 m, 512²
+  GPUParticlesCollisionHeightField3D around Henry with follow-camera updates to
+  verify whether Godot's HeightField collision can see the Terrain3D renderer.
 
 ## [Unreleased] — `codex`
 
