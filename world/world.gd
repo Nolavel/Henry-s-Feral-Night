@@ -35,6 +35,7 @@ const WORLD_SYSTEM_SCRIPTS: Array[GDScript] = [
 	preload("res://scripts/systems/survival/thermal_manager.gd"),
 	preload("res://scripts/systems/survival/shelter_state.gd"),
 	preload("res://scripts/systems/save/sleep_controller.gd"),
+	preload("res://scripts/systems/save/session_state.gd"),
 ]
 
 ## Standalone 3D scenes — instantiate(), parented to StreamContainer.
@@ -43,6 +44,7 @@ const WORLD_3D_ENTITY_SCENES: Array[PackedScene] = []
 ## Screen-space UI scenes — instantiate(), parented to a shared CanvasLayer.
 const WORLD_UI_SCENES: Array[PackedScene] = [
 	preload("res://scenes/ui/hud/sleep_prompt.tscn"),
+	preload("res://scenes/ui/menu/pause_menu.tscn"),
 ]
 
 const UI_CANVAS_LAYER_INDEX: int = 40
