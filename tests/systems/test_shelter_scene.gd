@@ -39,6 +39,15 @@ func _run() -> void:
 		return
 
 	_check(zone.get_breaches().has(breach), "the zone does not know about its window")
+
+	## The shelter shows the weather: its walls and roof carry the snow shader.
+	var roof := shelter.get_node("Walls/Roof") as MeshInstance3D
+	var roof_material := roof.mesh.surface_get_material(0) as ShaderMaterial
+	_check(
+		roof_material != null
+			and roof_material.shader.resource_path == "res://shaders/environment/snow/snow_prop.gdshader",
+		"the shelter roof does not use the snow shader"
+	)
 	_check(not stove.is_burning(), "the stove came lit; a found shelter should start cold")
 	_check(not stove.flame_light.visible, "the flame shows on a dead stove")
 	_check(not breach.boarded_visual.visible, "the boards show on an open window")

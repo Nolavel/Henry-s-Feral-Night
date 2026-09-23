@@ -68,6 +68,26 @@ Performance choice
 
 ## [Unreleased] — `claudeflow`
 
+### 2026-09-23 (12) — Snow step 2: the shared snow and rime surface
+
+Added
+- `shaders/environment/snow/snow_surface.gdshaderinc` — the terrain-agnostic
+  response any spatial material includes. Settled snow on up-facing surfaces,
+  reaching steeper slopes as `snow_cover` rises; rime on steep and vertical
+  faces, patchy, grown by `frost_amount`. Edges are broken up with cheap
+  world-space value noise, so no texture is required.
+- `shaders/environment/snow/snow_prop.gdshader` — a plain base (colour,
+  texture, roughness, metallic) with snow and rime on top, for placeholder
+  geometry now; real assets include the `.gdshaderinc` in their own material.
+- The test shelter's walls and roof use it, so `TestScene` shows the weather.
+
+Fixed along the way
+- Rime first came out as vertical stripes: world XZ noise only varies along one
+  axis on a wall. Frost now samples noise in the wall's own plane.
+
+Tests
+- `test_shelter_scene.gd` checks the shelter carries the snow shader.
+
 ### 2026-09-23 (11) — Snow step 1: the weather → shader contract
 
 Issue #16, Phase A, reassigned to `claudeflow` by the author. Terrain3D is a
