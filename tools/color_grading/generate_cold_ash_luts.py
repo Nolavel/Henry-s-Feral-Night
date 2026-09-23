@@ -42,41 +42,40 @@ def lifted_gamma(channel: float, lift: float, gamma: float) -> float:
     return lift * (1.0 - channel) + math.pow(channel, gamma)
 
 
-def cold_ash_night(rgb: tuple[float, float, float]) -> tuple[float, float, float]:
-    """Street/night grade: darker mids, lifted blacks, restrained cold shadows."""
+def keep_warm(rgb, graded, amount: float):
+    """Blend warm sources (fire, lamps) back toward their own saturation."""
     source_red, _, source_blue = rgb
-    gray = luma(rgb)
-    graded = saturate(rgb, 0.90)
-    graded = tuple(lifted_gamma(channel, 0.012, 1.11) for channel in graded)
+    warm = clamp((source_red - source_blue) * 2.5) * amount
+    return tuple(g + (o - g) * warm for g, o in zip(graded, rgb))
 
-    shadow = math.pow(1.0 - gray, 1.75)
-    warm_source = clamp((source_red - source_blue) * 2.2)
-    warm_highlight = warm_source * math.pow(gray, 1.35)
-    tint = (
-        -0.0035 * shadow + 0.0060 * warm_highlight,
-        0.0010 * shadow + 0.0020 * warm_highlight,
-        0.0045 * shadow - 0.0020 * warm_highlight,
-    )
-    return tuple(clamp(channel + tint[index]) for index, channel in enumerate(graded))
+
+def cold_ash_night(rgb: tuple[float, float, float]) -> tuple[float, float, float]:
+    """Street/night grade: exposure kept, cold graphite-teal shadows, neutral
+    snow, warm sources left warm. The cast lives in the darks, not the whites."""
+    gray = luma(rgb)
+    graded = saturate(rgb, 0.86)
+    graded = tuple(lifted_gamma(channel, 0.012, 1.03) for channel in graded)
+    shadow = math.pow(1.0 - gray, 1.6) * (1.0 - math.pow(gray, 3.0))
+    tint = (-0.024 * shadow, 0.006 * shadow, 0.026 * shadow)
+    graded = tuple(clamp(channel + tint[index]) for index, channel in enumerate(graded))
+    return tuple(clamp(c) for c in keep_warm(rgb, graded, 0.85))
 
 
 def cold_ash_shelter(rgb: tuple[float, float, float]) -> tuple[float, float, float]:
-    """Shelter grade: warm dark/mid interior values, cool bright openings."""
-    source_red, _, source_blue = rgb
+    """Shelter grade: warm, calm darks and mids inside; bright openings (the
+    street through a window) stay cool so outside still reads as cold."""
     gray = luma(rgb)
-    graded = saturate(rgb, 0.92)
-    graded = tuple(lifted_gamma(channel, 0.015, 1.035) for channel in graded)
-
-    interior = math.pow(1.0 - gray, 1.35)
-    exterior_highlight = math.pow(gray, 2.0)
-    warm_source = clamp((source_red - source_blue) * 2.0)
-    warm_retention = warm_source * math.pow(gray, 1.15)
+    graded = saturate(rgb, 0.95)
+    graded = tuple(lifted_gamma(channel, 0.016, 0.98) for channel in graded)
+    interior = math.pow(1.0 - gray, 1.2) * (1.0 - math.pow(gray, 2.0))
+    opening = math.pow(gray, 2.2)
     tint = (
-        0.0100 * interior - 0.0020 * exterior_highlight + 0.0030 * warm_retention,
-        0.0035 * interior + 0.0005 * exterior_highlight + 0.0010 * warm_retention,
-        -0.0065 * interior + 0.0040 * exterior_highlight - 0.0015 * warm_retention,
+        0.030 * interior - 0.008 * opening,
+        0.011 * interior,
+        -0.024 * interior + 0.012 * opening,
     )
-    return tuple(clamp(channel + tint[index]) for index, channel in enumerate(graded))
+    graded = tuple(clamp(channel + tint[index]) for index, channel in enumerate(graded))
+    return tuple(clamp(c) for c in keep_warm(rgb, graded, 0.6))
 
 
 def png_chunk(kind: bytes, payload: bytes) -> bytes:
