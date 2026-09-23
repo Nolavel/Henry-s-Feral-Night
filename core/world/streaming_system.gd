@@ -75,6 +75,10 @@ var _initialized: bool = false
 
 ## The composition root's lifecycle hook.
 func on_world_ready(context: WorldContext) -> void:
+	## A test scene has its own floor; the island's chunks do not belong in it.
+	if not context.streaming_enabled:
+		set_process(false)
+		return
 	initialize(context.stream_container, context.player)
 
 

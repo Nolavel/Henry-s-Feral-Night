@@ -1,0 +1,268 @@
+[gd_scene load_steps=35 format=3]
+
+[ext_resource type="Script" path="res://scripts/systems/survival/thermal_zone.gd" id="zone"]
+
+[ext_resource type="Script" path="res://scripts/systems/survival/shelter_breach.gd" id="breach"]
+
+[ext_resource type="Script" path="res://scripts/systems/survival/heat_source.gd" id="heat"]
+
+[ext_resource type="Script" path="res://scripts/environment/interactive/breach_board_up.gd" id="board"]
+
+[ext_resource type="Script" path="res://scripts/environment/interactive/heat_source_feed.gd" id="feed"]
+
+[ext_resource type="PackedScene" path="res://scenes/environment/interactive/InteractiveArea.tscn" id="ia"]
+
+
+[sub_resource type="StandardMaterial3D" id="wall_mat"]
+albedo_color = Color(0.32, 0.3, 0.28, 1)
+roughness = 0.95
+
+[sub_resource type="StandardMaterial3D" id="board_mat"]
+albedo_color = Color(0.45, 0.32, 0.2, 1)
+
+[sub_resource type="StandardMaterial3D" id="stove_mat"]
+albedo_color = Color(0.08, 0.08, 0.09, 1)
+metallic = 0.6
+
+[sub_resource type="BoxMesh" id="m_WallWestLow"]
+material = SubResource("wall_mat")
+size = Vector3(0.3, 1.0, 6.0)
+
+[sub_resource type="BoxShape3D" id="s_WallWestLow"]
+size = Vector3(0.3, 1.0, 6.0)
+
+[sub_resource type="BoxMesh" id="m_WallWestHigh"]
+material = SubResource("wall_mat")
+size = Vector3(0.3, 0.8, 6.0)
+
+[sub_resource type="BoxShape3D" id="s_WallWestHigh"]
+size = Vector3(0.3, 0.8, 6.0)
+
+[sub_resource type="BoxMesh" id="m_WallWestN"]
+material = SubResource("wall_mat")
+size = Vector3(0.3, 1.2, 2.25)
+
+[sub_resource type="BoxShape3D" id="s_WallWestN"]
+size = Vector3(0.3, 1.2, 2.25)
+
+[sub_resource type="BoxMesh" id="m_WallWestS"]
+material = SubResource("wall_mat")
+size = Vector3(0.3, 1.2, 2.25)
+
+[sub_resource type="BoxShape3D" id="s_WallWestS"]
+size = Vector3(0.3, 1.2, 2.25)
+
+[sub_resource type="BoxMesh" id="m_WallNorth"]
+material = SubResource("wall_mat")
+size = Vector3(6.3, 3.0, 0.3)
+
+[sub_resource type="BoxShape3D" id="s_WallNorth"]
+size = Vector3(6.3, 3.0, 0.3)
+
+[sub_resource type="BoxMesh" id="m_WallSouth"]
+material = SubResource("wall_mat")
+size = Vector3(6.3, 3.0, 0.3)
+
+[sub_resource type="BoxShape3D" id="s_WallSouth"]
+size = Vector3(6.3, 3.0, 0.3)
+
+[sub_resource type="BoxMesh" id="m_WallEastN"]
+material = SubResource("wall_mat")
+size = Vector3(0.3, 3.0, 2.4)
+
+[sub_resource type="BoxShape3D" id="s_WallEastN"]
+size = Vector3(0.3, 3.0, 2.4)
+
+[sub_resource type="BoxMesh" id="m_WallEastS"]
+material = SubResource("wall_mat")
+size = Vector3(0.3, 3.0, 2.4)
+
+[sub_resource type="BoxShape3D" id="s_WallEastS"]
+size = Vector3(0.3, 3.0, 2.4)
+
+[sub_resource type="BoxMesh" id="m_WallEastTop"]
+material = SubResource("wall_mat")
+size = Vector3(0.3, 0.8, 1.2)
+
+[sub_resource type="BoxShape3D" id="s_WallEastTop"]
+size = Vector3(0.3, 0.8, 1.2)
+
+[sub_resource type="BoxMesh" id="m_Roof"]
+material = SubResource("wall_mat")
+size = Vector3(6.6, 0.2, 6.6)
+
+[sub_resource type="BoxShape3D" id="s_Roof"]
+size = Vector3(6.6, 0.2, 6.6)
+
+[sub_resource type="BoxShape3D" id="zone_shape"]
+size = Vector3(5.6, 2.9, 5.6)
+
+[sub_resource type="BoxMesh" id="boards_mesh"]
+material = SubResource("board_mat")
+size = Vector3(0.12, 1.3, 1.6)
+
+[sub_resource type="BoxMesh" id="stove_mesh"]
+material = SubResource("stove_mat")
+size = Vector3(0.8, 0.9, 0.8)
+
+[sub_resource type="BoxShape3D" id="stove_shape"]
+size = Vector3(0.8, 0.9, 0.8)
+
+[sub_resource type="SphereShape3D" id="prompt_shape"]
+radius = 1.6
+
+[node name="TestShelter" type="Node3D"]
+
+[node name="Walls" type="Node3D" parent="."]
+
+[node name="WallWestLow" type="MeshInstance3D" parent="Walls"]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, -3.0, 0.5, 0)
+mesh = SubResource("m_WallWestLow")
+
+[node name="Body" type="StaticBody3D" parent="Walls/WallWestLow"]
+
+[node name="Shape" type="CollisionShape3D" parent="Walls/WallWestLow/Body"]
+shape = SubResource("s_WallWestLow")
+
+[node name="WallWestHigh" type="MeshInstance3D" parent="Walls"]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, -3.0, 2.6, 0)
+mesh = SubResource("m_WallWestHigh")
+
+[node name="Body" type="StaticBody3D" parent="Walls/WallWestHigh"]
+
+[node name="Shape" type="CollisionShape3D" parent="Walls/WallWestHigh/Body"]
+shape = SubResource("s_WallWestHigh")
+
+[node name="WallWestN" type="MeshInstance3D" parent="Walls"]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, -3.0, 1.6, -1.875)
+mesh = SubResource("m_WallWestN")
+
+[node name="Body" type="StaticBody3D" parent="Walls/WallWestN"]
+
+[node name="Shape" type="CollisionShape3D" parent="Walls/WallWestN/Body"]
+shape = SubResource("s_WallWestN")
+
+[node name="WallWestS" type="MeshInstance3D" parent="Walls"]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, -3.0, 1.6, 1.875)
+mesh = SubResource("m_WallWestS")
+
+[node name="Body" type="StaticBody3D" parent="Walls/WallWestS"]
+
+[node name="Shape" type="CollisionShape3D" parent="Walls/WallWestS/Body"]
+shape = SubResource("s_WallWestS")
+
+[node name="WallNorth" type="MeshInstance3D" parent="Walls"]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 0, 1.5, -3.0)
+mesh = SubResource("m_WallNorth")
+
+[node name="Body" type="StaticBody3D" parent="Walls/WallNorth"]
+
+[node name="Shape" type="CollisionShape3D" parent="Walls/WallNorth/Body"]
+shape = SubResource("s_WallNorth")
+
+[node name="WallSouth" type="MeshInstance3D" parent="Walls"]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 0, 1.5, 3.0)
+mesh = SubResource("m_WallSouth")
+
+[node name="Body" type="StaticBody3D" parent="Walls/WallSouth"]
+
+[node name="Shape" type="CollisionShape3D" parent="Walls/WallSouth/Body"]
+shape = SubResource("s_WallSouth")
+
+[node name="WallEastN" type="MeshInstance3D" parent="Walls"]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 3.0, 1.5, -1.8)
+mesh = SubResource("m_WallEastN")
+
+[node name="Body" type="StaticBody3D" parent="Walls/WallEastN"]
+
+[node name="Shape" type="CollisionShape3D" parent="Walls/WallEastN/Body"]
+shape = SubResource("s_WallEastN")
+
+[node name="WallEastS" type="MeshInstance3D" parent="Walls"]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 3.0, 1.5, 1.8)
+mesh = SubResource("m_WallEastS")
+
+[node name="Body" type="StaticBody3D" parent="Walls/WallEastS"]
+
+[node name="Shape" type="CollisionShape3D" parent="Walls/WallEastS/Body"]
+shape = SubResource("s_WallEastS")
+
+[node name="WallEastTop" type="MeshInstance3D" parent="Walls"]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 3.0, 2.6, 0)
+mesh = SubResource("m_WallEastTop")
+
+[node name="Body" type="StaticBody3D" parent="Walls/WallEastTop"]
+
+[node name="Shape" type="CollisionShape3D" parent="Walls/WallEastTop/Body"]
+shape = SubResource("s_WallEastTop")
+
+[node name="Roof" type="MeshInstance3D" parent="Walls"]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 0, 3.1, 0)
+mesh = SubResource("m_Roof")
+
+[node name="Body" type="StaticBody3D" parent="Walls/Roof"]
+
+[node name="Shape" type="CollisionShape3D" parent="Walls/Roof/Body"]
+shape = SubResource("s_Roof")
+
+[node name="Zone" type="Area3D" parent="."]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 0, 1.5, 0)
+script = ExtResource("zone")
+temperature_offset_c = 8.0
+wind_exposure = 0.05
+is_interior = true
+max_heated_offset_c = 18.0
+
+[node name="Shape" type="CollisionShape3D" parent="Zone"]
+shape = SubResource("zone_shape")
+
+[node name="WestWindow" type="Node3D" parent="Zone" node_paths=PackedStringArray("boarded_visual")]
+transform = Transform3D(0, 0, 1, 0, 1, 0, -1, 0, 0, -3, 0.1, 0)
+script = ExtResource("breach")
+severity = 0.5
+boarded_visual = NodePath("Boards")
+
+[node name="Boards" type="MeshInstance3D" parent="Zone/WestWindow"]
+visible = false
+mesh = SubResource("boards_mesh")
+transform = Transform3D(0, 0, 1, 0, 1, 0, -1, 0, 0, 0, 0, 0)
+
+[node name="BoardUp" parent="Zone/WestWindow" instance=ExtResource("ia")]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 0, -1.5, 1.0)
+script = ExtResource("board")
+interactable_scene = null
+
+[node name="CollisionShape3D" parent="Zone/WestWindow/BoardUp" index="1"]
+shape = SubResource("prompt_shape")
+
+[node name="Stove" type="Node3D" parent="Zone" node_paths=PackedStringArray("heats_zone", "flame_light")]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 1.8, -1.5, -1.8)
+script = ExtResource("heat")
+heats_zone = NodePath("..")
+flame_light = NodePath("Flame")
+starts_burning = false
+
+[node name="Body" type="MeshInstance3D" parent="Zone/Stove"]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 0, 0.45, 0)
+mesh = SubResource("stove_mesh")
+
+[node name="Collider" type="StaticBody3D" parent="Zone/Stove/Body"]
+
+[node name="Shape" type="CollisionShape3D" parent="Zone/Stove/Body/Collider"]
+shape = SubResource("stove_shape")
+
+[node name="Flame" type="OmniLight3D" parent="Zone/Stove"]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 0, 1.1, 0)
+visible = false
+light_color = Color(1, 0.55, 0.2, 1)
+light_energy = 2.5
+omni_range = 6.0
+shadow_enabled = true
+
+[node name="Feed" parent="Zone/Stove" instance=ExtResource("ia")]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, -0.9, 0, 0.9)
+script = ExtResource("feed")
+interactable_scene = null
+
+[node name="CollisionShape3D" parent="Zone/Stove/Feed" index="1"]
+shape = SubResource("prompt_shape")

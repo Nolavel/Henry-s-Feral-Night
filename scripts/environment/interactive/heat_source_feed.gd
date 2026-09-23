@@ -12,6 +12,9 @@ signal feed_refused(reason: Refusal)
 ## Why a feed attempt was turned down.
 enum Refusal { NONE, NO_SOURCE, ALREADY_FULL, NO_FUEL, NO_TINDER, NO_INVENTORY }
 
+## Label shown over the fire, resolved through localisation.
+const PROMPT_KEY: String = "FEED_PROMPT"
+
 @export_group("Fire")
 ## The fire this prompt feeds. Defaults to a HeatSource sibling or parent.
 @export var heat_source: HeatSource
@@ -31,6 +34,8 @@ func _ready() -> void:
 	super()
 	if heat_source == null:
 		heat_source = _find_source()
+	set_item_name(tr(PROMPT_KEY))
+	set_description("")
 
 
 ## Only offers itself when feeding would actually do something.
