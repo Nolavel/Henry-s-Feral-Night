@@ -35,6 +35,11 @@ extends Resource
 ## How fast exposed clothing soaks, in wetness units per hour.
 @export var wetness_rate_per_hour: float = 0.0
 
+@export_group("Snow cover")
+## How much settled snow lies on up-facing surfaces, 0 bare to 1 buried.
+## Presentation only; the island is never bare, so profiles stay above zero.
+@export_range(0.0, 1.0) var snow_cover: float = 0.5
+
 @export_group("Transition")
 ## Seconds to blend into this profile from the previous one.
 @export var blend_time_s: float = 20.0

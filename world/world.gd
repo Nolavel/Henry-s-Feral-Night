@@ -31,6 +31,7 @@ const WORLD_READY_METHOD: StringName = &"on_world_ready"
 const WORLD_SYSTEM_SCRIPTS: Array[GDScript] = [
 	preload("res://scripts/systems/world/WeatherController.gd"),
 	preload("res://scripts/systems/world/weather/snowfall_vfx.gd"),
+	preload("res://scripts/systems/world/snow/snow_presentation_system.gd"),
 	preload("res://scripts/systems/save/save_manager.gd"),
 	preload("res://core/world/streaming_system.gd"),
 	preload("res://scripts/systems/survival/thermal_manager.gd"),

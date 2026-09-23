@@ -50,6 +50,7 @@ var _wind_direction: Vector3 = Vector3.FORWARD
 var _snowfall_density: float = 0.0
 var _visibility_m: float = 0.0
 var _wetness_rate: float = 0.0
+var _snow_cover: float = 0.0
 
 
 func _ready() -> void:
@@ -186,6 +187,11 @@ static func _bearing_to_vector(degrees: float) -> Vector3:
 	return Vector3.FORWARD.rotated(Vector3.UP, deg_to_rad(degrees))
 
 
+## Settled snow on up-facing surfaces, 0 to 1, blended with the weather.
+func get_snow_cover() -> float:
+	return _snow_cover
+
+
 func get_wind_speed_mps() -> float:
 	return _wind_speed_mps
 
@@ -212,6 +218,7 @@ func _sample_conditions() -> void:
 	_snowfall_density = lerpf(from.snowfall_density, _current.snowfall_density, _blend)
 	_visibility_m = lerpf(from.visibility_m, _current.visibility_m, _blend)
 	_wetness_rate = lerpf(from.wetness_rate_per_hour, _current.wetness_rate_per_hour, _blend)
+	_snow_cover = lerpf(from.snow_cover, _current.snow_cover, _blend)
 
 	var base_wind: float = lerpf(from.wind_speed_mps, _current.wind_speed_mps, _blend)
 	var gust_range: float = lerpf(from.gust_speed_mps, _current.gust_speed_mps, _blend)

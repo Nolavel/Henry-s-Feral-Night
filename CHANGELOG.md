@@ -68,6 +68,35 @@ Performance choice
 
 ## [Unreleased] — `claudeflow`
 
+### 2026-09-23 (11) — Snow step 1: the weather → shader contract
+
+Issue #16, Phase A, reassigned to `claudeflow` by the author. Terrain3D is a
+placeholder, so the snow layer is terrain-agnostic from the start.
+
+Added
+- `WeatherProfile.snow_cover` (calm 0.35 → blizzard 1.0), blended by
+  `WeatherController` like every other field; `get_snow_cover()`.
+- `ThermalManager.get_outdoor_air_c()` — the air outside, before wind, shelter
+  or fires, which is what frost on the world responds to.
+- **`SnowPresentationSystem`**, one more line in the composition root and the
+  only writer of the `snow_cover` and `frost_amount` shader globals. Writes on
+  change only, never reads back.
+- `[shader_globals]` declared in `project.godot`.
+- `docs/technical/SNOW_COVER.md` — names, ranges, the one-writer rule.
+
+Tests
+- `tests/systems/test_snow_presentation.gd`: every profile has sane cover and a
+  blizzard beats calm; cover follows a profile switch; frost is zero above
+  freezing, partial at −14 °C, full in deep cold; both globals are declared;
+  the composition root builds the system.
+
+Fixed
+- `test_streaming.gd` failed once in a full run and passed alone. Chunks load
+  on a worker thread and the test pumped 200–400 times back to back with no
+  wall time, so on a busy machine it could finish before the thread did.
+  `_settle()` now pumps with real time between calls, up to a deadline, and
+  stops once the states stop changing. Verified green under CPU load.
+
 ### 2026-09-23 (10) — A test shelter: the whole loop by hand in TestScene
 
 Every slice system was in `main`, yet no scene let anyone play the loop.

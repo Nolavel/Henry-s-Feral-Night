@@ -95,6 +95,7 @@ var _hours: GameHourTracker = GameHourTracker.new()
 var _zones: Array[ThermalZone] = []
 var _initialized: bool = false
 var _follow_target: Node3D
+var _outdoor_air_c: float = 0.0
 
 
 ## Lifecycle hook world.gd calls once the player and camera exist. Everything
@@ -190,6 +191,12 @@ func get_body_temperature_c() -> float:
 func get_body_temperature_normalised() -> float:
 	var span: float = maxf(0.001, normal_body_temp_c - lethal_body_temp_c)
 	return clampf((_body_temp_c - lethal_body_temp_c) / span, 0.0, 1.0)
+
+
+## Outdoor air: time of day plus weather, before wind, shelter or fires.
+## What frost on the world responds to, as opposed to what Henry feels.
+func get_outdoor_air_c() -> float:
+	return _outdoor_air_c
 
 
 ## Temperature the player feels right now, after wind, shelter and fires.
@@ -298,6 +305,8 @@ func _compute_felt_temperature(current_hour: float) -> float:
 	var wind_direction: Vector3 = Vector3.ZERO
 	if weather_controller != null:
 		felt += weather_controller.get_ambient_offset_c()
+	_outdoor_air_c = felt
+	if weather_controller != null:
 		wind = weather_controller.get_wind_speed_mps()
 		wind_direction = weather_controller.get_wind_direction()
 
