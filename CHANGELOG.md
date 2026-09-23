@@ -83,6 +83,22 @@ Performance choice
 
 ## [Unreleased] — `claudeflow`
 
+### 2026-09-23 — Experimental vital HUD: pentagon diamond and health band
+
+Added
+- `VitalCluster`: four pentagons in a diamond, tips to the centre — warmth top,
+  water left, food right, sleep bottom. Level fills from the outer edge; a drain
+  nudges the cell out and flashes it dull red, a refill grows it for ~2 s with a
+  green-gold edge, under 15% it breathes and sits out. Warmth has its own
+  cold scale. Procedural, all sizes/colours/timings exported.
+- `HealthStrip`: the old red HUD band, smaller, as the health bar — same
+  `BG_indicatorSURV` shader and fade, cut to current health, with a pale damage
+  trail that catches up.
+
+Changed
+- The old vital icons (`vital_signs_enabled = false`) and the wide red band are
+  hidden, not deleted, for easy rollback.
+
 ### 2026-09-23 — Colour grade follows the shelter; Cold Ash LUTs retuned
 
 Added

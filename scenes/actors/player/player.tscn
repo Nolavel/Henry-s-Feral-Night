@@ -5,6 +5,7 @@
 [ext_resource type="PackedScene" uid="uid://cmt2el3xqdir5" path="res://scenes/ui/hud/bars/InGameUI.tscn" id="2_kqf2x"]
 [ext_resource type="Script" path="res://scripts/actors/player/henry/components/interact_component.gd" id="3_4fuql"]
 [ext_resource type="PackedScene" uid="uid://wxp413rki005" path="res://scenes/ui/hud/dynamic_cursor/mouse_cursor_ui.tscn" id="49_cursor"]
+[ext_resource type="PackedScene" path="res://scenes/ui/hud/vitals/vital_hud.tscn" id="51_vitals"]
 [ext_resource type="Texture2D" uid="uid://dxtpqu5g4coku" path="res://assets/textures/player_test/player/SUIT_roughness.jpeg" id="3_7i6t6"]
 [ext_resource type="Texture2D" uid="uid://bm5av7swjwdh0" path="res://assets/textures/player_test/player/SUIT_AO.jpeg" id="3_msxka"]
 [ext_resource type="Texture2D" uid="uid://dnqgepa528k5j" path="res://assets/textures/player_test/player/SUIT_metallic.jpeg" id="4_sn63g"]
@@ -2417,6 +2418,9 @@ omni_attenuation = 0.198
 
 [node name="InGameUI" parent="." instance=ExtResource("2_kqf2x")]
 
+[node name="Vital_Signs" parent="InGameUI" index="0"]
+vital_signs_enabled = false
+
 [node name="HUD" type="CanvasLayer" parent="."]
 layer = -40
 
@@ -2433,6 +2437,7 @@ offset_bottom = 76.0
 grow_horizontal = 2
 grow_vertical = 0
 rotation = 3.14159
+visible = false
 
 [node name="bg_Vital_Sings_img" type="TextureRect" parent="HUD/BG_HUD_Vital_Signs"]
 material = SubResource("ShaderMaterial_ujwvv")
@@ -2456,6 +2461,7 @@ grow_horizontal = 2
 grow_vertical = 0
 
 [node name="bg_Weapon_Slot_img" type="TextureRect" parent="HUD/BG_HUD_Weapon"]
+visible = false
 material = SubResource("ShaderMaterial_d848d")
 layout_mode = 0
 offset_right = 880.0
@@ -2657,3 +2663,7 @@ stretch_mode = 5
 flip_h = true
 
 [node name="MouseCursorUI" parent="." instance=ExtResource("49_cursor")]
+
+[node name="VitalHUD" parent="." instance=ExtResource("51_vitals")]
+
+[editable path="InGameUI"]
