@@ -5,6 +5,30 @@ Maintained per branch; entries are added by whoever makes the change.
 
 ## [Unreleased] — `codex`
 
+### 2026-09-23 — Weather-driven snowfall promoted to production
+
+Added
+- Production `SnowfallVFX` as a Node3D world-system under
+  `scripts/systems/world/weather/`, registered next to WeatherController in
+  `WORLD_SYSTEM_SCRIPTS`. Headless runs skip GPU VFX construction entirely.
+- The VFX resolves the authoritative WeatherController from WorldContext; it
+  does not create or own a second weather state.
+- Local `SnowHeightFieldService` follows Henry by coarse 8 m cells, using a
+  48×24×48 m / 256² GPUParticles height field only while snow is active.
+- World snow is fixed at 3072 particles and 30 Hz simulation; foreground snow
+  is capped at 32 rare flakes. Validated flake sizes and streak strength are
+  frozen for this production pass.
+- High-wind velocity stretch is render-only on the small world flakes; it does
+  not add another emitter and does not enlarge particle collision.
+- One island regression capture remains under `tools/runtime/`; the synthetic
+  experimental snow scene, production-scene detour and old capture harness are removed.
+
+Performance
+- HeightField no longer follows the camera every frame.
+- The validated llvmpipe preview showed no meaningful frame-time difference
+  between snowfall, windy and blizzard stages; absolute llvmpipe FPS is not a
+  target-GPU measurement.
+
 ### 2026-09-23 — Freeman atmosphere + parallax clouds promoted to runtime
 
 Changed
