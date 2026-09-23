@@ -179,8 +179,10 @@ func on_world_ready(context: WorldContext) -> void:
 func setup_thermal_connections() -> void:
 	if not thermal_manager:
 		return
-	thermal_manager.body_temperature_changed.connect(_on_body_temperature_changed)
-	thermal_manager.stage_changed.connect(_on_thermal_stage_changed)
+	if not thermal_manager.body_temperature_changed.is_connected(_on_body_temperature_changed):
+		thermal_manager.body_temperature_changed.connect(_on_body_temperature_changed)
+	if not thermal_manager.stage_changed.is_connected(_on_thermal_stage_changed):
+		thermal_manager.stage_changed.connect(_on_thermal_stage_changed)
 	initialize_thermal_state()
 
 

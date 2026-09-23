@@ -219,15 +219,22 @@ func _test_save_manager_adopts_the_systems_list() -> void:
 ## is the check that the composition root now does.
 func _test_the_thermal_stack_is_wired_and_follows_the_player() -> void:
 	var world := _make_world()
+	## world.player is resolved by initialize(), so the scene node is the only
+	## handle that exists this early.
+	var player: Node3D = world.get_node("Player") as Node3D
+	_check(player != null, "the test world has no Player node")
+	if player == null:
+		_dispose(world)
+		return
 	var day_night := DayNightManager.new()
 	day_night.name = "DayNightManager"
-	world.player.add_child(day_night)
+	player.add_child(day_night)
 	var bio := BioMonitorManager.new()
 	bio.name = "BioMonitorManager"
-	world.player.add_child(bio)
+	player.add_child(bio)
 	var equipment := EquipmentComponent.new()
 	equipment.layout = load("res://data/equipment/player_layout.tres") as EquipmentLayout
-	world.player.add_child(equipment)
+	player.add_child(equipment)
 	world.initialize()
 	var context: WorldContext = world.get_context()
 

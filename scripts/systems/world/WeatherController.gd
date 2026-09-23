@@ -28,6 +28,10 @@ const DEFAULT_PROFILE_DIR: String = "res://resources/weather"
 ## Seed for the gust noise, so a session is reproducible.
 @export var gust_seed: int = 7321
 
+## Offsets the wander sample away from the gust sample, so direction and speed
+## are not driven by the same noise value.
+const WANDER_OFFSET: float = 137.0
+
 ## Looked up through the world context, never by node path.
 const DAY_NIGHT_SCRIPT: GDScript = preload("res://scripts/systems/world/DayNightManager.gd")
 
@@ -42,6 +46,7 @@ var _hours: GameHourTracker = GameHourTracker.new()
 
 var _ambient_offset_c: float = 0.0
 var _wind_speed_mps: float = 0.0
+var _wind_direction: Vector3 = Vector3.FORWARD
 var _snowfall_density: float = 0.0
 var _visibility_m: float = 0.0
 var _wetness_rate: float = 0.0
@@ -164,6 +169,17 @@ func get_ambient_offset_c() -> float:
 
 
 ## Blended wind speed including the current gust, in metres per second.
+## Unit vector the wind blows towards, in the XZ plane. A shelter breach facing
+## into this is the one that costs warmth.
+func get_wind_direction() -> Vector3:
+	return _wind_direction
+
+
+## A compass bearing in degrees as a direction in the XZ plane.
+static func _bearing_to_vector(degrees: float) -> Vector3:
+	return Vector3.FORWARD.rotated(Vector3.UP, deg_to_rad(degrees))
+
+
 func get_wind_speed_mps() -> float:
 	return _wind_speed_mps
 
@@ -196,6 +212,18 @@ func _sample_conditions() -> void:
 	var period: float = maxf(0.1, lerpf(from.gust_period_s, _current.gust_period_s, _blend))
 	var gust: float = (_gust_noise.get_noise_1d(_elapsed_s / period) + 1.0) * 0.5
 	_wind_speed_mps = base_wind + gust_range * gust
+
+	## Bearings are blended as vectors, so crossing 0/360 turns the short way
+	## round instead of sweeping back through every intermediate direction.
+	var from_dir: Vector3 = _bearing_to_vector(from.wind_direction_deg)
+	var to_dir: Vector3 = _bearing_to_vector(_current.wind_direction_deg)
+	var jitter_deg: float = lerpf(
+		from.wind_direction_jitter_deg, _current.wind_direction_jitter_deg, _blend
+	)
+	var wander: float = _gust_noise.get_noise_1d(_elapsed_s / period + WANDER_OFFSET)
+	_wind_direction = from_dir.slerp(to_dir, _blend).rotated(
+		Vector3.UP, deg_to_rad(jitter_deg * wander)
+	)
 
 
 ## Counts down the active profile's duration and rolls the next one.

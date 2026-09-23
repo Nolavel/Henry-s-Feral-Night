@@ -295,16 +295,18 @@ func _on_time_update(current_hour: float) -> void:
 func _compute_felt_temperature(current_hour: float) -> float:
 	var felt: float = _sample_ambient_c(current_hour)
 	var wind: float = 0.0
+	var wind_direction: Vector3 = Vector3.ZERO
 	if weather_controller != null:
 		felt += weather_controller.get_ambient_offset_c()
 		wind = weather_controller.get_wind_speed_mps()
+		wind_direction = weather_controller.get_wind_direction()
 
 	var zone_offset: float = 0.0
 	var exposure: float = 1.0
 	var best: ThermalZone = _get_dominant_zone()
 	if best != null:
 		zone_offset = best.get_total_offset_c()
-		exposure = best.wind_exposure
+		exposure = best.get_wind_exposure(wind_direction)
 	felt += zone_offset
 
 	var capped_wind: float = minf(wind, wind_chill_cap_mps)

@@ -3,6 +3,10 @@ class_name InteractionManager
 
 signal interaction_performed(area: InteractiveArea)
 
+## Autoload that arbitrates the interact key; looked up rather than preloaded
+## so a scene opened without autoloads still runs.
+const INPUT_SYSTEMS_PATH: NodePath = ^"/root/InputSystems"
+
 var detected_areas: Array[InteractiveArea] = []
 
 @export var player: CharacterBody3D
@@ -53,8 +57,17 @@ func _find_parent_interactive_area(node: Node) -> InteractiveArea:
 
 
 func _input(event: InputEvent) -> void:
-	if event.is_action_pressed("interact"):
+	if event.is_action_pressed("interact") and not _is_interact_claimed():
 		_try_interact()
+
+
+## True while something else owns the interact key — the sleep dialog, say.
+## Confirming sleep with E must not also trigger the nearest object.
+func _is_interact_claimed() -> bool:
+	var input_systems: Node = get_node_or_null(INPUT_SYSTEMS_PATH)
+	if input_systems == null:
+		return false
+	return input_systems.is_interact_claimed()
 
 func _try_interact() -> void:
 	for area in detected_areas:
