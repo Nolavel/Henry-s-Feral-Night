@@ -31,17 +31,35 @@ spawn cold and hungry
 Failure states: freeze to death; starve; fall through the ice.
 Success state: waking up warm.
 
-## 3. Pillars, and what each one costs
+## 3. The route — what ten to fifteen minutes should feel like
 
-| Pillar | Exists today | Missing | Effort |
-|---|---|---|---|
-| **Cold / body temperature** | Nothing. `BioMonitorManager` has calories and hydration only; temperature appears in `vital_signs.gd` as a HUD readout with no simulation behind it. | A real thermal model: ambient temperature by time-of-day and weather, wind, shelter/indoor modifier, clothing insulation, heat sources, wetness. This is **the** pillar — the whole slice is a fight against this number. | **L** |
-| **Hunger / thirst** | `BioMonitorManager` simulates both with hourly rates and critical thresholds. | Food items that actually restore calories; a reason to search. | **S** |
-| **Shelter + sleep-to-save** | Nothing. Save/load does not exist. | Shelter volumes that modify the thermal model, a sleep interaction, a save system, a wake-up transition. Stated USP; currently absent. | **M** |
-| **Breaking ice** | Nothing. | See §4. | **M** |
-| **Island** | `experimental_location/` has a Terrain3D island (`Graciosa_Island_Terrain.tscn`) and `WorldStreamManager.gd` with 9 named chunks and polygon zones from `locations_data.json`. Conceptually the island is ready. | Dressing it for winter; picking one small playable sub-area rather than all 27 hectares. | **M** |
-| **Day/night + weather** | `DayNightManager` runs (verified: "06:58 AM, Morning, Day 1, 72 sec day + 72 sec night"); `WeatherController` exists. | Wind as a gameplay input to the thermal model, not just a visual. | **S** |
-| **Character + camera** | Works. Henry UAL rig renders and animates; the cursor-driven rotation/camera system is the project's signature. | Nothing blocking. | — |
+Updated 2026-09-23 after issue #24. The slice is judged by one decision the
+player keeps making — *can I get there and back?* — not by a list of systems.
+
+1. **Bunker behind you.** Cold, a little food, dusk coming. The clock starts.
+2. **The fork.** Shore path (long, safe), the bay ice (short, readable risk),
+   or the outbuildings (loot, but time spent).
+3. **A building with boards.** Loot weighs something: a full pack tires Henry
+   faster and loads thin ice harder.
+4. **The weather turns.** Wind and snow push felt temperature down; the return
+   leg is now colder than the way out.
+5. **Maybe the ice gives.** Soaked clothes; wetness drags warmth down until dried.
+6. **A house to make safe.** Board the breaches, feed the stove. Clothes dry
+   by the warmth, not by the roof alone.
+7. **Sleep.** Save. Holes in the ice, spent fuel and settled snow persist.
+
+### Wired in code today
+
+Thermal model (weather, wind, shelter, wetness, heat sources), hunger/thirst/
+fatigue, carry weight (fatigue + ice load), per-tile ice that persists across
+saves, boardable shelter breaches, fires, sleep-to-save, title/pause menus,
+settled snow and frost. Movement speed from weight is an open seam
+(`InventoryComponent.get_load_fraction()`), owned by `MovementController`.
+
+### Author decisions pending
+
+Setting, companion and sortie length are open questions in issue #24 §11;
+this document does not pre-empt them.
 
 ## 4. The ice — design and technical note
 

@@ -68,6 +68,20 @@ Performance choice
 
 ## [Unreleased] — `claudeflow`
 
+### 2026-09-23 — #24: existing systems start costing each other
+
+Added
+- `IceField` save contract (key `ice`, group `saveable`): holes survive
+  sleep-save; loading never emits `tile_broke`.
+- Carry weight has a cost: `IceGaitBinder` scales ice drain by pack load,
+  `BioMonitorManager` raises fatigue above half load.
+  `InventoryComponent.get_load_fraction()` / `find_in()` are shared hooks.
+- `ThermalManager` dries clothes by felt temperature (0 °C none, 25 °C full)
+  anywhere out of precipitation.
+
+Changed
+- `VERTICAL_SLICE.md` now describes the route experience; stale pillar table removed.
+
 ### 2026-09-23 (15) — Snow A+: rime from edges, settled snow as state, prints on slopes
 
 From the author's review and the Grok and Codex reviews in #16.

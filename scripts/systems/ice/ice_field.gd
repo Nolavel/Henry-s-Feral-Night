@@ -17,6 +17,9 @@ enum Stage { SOLID, CREAKING, CRACKING, BROKEN }
 ## How the player is moving, which scales how hard they load the ice.
 enum Gait { STILL, CROUCH, WALK, SPRINT }
 
+## Same group SaveManager scans for participants outside the systems list.
+const SAVEABLE_GROUP: StringName = &"saveable"
+
 @export_group("Data")
 ## Tuning resource. Without one the field refuses to simulate.
 @export var profile: IceProfile
@@ -32,6 +35,7 @@ var _stages: Dictionary = {}
 var _broken: Dictionary = {}
 var _current_tile: Vector2i = Vector2i(2147483647, 2147483647)
 var _gait: Gait = Gait.STILL
+var _load_multiplier: float = 1.0
 var _enabled: bool = true
 
 
@@ -106,6 +110,11 @@ func set_gait(gait: Gait) -> void:
 	_gait = gait
 
 
+## Scales the load by what the body carries; 1.0 is an empty pack.
+func set_load_multiplier(multiplier: float) -> void:
+	_load_multiplier = maxf(0.0, multiplier)
+
+
 ## Stops the field simulating, for cutscenes and for the player in the water.
 func set_enabled(enabled: bool) -> void:
 	_enabled = enabled
@@ -123,6 +132,12 @@ func get_active_tiles() -> Array[Vector2i]:
 	return tiles
 
 
+## Holes in the ice are part of the world. Joining the saveable group lets
+## the save manager find a field that lives in a scene, not in the systems list.
+func _ready() -> void:
+	add_to_group(SAVEABLE_GROUP)
+
+
 func _physics_process(delta: float) -> void:
 	if not _enabled or tracked_body == null:
 		return
@@ -138,11 +153,64 @@ func step(body_position: Vector3, delta: float) -> void:
 	_recover_window(delta)
 
 
+## Key this system owns in a save file, stated explicitly so renaming the
+## script never orphans an existing save.
+func get_save_key() -> StringName:
+	return &"ice"
+
+
+## Broken tiles and any tile still carrying load. Untouched ice is derived from
+## the profile, so it is never written.
+func get_save_data() -> Dictionary:
+	var broken: Array = []
+	for tile: Vector2i in _broken:
+		broken.append([tile.x, tile.y])
+	var loaded: Array = []
+	for tile: Vector2i in _integrity:
+		if _broken.has(tile):
+			continue
+		var value: float = _integrity[tile]
+		if value < get_base_thickness(tile) - 0.0001:
+			loaded.append([tile.x, tile.y, value])
+	return {"broken": broken, "loaded": loaded}
+
+
+## Restores holes and weakened ice. Never emits tile_broke: that signal means
+## someone just fell in, and loading a save is not falling in.
+func load_save_data(data: Dictionary) -> void:
+	_broken.clear()
+	_integrity.clear()
+	_stages.clear()
+	for entry: Variant in data.get("broken", []):
+		var pair: Array = entry
+		if pair.size() < 2:
+			continue
+		var tile := Vector2i(int(pair[0]), int(pair[1]))
+		_broken[tile] = true
+		_stages[tile] = Stage.BROKEN
+		stage_changed.emit(tile, Stage.BROKEN)
+	for entry: Variant in data.get("loaded", []):
+		var triple: Array = entry
+		if triple.size() < 3:
+			continue
+		var tile := Vector2i(int(triple[0]), int(triple[1]))
+		if _broken.has(tile):
+			continue
+		var value: float = clampf(float(triple[2]), 0.0, get_base_thickness(tile))
+		if profile != null and value <= profile.break_at:
+			_broken[tile] = true
+			_stages[tile] = Stage.BROKEN
+			stage_changed.emit(tile, Stage.BROKEN)
+			continue
+		_integrity[tile] = value
+		_settle(tile, value)
+
+
 ## Drains the loaded tile and escalates it through the ladder.
 func _apply_load(tile: Vector2i, delta: float) -> void:
 	if _broken.has(tile):
 		return
-	var drain: float = profile.drain_per_second * _gait_multiplier() * delta
+	var drain: float = profile.drain_per_second * _gait_multiplier() * _load_multiplier * delta
 	var value: float = maxf(0.0, get_integrity(tile) - drain)
 	_integrity[tile] = value
 	_settle(tile, value)

@@ -116,7 +116,7 @@ func _needs_tinder() -> bool:
 func _get_inventory() -> InventoryComponent:
 	if is_instance_valid(_inventory):
 		return _inventory
-	_inventory = BreachBoardUp._search_inventory(get_tree().get_first_node_in_group("player"))
+	_inventory = InventoryComponent.find_in(get_tree().get_first_node_in_group("player"))
 	return _inventory
 
 

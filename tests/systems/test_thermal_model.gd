@@ -17,6 +17,7 @@ func _process(_delta: float) -> bool:
 
 
 func _run() -> void:
+	_test_clothes_dry_by_the_warmth()
 	_test_exposure_cools_the_body()
 	_test_wind_chill_makes_it_worse()
 	_test_fire_rewarms()
@@ -237,3 +238,24 @@ func _test_stage_ladder_is_ordered() -> void:
 		and ThermalManager.Stage.HYPOTHERMIC < ThermalManager.Stage.CRITICAL,
 		"hypothermia stages are not ordered warmest to coldest"
 	)
+
+
+## After a fall through the ice, where Henry warms up decides how fast he dries.
+func _test_clothes_dry_by_the_warmth() -> void:
+	var by_stove := ThermalManager.new()
+	var cold_room := ThermalManager.new()
+	var outdoors := ThermalManager.new()
+	for thermal: ThermalManager in [by_stove, cold_room, outdoors]:
+		root.add_child(thermal)
+		thermal.add_wetness(1.0)
+	by_stove._felt_temp_c = 24.0
+	cold_room._felt_temp_c = 4.0
+	outdoors._felt_temp_c = -15.0
+	for thermal: ThermalManager in [by_stove, cold_room, outdoors]:
+		thermal._update_wetness(2.0, 12.0)
+
+	_check(by_stove.get_wetness() < cold_room.get_wetness(), "a stove dried no faster than a cold room")
+	_check(cold_room.get_wetness() < 1.0, "a room above freezing dried nothing at all")
+	_check(is_equal_approx(outdoors.get_wetness(), 1.0), "clothes dried at -15 C")
+	for thermal: ThermalManager in [by_stove, cold_room, outdoors]:
+		thermal.free()

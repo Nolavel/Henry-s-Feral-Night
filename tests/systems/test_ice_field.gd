@@ -23,6 +23,9 @@ func _process(_delta: float) -> bool:
 
 
 func _run() -> void:
+	_test_a_full_pack_loads_the_ice_harder()
+	_test_a_loaded_walk_still_crosses_the_bay()
+	_test_holes_survive_a_save_round_trip()
 	_test_sprinting_the_bay_breaks_walking_it_does_not()
 	_test_ice_thins_with_distance_from_shore()
 	_test_land_is_not_ice()
@@ -386,3 +389,88 @@ func _cross_bay(gait: IceField.Gait, speed_mps: float) -> float:
 			break
 	_dispose(field)
 	return result
+
+
+## Sleep is the only save, so a hole that heals on load would undo a fall. And
+## loading must not re-announce the break, or Henry falls in again.
+func _test_holes_survive_a_save_round_trip() -> void:
+	var field := _make_field()
+	_check(field.is_in_group(IceField.SAVEABLE_GROUP), "the ice field is not in the saveable group")
+	_check(SaveManager.implements_save_contract(field), "the ice field does not implement the save contract")
+
+	var hole: Vector3 = _sea_point(60.0)
+	var hole_tile: Vector2i = field.world_to_tile(hole)
+	field.set_gait(IceField.Gait.WALK)
+	for i: int in range(400):
+		field.step(hole, 0.1)
+		if field.is_broken(hole_tile):
+			break
+	_check(field.is_broken(hole_tile), "the test could not break a tile")
+
+	var worn: Vector3 = _sea_point(16.0)
+	var worn_tile: Vector2i = field.world_to_tile(worn)
+	for i: int in range(10):
+		field.step(worn, 0.1)
+	var worn_integrity: float = field.get_integrity(worn_tile)
+	var saved: Dictionary = field.get_save_data()
+	_dispose(field)
+
+	var fresh := _make_field()
+	var fell: Array[bool] = []
+	fresh.tile_broke.connect(func(_t: Vector2i, _w: Vector3) -> void: fell.append(true))
+	fresh.load_save_data(saved)
+	_check(fresh.is_broken(hole_tile), "a loaded save healed the hole in the ice")
+	_check(
+		is_equal_approx(fresh.get_integrity(worn_tile), worn_integrity),
+		"worn ice came back at %.3f, saved at %.3f" % [fresh.get_integrity(worn_tile), worn_integrity]
+	)
+	_check(fell.is_empty(), "loading the save announced a break, dropping Henry in again")
+	_dispose(fresh)
+
+
+func _loaded_binder(fraction: float) -> IceGaitBinder:
+	var binder := IceGaitBinder.new()
+	var inventory := InventoryComponent.new()
+	inventory.max_carry_weight = 30.0
+	root.add_child(inventory)
+	var firewood: ItemResource = ItemCatalog.get_item(&"firewood")
+	while inventory.get_total_weight() + firewood.weight <= 30.0 * fraction + 0.001:
+		inventory.try_add(firewood)
+	binder.inventory = inventory
+	root.add_child(binder)
+	return binder
+
+
+## Weight is the price of carrying: the same step drains more from a full pack.
+func _test_a_full_pack_loads_the_ice_harder() -> void:
+	var drained: Array[float] = []
+	for fraction: float in [0.0, 1.0]:
+		var field := _make_field()
+		var binder := _loaded_binder(fraction)
+		binder.ice_field = field
+		binder.apply(Vector3(4.0, 0.0, 0.0))
+		var here: Vector3 = _sea_point(16.0)
+		var tile: Vector2i = field.world_to_tile(here)
+		var before: float = field.get_integrity(tile)
+		field.step(here, 0.5)
+		drained.append(before - field.get_integrity(tile))
+		_dispose(binder.inventory)
+		_dispose(binder)
+		_dispose(field)
+	_check(drained[1] > drained[0] * 1.3, "a full pack drained %.4f, an empty one %.4f" % [drained[1], drained[0]])
+
+
+## The price must not make the bay impassable: a loaded walk cracks but holds.
+func _test_a_loaded_walk_still_crosses_the_bay() -> void:
+	var binder := _loaded_binder(1.0)
+	var multiplier: float = binder.get_load_multiplier()
+	_dispose(binder.inventory)
+	_dispose(binder)
+	var profile := load("res://resources/ice/bay_ice.tres") as IceProfile
+	## One 4 m tile at 4 m/s is a second under load; it must not reach zero.
+	var per_tile: float = profile.drain_per_second * profile.walk_multiplier * multiplier * 1.0
+	_check(
+		per_tile < profile.minimum_thickness,
+		"a loaded walk drains %.3f per tile from %.3f ice: the bay is closed to anyone carrying"
+		% [per_tile, profile.minimum_thickness]
+	)

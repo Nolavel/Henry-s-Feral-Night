@@ -54,6 +54,12 @@ signal exhaustion_recovered # Восстановление после крити
 ## Worst rest quality an empty stomach can drag a night down to.
 @export_range(0.0, 1.0) var minimum_rest_quality: float = 0.25
 
+@export_group("Carry")
+## Extra hourly energy cost with a full pack; nothing below half full.
+@export var carry_fatigue_factor: float = 0.6
+## The pack whose weight tires Henry. Found under the player when unset.
+@export var carry_inventory: InventoryComponent
+
 # === ТЕКУЩИЕ ЗНАЧЕНИЯ ===
 var current_calories: float
 var current_hydration: float
@@ -316,10 +322,21 @@ func apply_thirst_modifiers(base_rate: float) -> float:
 	# TODO: Влияние жары, физической активности, потоотделения
 	return base_rate
 
+## A pack past half its limit tires Henry faster, up to carry_fatigue_factor
+## extra at the limit. Hunger and illness are still to come.
 func apply_energy_modifiers(base_rate: float) -> float:
-	"""Применяет модификаторы к расходу энергии"""
-	# TODO: Влияние голода, болезней, стресса
-	return base_rate
+	var load: float = _carry_load_fraction()
+	var over_half: float = clamp((load - 0.5) * 2.0, 0.0, 1.0)
+	return base_rate * (1.0 + over_half * carry_fatigue_factor)
+
+
+func _carry_load_fraction() -> float:
+	## Only Henry's own pack: search from the player, never from the scene root.
+	if carry_inventory == null and get_parent() != null and get_parent().is_in_group(&"player"):
+		carry_inventory = InventoryComponent.find_in(get_parent())
+	if carry_inventory == null:
+		return 0.0
+	return carry_inventory.get_load_fraction()
 
 # === ВСПОМОГАТЕЛЬНЫЕ МЕТОДЫ (СОВМЕСТИМОСТЬ) ===
 func is_currently_satiated_from_meal() -> bool:
