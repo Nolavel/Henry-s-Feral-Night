@@ -291,5 +291,4 @@ shape = SubResource("SphereShape3D_pickup")
 
 [editable path="WorldEnvironmentSystem"]
 [editable path="Player"]
-[editable path="Player/Henry_Test_player"]
 [editable path="Player/InGameUI"]

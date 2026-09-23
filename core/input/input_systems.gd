@@ -54,6 +54,9 @@ const ACTION_SLEEP: StringName = &"sleep"
 const ACTION_SLEEP_CANCEL: StringName = &"sleep_cancel"
 const ACTION_SLEEP_LESS: StringName = &"sleep_hours_less"
 const ACTION_SLEEP_MORE: StringName = &"sleep_hours_more"
+const ACTION_LEAN_LEFT: StringName = &"lean_left"
+const ACTION_LEAN_RIGHT: StringName = &"lean_right"
+const ACTION_SWITCH_SHOULDER: StringName = &"switch_shoulder"
 ## Radians of camera turn per pixel of mouse travel.
 const MOUSE_SENSITIVITY: float = 0.003
 
@@ -66,6 +69,7 @@ var _interact_active: bool = false
 var _look_accum: Vector2 = Vector2.ZERO
 var _frame_look_delta: Vector2 = Vector2.ZERO
 var _look_capture: bool = false
+var _shoulder_latch: bool = false
 
 
 func _ready() -> void:
@@ -90,6 +94,8 @@ func _unhandled_input(event: InputEvent) -> void:
 		return
 	if _pressed(event, ACTION_JUMP):
 		jump_pressed.emit()
+	if _pressed(event, ACTION_SWITCH_SHOULDER):
+		_shoulder_latch = true
 	if _pressed(event, ACTION_INTERACT):
 		_begin_interact()
 	elif _released(event, ACTION_INTERACT):
@@ -226,14 +232,38 @@ func is_sprinting() -> bool:
 	return InputMap.has_action(ACTION_SPRINT) and Input.is_action_pressed(ACTION_SPRINT)
 
 
+## -1 full left lean, +1 full right; zero while movement is blocked.
+func get_lean_axis() -> float:
+	if _is_movement_blocked():
+		return 0.0
+	var axis: float = 0.0
+	if InputMap.has_action(ACTION_LEAN_LEFT) and Input.is_action_pressed(ACTION_LEAN_LEFT):
+		axis -= 1.0
+	if InputMap.has_action(ACTION_LEAN_RIGHT) and Input.is_action_pressed(ACTION_LEAN_RIGHT):
+		axis += 1.0
+	return axis
+
+
+## True once per shoulder-swap press; reading it clears the latch.
+func consume_switch_shoulder() -> bool:
+	var pressed: bool = _shoulder_latch
+	_shoulder_latch = false
+	return pressed
+
+
 ## Mouse look this physics frame in radians; zero while paused or not captured.
 func get_look_delta() -> Vector2:
 	return _frame_look_delta
 
 
 ## A mouse-look camera asks for the pointer; menus get it back while open.
+## Releasing always shows the pointer, so a title menu reached from a game has one.
 func set_look_capture(active: bool) -> void:
 	_look_capture = active
+	_look_accum = Vector2.ZERO
+	if not active:
+		Input.mouse_mode = Input.MOUSE_MODE_VISIBLE
+		return
 	_apply_mouse_mode()
 
 

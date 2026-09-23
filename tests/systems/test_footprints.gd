@@ -79,7 +79,7 @@ func _test_the_air_leaves_nothing() -> void:
 
 ## The rule is worthless if the real rig names its bones differently.
 func _test_the_rig_has_the_bones() -> void:
-	var model := (load("res://assets/models/characters/henry_ual/Henry_UAL_Rigged.glb") as PackedScene).instantiate()
+	var model := (load("res://assets/animation/ual/Unreal-Godot/UAL1_Standard.glb") as PackedScene).instantiate()
 	root.add_child(model)
 	var skeleton: Skeleton3D = _find_skeleton(model)
 	_check(skeleton != null, "Henry's rig has no skeleton")

@@ -14,7 +14,8 @@ var _player: CharacterBody3D
 var _walls: Node3D
 
 
-func _process(_delta: float) -> bool:
+## Stages step on physics frames, where the camera settles.
+func _physics_process(_delta: float) -> bool:
 	_frame += 1
 	if _frame == 1:
 		_build()
@@ -43,6 +44,7 @@ func _build() -> void:
 	root.add_child(_player)
 	_camera = TpsCamera.new()
 	_camera.player = _player
+	_camera.origin_above_feet = 0.0
 	root.add_child(_camera)
 	_camera.set_look(0.0, -10.0)
 	_walls = Node3D.new()
@@ -73,6 +75,9 @@ func _check_open_field() -> void:
 	_check(_camera.get_openness() > 0.95, "open field reads as closed: %.2f" % _camera.get_openness())
 	_check(absf(_camera.get_boom_length() - _camera.far_distance) < 0.1,
 		"open field boom %.2f, want %.2f" % [_camera.get_boom_length(), _camera.far_distance])
+	## Over the right shoulder, as in ADT: part moved, part lens shift.
+	_check(_camera.global_position.x > 0.2, "camera is not over the right shoulder: x=%.2f" % _camera.global_position.x)
+	_check(_camera.h_offset > 0.3, "no shoulder lens shift: %.2f" % _camera.h_offset)
 
 
 ## Walls along Z either side of Henry, width apart.
@@ -87,6 +92,8 @@ func _check_corridor() -> void:
 	var boom: float = _camera.get_boom_length()
 	_check(boom < 2.0, "corridor boom %.2f is not pulled in" % boom)
 	_check(boom > _camera.near_distance - 0.01, "corridor boom %.2f under the near limit" % boom)
+	## The shoulder shift must not carry the camera into the side wall at x=0.85.
+	_check(_camera.global_position.x < 0.85 - 0.2, "camera pushed into the side wall: x=%.2f" % _camera.global_position.x)
 
 
 ## A 1 m doorway in a wall across X, with a low lintel roof over Henry.
@@ -99,7 +106,8 @@ func _enter_doorway_under_roof() -> void:
 
 func _check_doorway() -> void:
 	var boom: float = _camera.get_boom_length()
-	_check(boom < 1.5, "doorway boom %.2f is not near the close limit" % boom)
+	_check(boom < 1.2, "doorway boom %.2f is not near the close limit" % boom)
+	_check(_camera.h_offset < 0.3, "the shoulder did not shrink in the doorway: %.2f" % _camera.h_offset)
 
 
 ## A wall 1 m behind Henry, between him and the camera.

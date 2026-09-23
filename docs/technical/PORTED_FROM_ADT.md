@@ -34,6 +34,9 @@ interaction**; this project supplies the **environment and simulation**.
 | `core/equipment/equipment_layout.gd` | same | unchanged |
 | `player/.../equipment_component.gd` | `scripts/actors/player/henry/components/` | draw/holster dropped; `get_total_insulation_c()` added |
 | `player/.../inventory_component.gd` | same directory | `try_remove`, `get_count`, and the save contract added |
+| `player/.../interact_component.gd` | `scripts/actors/player/henry/components/interact_component.gd` | targets `InteractiveArea` instead of `InteractableObject`; carry/throw, vehicle and HoldPrompt dropped; focus hits must lie ahead |
+| `ui/widgets/dynamic_cursor/dynamic_cursor_ui.gd` | `scripts/ui/hud/dynamic_cursor/mouse_cursor_ui.gd` | ring only: weapon brackets, morph and 3D-UI brackets dropped |
+| `camera/camera_component/on_foot_camera_component.gd`, `tps_shoulder_camera_state.gd` | `scripts/systems/camera/tps_camera.gd`, `tps_shoulder_state.gd` | view toggle, lock-on and aim dropped; adaptive boom (rods) added |
 
 ### Rules carried across verbatim, because they are the point
 

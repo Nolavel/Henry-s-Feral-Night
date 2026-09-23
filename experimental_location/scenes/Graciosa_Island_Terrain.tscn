@@ -645,6 +645,5 @@ transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 1420, 3, -943)
 [connection signal="body_exited" from="WorldStreamManager/Harborlight District/Loc_HarborlightDistrict" to="WorldStreamManager" method="_on_loc_harborlight_district_body_exited"]
 
 [editable path="Player"]
-[editable path="Player/Henry_Test_player"]
 [editable path="Player/InGameUI"]
 [editable path="WorldEnvironmentSystem"]

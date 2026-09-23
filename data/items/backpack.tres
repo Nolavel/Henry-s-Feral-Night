@@ -1,0 +1,37 @@
+[gd_resource type="Resource" script_class="ItemResource" format=3]
+
+[ext_resource type="Script" path="res://core/items/item_resource.gd" id="item"]
+[ext_resource type="Script" path="res://core/items/garment_data.gd" id="garment"]
+[ext_resource type="Script" path="res://core/equipment/equipment_slot_definition.gd" id="slot"]
+
+[sub_resource type="Resource" id="P_pack_main"]
+script = ExtResource("slot")
+id = &"pack_main"
+display_name = "Main compartment"
+max_size = 2
+accepts_non_garment = true
+excluded_from_auto_stow = false
+
+[sub_resource type="Resource" id="P_pack_lid"]
+script = ExtResource("slot")
+id = &"pack_lid"
+display_name = "Lid pocket"
+max_size = 0
+accepts_non_garment = true
+excluded_from_auto_stow = false
+
+[sub_resource type="Resource" id="G_backpack"]
+script = ExtResource("garment")
+body_slot_id = &"pack"
+pockets = [SubResource("P_pack_main"), SubResource("P_pack_lid")]
+insulation_c = 0.3
+mesh_node_name = &"Backpack"
+
+[resource]
+script = ExtResource("item")
+id = &"backpack"
+display_name = "Old backpack"
+weight = 1.4
+max_stack = 1
+size_class = 2
+garment = SubResource("G_backpack")

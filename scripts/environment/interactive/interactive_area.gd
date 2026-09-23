@@ -59,6 +59,8 @@ var ground_raycast: RayCast3D
 # === ВНУТРЕННИЕ ПЕРЕМЕННЫЕ ===
 var player_in_area := false
 var shape_cast_detected := false
+var _targeted: bool = false
+var _message_serial: int = 0
 var player_reference: CharacterBody3D = null
 var tween_icon: Tween
 var tween_info: Tween
@@ -154,36 +156,61 @@ func _on_body_entered(body: Node) -> void:
 	if body.is_in_group("player"):
 		player_in_area = true
 		player_reference = body
-		_show_icon_sprite()
-		_start_shake_cycle()
 
 func _on_body_exited(body: Node) -> void:
 	if body.is_in_group("player"):
 		player_in_area = false
-		shape_cast_detected = false
 		player_reference = null
-		_hide_icon_sprite_with_lift()
-		_hide_info_label()
-		_stop_shake_cycle()
 
-func set_shape_cast_detected(detected: bool) -> void:
-	# Небольшая оптимизация - избегаем лишних вызовов
-	if shape_cast_detected == detected:
-		return
-		
-	shape_cast_detected = detected
-	if player_in_area:
-		if shape_cast_detected:
-			_stop_shake_cycle()  # Останавливаем тряску
-			_hide_icon_sprite_with_lift_then_show_info()  # Сначала скрываем спрайт, потом показываем инфо
-			if object_on_ground:
-				_show_highlight_circle()
-		else:
-			_show_icon_sprite()
+
+## Driven by InteractComponent: far target shows the marker, near one the prompt.
+func set_target_state(targeted: bool, in_prompt_range: bool) -> void:
+	var was_prompt: bool = shape_cast_detected
+	var was_targeted: bool = _targeted
+	_targeted = targeted
+	shape_cast_detected = targeted and in_prompt_range
+	if not targeted:
+		_stop_shake_cycle()
+		if was_targeted:
+			_hide_icon_sprite_with_lift()
 			_hide_info_label()
 			if object_on_ground:
 				_hide_highlight_circle()
-			_start_shake_cycle()  # Перезапускаем цикл тряски
+		return
+	if shape_cast_detected and not was_prompt:
+		_stop_shake_cycle()
+		_hide_icon_sprite_with_lift_then_show_info()
+		if object_on_ground:
+			_show_highlight_circle()
+	elif not shape_cast_detected and (was_prompt or not was_targeted):
+		_hide_info_label()
+		if was_prompt and object_on_ground:
+			_hide_highlight_circle()
+		_show_icon_sprite()
+		_start_shake_cycle()
+
+
+## Kept for callers of the old manager: detected means targeted and in prompt range.
+func set_shape_cast_detected(detected: bool) -> void:
+	set_target_state(detected, detected)
+
+
+## Replaces the prompt with a short message, e.g. why F was refused.
+func show_message(text: String, seconds: float = 2.5) -> void:
+	if not info_label or text == "":
+		return
+	info_label.text = text
+	info_label.visible = true
+	info_label.modulate.a = 1.0
+	_message_serial += 1
+	var serial: int = _message_serial
+	await get_tree().create_timer(seconds).timeout
+	if serial != _message_serial or not is_instance_valid(info_label):
+		return
+	if shape_cast_detected:
+		info_label.text = _get_interaction_text()
+	else:
+		_hide_info_label()
 
 func _show_icon_sprite() -> void:
 	if not icon_sprite:
@@ -282,46 +309,37 @@ func _hide_info_label() -> void:
 	tween_info.tween_callback(func(): info_label.visible = false)
 
 func _get_interaction_text() -> String:
-	# Кэшируем текст чтобы не пересоздавать каждый раз
 	if _text_cache_dirty:
-		var action_text: String
-		
+		var verb: String
 		match interaction_type:
 			InteractionType.PUSHABLE:
-				action_text = "[E] Толкнуть"
+				verb = "INTERACT_PUSH"
 			InteractionType.PICKUP:
-				action_text = "[E] Подобрать " + _get_pickup_subtype_text()
+				verb = "INTERACT_PICKUP"
 			InteractionType.BUTTON:
-				action_text = "[E] Нажать"
+				verb = "INTERACT_PRESS"
 			InteractionType.DOOR:
-				action_text = "[E] Открыть"
+				verb = "INTERACT_OPEN"
 			_:
-				action_text = "[E] Взаимодействовать"
-		
-		_cached_interaction_text = action_text + "\n" + item_name + "\n" + description
+				verb = "INTERACT_USE"
+		var header: String = "[%s] %s" % [_interact_key_label(), tr(verb)]
+		_cached_interaction_text = header + "\n" + item_name
+		if description != "":
+			_cached_interaction_text += "\n" + description
 		_text_cache_dirty = false
-	
 	return _cached_interaction_text
 
-func _get_pickup_subtype_text() -> String:
-	match pickup_subtype:
-		PickupSubtype.WEAPON:
-			return "(Оружие)"
-		PickupSubtype.FOOD:
-			return "(Еда)"
-		PickupSubtype.WATER:
-			return "(Вода)"
-		PickupSubtype.CLOTHING:
-			return "(Одежда)"
-		PickupSubtype.TOOLS:
-			return "(Инструменты)"
-		PickupSubtype.SPECIAL:
-			return "(Особый предмет)"
-		PickupSubtype.JUNK:
-			return "(Хлам)"
-		_:
-			return ""
-			
+
+## The key bound to interact, read from the input map rather than hardcoded.
+static func _interact_key_label() -> String:
+	for event: InputEvent in InputMap.action_get_events(&"interact"):
+		var key := event as InputEventKey
+		if key != null:
+			var code: Key = key.physical_keycode if key.physical_keycode != KEY_NONE else key.keycode
+			return OS.get_keycode_string(code)
+	return "?"
+
+
 func _show_highlight_circle() -> void:
 	if not highlight_circle: 
 		return
@@ -388,13 +406,13 @@ func _fade_circle_alpha(to_alpha: float) -> void:
 func is_player_in_area() -> bool:
 	return player_in_area
 
+## Whether this object offers itself at all; reach is InteractComponent's call.
 func can_interact() -> bool:
-	return player_in_area and shape_cast_detected
+	return true
 
 func interact() -> void:
 	if can_interact():
-		print("Взаимодействие с: ", item_name)
-		_stop_shake_cycle()  # Останавливаем тряску при взаимодействии
+		_stop_shake_cycle()
 		_on_interaction_performed()
 
 func _on_interaction_performed() -> void:
@@ -402,7 +420,7 @@ func _on_interaction_performed() -> void:
 
 # === СИСТЕМА ТРЯСКИ СПРАЙТА ===
 func _start_shake_cycle() -> void:
-	if shake_timer and player_in_area and not shape_cast_detected:
+	if shake_timer and _targeted and not shape_cast_detected:
 		shake_timer.start()
 
 func _stop_shake_cycle() -> void:
@@ -412,7 +430,7 @@ func _stop_shake_cycle() -> void:
 
 func _start_shake() -> void:
 	# Проверяем что игрок все еще в области и нет взаимодействия
-	if not player_in_area or shape_cast_detected:
+	if not _targeted or shape_cast_detected:
 		return
 	
 	if not icon_sprite or not icon_sprite.visible:
