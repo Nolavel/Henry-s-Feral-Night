@@ -20,6 +20,7 @@ func _run() -> void:
 	_test_prints_point_heel_to_toe()
 	_test_each_foot_leaves_its_own_print()
 	_test_the_pool_reuses_the_oldest()
+	_test_a_print_lies_along_a_slope()
 	_test_snowfall_buries_the_trail_faster()
 	if _failures > 0:
 		push_error("footprints: %d check(s) failed" % _failures)
@@ -109,7 +110,7 @@ func _prints() -> FootprintSystem:
 func _test_prints_point_heel_to_toe() -> void:
 	var system := _prints()
 	var toe := Vector3(1.0, 0.0, 0.0)
-	var decal: Decal = system.stamp(FootContactSensor.Side.LEFT, Vector3(3.0, 0.0, 4.0), toe)
+	var decal: Decal = system.stamp(FootContactSensor.Side.LEFT, Vector3(3.0, 0.0, 4.0), Vector3.UP, toe)
 	var minus_z: Vector3 = -decal.global_transform.basis.z.normalized()
 	_check(minus_z.dot(toe) > 0.99, "the print's toe points %s, the foot points %s" % [str(minus_z), str(toe)])
 	_check(decal.global_transform.basis.y.normalized().dot(Vector3.UP) > 0.99, "the print does not project straight down")
@@ -119,8 +120,8 @@ func _test_prints_point_heel_to_toe() -> void:
 
 func _test_each_foot_leaves_its_own_print() -> void:
 	var system := _prints()
-	var left: Decal = system.stamp(FootContactSensor.Side.LEFT, Vector3.ZERO, Vector3.FORWARD)
-	var right: Decal = system.stamp(FootContactSensor.Side.RIGHT, Vector3.ZERO, Vector3.FORWARD)
+	var left: Decal = system.stamp(FootContactSensor.Side.LEFT, Vector3.ZERO, Vector3.UP, Vector3.FORWARD)
+	var right: Decal = system.stamp(FootContactSensor.Side.RIGHT, Vector3.ZERO, Vector3.UP, Vector3.FORWARD)
 	_check(left.texture_albedo == FootprintSystem.LEFT_PRINT, "the left foot left the wrong print")
 	_check(right.texture_albedo == FootprintSystem.RIGHT_PRINT, "the right foot left the wrong print")
 	_dispose(system)
@@ -129,10 +130,10 @@ func _test_each_foot_leaves_its_own_print() -> void:
 func _test_the_pool_reuses_the_oldest() -> void:
 	var system := _prints()
 	system.pool_size = 8
-	var first: Decal = system.stamp(FootContactSensor.Side.LEFT, Vector3.ZERO, Vector3.FORWARD)
+	var first: Decal = system.stamp(FootContactSensor.Side.LEFT, Vector3.ZERO, Vector3.UP, Vector3.FORWARD)
 	for i: int in range(7):
-		system.stamp(FootContactSensor.Side.RIGHT, Vector3(float(i), 0.0, 0.0), Vector3.FORWARD)
-	var ninth: Decal = system.stamp(FootContactSensor.Side.LEFT, Vector3(50.0, 0.0, 0.0), Vector3.FORWARD)
+		system.stamp(FootContactSensor.Side.RIGHT, Vector3(float(i), 0.0, 0.0), Vector3.UP, Vector3.FORWARD)
+	var ninth: Decal = system.stamp(FootContactSensor.Side.LEFT, Vector3(50.0, 0.0, 0.0), Vector3.UP, Vector3.FORWARD)
 	_check(ninth == first, "a full pool did not reuse its oldest print")
 	_check(system.get_child_count() == 8, "the pool grew past its size: %d" % system.get_child_count())
 	_dispose(system)
@@ -149,8 +150,8 @@ func _test_snowfall_buries_the_trail_faster() -> void:
 	weather.initialize()
 	storm._weather = weather
 
-	calm.stamp(FootContactSensor.Side.LEFT, Vector3.ZERO, Vector3.FORWARD)
-	storm.stamp(FootContactSensor.Side.LEFT, Vector3.ZERO, Vector3.FORWARD)
+	calm.stamp(FootContactSensor.Side.LEFT, Vector3.ZERO, Vector3.UP, Vector3.FORWARD)
+	storm.stamp(FootContactSensor.Side.LEFT, Vector3.ZERO, Vector3.UP, Vector3.FORWARD)
 	for i: int in range(60):
 		calm._process(1.0)
 		storm._process(1.0)
@@ -159,3 +160,27 @@ func _test_snowfall_buries_the_trail_faster() -> void:
 	_dispose(weather)
 	_dispose(calm)
 	_dispose(storm)
+
+
+## On a slope the print lies on the slope: projected along the ground normal,
+## toe along the ground, not hovering flat above it or cutting into it.
+func _test_a_print_lies_along_a_slope() -> void:
+	var sensor := _sensor()
+	var slope_normal := Vector3(0.0, 1.0, 0.5).normalized()
+	var got: Array = []
+	sensor.foot_planted.connect(func(_s: int, _p: Vector3, n: Vector3, f: Vector3, _v: float) -> void: got.append([n, f]))
+	for height: float in [0.2, 0.12, 0.02]:
+		sensor.update_foot(FootContactSensor.Side.LEFT, height, Vector3.ZERO, Vector3.FORWARD, true, 1.5, slope_normal)
+	_check(got.size() == 1, "a step on a slope planted %d times" % got.size())
+	if got.size() == 1:
+		_check(got[0][0].is_equal_approx(slope_normal), "the planted normal is not the ground's")
+		_check(absf(got[0][1].dot(slope_normal)) < 0.001, "heel to toe does not lie along the slope")
+	_dispose(sensor)
+
+	var system := _prints()
+	var decal: Decal = system.stamp(FootContactSensor.Side.LEFT, Vector3.ZERO, slope_normal, Vector3.FORWARD)
+	_check(
+		decal.global_transform.basis.y.normalized().dot(slope_normal) > 0.999,
+		"the print projects along %s, not the slope's normal" % str(decal.global_transform.basis.y.normalized())
+	)
+	_dispose(system)

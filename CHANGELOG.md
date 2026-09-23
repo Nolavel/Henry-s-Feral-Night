@@ -68,6 +68,35 @@ Performance choice
 
 ## [Unreleased] — `claudeflow`
 
+### 2026-09-23 (15) — Snow A+: rime from edges, settled snow as state, prints on slopes
+
+From the author's review and the Grok and Codex reviews in #16.
+
+Changed
+- **Rime grows from edges, corners and the cold base of an object**, not as
+  uniform noise across a face. The author called the old spread amateurish, and
+  it was. `frost_weight()` takes an edge factor; as `frost_amount` rises the
+  front moves inward, and noise only breaks up that front. Real assets bake an
+  `edge_mask`; placeholder boxes set `box_half_extents` / `box_center_offset`
+  for the **whole surface**, so seams between pieces of one wall do not read as
+  edges.
+- **Settled snow is world state, not a weather mirror.** `snow_cover` used to
+  jump to the active profile's level; a blizzard's 1.0 fell to calm's 0.35 the
+  moment it stopped. It now builds with snowfall, settles slowly (about a day
+  from blizzard to calm), melts above 0 °C, and is saved under `snow`.
+- **Rime grows and sheds over hours** instead of snapping across a threshold.
+- **`foot_planted` carries the ground normal**, and prints lie along it: on a
+  slope a print sits on the slope instead of hovering flat above it or cutting
+  into it. Heel-to-toe runs along the ground.
+
+Added
+- A test that fails if anything but `SnowPresentationSystem` writes the snow
+  globals.
+- `SNOW_COVER.md`: the settled-snow model, rime from edges, quality tiers, a
+  material checklist for the slice, and why decals are the low tier rather than
+  persistence.
+- `THIRD_PARTY_NOTICES.md`: the ADT foot-print asset, alongside the code port.
+
 ### 2026-09-23 (14) — Pickups you can see, prompts that highlight
 
 Fixed
