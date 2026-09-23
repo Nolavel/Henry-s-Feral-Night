@@ -38,19 +38,23 @@ polygon data `locations_data.json` already stores for zones. `distance_to_shore(
 returns negative on land, which is also how the field knows where ice is not.
 
 `minimum_thickness` is deliberately not zero. Ice that is 0.0 far out is an
-invisible wall; ice at 0.18 is a risk the player can choose to take.
+invisible wall; ice at 0.11 is a risk the player can choose to take.
 
 ## 4. The ladder
 
 Integrity drives four stages, and **the order is a guarantee, not a
 convention**:
 
-| Stage | Integrity | Feedback |
+| Stage | Integrity, as a share of the tile's own thickness | Feedback |
 |---|---|---|
-| `SOLID` | above 0.62 | nothing |
-| `CREAKING` | below 0.62 | **audio only** — "you can still turn back" |
-| `CRACKING` | below 0.32 | cracks, camera shake, faster creaking — "turn back now" |
+| `SOLID` | above 62 % | nothing |
+| `CREAKING` | below 62 % | **audio only** — "you can still turn back" |
+| `CRACKING` | below 32 % | cracks, camera shake, faster creaking — "turn back now" |
 | `BROKEN` | 0.0 | the tile gives way |
+
+The thresholds are relative on purpose. Read as absolute integrity, thin ice far
+out would sit in `CRACKING` before anyone stepped on it, and the warning that is
+meant to come first would never sound.
 
 A test walks a tile all the way down and asserts the first warning emitted is
 `CREAKING`, not `CRACKING`. The player always gets a warning they can act on
@@ -69,7 +73,13 @@ Standing on a tile drains it; gait scales how hard:
 | Crouch | 0.45 — the careful way across |
 | Still | 1.0 |
 | Walk | 1.6 |
-| Sprint | 3.2 — running the bay is the gamble |
+| Sprint | 8.0 — running the bay is the gamble |
+
+What matters is load **per metre**, not per second: sprint covers ground twice
+as fast as walking (`MovementController`: 8 vs 4 m/s), so it spends half as long
+on each tile. At the old 3.2 against 1.6, sprint and walk put exactly the same
+load on every metre of ice — which is why sprinting was never the gamble. At
+8.0 a sprint loads each metre 2.5 times harder than a walk.
 
 `IceGaitBinder` supplies this. It reads `MovementController.is_currently_sprinting()`
 and the body's horizontal velocity and pushes the result into the field — an
@@ -112,27 +122,29 @@ reaching into private state.
 the shore route against the ice shortcut with both distances, and a simulated
 sprinted crossing. It prints a verdict.
 
-On the illustrative bay it currently reports:
+The first measurement, on the original tuning, reported a free shortcut: a
+sprint survived because mid-bay ice (0.18) was thicker than a sprint could drain
+from one tile, and because the tool itself assumed a 5.5 m/s sprint instead of
+the controller's 8.
 
-> shore 193 m, ice 90 m, saves 103 m (54 %)
-> **a sprinted crossing survives (thinnest ice on the route 0.74): this shortcut
-> is free, so the mechanic never fires here**
+**Retuned by the author's call in issue #7** — thinner ice and a heavier sprint,
+no crouch:
 
-That is the exact risk `VERTICAL_SLICE.md` §4 flagged, now measured. The
-shortcut is attractive — 54 % shorter is a real temptation — but the bay is so
-close to shore that the ice never thins enough to matter. A player would take it
-every time and never learn the ice is dangerous.
+| Setting | Was | Now |
+|---|---|---|
+| `solid_until_m` | 12 | 8 |
+| `thinnest_from_m` | 90 | 26 |
+| `minimum_thickness` | 0.18 | 0.11 |
+| `drain_per_second` | 0.055 | 0.0375 |
+| `sprint_multiplier` | 3.2 | 8.0 |
 
-Two levers, and this is a **level-design decision, not a code one**:
+On the same bay (deepest point of the route 38 m out) a sprint now breaks
+through about 29 m from shore, mid-bay, while walking crosses intact, slow walk
+included. `test_ice_field.gd` locks this in, so a later retune that makes the
+shortcut free again fails the suite.
 
-- **Widen the bay** so the crossing runs further offshore. The route needs to
-  spend real time beyond roughly 45–50 m out for a sprint to be a gamble.
-- **Retune the falloff** for a tight bay: drop `solid_until_m` and
-  `thinnest_from_m` so thinning starts closer in. Cheap, but it also makes every
-  other stretch of coast dangerous, which may not be wanted.
-
-Run the tool after either change; it re-reports the verdict for whatever route
-and tuning it is given.
+One consequence to know about: standing still on the thinnest ice breaks it in
+about three seconds. The bay is for crossing, not for stopping on.
 
 ## 8. Not built yet
 

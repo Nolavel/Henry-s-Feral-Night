@@ -44,6 +44,28 @@ Performance choice
 
 ## [Unreleased] — `claudeflow`
 
+### 2026-09-23 (8) — Ice retune: sprinting the bay is a real gamble
+
+Author's decision in issue #7: thinner ice and a heavier sprint, no crouch.
+
+Fixed
+- **Sprinting was never riskier than walking.** Sprint moves twice as fast and
+  had exactly twice the load multiplier, so both put the same load on every
+  metre of ice. `sprint_multiplier` 3.2 → 8.0.
+- **Mid-bay ice could not break at all.** At 0.18 it was thicker than a sprint
+  drains from one tile. Bay profile: `solid_until_m` 12 → 8,
+  `thinnest_from_m` 90 → 26, `minimum_thickness` 0.18 → 0.11,
+  `drain_per_second` 0.055 → 0.0375 (so walking keeps a margin).
+- **Thin ice sat cracked before anyone stepped on it.** The creak/crack ladder
+  compared absolute integrity, so 0.11 ice started below the crack threshold and
+  the warning that must come first never sounded. Stages are now a share of the
+  tile's own natural thickness.
+- `capture_ice_map.gd` simulated a 5.5 m/s sprint; the controller runs at 8.
+
+Tests
+- `test_ice_field.gd` crosses the bay at both gaits: a sprint breaks through
+  mid-bay (more than 20 m in), a walk does not.
+
 ### 2026-09-23 (7) — Phase B step 3: a fire you have to light and feed
 
 `HeatSource.refuel()` had no caller anywhere — the same shape `add_calories`
