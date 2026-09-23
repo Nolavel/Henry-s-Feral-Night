@@ -44,6 +44,46 @@ Performance choice
 
 ## [Unreleased] — `claudeflow`
 
+### 2026-09-23 (9) — Minimal shell: title, Continue, pause
+
+The last non-content item on #7's must-have list: title → New / Continue →
+Quit, and a pause with Resume / Quit to title.
+
+Added
+- `scenes/ui/menu/title_menu.tscn` — New game, Continue from last sleep
+  (disabled with a note when no sleep is saved), Quit. Bare on purpose; how it
+  looks is the author's call.
+- `scenes/ui/menu/pause_menu.tscn`, one more line in `WORLD_UI_SCENES`. Esc
+  pauses through `PlayerState`. No save here: the game saves only when Henry
+  sleeps, and the pause menu says so.
+- `localization/strings.csv` (English + Russian), registered in
+  `project.godot`. The project had **no translation table at all** — every
+  refusal key (`SLEEP_REFUSED_TOO_COLD` and the rest) would have shown raw.
+
+Fixed — Continue would have been a lie
+- A sleep save held weather, body temperature and shelter state, and nothing
+  else. **Time of day, where Henry lay down, hunger/thirst/energy and the pack
+  were not saved.** Loading would have put him at the spawn marker at dawn,
+  fed and empty-handed.
+  - `SessionState` (composition root): game clock and player position; resets
+    the thermal and weather hour trackers so a loaded clock jump is not billed
+    as time spent in the cold.
+  - `BioMonitorManager` implements the save contract.
+  - `SaveManager` adopts contract implementers inside the player, so inventory
+    and equipment are saved at last.
+- `SaveManager.pending_load_slot` carries Continue from the title scene into
+  the world; applied deferred, after every system adopted its scene state.
+
+Not changed
+- `run/main_scene` is still `TestScene`, per the author's convention. Point it
+  at `res://scenes/ui/menu/title_menu.tscn` when the slice should boot to the
+  title.
+
+Tests
+- `tests/systems/test_shell.gd`: a save round trip restores clock, position,
+  hunger and pack; the pending load lands on the next frame, not before; Esc
+  pauses and resumes; Esc does not stack a pause over the sleep dialog.
+
 ### 2026-09-23 (8) — Ice retune: sprinting the bay is a real gamble
 
 Author's decision in issue #7: thinner ice and a heavier sprint, no crouch.

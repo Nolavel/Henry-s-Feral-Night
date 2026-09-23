@@ -90,6 +90,10 @@ animation_library={
 "nodes/import_as_skeleton_bones": true
 }
 
+[internationalization]
+
+locale/translations=PackedStringArray("res://localization/strings.en.translation", "res://localization/strings.ru.translation")
+
 [input]
 
 ui_accept={
