@@ -1,8 +1,8 @@
 class_name MouseCursorUI
 extends Control
 
-## ADT's dynamic cursor, ring only: a dim ring at screen centre that brightens
-## over anything Henry can interact with. Hidden while a menu is open.
+## ADT's centre ring, brightening over interactables, carrying this project's
+## movement dot, stamina-coloured sprint arcs and jump arc around it.
 
 @export var player: CharacterBody3D
 @export var cursor_radius: float = 8.0
@@ -16,10 +16,34 @@ extends Control
 ## Ray length from the camera, metres.
 @export var target_ray_length: float = 12.0
 
+@export_group("Movement and stamina")
+@export var movement_controller: MovementController
+@export var stamina_manager: StaminaManager
+@export var movement_dot_color: Color = Color.GRAY
+@export var movement_dot_bright_color: Color = Color.WHITE
+@export var sprint_arc_thickness: float = 4.0
+@export var sprint_arc_color: Color = Color(0.8, 0.9, 1.0, 1.0)
+@export var sprint_animation_speed: float = 2.0
+## Below this speed Henry counts as standing still, m/s.
+@export var stationary_speed: float = 0.05
+
 const RING_SEGMENTS: int = 32
+const JUMP_ARC_COLOR: Color = Color(0.4, 0.8, 1.0)
 
 var is_over_target: bool = false
 var _color: Color = Color.WHITE
+var _stamina_ratio: float = 1.0
+var _sprint_progress: float = 0.0
+var _was_sprinting: bool = false
+var _dot_alpha: float = 0.0
+var _arcs_alpha: float = 0.0
+var _arc_angle: float = 0.0
+var _jump_charging: bool = false
+var _jump_time: float = 0.0
+var _jump_alpha: float = 0.0
+var _jump_progress: float = 0.0
+var _jump_tween: Tween
+var _arcs_tween: Tween
 
 
 func _ready() -> void:
@@ -28,6 +52,13 @@ func _ready() -> void:
 	_color = cursor_color_idle
 	if player == null:
 		player = get_parent() as CharacterBody3D
+	if player != null and movement_controller == null:
+		movement_controller = player.get_node_or_null(^"MovementController") as MovementController
+	if movement_controller != null and stamina_manager == null:
+		stamina_manager = movement_controller.get_node_or_null(^"StaminaManager") as StaminaManager
+	if stamina_manager != null:
+		stamina_manager.stamina_changed.connect(_on_stamina_changed)
+		stamina_manager.jump_performed.connect(_on_jump_performed)
 
 
 func _process(delta: float) -> void:
@@ -37,16 +68,121 @@ func _process(delta: float) -> void:
 	is_over_target = _ray_hits_target()
 	var wanted: Color = cursor_color_target if is_over_target else cursor_color_idle
 	_color = _color.lerp(wanted, clampf(cursor_color_speed * delta, 0.0, 1.0))
+	_update_movement(delta)
 	queue_redraw()
 
 
 func _draw() -> void:
 	var center: Vector2 = get_viewport_rect().size * 0.5
+	_draw_ring(center, cursor_radius, _color, cursor_thickness)
+	var inner: Color = _color
+	inner.a *= 0.3
+	draw_circle(center, cursor_radius * 0.3, inner)
+	if _dot_alpha > 0.01:
+		var dot: Color = movement_dot_color.lerp(movement_dot_bright_color, _dot_alpha)
+		dot.a *= _dot_alpha
+		draw_circle(center + Vector2(0.0, cursor_radius + 8.5), 1.5, dot)
+	if _arcs_alpha > 0.01:
+		_draw_sprint_arcs(center)
+	if _jump_alpha > 0.01:
+		_draw_jump_arc(center)
+
+
+func _update_movement(delta: float) -> void:
+	if player == null or movement_controller == null:
+		return
+	var planar_speed: float = Vector2(player.velocity.x, player.velocity.z).length()
+	var moving: bool = planar_speed > stationary_speed
+	var sprinting: bool = movement_controller.is_currently_sprinting(player.velocity)
+	_sprint_progress = clampf(movement_controller.get_sprint_blend(), 0.0, 1.0)
+	if stamina_manager != null:
+		_stamina_ratio = stamina_manager.get_stamina_ratio()
+	_dot_alpha = lerpf(_dot_alpha, 1.0 if moving else 0.0, clampf(8.0 * delta, 0.0, 1.0))
+	if sprinting != _was_sprinting:
+		_fade_arcs(sprinting)
+	_was_sprinting = sprinting
+	if not (_arcs_tween and _arcs_tween.is_running()):
+		var target: float = _sprint_progress * _stamina_ratio
+		_arcs_alpha = lerpf(_arcs_alpha, target, clampf(6.0 * delta, 0.0, 1.0))
+	if sprinting:
+		_arc_angle = wrapf(_arc_angle + sprint_animation_speed * delta * (0.5 + _sprint_progress * 0.5), 0.0, TAU)
+	else:
+		_arc_angle = lerp_angle(_arc_angle, 0.0, clampf(4.0 * delta, 0.0, 1.0))
+	## Player reports a held jump on the floor; the arc charges under the ring.
+	var charging: bool = bool(player.get(&"cam_jump_hold_active"))
+	if charging and not _jump_charging:
+		_jump_alpha = 0.6
+	elif not charging and _jump_charging and player.is_on_floor():
+		_jump_alpha = 0.0
+	_jump_charging = charging
+	_jump_time = _jump_time + delta if charging else 0.0
+
+
+func _fade_arcs(starting: bool) -> void:
+	if _arcs_tween:
+		_arcs_tween.kill()
+	_arcs_tween = create_tween()
+	if starting:
+		_arcs_tween.tween_property(self, ^"_arcs_alpha", 1.0, 0.2)
+	else:
+		_arcs_tween.tween_property(self, ^"_arcs_alpha", 0.0, 0.4)
+
+
+## Stamina colour: pale blue when full, through yellow and orange to red.
+func _stamina_color(base: Color) -> Color:
+	var r: float = _stamina_ratio
+	if r > 0.5:
+		return base.lerp(Color(1.0, 1.0, 0.0), (1.0 - r) * 2.0)
+	if r > 0.25:
+		return Color(1.0, 1.0, 0.0).lerp(Color(1.0, 0.5, 0.0), (0.5 - r) * 4.0)
+	return Color(1.0, 0.5, 0.0).lerp(Color(1.0, 0.0, 0.0), (0.25 - r) * 4.0)
+
+
+## Four quarter arcs that shrink with stamina and spin while sprinting.
+func _draw_sprint_arcs(center: Vector2) -> void:
+	var color: Color = _stamina_color(sprint_arc_color)
+	color.a *= _stamina_ratio * _arcs_alpha
+	var length: float = PI * 0.5 * _sprint_progress * _stamina_ratio
+	for i: int in range(4):
+		var start: float = float(i) * PI * 0.5 + _arc_angle
+		draw_arc(center, cursor_radius + 4.0, start, start + length, 12, color, sprint_arc_thickness, true)
+
+
+## Charging: a pulsing arc under the ring. Released: it closes to a circle.
+func _draw_jump_arc(center: Vector2) -> void:
+	var color: Color = _stamina_color(JUMP_ARC_COLOR)
+	color.a = _jump_alpha
+	var radius: float = cursor_radius + 12.0
+	if _jump_charging:
+		var length: float = PI * 0.2 + sin(_jump_time * 20.0) * 0.1 + PI * 0.3 * _jump_progress
+		draw_arc(center, radius, PI * 0.5 - length * 0.5, PI * 0.5 + length * 0.5, 16, color, 2.0, true)
+		return
+	var half: float = PI * clampf(_jump_progress, 0.0, 1.0)
+	if half >= PI:
+		_draw_ring(center, radius, color, 2.0)
+	elif half > 0.0:
+		draw_arc(center, radius, PI * 1.5 - half, PI * 1.5 + half, 24, color, 2.0, true)
+
+
+func _draw_ring(center: Vector2, radius: float, color: Color, thickness: float) -> void:
 	var points := PackedVector2Array()
 	for i: int in range(RING_SEGMENTS + 1):
 		var angle: float = TAU * float(i) / float(RING_SEGMENTS)
-		points.append(center + Vector2(cos(angle), sin(angle)) * cursor_radius)
-	draw_polyline(points, _color, cursor_thickness, true)
+		points.append(center + Vector2(cos(angle), sin(angle)) * radius)
+	draw_polyline(points, color, thickness, true)
+
+
+func _on_stamina_changed(current: float, maximum: float) -> void:
+	_stamina_ratio = current / maxf(maximum, 0.001)
+
+
+func _on_jump_performed() -> void:
+	if _jump_tween:
+		_jump_tween.kill()
+	_jump_tween = create_tween().set_parallel(true)
+	_jump_tween.tween_property(self, ^"_jump_progress", 1.0, 0.15)
+	_jump_tween.tween_property(self, ^"_jump_progress", 0.0, 0.25).set_delay(0.15)
+	_jump_tween.tween_property(self, ^"_jump_alpha", 0.0, 0.4).from(0.8)
 
 
 ## One ray from the camera through screen centre, the look direction.

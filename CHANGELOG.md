@@ -68,6 +68,12 @@ Performance choice
 
 ## [Unreleased] — `claudeflow`
 
+### 2026-09-23 — Cursor ring carries stamina again
+
+Fixed
+- The ADT ring port had dropped this project's movement dot, stamina-coloured
+  sprint arcs and jump-charge arc; they are back around the centre ring.
+
 ### 2026-09-23 — Interaction ported from ADT; cursor ring back
 
 Added
