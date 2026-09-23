@@ -21,6 +21,9 @@ signal stage_changed(stage: Stage)
 signal freezing_death_reached
 ## Emitted when clothing wetness changes, 0.0 dry to 1.0 soaked.
 signal wetness_changed(wetness: float)
+## Emitted on the edge of entering or leaving an interior zone; the colour grade
+## and other presentation switch on it rather than guessing from position.
+signal sheltered_changed(is_sheltered: bool)
 
 ## Hypothermia stages, ordered from safe to lethal.
 enum Stage { NORMAL, CHILLED, COLD, HYPOTHERMIC, CRITICAL }
@@ -97,6 +100,7 @@ var _exertion: float = 0.0
 var _is_dead: bool = false
 var _hours: GameHourTracker = GameHourTracker.new()
 var _zones: Array[ThermalZone] = []
+var _was_sheltered: bool = false
 var _initialized: bool = false
 var _follow_target: Node3D
 var _outdoor_air_c: float = 0.0
@@ -423,9 +427,19 @@ func _on_zone_entered(area: Area3D) -> void:
 	var zone := area as ThermalZone
 	if zone != null and not _zones.has(zone):
 		_zones.append(zone)
+		_emit_sheltered_edge()
 
 
 func _on_zone_exited(area: Area3D) -> void:
 	var zone := area as ThermalZone
 	if zone != null:
 		_zones.erase(zone)
+		_emit_sheltered_edge()
+
+
+func _emit_sheltered_edge() -> void:
+	var sheltered: bool = is_sheltered()
+	if sheltered == _was_sheltered:
+		return
+	_was_sheltered = sheltered
+	sheltered_changed.emit(sheltered)
