@@ -15,6 +15,7 @@ func _process(_delta: float) -> bool:
 
 
 func _run() -> void:
+	_test_a_heavy_pack_tires_faster()
 	_test_sleep_restores_energy()
 	_test_sleep_charges_the_night()
 	_test_an_empty_stomach_ruins_the_night()
@@ -207,3 +208,27 @@ func _test_consume_refusals() -> void:
 	_dispose(controller.inventory)
 	_dispose(controller)
 	_dispose(bio)
+
+
+## Past half the carry limit, every hour costs more energy.
+func _test_a_heavy_pack_tires_faster() -> void:
+	var light := _make_bio(100.0)
+	var heavy := _make_bio(100.0)
+	var pack := InventoryComponent.new()
+	pack.max_carry_weight = 30.0
+	root.add_child(pack)
+	var firewood: ItemResource = ItemCatalog.get_item(&"firewood")
+	while pack.try_add(firewood):
+		pass
+	heavy.carry_inventory = pack
+	var empty := InventoryComponent.new()
+	root.add_child(empty)
+	light.carry_inventory = empty
+
+	var light_rate: float = light.apply_energy_modifiers(light.base_energy_rate)
+	var heavy_rate: float = heavy.apply_energy_modifiers(heavy.base_energy_rate)
+	_check(heavy_rate > light_rate * 1.3, "a full pack tired at %.2f/h, an empty one at %.2f/h" % [heavy_rate, light_rate])
+	_dispose(pack)
+	_dispose(empty)
+	_dispose(light)
+	_dispose(heavy)

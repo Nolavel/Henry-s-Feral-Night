@@ -14,6 +14,14 @@ signal gait_changed(gait: IceField.Gait)
 ## Optional. When set, its sprint state wins over the speed threshold.
 @export var movement_controller: MovementController
 
+## Optional. Its fill adds load: a full pack is heavier on thin ice.
+@export var inventory: InventoryComponent
+
+@export_group("Carry")
+## Extra ice load at a full pack, as a fraction of the gait's own load. Tuned
+## so a loaded walk across the thinnest bay ice cracks it but holds.
+@export var carry_load_factor: float = 0.6
+
 @export_group("Thresholds")
 ## Horizontal speed below which Henry counts as standing still, in m/s.
 @export var still_speed_mps: float = 0.35
@@ -43,7 +51,17 @@ func apply(velocity: Vector3) -> IceField.Gait:
 		gait_changed.emit(gait)
 	if ice_field != null:
 		ice_field.set_gait(gait)
+		ice_field.set_load_multiplier(get_load_multiplier())
 	return gait
+
+
+## Ice load multiplier from what Henry carries, 1.0 with an empty pack.
+func get_load_multiplier() -> float:
+	if inventory == null and character_body != null and character_body.is_in_group(&"player"):
+		inventory = InventoryComponent.find_in(character_body)
+	if inventory == null:
+		return 1.0
+	return 1.0 + inventory.get_load_fraction() * carry_load_factor
 
 
 ## Gait for a velocity, without touching the field. Public so the HUD and the

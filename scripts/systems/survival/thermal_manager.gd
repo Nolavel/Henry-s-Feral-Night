@@ -58,8 +58,12 @@ const HOURS_PER_DAY: float = 24.0
 @export var equipment: EquipmentComponent
 ## Fraction of insulation lost when clothing is fully soaked.
 @export_range(0.0, 1.0) var wetness_insulation_penalty: float = 0.8
-## Wetness units lost per in-game hour while sheltered and warm.
+## Wetness units lost per in-game hour at full warmth, beside a real fire.
 @export var drying_rate_per_hour: float = 0.35
+## Felt temperature below which nothing dries at all.
+@export var drying_starts_c: float = 0.0
+## Felt temperature at which clothes dry at the full rate.
+@export var drying_full_c: float = 25.0
 
 @export_group("Wind chill")
 ## Degrees lost per metre per second of wind at full exposure.
@@ -359,8 +363,15 @@ func _update_wetness(hours: float, _current_hour: float) -> void:
 		if rate > 0.0:
 			_set_wetness(_wetness + rate * hours)
 			return
-	if sheltered and _felt_temp_c > comfort_temp_c * 0.5:
-		_set_wetness(_wetness - drying_rate_per_hour * hours)
+	## Out of the precipitation, clothes dry as fast as the warmth allows: a
+	## stove dries them, a cold boarded room barely does, frost never does.
+	_set_wetness(_wetness - get_drying_rate_per_hour() * hours)
+
+
+## Wetness shed per game hour at the current felt temperature.
+func get_drying_rate_per_hour() -> float:
+	var warmth: float = clampf(inverse_lerp(drying_starts_c, drying_full_c, _felt_temp_c), 0.0, 1.0)
+	return drying_rate_per_hour * warmth
 
 
 ## Reads the ambient air temperature curve for the given hour of day.
