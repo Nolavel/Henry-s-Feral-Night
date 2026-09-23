@@ -5,6 +5,19 @@ Maintained per branch; entries are added by whoever makes the change.
 
 ## [Unreleased] — `codex`
 
+### 2026-09-24 — Remove legacy map and portrait cameras
+
+Removed
+- The Graciosa island debug minimap pipeline: its SubViewport, regional overhead
+  camera, MapDebug UI and inline minimap script.
+- Henry's old front-face HUD camera pipeline: its SubViewport, CameraFaceHenry,
+  portrait UI subtree and dedicated controller script.
+
+Kept
+- The gameplay TPS PlayerCamera, survival HUD, combat HUD, StatsDisplay and the
+  remaining island debug labels.
+
+
 ### 2026-09-23 — Cold Ash color grading profiles
 
 Added
