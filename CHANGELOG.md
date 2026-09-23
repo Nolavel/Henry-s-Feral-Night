@@ -3,6 +3,26 @@
 All notable changes to Henry's Feral Night. Newest first.
 Maintained per branch; entries are added by whoever makes the change.
 
+## [Unreleased] — `codex`
+
+### 2026-09-23 — Freeman atmosphere + parallax clouds promoted to runtime
+
+Changed
+- `WorldEnvironmentSystem` now assigns the combined Freeman + HFN parallax-cloud
+  shader to `DayNightManager`; it is no longer capture-only.
+- Cloud volume is slightly heavier: depth 2.35, coverage threshold 0.34 and
+  opacity 0.92, while retaining the existing noise, wind and parallax controls.
+- Freeman's physical sun direction is now independent from the scene's
+  `DirectionalLight`. The latter can continue to become moonlight at night
+  without being interpreted as the atmospheric sun.
+- Runtime atmosphere uses the cold maritime tuning validated in the preview and
+  12/4 view/sun samples to keep the production path bounded.
+
+Kept
+- `simple_overcast.gdshader` remains in the repository as the old implementation;
+  the production scene no longer selects it.
+- The existing shared CI/render workflow is unchanged.
+
 ## [Experiment] — `codex`
 
 ### 2026-09-23 — Freeman's Sky controlled island preview

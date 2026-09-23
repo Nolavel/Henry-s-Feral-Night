@@ -18,7 +18,7 @@ enum TimeOfDay {
 	NIGHT,
 }
 
-const OVERCAST_SHADER: Shader = preload("res://scripts/systems/world/shaders/simple_overcast.gdshader")
+const DEFAULT_SKY_SHADER: Shader = preload("res://shaders/environment/freemans_parallax_clouds.gdshader")
 
 const PERIOD_RU: Array[String] = [
 	"Полночь",
@@ -49,6 +49,7 @@ const MORNING_PEAK_HOUR: float = 10.0
 const DUSK_END_HOUR: float = 22.0
 
 @export var perfomance_visible_display: bool = true
+@export var sky_shader: Shader = DEFAULT_SKY_SHADER
 @export var settings: DayNightSettings
 @export var directional_light: DirectionalLight3D
 @export var world_environment_node: WorldEnvironment
@@ -117,7 +118,7 @@ func _initialize_sky() -> void:
 
 	sky_resource = Sky.new()
 	sky_material = ShaderMaterial.new()
-	sky_material.shader = OVERCAST_SHADER
+	sky_material.shader = sky_shader if sky_shader != null else DEFAULT_SKY_SHADER
 	sky_resource.sky_material = sky_material
 	environment.sky = sky_resource
 
@@ -145,26 +146,42 @@ func _build_cloud_noise() -> void:
 	_noise_texture.normalize = true
 	_noise_texture.noise = noise
 
-	sky_material.set_shader_parameter("noise_texture", _noise_texture)
+	sky_material.set_shader_parameter("cloud_noise_texture", _noise_texture)
 
 
 func _apply_static_sky_parameters() -> void:
 	if sky_material == null:
 		return
 
-	sky_material.set_shader_parameter("use_directional_light", true)
+	# Freeman atmosphere is driven by a dedicated solar direction so the
+	# DirectionalLight can become moonlight at night without turning the moon
+	# into an atmospheric sun.
+	sky_material.set_shader_parameter("use_manual_sun_direction", true)
+	sky_material.set_shader_parameter("sun_intensity", 48.0)
+	sky_material.set_shader_parameter("rayleigh_scale_height", 9000.0)
+	sky_material.set_shader_parameter("rayleigh_multi_scattering", 0.018)
+	sky_material.set_shader_parameter("mie_scale_height", 1600.0)
+	sky_material.set_shader_parameter("mie_scattering", 0.000008)
+	sky_material.set_shader_parameter("mie_albedo", 0.88)
+	sky_material.set_shader_parameter("mie_g_forward", 0.80)
+	sky_material.set_shader_parameter("mie_weight", 0.78)
+	sky_material.set_shader_parameter("mie_multi_scattering", 0.24)
+	sky_material.set_shader_parameter("view_samples", 12)
+	sky_material.set_shader_parameter("sun_samples", 4)
+
 	sky_material.set_shader_parameter("cloud_density", settings.cloud_density)
 	sky_material.set_shader_parameter("cloud_depth", settings.cloud_depth)
 	sky_material.set_shader_parameter("cloud_sag", settings.cloud_sag)
-	sky_material.set_shader_parameter("noise_tiling", settings.cloud_tiling)
-	sky_material.set_shader_parameter("wind_speed", settings.cloud_wind_speed)
-	sky_material.set_shader_parameter("parallax_strength", settings.cloud_parallax_strength)
-	sky_material.set_shader_parameter("parallax_layer_separation", settings.cloud_parallax_layer_separation)
-	sky_material.set_shader_parameter("parallax_detail_weight", settings.cloud_parallax_detail_weight)
-	sky_material.set_shader_parameter("parallax_mid_scale", settings.cloud_parallax_mid_scale)
-	sky_material.set_shader_parameter("parallax_high_scale", settings.cloud_parallax_high_scale)
-	sky_material.set_shader_parameter("directional_energy_scale", settings.cloud_light_energy_scale)
-	sky_material.set_shader_parameter("ground_curve", settings.ground_curve)
+	sky_material.set_shader_parameter("cloud_noise_tiling", settings.cloud_tiling)
+	sky_material.set_shader_parameter("cloud_wind_speed", settings.cloud_wind_speed)
+	sky_material.set_shader_parameter("cloud_parallax_strength", settings.cloud_parallax_strength)
+	sky_material.set_shader_parameter("cloud_parallax_layer_separation", settings.cloud_parallax_layer_separation)
+	sky_material.set_shader_parameter("cloud_parallax_detail_weight", settings.cloud_parallax_detail_weight)
+	sky_material.set_shader_parameter("cloud_parallax_mid_scale", settings.cloud_parallax_mid_scale)
+	sky_material.set_shader_parameter("cloud_parallax_high_scale", settings.cloud_parallax_high_scale)
+	sky_material.set_shader_parameter("cloud_light_energy_scale", settings.cloud_light_energy_scale)
+	sky_material.set_shader_parameter("cloud_coverage", settings.cloud_coverage)
+	sky_material.set_shader_parameter("cloud_opacity", settings.cloud_opacity)
 
 
 func _force_update_visuals() -> void:
@@ -209,6 +226,8 @@ func _update_environment_visuals(game_hour: float) -> void:
 	var day_progress: float = _calculate_day_progress(game_hour)
 	var altitude: float = _calculate_light_altitude(game_hour)
 	var azimuth: float = _calculate_light_azimuth(game_hour)
+	var solar_altitude: float = _calculate_solar_altitude(game_hour)
+	var solar_direction: Vector3 = _direction_from_altitude_azimuth(solar_altitude, azimuth)
 	var light_color: Color = _calculate_light_color(game_hour)
 	var light_energy: float = _calculate_light_energy(game_hour)
 	var critical_factor: float = _calculate_critical_night_factor(game_hour)
@@ -255,8 +274,14 @@ func _update_environment_visuals(game_hour: float) -> void:
 		ground_color = ground_color.lerp(Color.BLACK, critical_factor * 0.6)
 		exposure *= lerpf(1.0, 0.35, critical_factor)
 
+	sky_material.set_shader_parameter("manual_sun_direction", solar_direction)
 	sky_material.set_shader_parameter("cloud_color", cloud_color)
-	sky_material.set_shader_parameter("ground_bottom_color", ground_color)
+	sky_material.set_shader_parameter("cloud_sun_color", light_color)
+	sky_material.set_shader_parameter("cloud_sun_energy", maxf(light_energy, 0.05))
+	sky_material.set_shader_parameter(
+		"ground_color",
+		Vector3(ground_color.r, ground_color.g, ground_color.b)
+	)
 	sky_material.set_shader_parameter("exposure", exposure)
 
 
@@ -275,6 +300,22 @@ func _calculate_day_progress(game_hour: float) -> float:
 
 func _calculate_light_azimuth(game_hour: float) -> float:
 	return wrapf((game_hour / 24.0) * 360.0 - 90.0, -180.0, 180.0)
+
+
+func _calculate_solar_altitude(game_hour: float) -> float:
+	var solar_phase: float = ((game_hour - SUNRISE_HOUR) / 24.0) * TAU
+	return sin(solar_phase) * settings.sun_max_altitude
+
+
+func _direction_from_altitude_azimuth(altitude_deg: float, azimuth_deg: float) -> Vector3:
+	var altitude: float = deg_to_rad(altitude_deg)
+	var azimuth: float = deg_to_rad(azimuth_deg)
+	var cos_altitude: float = cos(altitude)
+	return Vector3(
+		cos_altitude * sin(azimuth),
+		sin(altitude),
+		cos_altitude * cos(azimuth)
+	).normalized()
 
 
 func _calculate_light_altitude(game_hour: float) -> float:

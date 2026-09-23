@@ -4,10 +4,10 @@ extends SceneTree
 ## The island scene is untouched; all tuning exists only in this harness.
 
 const ISLAND_SCENE: String = "res://experimental_location/scenes/Graciosa_Island_Terrain.tscn"
-const SKY_SHADER: String = "res://shaders/environment/freemans_sky_full.gdshader"
+const SKY_SHADER: String = "res://shaders/environment/freemans_parallax_clouds.gdshader"
 const TERRAIN_CAPTURE_SHADER: String = "res://shaders/environment/terrain3d_stylized_capture.gdshader"
 const SHADOW_MATERIAL: String = "res://scenes/environment/visual_fx/StylizedShadowMaterial.tres"
-const OUTPUT_DIR: String = "res://artifacts/freemans_sky"
+const OUTPUT_DIR: String = "res://artifacts/freemans_clouds"
 const INITIAL_WARMUP_FRAMES: int = 90
 const SHOT_SETTLE_FRAMES: int = 18
 
@@ -21,6 +21,7 @@ const SHOTS: Array[Dictionary] = [
 		"light_energy": 1.25,
 		"sun_intensity": 39.0,
 		"ambient_energy": 0.34,
+		"cloud_color": Color(0.34, 0.30, 0.31),
 	},
 	{
 		"name": "1200_noon",
@@ -31,6 +32,7 @@ const SHOTS: Array[Dictionary] = [
 		"light_energy": 2.35,
 		"sun_intensity": 48.0,
 		"ambient_energy": 0.68,
+		"cloud_color": Color(0.30, 0.39, 0.48),
 	},
 	{
 		"name": "1745_sunset",
@@ -41,6 +43,7 @@ const SHOTS: Array[Dictionary] = [
 		"light_energy": 1.35,
 		"sun_intensity": 45.0,
 		"ambient_energy": 0.40,
+		"cloud_color": Color(0.30, 0.24, 0.27),
 	},
 	{
 		"name": "1900_twilight",
@@ -51,6 +54,7 @@ const SHOTS: Array[Dictionary] = [
 		"light_energy": 0.42,
 		"sun_intensity": 32.0,
 		"ambient_energy": 0.22,
+		"cloud_color": Color(0.08, 0.10, 0.15),
 	},
 ]
 
@@ -219,6 +223,23 @@ func _configure_scene() -> void:
 	## sky shader may not receive LIGHT0. Runtime Forward+ leaves this false.
 	_sky_material.set_shader_parameter("use_manual_sun_direction", true)
 
+	## Existing HFN Simple Overcast cloud language, now composited over Freeman.
+	_build_cloud_noise()
+	_sky_material.set_shader_parameter("cloud_density", 4.8)
+	_sky_material.set_shader_parameter("cloud_depth", 2.0)
+	_sky_material.set_shader_parameter("cloud_sag", 2.0)
+	_sky_material.set_shader_parameter("cloud_noise_tiling", Vector2(1.0, 1.0))
+	_sky_material.set_shader_parameter("cloud_wind_speed", Vector2(0.24, 0.08))
+	_sky_material.set_shader_parameter("cloud_parallax_strength", 0.22)
+	_sky_material.set_shader_parameter("cloud_parallax_layer_separation", 0.35)
+	_sky_material.set_shader_parameter("cloud_parallax_detail_weight", 0.45)
+	_sky_material.set_shader_parameter("cloud_parallax_mid_scale", 1.65)
+	_sky_material.set_shader_parameter("cloud_parallax_high_scale", 2.55)
+	_sky_material.set_shader_parameter("cloud_shape_contrast", 0.52)
+	_sky_material.set_shader_parameter("cloud_shadow_strength", 0.34)
+	_sky_material.set_shader_parameter("cloud_coverage", 0.39)
+	_sky_material.set_shader_parameter("cloud_opacity", 0.88)
+
 	_sun.visible = true
 	_sun.sky_mode = DirectionalLight3D.SKY_MODE_LIGHT_AND_SKY
 	_sun.shadow_enabled = true
@@ -245,6 +266,26 @@ func _configure_scene() -> void:
 	_configured = true
 
 
+
+func _build_cloud_noise() -> void:
+	var noise := FastNoiseLite.new()
+	noise.seed = 1731
+	noise.noise_type = FastNoiseLite.TYPE_SIMPLEX_SMOOTH
+	noise.frequency = 0.008
+	noise.fractal_type = FastNoiseLite.FRACTAL_FBM
+	noise.fractal_octaves = 5
+	noise.fractal_lacunarity = 2.0
+	noise.fractal_gain = 0.52
+
+	var texture := NoiseTexture2D.new()
+	texture.width = 256
+	texture.height = 256
+	texture.seamless = true
+	texture.normalize = true
+	texture.noise = noise
+	_sky_material.set_shader_parameter("cloud_noise_texture", texture)
+
+
 func _apply_shot(shot: Dictionary) -> void:
 	_sun.rotation_degrees = Vector3(
 		-float(shot["altitude"]),
@@ -255,13 +296,16 @@ func _apply_shot(shot: Dictionary) -> void:
 	_sun.light_energy = float(shot["light_energy"])
 	_environment.ambient_light_energy = float(shot["ambient_energy"])
 	_sky_material.set_shader_parameter("sun_intensity", float(shot["sun_intensity"]))
+	_sky_material.set_shader_parameter("cloud_color", shot["cloud_color"] as Color)
+	_sky_material.set_shader_parameter("cloud_sun_color", shot["light_color"] as Color)
+	_sky_material.set_shader_parameter("cloud_sun_energy", float(shot["light_energy"]) * 5.0)
 	_sky_material.set_shader_parameter(
 		"manual_sun_direction",
 		_sun_direction_from_angles(float(shot["altitude"]), float(shot["azimuth"]))
 	)
 
 	print(
-		"Freeman sky shot %s hour=%.2f altitude=%.2f azimuth=%.2f"
+		"Freeman + parallax shot %s hour=%.2f altitude=%.2f azimuth=%.2f"
 		% [
 			String(shot["name"]),
 			float(shot["hour"]),
@@ -284,7 +328,7 @@ func _capture_current_shot() -> void:
 		_black_frames += 1
 	print("Freeman sky frame mean luma: %.6f" % mean_luma)
 
-	var path: String = "%s/freemans_sky_%s.png" % [
+	var path: String = "%s/freemans_clouds_%s.png" % [
 		OUTPUT_DIR,
 		String(shot["name"]),
 	]

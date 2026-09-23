@@ -39,6 +39,14 @@ recorded in [`technical/PORTED_FROM_ADT.md`](technical/PORTED_FROM_ADT.md).
   `sample_directional_shadow()` engine-pipeline modification. The HFN version
   stylizes the built-in `ATTENUATION` shadow result inside `light()`.
 
+## Simple Overcast cloud layer
+
+- Source: https://godotshaders.com/shader/simple-overcast/
+- Author: tentabrobpy
+- License: CC0
+- HFN changes: multi-layer angular parallax, depth sampling, wind, cloud-shape
+  contrast and integration into the combined Freeman atmosphere shader.
+
 ## Freeman's Sky Shader
 
 - Source: https://godotshaders.com/shader/freemans-sky-shader/
@@ -47,10 +55,10 @@ recorded in [`technical/PORTED_FROM_ADT.md`](technical/PORTED_FROM_ADT.md).
 - Author: Niwl Games.
 - Published: June 16, 2026.
 - License: CC0-1.0.
-- HFN experiment: official full-resolution and quarter-resolution variants are
-  included. The capture harness may use the full-resolution variant with a
-  capture-only manual sun-direction fallback on renderers that cannot expose
-  LIGHT0 correctly; runtime Forward+ keeps the upstream LIGHT0 path.
-  Island-specific atmospheric tuning is applied only by
-  tools/runtime/capture_freemans_sky.gd.
+- HFN integration: official full-resolution and quarter-resolution variants are
+  retained for reference. Production uses
+  shaders/environment/freemans_parallax_clouds.gdshader, which combines the
+  Freeman atmosphere with HFN's CC0 Simple Overcast-derived parallax cloud layer.
+  The atmosphere receives a dedicated solar direction from DayNightManager,
+  while scene LIGHT0 continues to illuminate clouds as sun or moon.
 
