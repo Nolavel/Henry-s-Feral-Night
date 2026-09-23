@@ -28,6 +28,9 @@ const DEFAULT_PROFILE_DIR: String = "res://resources/weather"
 ## Seed for the gust noise, so a session is reproducible.
 @export var gust_seed: int = 7321
 
+## Looked up through the world context, never by node path.
+const DAY_NIGHT_SCRIPT: GDScript = preload("res://scripts/systems/world/DayNightManager.gd")
+
 var _current: WeatherProfile
 var _previous: WeatherProfile
 var _blend: float = 1.0
@@ -49,24 +52,28 @@ func _ready() -> void:
 
 
 ## Builds the gust noise, wires the clock and activates the first profile.
-## Public so headless tests can drive it without waiting for a frame.
+## Idempotent per concern: _ready runs it before world.gd has handed over the
+## clock and the profiles, and on_world_ready runs it again once they exist.
 func initialize() -> void:
-	if _gust_noise != null:
-		return
-	_gust_noise = FastNoiseLite.new()
-	_gust_noise.seed = gust_seed
-	_gust_noise.noise_type = FastNoiseLite.TYPE_SIMPLEX
-	if day_night_manager != null:
-		day_night_manager.time_update.connect(_on_time_update)
-	else:
-		push_warning("WeatherController: no DayNightManager, scheduler will not advance")
-	if profiles.is_empty():
-		push_warning("WeatherController: no profiles assigned, weather stays neutral")
+	if _gust_noise == null:
+		_gust_noise = FastNoiseLite.new()
+		_gust_noise.seed = gust_seed
+		_gust_noise.noise_type = FastNoiseLite.TYPE_SIMPLEX
+	_connect_clock()
+	if _current != null or profiles.is_empty():
 		return
 	var initial: WeatherProfile = _find_profile(starting_profile_id)
 	if initial == null:
 		initial = _pick_weighted()
 	_activate(initial, true)
+
+
+## Subscribes to the clock, at most once.
+func _connect_clock() -> void:
+	if day_night_manager == null:
+		return
+	if not day_night_manager.time_update.is_connected(_on_time_update):
+		day_night_manager.time_update.connect(_on_time_update)
 
 
 func _process(delta: float) -> void:
@@ -83,12 +90,16 @@ func _process(delta: float) -> void:
 ## scheduler runs without anyone wiring an export by hand.
 func on_world_ready(context: WorldContext) -> void:
 	if day_night_manager == null:
-		day_night_manager = _find_day_night_manager(context)
+		day_night_manager = context.find_in_scene(DAY_NIGHT_SCRIPT) as DayNightManager
 	if day_night_manager != null and not day_night_manager.time_update.is_connected(_on_time_update):
 		day_night_manager.time_update.connect(_on_time_update)
 	if profiles.is_empty():
 		profiles = load_profiles_from(DEFAULT_PROFILE_DIR)
 	initialize()
+	if day_night_manager == null:
+		push_warning("WeatherController: the world has no DayNightManager, weather will not advance")
+	if profiles.is_empty():
+		push_warning("WeatherController: no profiles found, weather stays neutral")
 
 
 ## Loads every WeatherProfile in a directory, sorted for a stable order.
@@ -108,32 +119,6 @@ static func load_profiles_from(directory: String) -> Array[WeatherProfile]:
 		if profile != null:
 			profiles.append(profile)
 	return profiles
-
-
-## Walks the scene for a DayNightManager, since it is authored in the level
-## rather than created by the composition root.
-func _find_day_night_manager(context: WorldContext) -> DayNightManager:
-	var roots: Array[Node] = [context.player]
-	if is_inside_tree():
-		roots.append(get_tree().current_scene)
-	for root_node: Node in roots:
-		if root_node == null:
-			continue
-		var found := _search_for_day_night(root_node)
-		if found != null:
-			return found
-	return null
-
-
-func _search_for_day_night(node: Node) -> DayNightManager:
-	var typed := node as DayNightManager
-	if typed != null:
-		return typed
-	for child: Node in node.get_children():
-		var found := _search_for_day_night(child)
-		if found != null:
-			return found
-	return null
 
 
 ## Key this system owns in a save file, stated explicitly so renaming the

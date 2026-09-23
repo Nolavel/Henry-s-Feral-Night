@@ -24,6 +24,7 @@ func _run() -> void:
 	_test_save_contract_is_all_or_nothing()
 	_test_unknown_save_versions_are_refused()
 	_test_save_manager_adopts_the_systems_list()
+	_test_the_thermal_stack_is_wired_and_follows_the_player()
 	if _failures > 0:
 		push_error("world: %d check(s) failed" % _failures)
 		quit(1)
@@ -212,3 +213,49 @@ func _test_save_manager_adopts_the_systems_list() -> void:
 	)
 	_dispose(weather)
 	_dispose(manager)
+
+
+## The systems existed and were tested long before anything drove them. This
+## is the check that the composition root now does.
+func _test_the_thermal_stack_is_wired_and_follows_the_player() -> void:
+	var world := _make_world()
+	var day_night := DayNightManager.new()
+	day_night.name = "DayNightManager"
+	world.player.add_child(day_night)
+	var bio := BioMonitorManager.new()
+	bio.name = "BioMonitorManager"
+	world.player.add_child(bio)
+	var equipment := EquipmentComponent.new()
+	equipment.layout = load("res://data/equipment/player_layout.tres") as EquipmentLayout
+	world.player.add_child(equipment)
+	world.initialize()
+	var context: WorldContext = world.get_context()
+
+	var thermal := context.get_system(ThermalManager) as ThermalManager
+	var sleep := context.get_system(SleepController) as SleepController
+	_check(thermal != null, "ThermalManager is not in the composition root")
+	_check(sleep != null, "SleepController is not in the composition root")
+	if thermal == null or sleep == null:
+		_dispose(world)
+		return
+
+	_check(thermal.day_night_manager == day_night, "the thermal model found no clock")
+	_check(thermal.equipment == equipment, "the thermal model found no equipment")
+	_check(thermal.zone_probe != null, "the thermal model has no zone probe, so no shelter counts")
+	_check(sleep.thermal_manager == thermal, "sleeping was not handed the thermal model")
+	_check(sleep.bio_monitor == bio, "sleeping was not handed the biomonitor")
+	_check(sleep.save_manager != null, "sleeping was not handed the save manager")
+
+	## The model reads the world where Henry stands, not at the origin.
+	_check(
+		thermal.global_position.is_equal_approx(world.player.global_position),
+		"the thermal model sits at %s, the player at %s"
+		% [str(thermal.global_position), str(world.player.global_position)]
+	)
+	world.player.global_position = Vector3(40.0, 2.0, 12.0)
+	thermal._process(0.016)
+	_check(
+		thermal.global_position.is_equal_approx(world.player.global_position),
+		"the thermal model did not follow the player"
+	)
+	_dispose(world)

@@ -15,6 +15,9 @@ signal refused(reason_key: String)
 ## Emitted when the fire's ability to outlast the chosen duration changes.
 signal fuel_warning_changed(fire_outlasts_sleep: bool)
 
+## Looked up through the world context, never by node path.
+const SLEEP_CONTROLLER_SCRIPT: GDScript = preload("res://scripts/systems/save/sleep_controller.gd")
+
 const HOLD_ACTION: StringName = &"sleep"
 const CONFIRM_ACTION: StringName = &"interact"
 const CANCEL_ACTION: StringName = &"sleep_cancel"
@@ -49,6 +52,13 @@ const MOVE_ACTIONS: Array[StringName] = [
 var _hold_time: float = 0.0
 var _is_open: bool = false
 var _hours: int = 8
+
+
+## Lifecycle hook world.gd calls on every UI scene it builds. The prompt is
+## useless without the controller, so it finds it rather than being wired.
+func on_world_ready(context: WorldContext) -> void:
+	if sleep_controller == null:
+		sleep_controller = context.get_system(SLEEP_CONTROLLER_SCRIPT) as SleepController
 
 
 func _ready() -> void:

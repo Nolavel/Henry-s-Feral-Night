@@ -32,6 +32,8 @@ const WORLD_SYSTEM_SCRIPTS: Array[GDScript] = [
 	preload("res://scripts/systems/world/WeatherController.gd"),
 	preload("res://scripts/systems/save/save_manager.gd"),
 	preload("res://core/world/streaming_system.gd"),
+	preload("res://scripts/systems/survival/thermal_manager.gd"),
+	preload("res://scripts/systems/save/sleep_controller.gd"),
 ]
 
 ## Standalone 3D scenes — instantiate(), parented to StreamContainer.
@@ -124,6 +126,7 @@ func _build_context() -> WorldContext:
 	context.player = player
 	context.camera = camera
 	context.stream_container = stream_container
+	context.world = self
 	context.systems = _systems
 	return context
 
@@ -148,7 +151,12 @@ func _build_ui() -> void:
 		_notify(instance)
 
 
-## Calls the optional lifecycle hook, if the node implements it.
+## Offers the optional lifecycle hook to a node and everything under it, so a
+## HUD indicator deep in the player scene can ask for what it needs too.
 func _notify(node: Node) -> void:
-	if node != null and node.has_method(WORLD_READY_METHOD):
+	if node == null:
+		return
+	if node.has_method(WORLD_READY_METHOD):
 		node.call(WORLD_READY_METHOD, _context)
+	for child: Node in node.get_children():
+		_notify(child)

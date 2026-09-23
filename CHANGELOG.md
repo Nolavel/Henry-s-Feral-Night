@@ -24,6 +24,48 @@ Performance choice
 
 ## [Unreleased] — `claudeflow`
 
+### 2026-09-23 (5) — Phase B step 1: the cold actually runs
+
+The thermal stack was built, tested and driven by nothing. It is in the
+composition root now, which means the survival simulation runs in the game
+rather than only in the suites.
+
+Added
+- `ThermalManager` and `SleepController` are two more lines in
+  `WORLD_SYSTEM_SCRIPTS`, as the composition root promised. Both implement
+  `on_world_ready(context)` and find what they need — clock, weather, equipment,
+  biomonitor, save manager — so no scene wires them by hand.
+- `ThermalManager` rides with the player and builds its own `ZoneProbe` when
+  the scene supplies none. Without a probe no shelter ever counted, so sleep
+  would have refused everywhere.
+- `WorldContext.find_in_scene()` — one scene-tree search shared by every
+  system, searching the world root first. A headless harness that adds a scene
+  to the SceneTree root leaves `current_scene` null, which the bespoke search in
+  `WeatherController` could not survive; that copy is deleted.
+- `_notify` now offers the hook to a node **and its subtree**, so a HUD
+  indicator inside `player.tscn` can ask for what it needs. `vital_signs.gd` and
+  `sleep_prompt.gd` use it: the thermometer and the S-hold dialog find the live
+  systems themselves.
+
+Fixed
+- **The starting weather profile was never activated.** `WeatherController._ready()`
+  ran `initialize()` before the world handed over clock and profiles; it returned
+  early at the empty-profiles check, and the later call no-opped on the
+  `_gust_noise` guard. `initialize()` is now idempotent *per concern* rather than
+  gated by one boolean, in both `WeatherController` and `ThermalManager`.
+- Same class of bug in `ThermalManager`: the clock was never connected, so body
+  temperature never ticked in a real scene.
+- Awaiting `process_frame` to defer past `_ready` does not work here — a
+  coroutine resumed by that signal and a node connecting to it during the same
+  emission both run in one pass. Both systems are structurally correct instead.
+
+Tests
+- `test_world_composition.gd` gains the check that would have caught all of
+  this: both systems present, each reference resolved, a probe built, and the
+  thermal model following the player rather than sitting at the origin.
+- Twelve suites green. `TestScene` and the island both render with **no warnings
+  from the survival systems at all**, which has not been true before.
+
 ### 2026-09-23 (4) — Phase A step 3: the survival loop closes
 
 Closes issue #6. The two ends of the loop that were stubs now meet.

@@ -16,6 +16,12 @@ enum Refusal { NONE, NOT_SHELTERED, TOO_COLD, TOO_ALERT, ALREADY_SLEEPING }
 
 const HOURS_PER_DAY: float = 24.0
 
+## Scripts looked up through the world context, never by node path.
+const THERMAL_SCRIPT: GDScript = preload("res://scripts/systems/survival/thermal_manager.gd")
+const SAVE_SCRIPT: GDScript = preload("res://scripts/systems/save/save_manager.gd")
+const DAY_NIGHT_SCRIPT: GDScript = preload("res://scripts/systems/world/DayNightManager.gd")
+const BIO_MONITOR_SCRIPT: GDScript = preload("res://scripts/actors/player/henry/Managers/BioMonitorManager.gd")
+
 @export_group("Conditions")
 ## Minimum felt temperature, in Celsius, required to risk sleeping.
 @export var minimum_felt_temp_c: float = 5.0
@@ -38,6 +44,19 @@ const HOURS_PER_DAY: float = 24.0
 @export var save_manager: SaveManager
 
 var _is_sleeping: bool = false
+
+
+## Lifecycle hook world.gd calls once every system exists. Sleeping needs four
+## other systems, and none of them should have to be wired in a scene.
+func on_world_ready(context: WorldContext) -> void:
+	if thermal_manager == null:
+		thermal_manager = context.get_system(THERMAL_SCRIPT) as ThermalManager
+	if save_manager == null:
+		save_manager = context.get_system(SAVE_SCRIPT) as SaveManager
+	if day_night_manager == null:
+		day_night_manager = context.find_in_scene(DAY_NIGHT_SCRIPT) as DayNightManager
+	if bio_monitor == null:
+		bio_monitor = context.find_in_scene(BIO_MONITOR_SCRIPT) as BioMonitorManager
 
 
 ## Whether sleeping is possible right now, without attempting it.

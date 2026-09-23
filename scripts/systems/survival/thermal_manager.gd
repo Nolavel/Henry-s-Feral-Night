@@ -1,6 +1,13 @@
 class_name ThermalManager
 extends Node3D
 
+## Scripts looked up through the world context, never by node path.
+const WEATHER_CONTROLLER_SCRIPT: GDScript = preload("res://scripts/systems/world/WeatherController.gd")
+const DAY_NIGHT_SCRIPT: GDScript = preload("res://scripts/systems/world/DayNightManager.gd")
+const EQUIPMENT_SCRIPT: GDScript = preload("res://scripts/actors/player/henry/components/equipment_component.gd")
+## Radius of the probe built when the scene supplies none.
+const PROBE_RADIUS: float = 0.4
+
 ## Simulates Henry's body temperature against the felt temperature of his
 ## surroundings. This is the survival pillar every other cold system feeds.
 
@@ -87,6 +94,52 @@ var _is_dead: bool = false
 var _hours: GameHourTracker = GameHourTracker.new()
 var _zones: Array[ThermalZone] = []
 var _initialized: bool = false
+var _follow_target: Node3D
+
+
+## Lifecycle hook world.gd calls once the player and camera exist. Everything
+## this system needs is found here, so no scene has to wire it by hand.
+func on_world_ready(context: WorldContext) -> void:
+	_follow_target = context.player
+	if weather_controller == null:
+		weather_controller = context.get_system(WEATHER_CONTROLLER_SCRIPT) as WeatherController
+	if day_night_manager == null:
+		day_night_manager = context.find_in_scene(DAY_NIGHT_SCRIPT) as DayNightManager
+	if equipment == null:
+		equipment = context.find_in_scene(EQUIPMENT_SCRIPT) as EquipmentComponent
+	if zone_probe == null:
+		zone_probe = _build_probe()
+	_follow()
+	initialize()
+	if day_night_manager == null:
+		push_warning("ThermalManager: the world has no DayNightManager, body temperature will not tick")
+
+
+## The thermal model reads the world at Henry's feet, so it rides with him.
+func _process(_delta: float) -> void:
+	_follow()
+
+
+func _follow() -> void:
+	if _follow_target != null and _follow_target.is_inside_tree():
+		global_position = _follow_target.global_position
+
+
+## An Area3D that notices ThermalZones, built when the scene supplies none.
+## Masks every layer: a zone authored on any layer must still be felt.
+func _build_probe() -> Area3D:
+	var probe := Area3D.new()
+	probe.name = "ZoneProbe"
+	probe.monitorable = false
+	probe.collision_layer = 0
+	probe.collision_mask = 0xFFFFF
+	var shape := CollisionShape3D.new()
+	var sphere := SphereShape3D.new()
+	sphere.radius = PROBE_RADIUS
+	shape.shape = sphere
+	probe.add_child(shape)
+	add_child(probe)
+	return probe
 
 
 func _ready() -> void:
@@ -96,15 +149,26 @@ func _ready() -> void:
 ## Seeds body temperature and connects the clock and the zone probe.
 ## Public so headless tests can drive it without waiting for a frame.
 func initialize() -> void:
-	if _initialized:
+	if not _initialized:
+		_initialized = true
+		_body_temp_c = normal_body_temp_c
+	_connect_clock()
+	_connect_probe()
+
+
+## Subscribes to the clock, at most once.
+func _connect_clock() -> void:
+	if day_night_manager == null:
 		return
-	_initialized = true
-	_body_temp_c = normal_body_temp_c
-	if day_night_manager != null:
+	if not day_night_manager.time_update.is_connected(_on_time_update):
 		day_night_manager.time_update.connect(_on_time_update)
-	else:
-		push_warning("ThermalManager: no DayNightManager, body temperature will not tick")
-	if zone_probe != null:
+
+
+## Subscribes to the zone probe, at most once.
+func _connect_probe() -> void:
+	if zone_probe == null:
+		return
+	if not zone_probe.area_entered.is_connected(_on_zone_entered):
 		zone_probe.area_entered.connect(_on_zone_entered)
 		zone_probe.area_exited.connect(_on_zone_exited)
 
