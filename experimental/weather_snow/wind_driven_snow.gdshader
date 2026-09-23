@@ -19,6 +19,7 @@ uniform float drag : hint_range(0.1, 12.0, 0.1) = 5.4;
 uniform float size_min : hint_range(0.1, 2.0, 0.05) = 0.62;
 uniform float size_max : hint_range(0.1, 2.0, 0.05) = 1.22;
 uniform float fade_from : hint_range(0.0, 1.0, 0.01) = 0.88;
+uniform bool collision_debug = false;
 
 uint hfn_hash(uint x) {
 	x = ((x >> uint(16)) ^ x) * uint(73244475);
@@ -87,7 +88,12 @@ void process() {
 	// Particle colliders are the weather-VFX contact authority. Snow does not
 	// bounce or rest on the floor: it disappears on first contact.
 	if (COLLIDED) {
-		ACTIVE = false;
+		if (collision_debug) {
+			VELOCITY = vec3(0.0);
+			COLOR = vec4(1.0, 0.10, 0.03, 1.0);
+		} else {
+			ACTIVE = false;
+		}
 	} else {
 		USERDATA1.x += DELTA;
 		float normalized_age = clamp(USERDATA1.x / max(LIFETIME, 0.001), 0.0, 1.0);

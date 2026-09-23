@@ -13,12 +13,13 @@ const TERRAIN_CAPTURE_SHADER: String = "res://shaders/environment/terrain3d_styl
 const SHADOW_MATERIAL: String = "res://scenes/environment/visual_fx/StylizedShadowMaterial.tres"
 const OUTPUT_DIR: String = "user://shots/island_snow_heightfield"
 
-const INITIAL_WARMUP_FRAMES: int = 120
-const STATE_SETTLE_FRAMES: int = 240
+const INITIAL_WARMUP_FRAMES: int = 90
+const STATE_SETTLE_FRAMES: int = 120
 
-const STATES: Array[StringName] = [
-	&"snowfall",
-	&"blizzard",
+const SHOTS: Array[Dictionary] = [
+	{"name": "snowfall", "weather": &"snowfall", "collision_debug": false},
+	{"name": "blizzard", "weather": &"blizzard", "collision_debug": false},
+	{"name": "heightfield_probe", "weather": &"snowfall", "collision_debug": true},
 ]
 
 var _scene_root: Node3D
@@ -32,7 +33,7 @@ var _snow: ExperimentalSnowfallVFX
 var _anchor: Vector3 = Vector3(1420.0, 3.0, -943.0)
 var _configured: bool = false
 var _frame: int = 0
-var _state_index: int = -1
+var _shot_index: int = -1
 var _settle: int = 0
 
 
@@ -56,7 +57,9 @@ func _initialize() -> void:
 
 	var spawner := _scene_root.get_node_or_null("FirstSpawner") as Marker3D
 	if spawner != null:
-		_anchor = spawner.global_position
+		# Before tree-entry global_position is not resolved; the island root is
+		# identity, so the authored local marker position is the correct anchor.
+		_anchor = spawner.position
 
 	_terrain = _scene_root.get_node_or_null("NavigationRegion3D/Terrain3D")
 	_player = _scene_root.get_node_or_null("Player") as Node3D
@@ -88,15 +91,18 @@ func _process(_delta: float) -> bool:
 	if _settle > 0:
 		_settle -= 1
 		if _settle == 0:
-			_capture_state(STATES[_state_index])
+			_capture_shot(SHOTS[_shot_index])
 		return false
 
-	_state_index += 1
-	if _state_index >= STATES.size():
+	_shot_index += 1
+	if _shot_index >= SHOTS.size():
 		quit(0)
 		return true
 
-	_weather.set_weather(STATES[_state_index], true)
+	var shot: Dictionary = SHOTS[_shot_index]
+	_weather.set_weather(shot["weather"] as StringName, true)
+	_snow.set_collision_debug(bool(shot["collision_debug"]))
+	_snow.foreground_particles.visible = not bool(shot["collision_debug"])
 	_snow.sync_from_weather()
 	_snow.restart_particles()
 	_settle = STATE_SETTLE_FRAMES
@@ -160,25 +166,25 @@ func _configure_island_test() -> void:
 	_configured = true
 
 
-func _capture_state(id: StringName) -> void:
+func _capture_shot(shot: Dictionary) -> void:
 	var image := root.get_texture().get_image()
 	if image == null:
 		push_error("Island snow capture: viewport image is null.")
 		quit(1)
 		return
 
-	var profile := _weather.get_current_profile()
 	print(
-		"Island snow state=%s density=%.2f weather_wind=%.2f visual_wind=%s"
+		"Island snow shot=%s density=%.2f weather_wind=%.2f visual_wind=%s collision_debug=%s"
 		% [
-			String(id),
+			String(shot["name"]),
 			_weather.get_snowfall_density(),
 			_weather.get_wind_speed_mps(),
 			str(_snow.get_visual_wind_velocity()),
+			str(bool(shot["collision_debug"])),
 		]
 	)
 
-	var path := "%s/island_snow_%s.png" % [OUTPUT_DIR, String(id)]
+	var path := "%s/island_snow_%s.png" % [OUTPUT_DIR, String(shot["name"])]
 	var absolute := ProjectSettings.globalize_path(path)
 	DirAccess.make_dir_recursive_absolute(absolute.get_base_dir())
 	var error := image.save_png(absolute)

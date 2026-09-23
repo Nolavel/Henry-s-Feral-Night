@@ -22,8 +22,8 @@ const SNOW_SHADER: Shader = preload(
 @export_range(0.0, 12.0, 0.25) var max_upwind_offset: float = 9.0
 
 @export_group("Foreground snow")
-@export_range(16, 256, 8) var foreground_particles_max: int = 96
-@export_range(0.0, 1.0, 0.01) var foreground_density_scale: float = 0.18
+@export_range(16, 256, 8) var foreground_particles_max: int = 64
+@export_range(0.0, 1.0, 0.01) var foreground_density_scale: float = 0.10
 @export_range(0.5, 5.0, 0.1) var foreground_distance: float = 2.4
 @export_range(0.0, 3.0, 0.1) var foreground_height: float = 1.0
 
@@ -275,6 +275,12 @@ func _apply_conditions(wind_speed_mps: float, snowfall_density: float) -> void:
 	)
 	foreground_particles.amount_ratio = foreground_ratio
 	foreground_particles.emitting = foreground_ratio > 0.005
+
+
+func set_collision_debug(enabled: bool) -> void:
+	for material: ShaderMaterial in [_process_material, _foreground_material]:
+		if material != null:
+			material.set_shader_parameter("collision_debug", enabled)
 
 
 func get_visual_wind_velocity() -> Vector3:
