@@ -1,4 +1,4 @@
-[gd_scene load_steps=14 format=3 uid="uid://cmt2el3xqdir5"]
+[gd_scene load_steps=12 format=3 uid="uid://cmt2el3xqdir5"]
 
 [ext_resource type="Shader" path="res://assets/materials/Shaders/2D-perspective.gdshader" id="1_kh6np"]
 [ext_resource type="Script" path="res://scripts/ui/hud/in_game_ui.gd" id="1_tgwlh"]
@@ -9,7 +9,6 @@
 [ext_resource type="Texture2D" uid="uid://bg8fy51oc2dr1" path="res://assets/textures/ui/game/biomonitor/temperature_icon.png" id="12_edmk5"]
 [ext_resource type="Texture2D" uid="uid://ssyv56dpmbyr" path="res://assets/textures/ui/game/biomonitor/warning_sign_60x51.png" id="16_d253i"]
 [ext_resource type="Texture2D" uid="uid://dy80rqisjq3oo" path="res://assets/textures/ui/game/biomonitor/hunger_icon.png" id="17_ogv15"]
-[ext_resource type="Texture2D" uid="uid://ba4d7nxovd4nr" path="res://assets/textures/ui/game/biomonitor/radiation_icon.png" id="18_evh7y"]
 
 [sub_resource type="ShaderMaterial" id="ShaderMaterial_pf885"]
 shader = ExtResource("1_kh6np")
@@ -27,22 +26,19 @@ shader_parameter/alpha_factor = 0.65
 line_spacing = 15.0
 font_size = 14
 
-[sub_resource type="LabelSettings" id="LabelSettings_mgf2m"]
-font_size = 14
-
 [node name="InGameUI" type="CanvasLayer"]
 script = ExtResource("1_tgwlh")
 
-[node name="Vital_Signs" type="Control" parent="." node_paths=PackedStringArray("thirst_warning_sign", "thirst_upper", "thirst_icon", "thirst_lower", "hunger_warning_sign", "hunger_upper", "hunger_icon", "hunger_lower", "sleep_warning_sign", "sleep_upper", "sleep_icon", "sleep_lower", "temperature_warning_sign", "temperature_upper", "temperature_icon", "temperature_lower", "radiation_warning_sign", "radiation_upper", "radiation_icon", "radiation_lower")]
+[node name="Vital_Signs" type="Control" parent="." node_paths=PackedStringArray("thirst_warning_sign", "thirst_upper", "thirst_icon", "thirst_lower", "hunger_warning_sign", "hunger_upper", "hunger_icon", "hunger_lower", "sleep_warning_sign", "sleep_upper", "sleep_icon", "sleep_lower", "temperature_warning_sign", "temperature_upper", "temperature_icon", "temperature_lower")]
 modulate = Color(1, 1, 1, 0.392157)
 material = SubResource("ShaderMaterial_pf885")
 layout_mode = 3
 anchors_preset = 2
 anchor_top = 1.0
 anchor_bottom = 1.0
-offset_left = 300.0
+offset_left = 520.0
 offset_top = -180.0
-offset_right = 640.0
+offset_right = 860.0
 offset_bottom = -28.0
 grow_vertical = 0
 script = ExtResource("3_s0nhw")
@@ -62,10 +58,6 @@ temperature_warning_sign = NodePath("BoxContainer/HBoxContainer/_4_container_tem
 temperature_upper = NodePath("BoxContainer/HBoxContainer/_4_container_temperature/temperature_upper")
 temperature_icon = NodePath("BoxContainer/HBoxContainer/_4_container_temperature/temperature_icon")
 temperature_lower = NodePath("BoxContainer/HBoxContainer/_4_container_temperature/temperature_lower")
-radiation_warning_sign = NodePath("BoxContainer/HBoxContainer/_5_container_radiation/radiation_warning sign")
-radiation_upper = NodePath("BoxContainer/HBoxContainer/_5_container_radiation/radiation_upper")
-radiation_icon = NodePath("BoxContainer/HBoxContainer/_5_container_radiation/radiation_icon")
-radiation_lower = NodePath("BoxContainer/HBoxContainer/_5_container_radiation/radiation_lower")
 
 [node name="BoxContainer" type="BoxContainer" parent="Vital_Signs"]
 layout_mode = 1
@@ -175,35 +167,5 @@ flip_v = true
 layout_mode = 2
 text = "36.6"
 label_settings = SubResource("LabelSettings_l4w6e")
-horizontal_alignment = 1
-vertical_alignment = 1
-
-[node name="_5_container_radiation" type="VBoxContainer" parent="Vital_Signs/BoxContainer/HBoxContainer"]
-layout_mode = 2
-theme_override_constants/separation = 10
-
-[node name="radiation_warning sign" type="TextureRect" parent="Vital_Signs/BoxContainer/HBoxContainer/_5_container_radiation"]
-layout_mode = 2
-texture = ExtResource("16_d253i")
-
-[node name="radiation_upper" type="TextureRect" parent="Vital_Signs/BoxContainer/HBoxContainer/_5_container_radiation"]
-layout_mode = 2
-texture = ExtResource("6_n2tv3")
-
-[node name="radiation_icon" type="TextureRect" parent="Vital_Signs/BoxContainer/HBoxContainer/_5_container_radiation"]
-layout_mode = 2
-texture = ExtResource("18_evh7y")
-expand_mode = 4
-stretch_mode = 3
-
-[node name="radiation_lower" type="TextureRect" parent="Vital_Signs/BoxContainer/HBoxContainer/_5_container_radiation"]
-layout_mode = 2
-texture = ExtResource("6_n2tv3")
-flip_v = true
-
-[node name="radiation_lbl" type="Label" parent="Vital_Signs/BoxContainer/HBoxContainer/_5_container_radiation"]
-layout_mode = 2
-text = "RAD"
-label_settings = SubResource("LabelSettings_mgf2m")
 horizontal_alignment = 1
 vertical_alignment = 1
