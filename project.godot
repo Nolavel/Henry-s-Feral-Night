@@ -94,6 +94,17 @@ animation_library={
 
 locale/translations=PackedStringArray("res://localization/strings.en.translation", "res://localization/strings.ru.translation")
 
+[shader_globals]
+
+snow_cover={
+"type": "float",
+"value": 0.5
+}
+frost_amount={
+"type": "float",
+"value": 0.3
+}
+
 [input]
 
 ui_accept={

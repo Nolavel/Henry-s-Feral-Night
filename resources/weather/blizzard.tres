@@ -15,6 +15,7 @@ gust_period_s = 3.0
 snowfall_density = 0.95
 visibility_m = 45.0
 wetness_rate_per_hour = 0.55
+snow_cover = 1.0
 blend_time_s = 35.0
 weight = 1.0
 min_duration_h = 0.75
