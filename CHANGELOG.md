@@ -68,6 +68,25 @@ Performance choice
 
 ## [Unreleased] — `claudeflow`
 
+### 2026-09-23 — Smart camera against walls
+
+Fixed
+- With Henry's back to a wall, turning the camera into it put the camera
+  through the wall: the ADT 0.7 m minimum boom overrode the wall probe.
+
+Added
+- Wall assist in `TpsCamera`: when the boom behind Henry lacks ~0.9 m, it
+  searches angles along the wall (up to 90°) and a little above (up to 30°),
+  judging each by where the camera would really sit (shoulder shift and wall
+  clearance included), and glides there; it glides back once the mouse angle
+  has room. It keeps the side it chose so it does not flip.
+- The camera goal is cleared of walls before the follow, and the post-contact
+  restore is faster (5.0), so a sweep along a wall does not leave the camera
+  hugging the head. As a last resort only, the main camera stops drawing the
+  body when closer than 0.3 m to the eyes (the HUD portrait is unaffected).
+- `test_tps_camera_orbit.gd`: back to a wall, a full 360° mouse sweep never
+  enters the wall, never settles closer than 0.55 m and never hides Henry.
+
 ### 2026-09-23 — Camera in tight spaces; the backpack is an item
 
 Changed
