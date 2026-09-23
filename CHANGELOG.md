@@ -68,6 +68,19 @@ Performance choice
 
 ## [Unreleased] — `claudeflow`
 
+### 2026-09-23 — TPS camera: the rest of ADT's framing; ADT key layout
+
+Added
+- Over-the-shoulder framing from ADT: 0.85 m shoulder offset split 60/40
+  between lens shift and camera move, Z swaps shoulders (`TpsShoulderState`).
+- Q/E lean of the camera, breathing sway on pitch, ADT lead smoothing and
+  start pitch. Pivot and probes use ADT body ratios from the feet, not the
+  capsule centre (the old pivot sat a metre too high).
+
+Changed
+- Keys follow ADT: interact F, lean Q/E, shoulder Z; flashlight moved to L;
+  unused `use_ability_henry` action removed.
+
 ### 2026-09-23 — Grey UAL mannequin, backpack placeholder, fonts, menu pointer
 
 Changed

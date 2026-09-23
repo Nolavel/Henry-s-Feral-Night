@@ -43,6 +43,7 @@ func _build() -> void:
 	root.add_child(_player)
 	_camera = TpsCamera.new()
 	_camera.player = _player
+	_camera.origin_above_feet = 0.0
 	root.add_child(_camera)
 	_camera.set_look(0.0, -10.0)
 	_walls = Node3D.new()
@@ -73,6 +74,9 @@ func _check_open_field() -> void:
 	_check(_camera.get_openness() > 0.95, "open field reads as closed: %.2f" % _camera.get_openness())
 	_check(absf(_camera.get_boom_length() - _camera.far_distance) < 0.1,
 		"open field boom %.2f, want %.2f" % [_camera.get_boom_length(), _camera.far_distance])
+	## Over the right shoulder, as in ADT: part moved, part lens shift.
+	_check(_camera.global_position.x > 0.2, "camera is not over the right shoulder: x=%.2f" % _camera.global_position.x)
+	_check(_camera.h_offset > 0.3, "no shoulder lens shift: %.2f" % _camera.h_offset)
 
 
 ## Walls along Z either side of Henry, width apart.

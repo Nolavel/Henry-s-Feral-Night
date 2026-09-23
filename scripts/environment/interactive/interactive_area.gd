@@ -288,15 +288,15 @@ func _get_interaction_text() -> String:
 		
 		match interaction_type:
 			InteractionType.PUSHABLE:
-				action_text = "[E] Толкнуть"
+				action_text = "[F] Толкнуть"
 			InteractionType.PICKUP:
-				action_text = "[E] Подобрать " + _get_pickup_subtype_text()
+				action_text = "[F] Подобрать " + _get_pickup_subtype_text()
 			InteractionType.BUTTON:
-				action_text = "[E] Нажать"
+				action_text = "[F] Нажать"
 			InteractionType.DOOR:
-				action_text = "[E] Открыть"
+				action_text = "[F] Открыть"
 			_:
-				action_text = "[E] Взаимодействовать"
+				action_text = "[F] Взаимодействовать"
 		
 		_cached_interaction_text = action_text + "\n" + item_name + "\n" + description
 		_text_cache_dirty = false

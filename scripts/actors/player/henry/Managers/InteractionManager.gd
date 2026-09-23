@@ -67,7 +67,7 @@ func _input(event: InputEvent) -> void:
 
 
 ## True while something else owns the interact key — the sleep dialog, say.
-## Confirming sleep with E must not also trigger the nearest object.
+## Confirming sleep with F must not also trigger the nearest object.
 func _is_interact_claimed() -> bool:
 	var input_systems: Node = get_node_or_null(INPUT_SYSTEMS_PATH)
 	if input_systems == null:
