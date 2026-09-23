@@ -68,6 +68,14 @@ Performance choice
 
 ## [Unreleased] — `claudeflow`
 
+### 2026-09-23 — Debugger warnings cleaned
+
+Changed
+- Triple-quoted "docstrings" in `BioMonitorManager` and `vital_signs.gd`
+  (standalone-expression warnings) became `##` doc comments in English.
+- Unused parameters prefixed with `_`; `load_profiles_from` no longer shadows
+  the `profiles` export; dead `shake_intensity` local removed.
+
 ### 2026-09-23 — Picked-up items no longer crash the interaction scan
 
 Fixed
