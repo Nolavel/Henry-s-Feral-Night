@@ -1,4 +1,4 @@
-[gd_scene load_steps=101 format=4 uid="uid://ciy301x7wh6ie"]
+[gd_scene load_steps=105 format=4 uid="uid://ciy301x7wh6ie"]
 
 [ext_resource type="Script" uid="uid://b50rnmqk3m8fr" path="res://scripts/actors/player/henry/Player.gd" id="1_irk3a"]
 [ext_resource type="Texture2D" uid="uid://b1vpe3iqs2wgh" path="res://assets/textures/player_test/player/SUIT_albedo.jpeg" id="2_cat03"]
@@ -30,6 +30,10 @@
 [ext_resource type="Texture2D" uid="uid://82bw7trvu4v8" path="res://assets/textures/player_test/player/Head_AO.jpeg" id="9_shibf"]
 [ext_resource type="Texture2D" uid="uid://dhwloxffl8o5n" path="res://assets/textures/player_test/player/Head_metallic.jpeg" id="10_jk84i"]
 [ext_resource type="Script" uid="uid://djgsya3tmwfqa" path="res://scripts/actors/player/henry/Managers/BioMonitorManager.gd" id="10_mvyhi"]
+[ext_resource type="Script" uid="uid://buc8iltj8gtn0" path="res://scripts/actors/player/henry/components/equipment_component.gd" id="90_equip"]
+[ext_resource type="Script" uid="uid://jwbyt4ch7e7l" path="res://scripts/actors/player/henry/components/inventory_component.gd" id="91_inv"]
+[ext_resource type="Script" uid="uid://0rnwid612a8i" path="res://scripts/systems/survival/consumption_controller.gd" id="92_consume"]
+[ext_resource type="Resource" path="res://data/equipment/player_layout.tres" id="93_layout"]
 [ext_resource type="Texture2D" uid="uid://c4cgxd2syf1dl" path="res://assets/textures/player_test/player/Armor_roughness.jpeg" id="10_w0i13"]
 [ext_resource type="Shader" uid="uid://cq0cewnu86jod" path="res://assets/materials/Shaders/BG_indicatorSURV.gdshader" id="11_7mm2c"]
 [ext_resource type="Script" uid="uid://x6kekeaur64p" path="res://scripts/ui/hud/camera_face_for_ui.gd" id="11_atp51"]
@@ -2388,6 +2392,20 @@ script = ExtResource("8_re6ll")
 
 [node name="BioMonitorManager" type="Node3D" parent="."]
 script = ExtResource("10_mvyhi")
+
+[node name="EquipmentComponent" type="Node" parent="."]
+script = ExtResource("90_equip")
+layout = ExtResource("93_layout")
+starter_garment_ids = Array[StringName]([&"worn_coat", &"knit_hat", &"work_trousers", &"worn_boots"])
+
+[node name="InventoryComponent" type="Node" parent="."]
+script = ExtResource("91_inv")
+
+[node name="ConsumptionController" type="Node" parent="." node_paths=PackedStringArray("inventory", "equipment", "bio_monitor")]
+script = ExtResource("92_consume")
+inventory = NodePath("../InventoryComponent")
+equipment = NodePath("../EquipmentComponent")
+bio_monitor = NodePath("../BioMonitorManager")
 
 [node name="CameraFaceHenryForUI" type="Node3D" parent="."]
 script = ExtResource("11_atp51")
