@@ -7,6 +7,7 @@ extends SceneTree
 const AREA_SCENE: String = "res://scenes/environment/interactive/InteractiveArea.tscn"
 const PICKUP_SCRIPT: String = "res://scripts/environment/interactive/item_pickup.gd"
 const SETTLE_FRAMES: int = 6
+const AFTER_PICKUP_FRAMES: int = 4
 
 var _failures: int = 0
 var _frame: int = 0
@@ -20,7 +21,9 @@ func _process(_delta: float) -> bool:
 	if _frame == 1:
 		_build()
 	elif _frame == SETTLE_FRAMES:
-		_check_and_finish()
+		_check_pickup()
+	elif _frame == SETTLE_FRAMES + AFTER_PICKUP_FRAMES:
+		_finish()
 	return false
 
 
@@ -55,13 +58,18 @@ func _build() -> void:
 	root.add_child(_pickup)
 
 
-func _check_and_finish() -> void:
+func _check_pickup() -> void:
 	_check(_pickup.can_interact(), "the pickup is in reach but cannot be interacted with")
 	var press := InputEventAction.new()
 	press.action = &"interact"
 	press.pressed = true
 	_manager._input(press)
 	_check(_inventory.get_count(&"firewood") == 1, "interact did not put the firewood in the pack")
+
+
+## Frames after pickup must not touch the freed item.
+func _finish() -> void:
+	_check(_manager.detected_areas.is_empty(), "the manager still holds the picked-up item")
 	if _failures > 0:
 		push_error("interaction: %d check(s) failed" % _failures)
 		quit(1)
