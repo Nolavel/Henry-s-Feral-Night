@@ -2,6 +2,9 @@
 # Vital_Signs_UI.gd
 extends Control
 
+## Looked up through the world context, never by node path.
+const THERMAL_SCRIPT: GDScript = preload("res://scripts/systems/survival/thermal_manager.gd")
+
 @export var vital_signs_enabled: bool = true
 
 # === ЭКСПОРТ ГРУПП ДЛЯ ВСЕХ ПОКАЗАТЕЛЕЙ ===
@@ -160,13 +163,26 @@ func setup_bio_monitor_connections():
 	else:
 		print("ОШИБКА: BioMonitorManager не назначен в Vital_Signs_UI!")
 
+## Lifecycle hook world.gd offers to the player subtree. The thermal model is
+## created by the composition root, so the thermometer finds it here.
+func on_world_ready(context: WorldContext) -> void:
+	if thermal_manager != null:
+		return
+	thermal_manager = context.get_system(THERMAL_SCRIPT) as ThermalManager
+	if thermal_manager == null:
+		push_warning("Vital_Signs_UI: the world built no ThermalManager, thermometer stays idle")
+		return
+	setup_thermal_connections()
+
+
 ## Subscribes the thermometer to the thermal model.
 func setup_thermal_connections() -> void:
 	if not thermal_manager:
-		push_warning("Vital_Signs_UI: no ThermalManager assigned, thermometer stays idle")
 		return
-	thermal_manager.body_temperature_changed.connect(_on_body_temperature_changed)
-	thermal_manager.stage_changed.connect(_on_thermal_stage_changed)
+	if not thermal_manager.body_temperature_changed.is_connected(_on_body_temperature_changed):
+		thermal_manager.body_temperature_changed.connect(_on_body_temperature_changed)
+	if not thermal_manager.stage_changed.is_connected(_on_thermal_stage_changed):
+		thermal_manager.stage_changed.connect(_on_thermal_stage_changed)
 	initialize_thermal_state()
 
 

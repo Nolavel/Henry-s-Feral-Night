@@ -21,6 +21,11 @@ extends Resource
 @export var gust_speed_mps: float = 0.0
 ## Seconds between gust peaks; lower means choppier wind.
 @export var gust_period_s: float = 8.0
+## Compass bearing the wind blows towards, in degrees. 0 is -Z, 90 is +X.
+@export_range(0.0, 360.0) var wind_direction_deg: float = 0.0
+## How far the bearing wanders either side, so a storm does not blow from one
+## fixed quarter all night. Sampled from the same gust noise.
+@export_range(0.0, 180.0) var wind_direction_jitter_deg: float = 15.0
 
 @export_group("Precipitation")
 ## Snowfall density, 0.0 clear to 1.0 whiteout. Drives VFX and visibility.

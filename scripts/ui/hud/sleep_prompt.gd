@@ -15,6 +15,13 @@ signal refused(reason_key: String)
 ## Emitted when the fire's ability to outlast the chosen duration changes.
 signal fuel_warning_changed(fire_outlasts_sleep: bool)
 
+## Looked up through the world context, never by node path.
+const SLEEP_CONTROLLER_SCRIPT: GDScript = preload("res://scripts/systems/save/sleep_controller.gd")
+
+## Autoload that owns the interact key; looked up rather than preloaded so a
+## headless suite without autoloads still runs this scene.
+const INPUT_SYSTEMS_PATH: NodePath = ^"/root/InputSystems"
+
 const HOLD_ACTION: StringName = &"sleep"
 const CONFIRM_ACTION: StringName = &"interact"
 const CANCEL_ACTION: StringName = &"sleep_cancel"
@@ -49,6 +56,13 @@ const MOVE_ACTIONS: Array[StringName] = [
 var _hold_time: float = 0.0
 var _is_open: bool = false
 var _hours: int = 8
+
+
+## Lifecycle hook world.gd calls on every UI scene it builds. The prompt is
+## useless without the controller, so it finds it rather than being wired.
+func on_world_ready(context: WorldContext) -> void:
+	if sleep_controller == null:
+		sleep_controller = context.get_system(SLEEP_CONTROLLER_SCRIPT) as SleepController
 
 
 func _ready() -> void:
@@ -247,7 +261,10 @@ func _update_fuel_warning() -> void:
 	fuel_warning_changed.emit(outlasts)
 
 
+## Takes the interact key while the dialog is up, so confirming sleep does not
+## also trigger whatever the player happens to be standing next to.
 func _set_dialog_visible(open_now: bool) -> void:
+	_claim_interact(open_now)
 	if dialog_panel != null:
 		dialog_panel.visible = open_now
 	if hold_indicator != null:
@@ -255,3 +272,29 @@ func _set_dialog_visible(open_now: bool) -> void:
 	if hold_hint != null:
 		hold_hint.visible = not open_now
 	dialog_visibility_changed.emit(open_now)
+
+
+## Claims or releases the interact key through InputSystems, when it exists.
+## Absent in a bare headless suite, so its absence is not an error.
+func _claim_interact(claim: bool) -> void:
+	var input_systems: Node = get_node_or_null(INPUT_SYSTEMS_PATH)
+	if input_systems == null:
+		return
+	if claim:
+		input_systems.claim_interact(self)
+	else:
+		input_systems.release_interact(self)
+
+
+## Called by InputSystems while this prompt owns the interact key.
+func on_interact_claimed() -> void:
+	if _is_open:
+		confirm()
+
+
+func on_interact_held(_duration: float) -> void:
+	pass
+
+
+func on_interact_released(_duration: float) -> void:
+	pass

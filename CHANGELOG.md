@@ -44,6 +44,107 @@ Performance choice
 
 ## [Unreleased] — `claudeflow`
 
+### 2026-09-23 (6) — Phase B step 2: a shelter you have to prepare
+
+A shelter was a flat safe zone: step inside and the wind stopped, and a fire
+warmed a holed ruin exactly as well as a sealed cabin. This is the mechanism
+behind the core verb in issue #4 — preparing shelter rather than finding it —
+and the one item on #7's must-have list that is not content.
+
+Added
+- **Wind has a direction.** `WeatherProfile.wind_direction_deg` plus a jitter
+  angle, and `WeatherController.get_wind_direction()`. Bearings blend as
+  vectors, so crossing 0/360 turns the short way instead of sweeping back
+  through every intermediate quarter; the wander is sampled from the gust noise
+  at an offset, so direction and speed are not the same number twice.
+- **`ShelterBreach`** — a hole in a shelter, child of the `ThermalZone` it lets
+  the weather into. Severity, a facing taken from the node's own basis (the
+  author turns it in the editor; nobody fills in a vector), and
+  `board_up()` / `tear_open()`.
+- **`ThermalZone` derives its protection from its breaches.** `wind_exposure`
+  is now the base leak of a sealed shelter, not the final number.
+  `get_wind_exposure(wind_direction)` adds each unboarded hole weighted by how
+  squarely it faces the wind — a hole in the lee costs almost nothing, the same
+  hole turned windward costs its full severity.
+- **A fire cannot heat a hole.** `get_sealed_fraction()` scales
+  `max_heated_offset_c`, so a holed room never reaches a useful temperature
+  however long it burns, and tearing boards off mid-night drops the warmth
+  already stored. That is what makes boarding up worth the trouble.
+- **`ShelterState`** — a composition-root system remembering which breaches are
+  boarded, keyed by zone and breach name. Shelters live in streamed chunks, so
+  the state cannot live in the zone.
+- **`BreachBoardUp`** — the first `InteractiveArea` subclass in the project that
+  does anything. Spends one `boards` item and closes the hole; refuses rather
+  than boarding for free.
+
+Fixed
+- **Confirming sleep also triggered whatever you were standing next to.**
+  `InteractionManager._input()` read `"interact"` raw, bypassing `InputSystems`,
+  and the sleep dialog confirms with the same key. The prompt now claims the key
+  while it is open and the manager honours the claim — which is what the claim
+  contract was ported from ADT for.
+- `test_world_composition.gd`'s new check was aborting on a null `world.player`
+  before asserting anything, so the suite passed without running it. The player
+  export is only resolved by `initialize()`; the scene node is the handle that
+  early.
+- `vital_signs.gd` connected the thermal signals twice when the scene had
+  already wired a manager.
+
+Tests
+- `tests/systems/test_shelter.gd`: a breachless zone behaves exactly as before,
+  a windward hole costs more than the same hole in the lee, boarding restores
+  the base leak, a fire cannot pass a holed room's ceiling, boards cost an item,
+  the state survives a save round trip, and a night in a holed shelter ends
+  colder than the same night sealed.
+- Thirteen suites green. `TestScene` and the island both render with no warnings
+  from the survival systems.
+
+Known, not mine
+- `test_ice_field.gd` prints a duplicate `tile_broke` connection error. It
+  predates this branch's changes; left alone rather than widened into here.
+
+### 2026-09-23 (5) — Phase B step 1: the cold actually runs
+
+The thermal stack was built, tested and driven by nothing. It is in the
+composition root now, which means the survival simulation runs in the game
+rather than only in the suites.
+
+Added
+- `ThermalManager` and `SleepController` are two more lines in
+  `WORLD_SYSTEM_SCRIPTS`, as the composition root promised. Both implement
+  `on_world_ready(context)` and find what they need — clock, weather, equipment,
+  biomonitor, save manager — so no scene wires them by hand.
+- `ThermalManager` rides with the player and builds its own `ZoneProbe` when
+  the scene supplies none. Without a probe no shelter ever counted, so sleep
+  would have refused everywhere.
+- `WorldContext.find_in_scene()` — one scene-tree search shared by every
+  system, searching the world root first. A headless harness that adds a scene
+  to the SceneTree root leaves `current_scene` null, which the bespoke search in
+  `WeatherController` could not survive; that copy is deleted.
+- `_notify` now offers the hook to a node **and its subtree**, so a HUD
+  indicator inside `player.tscn` can ask for what it needs. `vital_signs.gd` and
+  `sleep_prompt.gd` use it: the thermometer and the S-hold dialog find the live
+  systems themselves.
+
+Fixed
+- **The starting weather profile was never activated.** `WeatherController._ready()`
+  ran `initialize()` before the world handed over clock and profiles; it returned
+  early at the empty-profiles check, and the later call no-opped on the
+  `_gust_noise` guard. `initialize()` is now idempotent *per concern* rather than
+  gated by one boolean, in both `WeatherController` and `ThermalManager`.
+- Same class of bug in `ThermalManager`: the clock was never connected, so body
+  temperature never ticked in a real scene.
+- Awaiting `process_frame` to defer past `_ready` does not work here — a
+  coroutine resumed by that signal and a node connecting to it during the same
+  emission both run in one pass. Both systems are structurally correct instead.
+
+Tests
+- `test_world_composition.gd` gains the check that would have caught all of
+  this: both systems present, each reference resolved, a probe built, and the
+  thermal model following the player rather than sitting at the origin.
+- Twelve suites green. `TestScene` and the island both render with **no warnings
+  from the survival systems at all**, which has not been true before.
+
 ### 2026-09-23 (4) — Phase A step 3: the survival loop closes
 
 Closes issue #6. The two ends of the loop that were stubs now meet.
