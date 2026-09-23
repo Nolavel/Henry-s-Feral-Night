@@ -330,3 +330,30 @@ func is_currently_hydrated_from_drink() -> bool:
 
 func is_currently_rested_from_sleep() -> bool:
 	return has_recently_rested
+
+
+## Key this system owns in a save file, stated explicitly so renaming the
+## script never orphans an existing save.
+func get_save_key() -> StringName:
+	return &"bio"
+
+
+func get_save_data() -> Dictionary:
+	return {
+		"calories": current_calories,
+		"hydration": current_hydration,
+		"energy": current_energy,
+	}
+
+
+## Restores the three tracks and re-derives the critical flags from them, so
+## a loaded starving Henry is starving again rather than silently fine.
+func load_save_data(data: Dictionary) -> void:
+	current_calories = clamp(float(data.get("calories", current_calories)), 0.0, max_calories)
+	current_hydration = clamp(float(data.get("hydration", current_hydration)), 0.0, max_hydration)
+	current_energy = clamp(float(data.get("energy", current_energy)), 0.0, max_energy)
+	previous_calories = current_calories
+	previous_hydration = current_hydration
+	previous_energy = current_energy
+	update_ui_signals()
+	check_critical_states()

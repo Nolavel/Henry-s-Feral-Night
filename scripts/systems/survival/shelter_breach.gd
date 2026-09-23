@@ -23,6 +23,10 @@ signal boarded_changed(is_boarded: bool)
 ## Player-facing name key for the prompt, resolved through localisation.
 @export var name_key: String = "BREACH_GENERIC"
 
+@export_group("Visual")
+## Shown while boarded: the planks across the gap.
+@export var boarded_visual: Node3D
+
 var _is_boarded: bool = false
 
 
@@ -93,6 +97,8 @@ func load_save_data(data: Dictionary) -> void:
 
 ## Tells the owning zone its protection changed, without the zone polling.
 func _announce() -> void:
+	if boarded_visual != null:
+		boarded_visual.visible = _is_boarded
 	if not is_inside_tree():
 		return
 	var zone := get_parent() as ThermalZone

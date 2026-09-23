@@ -35,14 +35,18 @@ const WORLD_SYSTEM_SCRIPTS: Array[GDScript] = [
 	preload("res://scripts/systems/survival/thermal_manager.gd"),
 	preload("res://scripts/systems/survival/shelter_state.gd"),
 	preload("res://scripts/systems/save/sleep_controller.gd"),
+	preload("res://scripts/systems/save/session_state.gd"),
 ]
 
 ## Standalone 3D scenes — instantiate(), parented to StreamContainer.
-const WORLD_3D_ENTITY_SCENES: Array[PackedScene] = []
+const WORLD_3D_ENTITY_SCENES: Array[PackedScene] = [
+	preload("res://scenes/environment/visual_fx/weather/SnowfallVFX.tscn"),
+]
 
 ## Screen-space UI scenes — instantiate(), parented to a shared CanvasLayer.
 const WORLD_UI_SCENES: Array[PackedScene] = [
 	preload("res://scenes/ui/hud/sleep_prompt.tscn"),
+	preload("res://scenes/ui/menu/pause_menu.tscn"),
 ]
 
 const UI_CANVAS_LAYER_INDEX: int = 40
@@ -58,6 +62,9 @@ const SPAWN_CLEARANCE: float = 1.0
 @export var camera: Camera3D
 ## Where the player starts. Freed after use, as the old GameRouter did.
 @export var first_spawner_marker: Marker3D
+## Off for a scene with its own floor, such as TestScene, so the island's
+## chunks are not streamed on top of it.
+@export var streaming_enabled: bool = true
 
 var _systems: Array[Node] = []
 var _context: WorldContext
@@ -128,6 +135,7 @@ func _build_context() -> WorldContext:
 	context.camera = camera
 	context.stream_container = stream_container
 	context.world = self
+	context.streaming_enabled = streaming_enabled
 	context.systems = _systems
 	return context
 

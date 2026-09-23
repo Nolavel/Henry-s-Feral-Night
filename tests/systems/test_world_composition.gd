@@ -25,6 +25,7 @@ func _run() -> void:
 	_test_unknown_save_versions_are_refused()
 	_test_save_manager_adopts_the_systems_list()
 	_test_the_thermal_stack_is_wired_and_follows_the_player()
+	_test_a_scene_with_its_own_floor_streams_nothing()
 	if _failures > 0:
 		push_error("world: %d check(s) failed" % _failures)
 		quit(1)
@@ -264,5 +265,21 @@ func _test_the_thermal_stack_is_wired_and_follows_the_player() -> void:
 	_check(
 		thermal.global_position.is_equal_approx(world.player.global_position),
 		"the thermal model did not follow the player"
+	)
+	_dispose(world)
+
+
+## TestScene brings its own floor; the island's chunks must not land on it.
+func _test_a_scene_with_its_own_floor_streams_nothing() -> void:
+	var world := _make_world()
+	world.streaming_enabled = false
+	world.initialize()
+	var streaming := world.get_context().get_system(StreamingSystem) as StreamingSystem
+	_check(streaming != null, "the streaming system was not built at all")
+	if streaming != null:
+		_check(not streaming._initialized, "streaming started in a scene that turned it off")
+	_check(
+		world.stream_container.get_child_count() == 0,
+		"%d chunk(s) streamed into a scene with its own floor" % world.stream_container.get_child_count()
 	)
 	_dispose(world)

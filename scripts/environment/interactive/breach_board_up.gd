@@ -20,6 +20,9 @@ func _ready() -> void:
 	super()
 	if breach == null:
 		breach = _find_breach()
+	if breach != null:
+		set_item_name(tr(breach.name_key))
+	set_description("")
 
 
 ## Only offers itself while the hole is actually open.

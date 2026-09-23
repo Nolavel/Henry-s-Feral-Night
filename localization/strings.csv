@@ -1,0 +1,29 @@
+keys,en,ru
+MENU_TITLE,Henry's Feral Night,Henry's Feral Night
+MENU_NEW_GAME,New game,Новая игра
+MENU_CONTINUE,Continue from last sleep,Продолжить с последнего сна
+MENU_QUIT,Quit,Выход
+MENU_NO_SAVE,No sleep saved yet,Сохранённого сна пока нет
+PAUSE_TITLE,Paused,Пауза
+PAUSE_RESUME,Resume,Продолжить
+PAUSE_TO_TITLE,Quit to title,Выйти в меню
+PAUSE_UNSAVED_HINT,Progress saves only when you sleep,Прогресс сохраняется только во сне
+SLEEP_REFUSED_NOT_SHELTERED,You need shelter to sleep,Для сна нужно укрытие
+SLEEP_REFUSED_TOO_COLD,Too cold to sleep here,Здесь слишком холодно для сна
+SLEEP_REFUSED_TOO_ALERT,You are not tired enough,Вы недостаточно устали
+SLEEP_REFUSED_ALREADY_SLEEPING,Already asleep,Уже спите
+CONSUME_REFUSED_UNKNOWN_ITEM,Unknown item,Неизвестный предмет
+CONSUME_REFUSED_NOT_CONSUMABLE,You cannot eat that,Это нельзя съесть
+CONSUME_REFUSED_NOT_CARRIED,You are not carrying that,У вас этого нет
+CONSUME_REFUSED_NO_BIO_MONITOR,Cannot eat right now,Сейчас нельзя поесть
+FEED_REFUSED_NO_SOURCE,There is nothing to burn it in,Здесь негде развести огонь
+FEED_REFUSED_ALREADY_FULL,The fire is already full,Огонь уже полный
+FEED_REFUSED_NO_FUEL,You need firewood,Нужны дрова
+FEED_REFUSED_NO_TINDER,You need tinder to start it,Для розжига нужна растопка
+FEED_REFUSED_NO_INVENTORY,Cannot reach your pack,Нет доступа к рюкзаку
+BREACH_GENERIC,Board up the gap,Заколотить проём
+WEATHER_CALM,Calm,Штиль
+WEATHER_WINDY,Windy,Ветер
+WEATHER_SNOWFALL,Snowfall,Снегопад
+WEATHER_BLIZZARD,Blizzard,Буря
+FEED_PROMPT,Light or feed the stove,Разжечь или подкинуть в печь

@@ -1,31 +1,34 @@
 extends Node3D
-class_name ExperimentalSnowfallVFX
+class_name SnowfallVFX
 
-## Test-only local snowfall volume. WeatherController owns wind direction,
-## gusts and snowfall density. This node only turns those live values into VFX.
+## Local production snowfall volume around Henry.
+## WeatherController is the only authority for wind direction, gusts and
+## snowfall density; this scene only visualizes those live conditions.
 ##
 ## Two layers are intentional:
 ## - WorldSnow: many small flakes around Henry.
 ## - ForegroundSnow: a very small number of larger flakes close to the camera.
 
 const SNOW_SHADER: Shader = preload(
-	"res://experimental/weather_snow/wind_driven_snow.gdshader"
+	"res://shaders/environment/weather/wind_driven_snow.gdshader"
+)
+const WEATHER_CONTROLLER_SCRIPT: GDScript = preload(
+	"res://scripts/systems/world/WeatherController.gd"
 )
 
-@export var weather_controller: WeatherController
-@export var follow_target: Node3D
-@export var foreground_target: Node3D
+# Production limits validated on the island preview. Keep these fixed unless a
+# dedicated performance pass proves a change is safe.
+const WORLD_MAX_PARTICLES: int = 3072
+const WORLD_EMITTER_HEIGHT: float = 6.0
+const MAX_UPWIND_OFFSET: float = 9.0
+const FOREGROUND_MAX_PARTICLES: int = 32
+const FOREGROUND_DENSITY_SCALE: float = 0.08
+const FOREGROUND_DISTANCE: float = 2.4
+const FOREGROUND_HEIGHT: float = 1.0
 
-@export_group("World snow")
-@export_range(256, 6000, 64) var max_particles: int = 3072
-@export_range(1.0, 12.0, 0.25) var emitter_height: float = 6.0
-@export_range(0.0, 12.0, 0.25) var max_upwind_offset: float = 9.0
-
-@export_group("Foreground snow")
-@export_range(8, 128, 8) var foreground_particles_max: int = 32
-@export_range(0.0, 1.0, 0.01) var foreground_density_scale: float = 0.08
-@export_range(0.5, 5.0, 0.1) var foreground_distance: float = 2.4
-@export_range(0.0, 3.0, 0.1) var foreground_height: float = 1.0
+var weather_controller: WeatherController
+var follow_target: Node3D
+var foreground_target: Node3D
 
 var particles: GPUParticles3D
 var foreground_particles: GPUParticles3D
@@ -35,6 +38,19 @@ var _foreground_material: ShaderMaterial
 var _visual_wind_velocity: Vector3 = Vector3.ZERO
 var _last_direction: Vector3 = Vector3.FORWARD
 
+@onready var heightfield_service: SnowHeightFieldService = $HeightFieldService
+
+
+func on_world_ready(context: WorldContext) -> void:
+	follow_target = context.player
+	foreground_target = context.camera
+	weather_controller = context.get_system(WEATHER_CONTROLLER_SCRIPT) as WeatherController
+	if heightfield_service != null:
+		heightfield_service.configure(follow_target)
+	_bind_weather()
+	if weather_controller == null:
+		push_warning("SnowfallVFX: authoritative WeatherController is missing")
+
 
 func _ready() -> void:
 	_build_particles()
@@ -43,14 +59,14 @@ func _ready() -> void:
 
 func _process(_delta: float) -> void:
 	if is_instance_valid(follow_target):
-		global_position = follow_target.global_position + Vector3.UP * emitter_height
+		global_position = follow_target.global_position + Vector3.UP * WORLD_EMITTER_HEIGHT
 
 	if foreground_particles != null and is_instance_valid(foreground_target):
 		var camera_forward: Vector3 = -foreground_target.global_transform.basis.z.normalized()
 		foreground_particles.global_position = (
 			foreground_target.global_position
-			+ camera_forward * foreground_distance
-			+ Vector3.UP * foreground_height
+			+ camera_forward * FOREGROUND_DISTANCE
+			+ Vector3.UP * FOREGROUND_HEIGHT
 			- _last_direction * minf(_visual_wind_velocity.length() * 0.25, 1.5)
 		)
 
@@ -63,7 +79,7 @@ func _build_particles() -> void:
 	)
 	particles = _make_particle_layer(
 		"WorldSnow",
-		max_particles,
+		WORLD_MAX_PARTICLES,
 		6.5,
 		0.012,
 		_build_snowflake_mesh(0.010, 0.0016, 0.0042, 0.00115, false),
@@ -89,7 +105,7 @@ func _build_particles() -> void:
 	)
 	foreground_particles = _make_particle_layer(
 		"ForegroundSnow",
-		foreground_particles_max,
+		FOREGROUND_MAX_PARTICLES,
 		3.4,
 		0.026,
 		_build_snowflake_mesh(0.022, 0.0030, 0.0085, 0.0022, true),
@@ -294,24 +310,20 @@ func _apply_conditions(wind_speed_mps: float, snowfall_density: float) -> void:
 			lerpf(0.10, 1.20, clampf(speed / 28.0, 0.0, 1.0))
 		)
 
-	var upwind_offset: float = minf(visual_speed * 1.25, max_upwind_offset)
+	var upwind_offset: float = minf(visual_speed * 1.25, MAX_UPWIND_OFFSET)
 	particles.position = -direction * upwind_offset
 	particles.amount_ratio = density
 	particles.emitting = density > 0.005
+	if heightfield_service != null:
+		heightfield_service.set_active(density > 0.005)
 
 	var foreground_ratio: float = clampf(
-		density * foreground_density_scale,
+		density * FOREGROUND_DENSITY_SCALE,
 		0.0,
 		1.0
 	)
 	foreground_particles.amount_ratio = foreground_ratio
 	foreground_particles.emitting = foreground_ratio > 0.005
-
-
-func set_collision_debug(enabled: bool) -> void:
-	for material: ShaderMaterial in [_process_material, _foreground_material]:
-		if material != null:
-			material.set_shader_parameter("collision_debug", enabled)
 
 
 func get_visual_wind_velocity() -> Vector3:

@@ -1,4 +1,4 @@
-// Experimental HFN snow adaptation of ProfesorShader's
+// HFN production snow adaptation of ProfesorShader's
 // "Wind Driven Falling Particles" (CC0).
 // Source: https://godotshaders.com/shader/wind-driven-falling-particles-leaves-petals-feathers/
 //
@@ -19,7 +19,6 @@ uniform float drag : hint_range(0.1, 12.0, 0.1) = 5.4;
 uniform float size_min : hint_range(0.1, 2.0, 0.05) = 0.62;
 uniform float size_max : hint_range(0.1, 2.0, 0.05) = 1.22;
 uniform float fade_from : hint_range(0.0, 1.0, 0.01) = 0.88;
-uniform bool collision_debug = false;
 uniform bool velocity_stretch_enabled = false;
 uniform float stretch_speed_start : hint_range(0.0, 12.0, 0.1) = 4.0;
 uniform float stretch_speed_full : hint_range(0.0, 12.0, 0.1) = 7.0;
@@ -95,12 +94,7 @@ void process() {
 	// Particle colliders are the weather-VFX contact authority. Snow does not
 	// bounce or rest on the floor: it disappears on first contact.
 	if (COLLIDED) {
-		if (collision_debug) {
-			VELOCITY = vec3(0.0);
-			COLOR = vec4(1.0, 0.10, 0.03, 1.0);
-		} else {
-			ACTIVE = false;
-		}
+		ACTIVE = false;
 	} else {
 		USERDATA1.x += DELTA;
 		float normalized_age = clamp(USERDATA1.x / max(LIFETIME, 0.001), 0.0, 1.0);

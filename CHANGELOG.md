@@ -3,51 +3,30 @@
 All notable changes to Henry's Feral Night. Newest first.
 Maintained per branch; entries are added by whoever makes the change.
 
-## [Experiment] — `codex`
+## [Unreleased] — `codex`
 
-### 2026-09-23 — Weather-driven local snow particle test
+### 2026-09-23 — Weather-driven snowfall promoted to production
 
 Added
-- Isolated local snow GPUParticles3D test based on the CC0 Wind Driven Falling
-  Particles idea.
-- Real calm / snowfall / windy / blizzard profiles drive emission density,
-  gust speed and wind direction.
-- Source shader autonomous wind and vortex are deliberately removed to avoid
-  competing with WeatherController.
-- Capture harness renders all four profiles in one CI run.
-- Square quads were replaced by procedural six-arm snowflake geometry.
-- Test floor and posts use GPUParticles collision boxes; the custom shader kills
-  a flake immediately on COLLIDED instead of bouncing or letting it pass through.
-- Airborne flakes continuously steer toward the live WeatherController vector,
-  and a second snowfall capture is taken later in the same profile to verify
-  direction wander affects already-spawned particles.
-- Strong-wind emission is offset upwind and real m/s is compressed into visual
-  velocity so blizzard density remains visible around the player volume.
-- World snowflake geometry is reduced to roughly 1.5–3 cm while a separate
-  96-particle foreground layer keeps only rare 4–8 cm flakes near the camera.
-- A real-island capture now places a 56×28×56 m, 512²
-  GPUParticlesCollisionHeightField3D around Henry with follow-camera updates to
-  verify whether Godot's HeightField collision can see the Terrain3D renderer.
-- Final scale pass reduces the main world layer to roughly 1–2 cm across and
-  the foreground layer to roughly 3–5 cm. Foreground capacity is cut to 32 at
-  8% of weather density so large flakes become occasional near-camera events.
-- Island preview now captures snowfall, windy and blizzard profiles in sequence
-  using the same Henry anchor and HeightField collider.
-- Optimization pass: WorldSnow allocation drops from 3840 to 3072 particles and
-  GPU particle simulation drops from 60 Hz to 30 Hz with interpolation.
-- Only WorldSnow uses velocity alignment/stretching above strong-wind speed;
-  foreground flakes keep their snowflake silhouette and never grow in size.
-- HeightField candidate drops from 512² to 256² and no longer follows the camera;
-  it is positioned on an 8 m Henry-centered grid to avoid rebuilding on every
-  TPS camera movement.
-- Render-only streak revision keeps collision scale fixed: the particle shader
-  writes stretch to CUSTOM.z and the WorldSnow draw shader elongates vertices.
-  The failed manual HeightField RID update was removed; moving the collider
-  already triggers Godot's native heightfield refresh.
-- The island capture includes a test-only collision-debug shot that freezes
-  collided flakes in red; normal gameplay/test behavior still kills them.
+- Production `SnowfallVFX.tscn` under `scenes/environment/visual_fx/weather/`
+  and one declarative registration in `WORLD_3D_ENTITY_SCENES`.
+- The VFX resolves the authoritative WeatherController from WorldContext; it
+  does not create or own a second weather state.
+- Local `SnowHeightFieldService` follows Henry by coarse 8 m cells, using a
+  48×24×48 m / 256² GPUParticles height field only while snow is active.
+- World snow is fixed at 3072 particles and 30 Hz simulation; foreground snow
+  is capped at 32 rare flakes. Validated flake sizes and streak strength are
+  frozen for this production pass.
+- High-wind velocity stretch is render-only on the small world flakes; it does
+  not add another emitter and does not enlarge particle collision.
+- One island regression capture remains under `tools/runtime/`; the synthetic
+  experimental snow scene and old capture harness are removed.
 
-## [Unreleased] — `codex`
+Performance
+- HeightField no longer follows the camera every frame.
+- The validated llvmpipe preview showed no meaningful frame-time difference
+  between snowfall, windy and blizzard stages; absolute llvmpipe FPS is not a
+  target-GPU measurement.
 
 ### 2026-09-23 — Freeman atmosphere + parallax clouds promoted to runtime
 
@@ -87,6 +66,128 @@ Performance choice
   shared render/test pipeline.
 
 ## [Unreleased] — `claudeflow`
+
+### 2026-09-23 (10) — A test shelter: the whole loop by hand in TestScene
+
+Every slice system was in `main`, yet no scene let anyone play the loop.
+
+Added
+- `scenes/environment/shelter/test_shelter.tscn` — placeholder-box shelter:
+  a west window facing into the blizzard (a `ShelterBreach` with a board-up
+  prompt), a door in the lee, a `ThermalZone` interior, and a stove that starts
+  cold with a feed prompt and a flame light.
+- **`ItemPickup`**, the third `InteractiveArea` subclass. No pickup in the game
+  put anything into the pack before; firewood and boards could not be had.
+  All or nothing: a stack too heavy for the pack stays on the ground.
+- `HeatSource.flame_light` and `ShelterBreach.boarded_visual`, so a lit stove
+  and a boarded window read at a glance and on a render.
+- `World.streaming_enabled`. Off in a scene that brings its own floor, so the
+  island's chunks do not stream on top of it.
+- Interaction prompts on the new interactables go through localisation.
+
+Changed
+- **`TestScene` is now a `World`** (streaming off), with the shelter at
+  (0, 0, 14) and firewood ×2, tinder, boards and a tin on the path to it. The
+  cold, sleep, save, pause and weather all run there now.
+
+Tests
+- `tests/systems/test_shelter_scene.gd` loads the real scene and checks its
+  wiring, not the classes alone: prompts find their breach and stove, the
+  window faces the blizzard, boarding and lighting spend real items and flip
+  the visuals, pickups go into the pack or refuse. It caught the window facing
+  downwind on the first draft.
+- `test_world_composition.gd`: streaming off means no chunks.
+
+### 2026-09-23 (9) — Minimal shell: title, Continue, pause
+
+The last non-content item on #7's must-have list: title → New / Continue →
+Quit, and a pause with Resume / Quit to title.
+
+Added
+- `scenes/ui/menu/title_menu.tscn` — New game, Continue from last sleep
+  (disabled with a note when no sleep is saved), Quit. Bare on purpose; how it
+  looks is the author's call.
+- `scenes/ui/menu/pause_menu.tscn`, one more line in `WORLD_UI_SCENES`. Esc
+  pauses through `PlayerState`. No save here: the game saves only when Henry
+  sleeps, and the pause menu says so.
+- `localization/strings.csv` (English + Russian), registered in
+  `project.godot`. The project had **no translation table at all** — every
+  refusal key (`SLEEP_REFUSED_TOO_COLD` and the rest) would have shown raw.
+
+Fixed — Continue would have been a lie
+- A sleep save held weather, body temperature and shelter state, and nothing
+  else. **Time of day, where Henry lay down, hunger/thirst/energy and the pack
+  were not saved.** Loading would have put him at the spawn marker at dawn,
+  fed and empty-handed.
+  - `SessionState` (composition root): game clock and player position; resets
+    the thermal and weather hour trackers so a loaded clock jump is not billed
+    as time spent in the cold.
+  - `BioMonitorManager` implements the save contract.
+  - `SaveManager` adopts contract implementers inside the player, so inventory
+    and equipment are saved at last.
+- `SaveManager.pending_load_slot` carries Continue from the title scene into
+  the world; applied deferred, after every system adopted its scene state.
+
+Not changed
+- `run/main_scene` is still `TestScene`, per the author's convention. Point it
+  at `res://scenes/ui/menu/title_menu.tscn` when the slice should boot to the
+  title.
+
+Tests
+- `tests/systems/test_shell.gd`: a save round trip restores clock, position,
+  hunger and pack; the pending load lands on the next frame, not before; Esc
+  pauses and resumes; Esc does not stack a pause over the sleep dialog.
+
+### 2026-09-23 (8) — Ice retune: sprinting the bay is a real gamble
+
+Author's decision in issue #7: thinner ice and a heavier sprint, no crouch.
+
+Fixed
+- **Sprinting was never riskier than walking.** Sprint moves twice as fast and
+  had exactly twice the load multiplier, so both put the same load on every
+  metre of ice. `sprint_multiplier` 3.2 → 8.0.
+- **Mid-bay ice could not break at all.** At 0.18 it was thicker than a sprint
+  drains from one tile. Bay profile: `solid_until_m` 12 → 8,
+  `thinnest_from_m` 90 → 26, `minimum_thickness` 0.18 → 0.11,
+  `drain_per_second` 0.055 → 0.0375 (so walking keeps a margin).
+- **Thin ice sat cracked before anyone stepped on it.** The creak/crack ladder
+  compared absolute integrity, so 0.11 ice started below the crack threshold and
+  the warning that must come first never sounded. Stages are now a share of the
+  tile's own natural thickness.
+- `capture_ice_map.gd` simulated a 5.5 m/s sprint; the controller runs at 8.
+
+Tests
+- `test_ice_field.gd` crosses the bay at both gaits: a sprint breaks through
+  mid-bay (more than 20 m in), a walk does not.
+
+### 2026-09-23 (7) — Phase B step 3: a fire you have to light and feed
+
+`HeatSource.refuel()` had no caller anywhere — the same shape `add_calories`
+had before Phase A. Fuel did burn on the game clock, and `burn_duration_h` is
+deliberately shorter than a night, so every fire went out and nothing the
+player did could stop it. The sleep prompt already warned about it; now the
+warning has an answer.
+
+Added
+- Items `firewood` (bulky, heavy — carrying it should cost space) and `tinder`
+  (spent only to start a dead fire).
+- **`HeatSourceFeed`** — the second `InteractiveArea` subclass that does
+  something. A dead fire costs tinder and wood; a burning one costs wood. A full
+  fire refuses, and nothing is spent on any refusal.
+- `HeatSource.can_refuel()` and `restore_fuel(hours, burning)` — the second for
+  saves only; gameplay goes through the capped `refuel()`.
+- **`ShelterState` remembers fires** next to boards, so sleeping beside a
+  half-burnt stove does not wake up to a full one. Fires are found under their
+  zone in the scene; no new system.
+
+Not done, deliberately
+- A placeable stove. Free placement is a new system, and #7's scope lock says
+  no new systems. An authored stove that starts unlit gives the same verb.
+
+Tests
+- `tests/systems/test_fire.gd`: tinder only for a dead fire, a full fire spends
+  nothing, feeding carries a fire past its own burn duration, a dead fire stops
+  warming the room, and fuel survives a save round trip at the exact level.
 
 ### 2026-09-23 (6) — Phase B step 2: a shelter you have to prepare
 

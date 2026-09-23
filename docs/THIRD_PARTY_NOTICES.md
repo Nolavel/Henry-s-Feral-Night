@@ -62,15 +62,14 @@ recorded in [`technical/PORTED_FROM_ADT.md`](technical/PORTED_FROM_ADT.md).
   The atmosphere receives a dedicated solar direction from DayNightManager,
   while scene LIGHT0 continues to illuminate clouds as sun or moon.
 
-
 ## Wind Driven Falling Particles
 
 - Source: https://godotshaders.com/shader/wind-driven-falling-particles-leaves-petals-feathers/
 - Author: ProfesorShader
 - Published: July 12, 2026
 - License: CC0
-- HFN experiment: the particle spawning/randomisation idea is adapted for snow.
-  The source shader's self-driven wind range, timed wind change and vortex are
-  removed; WeatherController supplies the live wind vector, gust speed and
-  snowfall density so weather remains the single authority.
+- HFN production adaptation: procedural snowflake geometry, WeatherController-
+  driven wind/gusts, live steering of airborne flakes, Terrain3D HeightField
+  collision, rare foreground flakes and render-only high-wind velocity stretch.
+  The source shader's autonomous wind range/change and vortex are not used.
 

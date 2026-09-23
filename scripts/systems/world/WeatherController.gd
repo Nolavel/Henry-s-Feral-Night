@@ -169,6 +169,12 @@ func get_ambient_offset_c() -> float:
 
 
 ## Blended wind speed including the current gust, in metres per second.
+## Drops the clock baseline so a loaded or skipped time is not billed as
+## elapsed weather.
+func reset_clock() -> void:
+	_hours.reset()
+
+
 ## Unit vector the wind blows towards, in the XZ plane. A shelter breach facing
 ## into this is the one that costs warmth.
 func get_wind_direction() -> Vector3:
