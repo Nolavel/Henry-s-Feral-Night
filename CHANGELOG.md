@@ -5,6 +5,22 @@ Maintained per branch; entries are added by whoever makes the change.
 
 ## [Unreleased] — `codex`
 
+### 2026-09-24 — Outfit pass 2: longer coat, placket, seams (claudeflow)
+
+Changed
+- The coat reaches mid-thigh. A flared skirt is skinned to the pelvis and
+  partly to each thigh, so it swings with the legs instead of splitting into
+  shorts.
+- Sleeves reach the knuckles. The beanie is smaller, with a thinner cuff.
+- The coat stops at the waist, which removes the bulge at the crotch.
+
+Added
+- A front placket with a zip, and seams at the shoulders, cuffs and waist.
+  They are ribbons ray-cast onto the coat's surface and skinned like the
+  nearest coat vertex (`Outfit_Trim`).
+- `HenryUALAnimation` gives every garment surface its own wet-darkening
+  material, so the zip keeps its colour.
+
 ### 2026-09-24 — Henry's outfit from Blender (claudeflow)
 
 Added
