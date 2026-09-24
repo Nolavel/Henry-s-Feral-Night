@@ -823,5 +823,128 @@
    "sink": 0.3,
    "note": "Old garrison pickup nosed into the redoubt slope."
   }
- ]
+ ],
+ "pickups": [
+  {
+   "id": "boards_fort_1",
+   "item_id": "boards",
+   "count": 1,
+   "anchor": "fort_store",
+   "local": [
+    -1.2,
+    0,
+    0.5
+   ],
+   "route": "ruins"
+  },
+  {
+   "id": "boards_fort_2",
+   "item_id": "boards",
+   "count": 1,
+   "anchor": "fort_store",
+   "local": [
+    1.2,
+    0,
+    -0.8
+   ],
+   "route": "ruins"
+  },
+  {
+   "id": "tinder_fort",
+   "item_id": "tinder",
+   "count": 1,
+   "anchor": "fort_store",
+   "local": [
+    0.5,
+    0,
+    -1.2
+   ],
+   "route": "ruins"
+  },
+  {
+   "id": "stew_patrol_hut",
+   "item_id": "tinned_stew",
+   "count": 1,
+   "anchor": "patrol_hut",
+   "local": [
+    0.6,
+    0,
+    -0.8
+   ],
+   "route": "ruins"
+  },
+  {
+   "id": "firewood_bus_stop",
+   "item_id": "firewood",
+   "count": 1,
+   "anchor": "bus_stop",
+   "local": [
+    0.8,
+    0,
+    0.1
+   ],
+   "route": "road"
+  },
+  {
+   "id": "boards_next_door",
+   "item_id": "boards",
+   "count": 1,
+   "anchor": "lot_s2",
+   "local": [
+    2.0,
+    0,
+    5.0
+   ],
+   "route": "suburb"
+  },
+  {
+   "id": "firewood_shed_n1",
+   "item_id": "firewood",
+   "count": 2,
+   "anchor": "lot_n1",
+   "local": [
+    -6.5,
+    0,
+    -9.5
+   ],
+   "route": "suburb"
+  },
+  {
+   "id": "tinder_collapsed_n3",
+   "item_id": "tinder",
+   "count": 1,
+   "anchor": "lot_n3/House",
+   "local": [
+    -1.5,
+    0,
+    -2.0
+   ],
+   "route": "suburb"
+  },
+  {
+   "id": "firewood_shelter",
+   "item_id": "firewood",
+   "count": 1,
+   "anchor": "shelter_house/House",
+   "local": [
+    -2.2,
+    0,
+    -3.0
+   ],
+   "route": "shelter"
+  },
+  {
+   "id": "stew_beach_wreck",
+   "item_id": "tinned_stew",
+   "count": 1,
+   "anchor": "pickup_beach_2",
+   "local": [
+    2.4,
+    0,
+    0.5
+   ],
+   "route": "shore"
+  }
+ ],
+ "_scarcity": "Shelter has 5 openings, the route holds 3 boards. Tinder only in the fort store or the collapsed house n3: no tinder, no fire."
 }

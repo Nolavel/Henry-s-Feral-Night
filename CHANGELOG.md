@@ -5,6 +5,17 @@ Maintained per branch; entries are added by whoever makes the change.
 
 ## [Unreleased] — `codex`
 
+### 2026-09-24 — First Exit: the working loop moved into the route (claudeflow)
+
+Added
+- The shelter lot now carries the TestScene loop: an interior ThermalZone,
+  five ShelterBreach openings with board-up prompts, and a stove (HeatSource +
+  feed). Sleep and save work there through the existing SleepController.
+- Layout `pickups`: boards, tinder, firewood and food placed per route with
+  deliberate scarcity (5 openings, 3 boards; tinder only at the fort or in the
+  collapsed house). `test_first_exit_route.gd` guards the loop and the
+  scarcity.
+
 ### 2026-09-24 — First Exit: route clutter, Kenny on the pack, visible clothes (claudeflow)
 
 Added
