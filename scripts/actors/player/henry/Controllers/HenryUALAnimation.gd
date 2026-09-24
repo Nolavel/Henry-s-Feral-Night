@@ -60,31 +60,13 @@ const SPRINT_ALIASES: Array[StringName] = [&"Sprint_Loop", &"Sprint"]
 ## Offset from the bone in model space; the mannequin faces +Z, so back is -Z.
 @export var backpack_offset: Vector3 = Vector3(0.0, 0.0, -0.2)
 @export var backpack_color: Color = Color(0.36, 0.33, 0.28)
-## Greybox clothing: pieces per garment mesh name, built on the rest pose.
-## "seg" [bone, to_bone, radius, pad]; "blob" [bone, offset, radii]; "block" [bone, offset, size].
-const GARMENT_PIECES: Dictionary = {
-	&"Hat": {"color": Color(0.55, 0.24, 0.2), "pieces": [
-		["blob", &"Head", Vector3(0.0, 0.13, 0.0), Vector3(0.115, 0.085, 0.12)],
-		["blob", &"Head", Vector3(0.0, 0.08, 0.0), Vector3(0.12, 0.035, 0.125)]]},
-	&"Coat": {"color": Color(0.33, 0.35, 0.28), "pieces": [
-		["block", &"spine_02", Vector3(0.0, 0.02, 0.0), Vector3(0.4, 0.62, 0.27)],
-		["block", &"pelvis", Vector3(0.0, -0.08, 0.0), Vector3(0.38, 0.26, 0.26)],
-		["blob", &"neck_01", Vector3(0.0, -0.02, 0.0), Vector3(0.1, 0.06, 0.1)],
-		["seg", &"upperarm_l", &"lowerarm_l", 0.075, 0.02],
-		["seg", &"lowerarm_l", &"hand_l", 0.066, -0.03],
-		["seg", &"upperarm_r", &"lowerarm_r", 0.075, 0.02],
-		["seg", &"lowerarm_r", &"hand_r", 0.066, -0.03]]},
-	&"Trousers": {"color": Color(0.27, 0.29, 0.35), "pieces": [
-		["block", &"pelvis", Vector3(0.0, -0.02, 0.0), Vector3(0.34, 0.2, 0.24)],
-		["seg", &"thigh_l", &"calf_l", 0.085, 0.02],
-		["seg", &"calf_l", &"foot_l", 0.07, -0.08],
-		["seg", &"thigh_r", &"calf_r", 0.085, 0.02],
-		["seg", &"calf_r", &"foot_r", 0.07, -0.08]]},
-	&"Boots": {"color": Color(0.2, 0.16, 0.13), "pieces": [
-		["block", &"foot_l", Vector3(0.0, -0.04, 0.08), Vector3(0.12, 0.13, 0.3)],
-		["block", &"foot_l", Vector3(0.0, 0.08, -0.01), Vector3(0.13, 0.18, 0.14)],
-		["block", &"foot_r", Vector3(0.0, -0.04, 0.08), Vector3(0.12, 0.13, 0.3)],
-		["block", &"foot_r", Vector3(0.0, 0.08, -0.01), Vector3(0.13, 0.18, 0.14)]]},
+## Outfit meshes from tools/blender/build_henry_outfit.py per equipment mesh name.
+## Skin_<name> is the body under that garment, hidden while it is worn.
+const GARMENT_PARTS: Dictionary = {
+	&"Hat": [&"Outfit_Beanie", &"Outfit_BeanieCuff"],
+	&"Coat": [&"Outfit_Jacket", &"Outfit_Hood"],
+	&"Trousers": [&"Outfit_Pants"],
+	&"Boots": [&"Outfit_Boots", &"Outfit_Sole"],
 }
 ## How much fully soaked clothing darkens.
 @export_range(0.0, 1.0, 0.05) var wet_darkening: float = 0.45
@@ -98,8 +80,10 @@ var animation_player: AnimationPlayer
 var skeleton: Skeleton3D
 var animation_tree: AnimationTree
 
-## Placeholder meshes a garment names in GarmentData.mesh_node_name.
+## Meshes a garment names in GarmentData.mesh_node_name.
 var _garment_meshes: Dictionary = {}
+## Garment name to the skin mesh it covers.
+var _skin_parts: Dictionary = {}
 ## Garment name to its material, darkened by wetness.
 var _garment_materials: Dictionary = {}
 var _wetness: float = 0.0
@@ -341,65 +325,34 @@ func _attach_kenny(attachment: BoneAttachment3D, pack: MeshInstance3D) -> void:
 	_garment_meshes[&"Kenny"] = kenny
 
 
-## Greybox clothes from GARMENT_PIECES, each on the bone it moves with. Hidden
-## until the equipment shows them.
+## Groups the skinned outfit meshes per garment under the skeleton. Hidden
+## until the equipment shows them; each keeps its own material for wetness.
 func _attach_garments() -> void:
 	if skeleton == null:
 		return
-	for garment_name: StringName in GARMENT_PIECES:
-		var spec: Dictionary = GARMENT_PIECES[garment_name]
-		var material := StandardMaterial3D.new()
-		material.albedo_color = spec["color"]
-		material.roughness = 1.0
-		material.set_meta(&"dry_color", spec["color"])
-		_garment_materials[garment_name] = material
+	for garment_name: StringName in GARMENT_PARTS:
 		var group := Node3D.new()
 		group.name = String(garment_name)
 		group.visible = false
 		skeleton.add_child(group)
-		for piece: Array in spec["pieces"]:
-			var bone: int = skeleton.find_bone(piece[1])
-			if bone < 0:
+		for part: StringName in GARMENT_PARTS[garment_name]:
+			var mesh_inst := model.find_child(String(part), true, false) as MeshInstance3D
+			if mesh_inst == null:
+				push_warning("HenryUALAnimation: outfit mesh %s is missing." % part)
 				continue
-			## Not a direct skeleton child, so it follows the bone by reference.
-			var attachment := BoneAttachment3D.new()
-			group.add_child(attachment)
-			attachment.use_external_skeleton = true
-			attachment.external_skeleton = attachment.get_path_to(skeleton)
-			attachment.bone_name = piece[1]
-			var rest: Transform3D = skeleton.get_bone_global_rest(bone)
-			var mesh_inst := MeshInstance3D.new()
-			mesh_inst.layers = portrait_render_layers
-			var global_xf := Transform3D.IDENTITY
-			match String(piece[0]):
-				"seg":
-					var to: Vector3 = skeleton.get_bone_global_rest(skeleton.find_bone(piece[2])).origin
-					var along: Vector3 = to - rest.origin
-					var length: float = along.length() + float(piece[4])
-					var capsule := CapsuleMesh.new()
-					capsule.radius = float(piece[3])
-					capsule.height = maxf(length, capsule.radius * 2.0)
-					capsule.material = material
-					mesh_inst.mesh = capsule
-					var y: Vector3 = along.normalized()
-					var x: Vector3 = y.cross(Vector3.FORWARD if absf(y.dot(Vector3.FORWARD)) < 0.9 else Vector3.RIGHT).normalized()
-					global_xf = Transform3D(Basis(x, y, x.cross(y)), rest.origin + y * length * 0.5)
-				"blob":
-					var sphere := SphereMesh.new()
-					sphere.radius = 1.0
-					sphere.height = 2.0
-					sphere.material = material
-					mesh_inst.mesh = sphere
-					global_xf = Transform3D(Basis.from_scale(piece[3]), rest.origin + piece[2])
-				"block":
-					var box := BoxMesh.new()
-					box.size = piece[3]
-					box.material = material
-					mesh_inst.mesh = box
-					global_xf = Transform3D(Basis.IDENTITY, rest.origin + piece[2])
-			mesh_inst.transform = rest.affine_inverse() * global_xf
-			attachment.add_child(mesh_inst)
+			var source := mesh_inst.mesh.surface_get_material(0) as BaseMaterial3D  # under the body paint
+			var material := StandardMaterial3D.new()
+			material.albedo_color = source.albedo_color if source != null else body_color
+			material.roughness = 1.0
+			material.set_meta(&"dry_color", material.albedo_color)
+			mesh_inst.material_override = material
+			_garment_materials[part] = material
+			mesh_inst.reparent(group)
+			mesh_inst.skeleton = mesh_inst.get_path_to(skeleton)
 		_garment_meshes[garment_name] = group
+		var skin := model.find_child("Skin_" + String(garment_name), true, false) as Node3D
+		if skin != null:
+			_skin_parts[garment_name] = skin
 
 
 ## Soaked clothing reads darker; 0 dry to 1 soaked.
@@ -432,6 +385,8 @@ func refresh_garment_meshes() -> void:
 				worn[item.attached_mesh_node_name] = true
 	for mesh_name: StringName in _garment_meshes:
 		(_garment_meshes[mesh_name] as Node3D).visible = worn.has(mesh_name)
+	for garment_name: StringName in _skin_parts:
+		(_skin_parts[garment_name] as Node3D).visible = not worn.has(garment_name)
 
 
 ## ADT convention: build the complete graph in code. No editor-authored
