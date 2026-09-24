@@ -118,13 +118,6 @@ within 15 cm.
      greybox on rebuild.
    - Checked: the main scene ran 600 frames without a crash, and full-scene
      captures succeeded in 2 of 2 runs with 7 shots each.
-3. Side by side with Terrain3D in the First Exit sector: renders, route metrics,
-   navigation, ice and footprints must match.
-4. Remove Terrain3D from `addons/`, `project.godot`, CI (`setup_env.sh`
-   download) and the old capture tools (`capture_island_visual_fx.gd`,
-   `capture_freemans_sky.gd`, `capture_production_snow.gd`, plus
-   `terrain3d_stylized_capture.gdshader`). `dump_island_heights.gd` stays until
-   then as the record of how the heightmap was exported.
-
-Terrain3D is still in `addons/`, in `project.godot`'s plugin list and in
-CI's setup until stage 4. The game no longer uses it.
+4. **Done:** Terrain3D is removed from `addons/`, `project.godot`, CI and the
+   capture tools. Its region data and the dump/export scripts are gone too; git
+   history keeps them. The heightmap PNG is the only terrain source.

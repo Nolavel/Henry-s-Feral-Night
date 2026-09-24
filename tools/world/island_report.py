@@ -1,8 +1,7 @@
 """Island report: renders height/slope maps and finds buildable flat sites.
 
-Input: the heightmap PNG (world/terrain/source/graciosa_height.png) or a
-Terrain3D dump from tools/world/dump_island_heights.gd.
-Usage: python3 tools/world/island_report.py <png|dump_dir> <out_prefix> [cx cz half_m]
+Input: the heightmap PNG (world/terrain/source/graciosa_height.png).
+Usage: python3 tools/world/island_report.py <png> <out_prefix> [cx cz half_m]
 World axes: +X east, +Z south (Godot); maps draw north up.
 """
 import json
@@ -19,17 +18,13 @@ SITE_SPACING_M = 45.0
 
 
 def load(source):
-    """A heightmap PNG (the source of truth) or a Terrain3D dump directory."""
-    if source.endswith(".png"):
-        import heightmap
-        meta, h = heightmap.load(source)
-        resolved = json.load(open("docs/world/first_exit_resolved.json"))["footprints"]
-        meta["markers"] = [{"name": f["id"], "x": f["x"], "z": f["z"]} for f in resolved
-                           if f["kind"] not in ("street_lamp", "pickup", "lot") or f.get("is_shelter")]
-        return meta, h
-    meta = json.load(open(f"{source}/meta.json"))
-    h = np.fromfile(f"{source}/heights.f32", dtype=np.float32)
-    return meta, h.reshape(meta["rows"], meta["cols"])
+    """The heightmap PNG, the source of truth, with First Exit footprints as markers."""
+    import heightmap
+    meta, h = heightmap.load(source)
+    resolved = json.load(open("docs/world/first_exit_resolved.json"))["footprints"]
+    meta["markers"] = [{"name": f["id"], "x": f["x"], "z": f["z"]} for f in resolved
+                       if f["kind"] not in ("street_lamp", "pickup", "lot") or f.get("is_shelter")]
+    return meta, h
 
 
 def slope_deg(h, step):

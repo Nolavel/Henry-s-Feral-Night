@@ -33,8 +33,6 @@ In particular:
 
 - This project is built with the **Godot Engine**, which is MIT-licensed.
   See <https://godotengine.org/license>.
-- **Terrain3D** is bundled under `addons/terrain_3d/` and carries its own MIT
-  licence at [`addons/terrain_3d/LICENSE.txt`](addons/terrain_3d/LICENSE.txt).
 
 ## History of this file
 

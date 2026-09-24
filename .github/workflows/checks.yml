@@ -21,13 +21,12 @@ jobs:
     steps:
       - uses: actions/checkout@v4
 
-      - name: Cache Godot and Terrain3D
+      - name: Cache Godot
         uses: actions/cache@v4
         with:
           path: |
             ~/.local/opt/godot-mono
-            addons/terrain_3d/bin
-          key: godot-4.8-dev6-terrain3d-v1.0.1
+          key: godot-4.8-dev6-v2
 
       - name: Provision Godot (headless only)
         run: SKIP_APT=1 tools/ci/setup_env.sh

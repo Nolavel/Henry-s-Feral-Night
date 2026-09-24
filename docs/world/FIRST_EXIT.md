@@ -12,8 +12,8 @@ Edit coordinates there, never by hand in the scene.
 
 - Godot world metres. **+X east, −Z north**, Y up. Sea level is **0.0** (the sea
   plane sits at 0.04). Maps in this folder draw north up.
-- The island is the Terrain3D in `experimental_location/Graciosa/terrain_graciosa`
-  (5 regions of 2048 m, 1 m vertex spacing). Main scene:
+- The island is `IslandTerrain`, built from the heightmap
+  `world/terrain/source/graciosa_height.png` (1 m per pixel). Main scene:
   `experimental_location/scenes/Graciosa_Island_Terrain.tscn`.
 
 ## The island in numbers
@@ -222,14 +222,11 @@ Typology, not a copy of a real place. It sets scale for props.
 
 ## Regenerating
 
-The terrain source is now the heightmap PNG (`docs/world/TERRAIN_HEIGHTMAP.md`). The route tools take
-`world/terrain/source/graciosa_height.png` in place of the dump directory. Terrain3D is still what
-renders the island until stage 2 of that plan lands.
+The terrain source is now the heightmap PNG (`docs/world/TERRAIN_HEIGHTMAP.md`). The route tools read
+`world/terrain/source/graciosa_height.png`.
 
 ```bash
-# 1. heights + scene markers -> user://island/
-godot --headless --path . --script res://tools/world/dump_island_heights.gd
-D="$HOME/.local/share/godot/app_userdata/Henry\`s Feral Night/island"
+D=world/terrain/source/graciosa_height.png
 # 2. maps and buildable sites (whole island, then a window: cx cz half_m)
 python3 tools/world/island_report.py "$D" docs/world/graciosa_overview
 python3 tools/world/island_report.py "$D" docs/world/first_exit_area 1300 -900 350

@@ -1,6 +1,5 @@
 // Henry's Feral Night experiment.
 // Upstream: NiwlGames/GodotStarterAssets shaders/sky_quarter.gdshader (CC0-1.0).
-// Runtime tuning for the island preview lives in tools/runtime/capture_freemans_sky.gd.
 
 shader_type sky;
 render_mode use_quarter_res_pass;

@@ -44,7 +44,8 @@ rule changes) and `global.json` (take `main`'s).
 - Renderer: Forward+ / Vulkan. CI runs headless suites only; render locally on
   CPU via lavapipe (`tools/ci/render.sh`).
 - Main development scene: `res://tests/scenes/TestScene.tscn`.
-- Terrain3D stays a vendored third-party addon; it is never edited as game code.
+- Terrain is `IslandTerrain` from `world/terrain/source/graciosa_height.png`;
+  heights are edited via Blender (`tools/blender/`), never by hand in code.
 
 ## Language policy
 
