@@ -1,4 +1,4 @@
-[gd_scene load_steps=4 format=3]
+[gd_scene load_steps=3 format=3]
 
 [ext_resource type="Script" path="res://scripts/ui/hud/sleep_prompt.gd" id="1"]
 
@@ -18,9 +18,6 @@ content_margin_top = 26.0
 content_margin_right = 34.0
 content_margin_bottom = 26.0
 
-[sub_resource type="StyleBoxFlat" id="HoldFill"]
-bg_color = Color(0.68, 0.79, 0.92, 0.9)
-
 [node name="SleepPrompt" type="Control"]
 layout_mode = 3
 anchors_preset = 15
@@ -30,41 +27,6 @@ grow_horizontal = 2
 grow_vertical = 2
 mouse_filter = 2
 script = ExtResource("1")
-
-[node name="HoldIndicator" type="ProgressBar" parent="."]
-layout_mode = 1
-anchors_preset = 7
-anchor_left = 0.5
-anchor_top = 1.0
-anchor_right = 0.5
-anchor_bottom = 1.0
-offset_left = -150.0
-offset_top = -128.0
-offset_right = 150.0
-offset_bottom = -118.0
-grow_horizontal = 2
-grow_vertical = 0
-max_value = 1.0
-step = 0.001
-show_percentage = false
-theme_override_styles/fill = SubResource("HoldFill")
-
-[node name="HoldHint" type="Label" parent="."]
-layout_mode = 1
-anchors_preset = 7
-anchor_left = 0.5
-anchor_top = 1.0
-anchor_right = 0.5
-anchor_bottom = 1.0
-offset_left = -200.0
-offset_top = -112.0
-offset_right = 200.0
-offset_bottom = -88.0
-grow_horizontal = 2
-grow_vertical = 0
-theme_override_colors/font_color = Color(0.78, 0.82, 0.88, 0.75)
-text = "HOLD  S  TO SLEEP"
-horizontal_alignment = 1
 
 [node name="Dialog" type="PanelContainer" parent="."]
 visible = false
@@ -100,7 +62,7 @@ theme_override_constants/separation = 22
 [node name="Less" type="Label" parent="Dialog/Rows/HoursRow"]
 layout_mode = 2
 theme_override_colors/font_color = Color(0.6, 0.65, 0.72, 0.8)
-text = "[ A ]"
+text = "[ - ]"
 
 [node name="Hours" type="Label" parent="Dialog/Rows/HoursRow"]
 layout_mode = 2
@@ -116,7 +78,7 @@ text = "HOURS"
 [node name="More" type="Label" parent="Dialog/Rows/HoursRow"]
 layout_mode = 2
 theme_override_colors/font_color = Color(0.6, 0.65, 0.72, 0.8)
-text = "[ D ]"
+text = "[ + ]"
 
 [node name="Separator" type="HSeparator" parent="Dialog/Rows"]
 layout_mode = 2
@@ -124,7 +86,7 @@ layout_mode = 2
 [node name="Keys" type="Label" parent="Dialog/Rows"]
 layout_mode = 2
 theme_override_colors/font_color = Color(0.7, 0.75, 0.82, 0.85)
-text = "[ E ]  SLEEP  AND  SAVE          [ ESC ]  CANCEL"
+text = "SLEEP_DIALOG_KEYS"
 horizontal_alignment = 1
 
 [node name="Warning" type="Label" parent="Dialog/Rows"]

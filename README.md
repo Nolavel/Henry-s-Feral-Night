@@ -61,7 +61,7 @@ unless `tools/ci/input_overlap_allowlist.txt` says why that is safe.
 | `,` / `.` | orbit the camera |
 | `L` | flashlight |
 | `Esc` | pause |
-| hold `S` | sleep, where offered (moving to an interaction, see #58) |
+| `F` on a bed or mattress | sleep: wheel or `←` `→` hours, `F`/`Enter` sleep, `Esc` cancel |
 
 ## Layout
 

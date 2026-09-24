@@ -5,6 +5,23 @@ Maintained per branch; entries are added by whoever makes the change.
 
 ## [Unreleased] — `codex`
 
+### 2026-09-24 — Sleep is an interaction, not a key (claudeflow)
+
+Changed
+- There is no global sleep key. `SleepSpot`, an InteractiveArea, offers
+  "F — Sleep" on a bed, mattress or bedroll. F opens the sleep dialog through
+  the existing InteractComponent path, and a refusal (cold, wet, unsafe) shows
+  on the spot. Inside the dialog, the mouse wheel or ← → change the hours,
+  F or Enter sleeps and saves, and Esc cancels.
+- `SleepPrompt` lost the hold-S charge and its widgets; `request_open()`
+  checks `SleepController.can_sleep()` first.
+- The First Exit shelter has a mattress by the west wall.
+
+Removed
+- Input actions `sleep`, `sleep_hours_less` and `sleep_hours_more` (S/A/D
+  clashed with movement), with their InputSystems signals. Their allowlist
+  entries are gone, so CI now rejects any new overlap with WASD.
+
 ### 2026-09-24 — Build hygiene from the #58 review (claudeflow)
 
 Added

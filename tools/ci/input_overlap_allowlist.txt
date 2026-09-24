@@ -1,6 +1,2 @@
 # Input actions allowed to share a key, one pair per line: action_a, action_b  # why it is safe
 pause, sleep_cancel  # the sleep dialog claims Esc while open; pause never sees it then
-# Sleep on the move keys is temporary: sleep becomes an interaction (F on a bed) and these go.
-move_backward, sleep  # hold-to-sleep only when the sleep prompt is offered
-move_left, sleep_hours_less  # hours are changed only inside the sleep dialog
-move_right, sleep_hours_more  # hours are changed only inside the sleep dialog

@@ -37,10 +37,6 @@ signal interact_released(duration: float)
 ## --- Sleep (hold S, confirm with interact) ---
 ## The relay reports WHEN and FOR HOW LONG; it never says "that was a hold".
 ## The threshold belongs to whoever acts on it.
-signal sleep_hold_started()
-signal sleep_hold_progress(duration: float)
-signal sleep_hold_released(duration: float)
-signal sleep_hours_step(delta: int)
 signal sleep_cancel_pressed()
 
 const ACTION_MOVE_FORWARD: StringName = &"move_forward"
@@ -51,18 +47,13 @@ const ACTION_SPRINT: StringName = &"sprint"
 const ACTION_JUMP: StringName = &"jump"
 const ACTION_CROUCH: StringName = &"crouch"
 const ACTION_INTERACT: StringName = &"interact"
-const ACTION_SLEEP: StringName = &"sleep"
 const ACTION_SLEEP_CANCEL: StringName = &"sleep_cancel"
-const ACTION_SLEEP_LESS: StringName = &"sleep_hours_less"
-const ACTION_SLEEP_MORE: StringName = &"sleep_hours_more"
 const ACTION_LEAN_LEFT: StringName = &"lean_left"
 const ACTION_LEAN_RIGHT: StringName = &"lean_right"
 const ACTION_SWITCH_SHOULDER: StringName = &"switch_shoulder"
 ## Radians of camera turn per pixel of mouse travel.
 const MOUSE_SENSITIVITY: float = 0.003
 
-var _sleep_held_for: float = 0.0
-var _is_sleep_held: bool = false
 var _was_sprinting: bool = false
 var _interact_claimant: Node = null
 var _interact_duration: float = 0.0
@@ -103,18 +94,6 @@ func _unhandled_input(event: InputEvent) -> void:
 		_end_interact()
 	if _pressed(event, ACTION_SLEEP_CANCEL):
 		sleep_cancel_pressed.emit()
-	if _pressed(event, ACTION_SLEEP_LESS):
-		sleep_hours_step.emit(-1)
-	if _pressed(event, ACTION_SLEEP_MORE):
-		sleep_hours_step.emit(1)
-	if _pressed(event, ACTION_SLEEP):
-		_is_sleep_held = true
-		_sleep_held_for = 0.0
-		sleep_hold_started.emit()
-	elif _released(event, ACTION_SLEEP) and _is_sleep_held:
-		_is_sleep_held = false
-		sleep_hold_released.emit(_sleep_held_for)
-		_sleep_held_for = 0.0
 
 
 func _physics_process(delta: float) -> void:
@@ -125,9 +104,6 @@ func _physics_process(delta: float) -> void:
 	if sprinting != _was_sprinting:
 		_was_sprinting = sprinting
 		sprint_changed.emit(sprinting)
-	if _is_sleep_held:
-		_sleep_held_for += delta
-		sleep_hold_progress.emit(_sleep_held_for)
 
 
 ## ============================================
@@ -279,22 +255,6 @@ func _apply_mouse_mode() -> void:
 		return
 	var captured: bool = not _is_gameplay_blocked()
 	Input.mouse_mode = Input.MOUSE_MODE_CAPTURED if captured else Input.MOUSE_MODE_VISIBLE
-
-
-## Seconds the sleep key has been held, answered from this file's own latch
-## rather than from Input.
-func get_sleep_hold_duration() -> float:
-	return _sleep_held_for
-
-
-func is_sleep_held() -> bool:
-	return _is_sleep_held
-
-
-## Drops the hold latch, for a consumer that has acted on it.
-func clear_sleep_hold() -> void:
-	_is_sleep_held = false
-	_sleep_held_for = 0.0
 
 
 ## PlayerState is an autoload, but this file is also driven directly by tests
