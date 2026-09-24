@@ -41,6 +41,8 @@ const POCKET_SEPARATOR: String = "/"
 @export var layout: EquipmentLayout
 ## Worn from the start, by item id.
 @export var starter_garment_ids: Array[StringName] = []
+## Non-garments placed from the start, body slot id to item id: Kenny on his fixture.
+@export var starter_slot_items: Dictionary[StringName, StringName] = {}
 
 @export_group("Debug")
 @export var debug_log: bool = false
@@ -63,6 +65,19 @@ func initialize() -> void:
 		if item == null or item.garment == null:
 			continue
 		equip(item.garment.body_slot_id, item_id)
+	for slot_id: StringName in starter_slot_items:
+		equip(slot_id, starter_slot_items[slot_id])
+
+
+## Kilograms of non-garments riding in body slots. Clothes are worn, not
+## carried; Kenny is carried and counts toward the load.
+func get_carried_weight() -> float:
+	var total: float = 0.0
+	for slot_id: StringName in _body:
+		var item: ItemResource = ItemCatalog.get_item(_body[slot_id])
+		if item != null and item.garment == null:
+			total += item.weight
+	return total
 
 
 ## Item worn in a body slot, or empty.

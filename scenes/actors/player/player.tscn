@@ -52,9 +52,13 @@ script = ExtResource("10_mvyhi")
 script = ExtResource("90_equip")
 layout = ExtResource("93_layout")
 starter_garment_ids = Array[StringName]([&"worn_coat", &"knit_hat", &"work_trousers", &"worn_boots", &"backpack"])
+starter_slot_items = Dictionary[StringName, StringName]({
+&"back_fixture": &"kenny"
+})
 
-[node name="InventoryComponent" type="Node" parent="."]
+[node name="InventoryComponent" type="Node" parent="." node_paths=PackedStringArray("equipment")]
 script = ExtResource("91_inv")
+equipment = NodePath("../EquipmentComponent")
 
 [node name="ConsumptionController" type="Node" parent="." node_paths=PackedStringArray("inventory", "equipment", "bio_monitor")]
 script = ExtResource("92_consume")

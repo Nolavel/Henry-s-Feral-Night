@@ -29,6 +29,10 @@ extends Resource
 ## Wearable facet. Null means this item cannot be worn.
 @export var garment: GarmentData = null
 
+@export_group("Visuals")
+## Mesh on Henry shown while this non-garment rides in a body slot, e.g. Kenny.
+@export var attached_mesh_node_name: StringName = &""
+
 @export_group("Survival")
 ## Edible facet. Null means this item cannot be consumed.
 @export var consumable: ConsumableData = null
