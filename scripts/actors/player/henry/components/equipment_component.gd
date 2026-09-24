@@ -69,14 +69,18 @@ func initialize() -> void:
 		equip(slot_id, starter_slot_items[slot_id])
 
 
-## Kilograms of non-garments riding in body slots. Clothes are worn, not
-## carried; Kenny is carried and counts toward the load.
+## Kilograms of non-garments riding in body slots and pockets. Clothes are
+## worn, not carried; Kenny and pocketed items count toward the load.
 func get_carried_weight() -> float:
 	var total: float = 0.0
 	for slot_id: StringName in _body:
 		var item: ItemResource = ItemCatalog.get_item(_body[slot_id])
 		if item != null and item.garment == null:
 			total += item.weight
+	for path: StringName in _pockets:
+		var pocketed: ItemResource = ItemCatalog.get_item(_pockets[path])
+		if pocketed != null:
+			total += pocketed.weight
 	return total
 
 

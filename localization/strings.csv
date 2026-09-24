@@ -39,3 +39,17 @@ CABINET_CLOSE,Close the cabinet,Закрыть шкаф
 SLEEP_PROMPT,Sleep,Спать
 SLEEP_DIALOG_KEYS,"Wheel or ← →  hours      [ F ]  sleep and save      [ Esc ]  cancel","Колесо или ← →  часы      [ F ]  спать и сохранить      [ Esc ]  отмена"
 BEDROLL_PACK,Roll up the bedroll,Свернуть спальник
+HUB_PACK,Backpack,Рюкзак
+HUB_QUICK_ACCESS,Quick access,Быстрый доступ
+HUB_TO_POCKET,Into pocket,В карман
+HUB_TO_PACK,Into pack,В рюкзак
+HUB_EMPTY,empty,пусто
+HUB_WEIGHT,Weight: %.1f / %.0f kg,Вес: %.1f / %.0f кг
+HUB_CLOSE_HINT,Tab or Esc — close,Tab или Esc — закрыть
+HUB_SIZE_POCKET,pocket,карманный
+HUB_SIZE_CARRIED,carried,переносной
+HUB_SIZE_BULKY,bulky,громоздкий
+HUB_REFUSED_TOO_LARGE,Too big for this pocket,Слишком большой для этого кармана
+HUB_REFUSED_OCCUPIED,That pocket is taken,Этот карман занят
+HUB_REFUSED_NO_ZONE,No free pocket fits it,Нет свободного подходящего кармана
+HUB_REFUSED_OVERWEIGHT,Too heavy for the pack,Слишком тяжело для рюкзака

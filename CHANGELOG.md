@@ -5,6 +5,24 @@ Maintained per branch; entries are added by whoever makes the change.
 
 ## [Unreleased] — `codex`
 
+### 2026-09-24 — Player Hub foundation: four-flap pack and Quick Access (#68) (claudeflow)
+
+Added
+- `PackRig`: the backpack on Henry is a tray with four hinged flaps (top, bottom,
+  left, right) over an inner attachment field. `TOP_ONLY` opens the top flap
+  (future quick stow); `FULL` opens it like a book. Kenny rides the bottom flap.
+- `PlayerHubComponent` on the Player (`Tab`, the existing `open hub` action):
+  roots Henry, blends to a camera facing the pack, opens it fully. It reads
+  `InventoryComponent` and worn pockets and stores nothing itself.
+- Quick Access zones = pockets on worn garments (pack main compartment excluded).
+  Items move pack → pocket → pack with no duplication; size class gates pockets.
+- `PlayerHubPanel`: temporary localised readout (pack list, zones, weight, refusals).
+- `tests/systems/test_player_hub.gd`, `tools/runtime/capture_player_hub.gd`,
+  frames in `docs/art/issue68/`.
+
+Fixed
+- Pocketed items now count toward carried weight (`EquipmentComponent.get_carried_weight`).
+
 ### 2026-09-24 — First Exit split: land night vs Coast / Thin Ice (#24) (claudeflow)
 
 Changed

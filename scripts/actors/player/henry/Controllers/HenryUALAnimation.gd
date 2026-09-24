@@ -80,7 +80,7 @@ const ACTION_ALIASES: Dictionary = {
 ## Head forward axis in bone space; flip it if the head looks sideways or back.
 @export var head_forward_axis: SkeletonModifier3D.BoneAxis = SkeletonModifier3D.BONE_AXIS_PLUS_Z
 
-@export_group("Backpack placeholder")
+@export_group("Backpack")
 @export var backpack_bone: StringName = &"spine_03"
 @export var backpack_size: Vector3 = Vector3(0.34, 0.44, 0.2)
 ## Offset from the bone in model space; the mannequin faces +Z, so back is -Z.
@@ -128,6 +128,7 @@ var _action_node: AnimationNodeAnimation
 
 ## Meshes a garment names in GarmentData.mesh_node_name.
 var _garment_meshes: Dictionary = {}
+var _pack: PackRig
 ## Garment name to the skin mesh it covers.
 var _skin_parts: Dictionary = {}
 ## Garment name to its material, darkened by wetness.
@@ -446,7 +447,7 @@ func _override_materials(node: Node, material: Material) -> void:
 		_override_materials(child, material)
 
 
-## A box on the upper spine standing in for the pack until it has a mesh.
+## The four-flap pack rig on the upper spine, until the pack has a mesh.
 func _attach_backpack() -> void:
 	if skeleton == null:
 		return
@@ -458,35 +459,38 @@ func _attach_backpack() -> void:
 	attachment.name = "BackpackAttachment"
 	attachment.bone_name = backpack_bone
 	skeleton.add_child(attachment)
-	var box := BoxMesh.new()
-	box.size = backpack_size
-	var material := StandardMaterial3D.new()
-	material.albedo_color = backpack_color
-	material.roughness = 0.9
-	box.material = material
-	var pack := MeshInstance3D.new()
-	pack.name = "Backpack"
-	pack.mesh = box
-	pack.layers = portrait_render_layers
+	var pack := PackRig.new()
+	pack.size = backpack_size
+	pack.color = backpack_color
+	pack.render_layers = portrait_render_layers
 	var rest: Transform3D = skeleton.get_bone_global_rest(bone)
 	pack.transform = rest.affine_inverse() * Transform3D(Basis.IDENTITY, rest.origin + backpack_offset)
 	pack.visible = false
 	attachment.add_child(pack)
+	pack.build()
+	_pack = pack
 	_garment_meshes[StringName(pack.name)] = pack
-	_attach_kenny(attachment, pack)
+	_attach_kenny(pack)
+
+
+## The pack on Henry's back, or null before the model is set up.
+func get_pack_rig() -> PackRig:
+	return _pack
 
 
 ## Kenny strapped to the outside of the pack: a teddy silhouette facing back,
 ## sat on the pack's lower half. Shown only while he rides on his fixture.
-func _attach_kenny(attachment: BoneAttachment3D, pack: MeshInstance3D) -> void:
+func _attach_kenny(pack: PackRig) -> void:
 	var material := StandardMaterial3D.new()
 	material.albedo_color = kenny_color
 	material.roughness = 1.0
 	var kenny := Node3D.new()
 	kenny.name = "Kenny"
-	kenny.transform = pack.transform * Transform3D(Basis.IDENTITY, Vector3(0.0, -0.04, -backpack_size.z * 0.5 - 0.07))
+	## Strapped over the bottom flap, so he swings down with it when the pack opens.
+	var hinge: Node3D = pack.get_bottom_flap()
+	kenny.transform = hinge.transform.affine_inverse() * Transform3D(Basis.IDENTITY, Vector3(0.0, -0.04, -backpack_size.z * 0.5 - 0.07))
 	kenny.visible = false
-	attachment.add_child(kenny)
+	hinge.add_child(kenny)
 	## [centre, radii] in pack space; +Y up, -Z away from Henry's back.
 	var parts: Array = [
 		[Vector3(0.0, 0.0, 0.0), Vector3(0.1, 0.12, 0.07)],
