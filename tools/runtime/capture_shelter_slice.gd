@@ -135,6 +135,14 @@ func _quiet_game_view() -> void:
 			(node as Label3D).visible = false
 
 
+func _focus_target() -> Node3D:
+	if _phase <= 2:
+		return _firewood
+	if _phase <= 5:
+		return _feed if _phase >= 4 else null
+	return _cabinet if _phase <= 7 else _board
+
+
 func _next(shots: Array) -> void:
 	_shots = shots
 	_phase += 1
@@ -163,16 +171,22 @@ func _teleport_near(target: Node3D, distance: float) -> void:
 	_player.velocity = Vector3.ZERO
 
 
-## Outdoors a three-quarter view from Henry's front right; inside, a side view
-## along the wall he faces, so the camera never ends up inside it.
-## Henry's visual front is +Z of his body.
+## Henry faces where he walks, or his current target when standing. Open
+## ground and the stove get a front three-quarter view; wall targets (cabinet,
+## window) a side view, so the target and Henry share the frame.
 func _frame_camera() -> void:
-	var basis: Basis = _player.global_transform.basis
 	var chest: Vector3 = _player.global_position + Vector3(0.0, 1.0, 0.0)
-	if _phase >= 5:
-		_camera.global_position = chest + basis.x * 2.2 - basis.z * 0.5 + Vector3(0.0, 0.5, 0.0)
+	var facing := Vector3(_player.velocity.x, 0.0, _player.velocity.z)
+	var focus: Node3D = _focus_target()
+	if facing.length() < 0.2 and focus != null:
+		facing = focus.global_position - _player.global_position
+		facing.y = 0.0
+	facing = facing.normalized() if facing.length() > 0.01 else Vector3.FORWARD
+	var right: Vector3 = facing.cross(Vector3.UP).normalized()
+	if focus == _cabinet or focus == _board:
+		_camera.global_position = chest + right * 2.0 - facing * 0.4 + Vector3(0.0, 0.5, 0.0)
 	else:
-		_camera.global_position = chest + basis.z * 2.3 + basis.x * 1.3 + Vector3(0.0, 0.6, 0.0)
+		_camera.global_position = chest + facing * 2.4 + right * 1.0 + Vector3(0.0, 0.5, 0.0)
 	_camera.look_at(chest, Vector3.UP)
 	_fill.global_position = _camera.global_position + Vector3(0.0, 0.5, 0.0)
 
