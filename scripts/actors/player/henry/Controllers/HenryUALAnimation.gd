@@ -60,6 +60,8 @@ const SPRINT_ALIASES: Array[StringName] = [&"Sprint_Loop", &"Sprint"]
 ## Offset from the bone in model space; the mannequin faces +Z, so back is -Z.
 @export var backpack_offset: Vector3 = Vector3(0.0, 0.0, -0.2)
 @export var backpack_color: Color = Color(0.36, 0.33, 0.28)
+## Kenny's faded plush, lighter than the pack so the silhouette separates.
+@export var kenny_color: Color = Color(0.55, 0.45, 0.34)
 
 @onready var player: CharacterBody3D = get_parent() as CharacterBody3D
 @onready var model: Node = $Model
@@ -256,6 +258,55 @@ func _attach_backpack() -> void:
 	pack.visible = false
 	attachment.add_child(pack)
 	_garment_meshes[StringName(pack.name)] = pack
+	_attach_kenny(attachment, pack)
+
+
+## Kenny strapped to the outside of the pack: a teddy silhouette facing back,
+## sat on the pack's lower half. Shown only while he rides on his fixture.
+func _attach_kenny(attachment: BoneAttachment3D, pack: MeshInstance3D) -> void:
+	var material := StandardMaterial3D.new()
+	material.albedo_color = kenny_color
+	material.roughness = 1.0
+	var kenny := Node3D.new()
+	kenny.name = "Kenny"
+	kenny.transform = pack.transform * Transform3D(Basis.IDENTITY, Vector3(0.0, -0.04, -backpack_size.z * 0.5 - 0.07))
+	kenny.visible = false
+	attachment.add_child(kenny)
+	## [centre, radii] in pack space; +Y up, -Z away from Henry's back.
+	var parts: Array = [
+		[Vector3(0.0, 0.0, 0.0), Vector3(0.1, 0.12, 0.07)],
+		[Vector3(0.0, 0.17, -0.01), Vector3(0.075, 0.07, 0.065)],
+		[Vector3(-0.06, 0.235, -0.01), Vector3(0.025, 0.025, 0.015)],
+		[Vector3(0.06, 0.235, -0.01), Vector3(0.025, 0.025, 0.015)],
+		[Vector3(0.0, 0.16, -0.07), Vector3(0.03, 0.022, 0.02)],
+		[Vector3(-0.11, 0.02, -0.01), Vector3(0.03, 0.07, 0.03)],
+		[Vector3(0.11, 0.02, -0.01), Vector3(0.03, 0.07, 0.03)],
+		[Vector3(-0.05, -0.14, -0.03), Vector3(0.035, 0.05, 0.035)],
+		[Vector3(0.05, -0.14, -0.03), Vector3(0.035, 0.05, 0.035)],
+	]
+	for part: Array in parts:
+		var sphere := SphereMesh.new()
+		sphere.radius = 1.0
+		sphere.height = 2.0
+		sphere.radial_segments = 12
+		sphere.rings = 6
+		sphere.material = material
+		var blob := MeshInstance3D.new()
+		blob.mesh = sphere
+		blob.layers = portrait_render_layers
+		blob.transform = Transform3D(Basis.from_scale(part[1]), part[0])
+		kenny.add_child(blob)
+	var strap := BoxMesh.new()
+	strap.size = Vector3(backpack_size.x + 0.02, 0.025, 0.2)
+	var strap_mat := StandardMaterial3D.new()
+	strap_mat.albedo_color = Color(0.15, 0.14, 0.13)
+	strap.material = strap_mat
+	var band := MeshInstance3D.new()
+	band.mesh = strap
+	band.layers = portrait_render_layers
+	band.position = Vector3(0.0, 0.02, 0.07)
+	kenny.add_child(band)
+	_garment_meshes[&"Kenny"] = kenny
 
 
 ## Shows a garment's mesh only while that garment is worn.
@@ -276,6 +327,8 @@ func refresh_garment_meshes() -> void:
 			var item: ItemResource = ItemCatalog.get_item(_equipment.get_equipped(slot.id))
 			if item != null and item.garment != null and item.garment.mesh_node_name != &"":
 				worn[item.garment.mesh_node_name] = true
+			elif item != null and item.attached_mesh_node_name != &"":
+				worn[item.attached_mesh_node_name] = true
 	for mesh_name: StringName in _garment_meshes:
 		(_garment_meshes[mesh_name] as Node3D).visible = worn.has(mesh_name)
 

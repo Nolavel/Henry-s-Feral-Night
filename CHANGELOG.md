@@ -5,6 +5,19 @@ Maintained per branch; entries are added by whoever makes the change.
 
 ## [Unreleased] — `codex`
 
+### 2026-09-24 — First Exit: route clutter and Kenny on the pack (claudeflow)
+
+Added
+- Route clutter from the layout: cars, pickups, a van and a bus (overturned,
+  sunk in drift, doors open), bins and dumpsters. Placed per route to break
+  sprint lines and create choke points (Grok, #42).
+- Kenny: item `kenny` (3 kg) on the back fixture from the start, with a plush
+  silhouette strapped to the pack. Carried non-garments now count toward the
+  carry weight (`EquipmentComponent.get_carried_weight`).
+- `ItemResource.attached_mesh_node_name` shows a mesh on Henry for a
+  non-garment in a body slot. `EquipmentComponent.starter_slot_items` places
+  non-garments at start.
+
 ### 2026-09-24 — First Exit: suburb on the old road, human speeds (claudeflow)
 
 Changed

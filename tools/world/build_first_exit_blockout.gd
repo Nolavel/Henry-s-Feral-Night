@@ -28,6 +28,8 @@ var _asphalt := StandardMaterial3D.new()
 var _gravel := StandardMaterial3D.new()
 var _board := StandardMaterial3D.new()
 var _metal := StandardMaterial3D.new()
+var _paint := StandardMaterial3D.new()
+var _rust := StandardMaterial3D.new()
 ## Identical pieces share one mesh and one shape, keyed by size and material.
 var _meshes: Dictionary = {}
 var _shapes: Dictionary = {}
@@ -53,6 +55,8 @@ func _initialize() -> void:
 		_build_lot(lot)
 	for s: Dictionary in layout["structures"]:
 		_build_structure(s)
+	for c: Dictionary in layout.get("clutter", []):
+		_build_structure(c)
 	for row: Dictionary in layout["palm_rows"]:
 		_build_palm_row(row)
 	if layout.has("verge_palms"):
@@ -79,7 +83,8 @@ func _setup_materials() -> void:
 	for pair: Array in [[_concrete, Color(0.62, 0.62, 0.6)], [_wood, Color(0.5, 0.48, 0.45)],
 			[_palm, Color(0.36, 0.34, 0.31)], [_dark, Color(0.12, 0.12, 0.13)],
 			[_asphalt, Color(0.2, 0.2, 0.21)], [_gravel, Color(0.44, 0.42, 0.39)],
-			[_board, Color(0.58, 0.5, 0.4)], [_metal, Color(0.3, 0.32, 0.34)]]:
+			[_board, Color(0.58, 0.5, 0.4)], [_metal, Color(0.3, 0.32, 0.34)],
+			[_paint, Color(0.52, 0.56, 0.6)], [_rust, Color(0.45, 0.33, 0.26)]]:
 		var mat: StandardMaterial3D = pair[0]
 		mat.albedo_color = pair[1]
 		mat.roughness = 1.0
@@ -357,10 +362,12 @@ func _build_structure(s: Dictionary) -> void:
 			yaw_deg = rad_to_deg(atan2(frame["dir"].x, frame["dir"].y))
 		else:
 			var n: Vector2 = _side_normal(frame["dir"], s["side"])
-			var p: Vector2 = frame["pos"] + n * (_edge_offset(s["road"]) + float(s["offset"]))
+			var reach: float = float(s["lateral"]) if s.has("lateral") else _edge_offset(s["road"]) + float(s["offset"])
+			var p: Vector2 = frame["pos"] + n * reach
 			x = p.x
 			z = p.y
 			yaw_deg = rad_to_deg(atan2(-n.x, -n.y))
+		yaw_deg += float(s.get("yaw_add", 0.0))
 	else:
 		x = float(s["x"])
 		z = float(s["z"])
@@ -397,8 +404,70 @@ func _build_structure(s: Dictionary) -> void:
 			_box(node, Vector3(w * 0.5 + 1.0, 2.7, d * 0.5), Vector3(0.6, 0.6, 0.05), _metal, false)
 		"pier":
 			_pier(node, w, d, h)
+		"car", "pickup", "van", "bus":
+			_vehicle(node, String(s["kind"]), s)
+		"bin":
+			_cylinder(node, Vector3(0, 0.45, 0), 0.35, 1.0, _metal)
+		"dumpster":
+			_box(node, Vector3(0, 0.55, 0), Vector3(w, 1.3, d), _rust)
+			var lid: MeshInstance3D = _box(node, Vector3(0, 1.3, -d * 0.3), Vector3(w, 0.06, d * 0.6), _rust, false)
+			lid.rotation.x = deg_to_rad(-35.0)
 		_:
 			_box(node, Vector3(0, h * 0.5, 0), Vector3(w, h, d), _concrete)
+
+
+## A vehicle along local Z, front at +Z. "roll": "side" or "roof" overturns it,
+## "sink" buries it in drift, "door_open" swings the driver's door.
+func _vehicle(node: Node3D, kind: String, s: Dictionary) -> void:
+	var body := Node3D.new()
+	body.name = "Body"
+	_add(node, body)
+	var w: float = 1.8
+	var h: float = 1.5
+	var wheel_z: float = 1.4
+	var mat: Material = _paint
+	match kind:
+		"car":
+			_box(body, Vector3(0, 0.6, 0), Vector3(1.8, 0.7, 4.3), _paint)
+			_box(body, Vector3(0, 1.25, -0.2), Vector3(1.6, 0.6, 2.2), _paint)
+			_box(body, Vector3(0, 1.25, -0.2), Vector3(1.62, 0.35, 2.0), _dark, false)
+		"pickup":
+			mat = _rust
+			w = 1.9
+			h = 1.9
+			wheel_z = 1.8
+			_box(body, Vector3(0, 0.65, 0), Vector3(1.9, 0.8, 5.3), _rust)
+			_box(body, Vector3(0, 1.45, 1.1), Vector3(1.8, 0.8, 1.8), _rust)
+			_box(body, Vector3(0, 1.5, 1.1), Vector3(1.82, 0.4, 1.6), _dark, false)
+			for side: float in [-1.0, 1.0]:
+				_box(body, Vector3(side * 0.9, 1.3, -1.3), Vector3(0.08, 0.5, 2.6), _rust)
+		"van":
+			w = 2.0
+			h = 2.2
+			wheel_z = 1.7
+			_box(body, Vector3(0, 1.2, 0), Vector3(2.0, 1.9, 5.0), _paint)
+			_box(body, Vector3(0, 1.6, 2.2), Vector3(2.02, 0.6, 0.7), _dark, false)
+		"bus":
+			w = 2.5
+			h = 3.1
+			wheel_z = 3.6
+			_box(body, Vector3(0, 1.7, 0), Vector3(2.5, 2.8, 11.0), _paint)
+			_box(body, Vector3(0, 2.3, 0), Vector3(2.52, 0.9, 9.6), _dark, false)
+	for sx: float in [-1.0, 1.0]:
+		for sz: float in [-1.0, 1.0]:
+			var wheel: MeshInstance3D = _cylinder(body, Vector3(sx * (w * 0.5 - 0.05), 0.35, sz * wheel_z), 0.35, 0.28, _dark, false)
+			wheel.rotation.z = PI * 0.5
+	if bool(s.get("door_open", false)):
+		var door: MeshInstance3D = _box(body, Vector3(w * 0.5 + 0.45, 0.9, 0.4), Vector3(0.08, 0.9, 1.1), mat)
+		door.rotation.y = deg_to_rad(-55.0)
+	match String(s.get("roll", "")):
+		"side":
+			body.rotation.z = PI * 0.5
+			body.position = Vector3(h * 0.5, w * 0.5 - 0.3, 0)
+		"roof":
+			body.rotation.z = PI
+			body.position.y = h
+	body.position.y -= float(s.get("sink", 0.0))
 
 
 ## Blast door in a concrete face, set into an earth berm behind it.

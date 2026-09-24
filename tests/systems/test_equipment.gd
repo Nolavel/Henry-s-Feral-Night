@@ -27,6 +27,7 @@ func _run() -> void:
 	_test_weight_gates_the_inventory()
 	_test_clothing_slows_freezing()
 	_test_the_backpack_is_worn_in_the_pack_slot()
+	_test_kenny_rides_the_fixture_and_weighs()
 	if _failures > 0:
 		push_error("equipment: %d check(s) failed" % _failures)
 		quit(1)
@@ -321,4 +322,29 @@ func _test_the_backpack_is_worn_in_the_pack_slot() -> void:
 	_check(pack != null and pack.visible, "the backpack box is not shown while worn")
 	equipment.unequip(&"pack")
 	_check(pack != null and not pack.visible, "the backpack box still shows after taking it off")
+	_dispose(player)
+
+
+## Kenny starts on his fixture, shows on the pack, and his weight is carried.
+func _test_kenny_rides_the_fixture_and_weighs() -> void:
+	var player := CharacterBody3D.new()
+	var equipment := EquipmentComponent.new()
+	equipment.name = "EquipmentComponent"
+	equipment.layout = load(LAYOUT) as EquipmentLayout
+	equipment.starter_garment_ids = [&"backpack"]
+	equipment.starter_slot_items = {&"back_fixture": &"kenny"}
+	player.add_child(equipment)
+	var inventory := InventoryComponent.new()
+	inventory.equipment = equipment
+	player.add_child(inventory)
+	var visual := (load("res://scenes/actors/player/HenryUALVisual.tscn") as PackedScene).instantiate() as HenryUALAnimation
+	player.add_child(visual)
+	root.add_child(player)
+	_check(equipment.get_equipped(&"back_fixture") == &"kenny", "Kenny is not on the back fixture")
+	_check(is_equal_approx(inventory.get_total_weight(), 3.0), "Kenny's 3 kg is not carried (%.1f)" % inventory.get_total_weight())
+	var kenny := visual.find_child("Kenny", true, false) as Node3D
+	_check(kenny != null and kenny.visible, "Kenny is not shown on the pack")
+	equipment.unequip(&"back_fixture")
+	_check(kenny != null and not kenny.visible, "Kenny still shows after coming off")
+	_check(is_equal_approx(inventory.get_total_weight(), 0.0), "weight stays after Kenny comes off")
 	_dispose(player)

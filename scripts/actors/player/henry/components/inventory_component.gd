@@ -27,6 +27,8 @@ signal weight_changed(total_kg: float, maximum_kg: float)
 @export_group("Capacity")
 ## Kilograms Henry can carry beyond what he is wearing.
 @export var max_carry_weight: float = 30.0
+## Its carried non-garments (Kenny) count toward the same limit.
+@export var equipment: EquipmentComponent
 
 var _entries: Array[Dictionary] = []
 
@@ -88,6 +90,8 @@ func get_total_weight() -> float:
 	for entry: Dictionary in _entries:
 		var stored: ItemResource = entry["item"]
 		total += stored.weight * float(entry["count"])
+	if equipment != null:
+		total += equipment.get_carried_weight()
 	return total
 
 

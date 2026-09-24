@@ -20,6 +20,8 @@ const SHOTS: Array = [
 	["shelter_lot", Vector3(1150.0, 1.7, -676.0), Vector3(1128.0, 1.5, -645.0)],
 	["junction", Vector3(1075.0, 4.0, -648.0), Vector3(1116.0, 1.0, -690.0)],
 	["suburb_aerial", Vector3(1215.0, 55.0, -590.0), Vector3(1100.0, 0.0, -662.0)],
+	["road_bus", Vector3(1378.0, 2.2, -858.0), Vector3(1348.0, 1.0, -822.0)],
+	["beach_wrecks", Vector3(1330.0, 3.0, -945.0), Vector3(1250.0, 0.5, -890.0)],
 ]
 
 var _frame: int = 0

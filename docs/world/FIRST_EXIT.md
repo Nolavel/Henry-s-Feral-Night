@@ -94,6 +94,35 @@ there**.
 ![The junction and the tower](greybox_junction.png)
 ![From the bunker door](greybox_from_bunker.png)
 
+## Route clutter
+
+`clutter` in the layout holds wrecks and street furniture. Each entry is
+placed on a road (`s`, `side`, `lateral` from the centreline or `offset` from
+the verge, `yaw_add`) or at world coordinates. Vehicles take `roll` (`side` or
+`roof`), `sink` into drift, and `door_open`.
+
+The purpose is spatial grammar, not decoration. Clutter breaks the straight
+sprint line, creates soft choke points and wind shadow, and shows tropical
+traffic caught by the cold. Density stays low and route-specific:
+
+| Route | Clutter |
+|---|---|
+| Road | A bus half-sunk across the north lane near the fort; a car with its door open by the bus stop; bins at the stop; a van on its side in the ditch before the junction; a car abandoned among the houses; a dumpster at the chapel |
+| Shore | Two pickups on the north sand, one on its roof, one on its side |
+| Ruins | A dumpster and a bin by the powder store; the garrison pickup nosed into the redoubt slope |
+
+![Bus across the road](greybox_road_bus.png)
+![Wrecks on the beach](greybox_beach_wrecks.png)
+
+## Kenny on the pack
+
+Kenny is an item (`data/items/kenny.tres`, 3 kg, bulky, no garment facet).
+He starts in the `back_fixture` slot through
+`EquipmentComponent.starter_slot_items`. His weight counts toward the carry
+limit through `EquipmentComponent.get_carried_weight()`, so he costs load from
+the first step. He is drawn as a plush silhouette strapped to the outside of
+the pack, and he disappears if he leaves the fixture.
+
 ## Movement speed
 
 Henry now moves at human speed (author): **walk 1.5 m/s, sprint 4.5 m/s**, down
