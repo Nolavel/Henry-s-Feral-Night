@@ -323,7 +323,7 @@ func _build_flare() -> void:
 
 func _make_spark_layer() -> GPUParticles3D:
 	var particles := GPUParticles3D.new()
-	particles.amount = 360
+	particles.amount = 520
 	particles.lifetime = 0.85
 	particles.randomness = 0.68
 	particles.local_coords = false
@@ -355,13 +355,13 @@ func _make_spark_layer() -> GPUParticles3D:
 	_spark_process = process
 	## Soft radial billboard: avoids the tiny square/diamond read seen under
 	## lavapipe while keeping the validated cone width.
-	particles.draw_pass_1 = _spark_mesh(0.0085, Color(1.0, 0.6, 0.25, 1.0), 7.0)
+	particles.draw_pass_1 = _spark_mesh(0.011, Color(1.0, 0.6, 0.25, 1.0), 7.0)
 	return particles
 
 
 func _make_fragment_layer() -> GPUParticles3D:
 	var particles := GPUParticles3D.new()
-	particles.amount = 60
+	particles.amount = 90
 	particles.lifetime = 1.2
 	particles.randomness = 0.82
 	particles.local_coords = false

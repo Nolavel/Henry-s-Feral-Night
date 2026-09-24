@@ -104,8 +104,10 @@ const GARMENT_PARTS: Dictionary = {
 ## UAL's Idle_Torch raises the left hand, so held lights ride there.
 @export var hand_bone: StringName = &"hand_l"
 ## Prop offset from the hand bone, in the bone's space.
-@export var hand_prop_offset: Vector3 = Vector3(0.0, 0.09, 0.03)
-@export var hand_prop_rotation_deg: Vector3 = Vector3(0.0, 0.0, 0.0)
+## Pushed past the fingers and tipped out of the fist, so the tube and its
+## burning tip read clear of Henry's hand.
+@export var hand_prop_offset: Vector3 = Vector3(0.0, 0.12, 0.06)
+@export var hand_prop_rotation_deg: Vector3 = Vector3(-55.0, 0.0, 0.0)
 ## How fast the right arm eases into and out of the held pose.
 @export_range(1.0, 20.0, 0.5) var hold_pose_rate: float = 8.0
 
