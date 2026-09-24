@@ -5,6 +5,22 @@ Maintained per branch; entries are added by whoever makes the change.
 
 ## [Unreleased] — `codex`
 
+### 2026-09-24 — Road flare in Henry's hand (#57) (claudeflow)
+
+Added
+- A shared held-item socket: `HenryUALAnimation.get_hand_socket()`, a
+  BoneAttachment on `hand_r`. `hold_in_hand()` / `release_hand()` move props
+  in and out of it. It is the one hand path for flares and later lights.
+- A held pose: the right arm eases into `Idle_Torch` through a bone-filtered
+  Blend2 over any locomotion, so the legs keep walking.
+- `HeldLightComponent` on the Player. `L` (`toggle_flashlight`) spends a
+  `road_flare` from the inventory into the hand. A second `L` drops it burning
+  at Henry's feet. A spent flare lingers 3 s for its smoke, then goes. It
+  forwards WorldContext, so the smoke gets live WeatherController wind.
+- The `road_flare` item, a `test_held_light.gd` suite, and
+  `tools/runtime/capture_held_flare_ingame.gd` (a night, windy capture in
+  the main scene). Frames are in `docs/art/issue57/`.
+
 ### 2026-09-24 — Sleep is an interaction, not a key (claudeflow)
 
 Changed
