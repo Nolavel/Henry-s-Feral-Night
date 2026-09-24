@@ -41,6 +41,12 @@ func _initialize() -> void:
 	_feed = _zone.find_child("Feed", true, false) as HeatSourceFeed
 	_cabinet = _zone.find_child("Open", true, false) as Cabinet
 	_board = _zone.find_child("BackWindow1", true, false).find_child("BoardUp", true, false) as BreachBoardUp
+	## Frames show the world, not the HUD, and only this capture's camera.
+	for layer: Node in scene.find_children("*", "CanvasLayer", true, false):
+		(layer as CanvasLayer).visible = false
+	for cam: Node in scene.find_children("*", "Camera3D", true, false):
+		cam.process_mode = Node.PROCESS_MODE_DISABLED
+		(cam as Camera3D).current = false
 	_camera = Camera3D.new()
 	_camera.fov = 55.0
 	scene.add_child(_camera)
@@ -149,11 +155,18 @@ func _teleport_near(target: Node3D, distance: float) -> void:
 	_player.velocity = Vector3.ZERO
 
 
-## Three-quarter view of Henry from the front right, chest height.
+## Outdoors a three-quarter view from Henry's front right; inside the shelter
+## the camera stands in the room and looks at him, so walls never block it.
 func _frame_camera() -> void:
 	var basis: Basis = _player.global_transform.basis
 	var chest: Vector3 = _player.global_position + Vector3(0.0, 1.0, 0.0)
-	_camera.global_position = chest - basis.z * 2.3 + basis.x * 1.3 + Vector3(0.0, 0.6, 0.0)
+	if _phase >= 5:
+		var from_henry: Vector3 = _zone.global_position - _player.global_position
+		from_henry.y = 0.0
+		from_henry = from_henry.normalized() if from_henry.length() > 0.3 else -basis.z
+		_camera.global_position = chest + from_henry * 2.2 + basis.x * 0.6 + Vector3(0.0, 0.7, 0.0)
+	else:
+		_camera.global_position = chest - basis.z * 2.3 + basis.x * 1.3 + Vector3(0.0, 0.6, 0.0)
 	_camera.look_at(chest, Vector3.UP)
 	_fill.global_position = _camera.global_position + Vector3(0.0, 0.5, 0.0)
 
