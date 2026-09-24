@@ -38,3 +38,4 @@ CABINET_OPEN,Open the cabinet,Открыть шкаф
 CABINET_CLOSE,Close the cabinet,Закрыть шкаф
 SLEEP_PROMPT,Sleep,Спать
 SLEEP_DIALOG_KEYS,"Wheel or ← →  hours      [ F ]  sleep and save      [ Esc ]  cancel","Колесо или ← →  часы      [ F ]  спать и сохранить      [ Esc ]  отмена"
+BEDROLL_PACK,Roll up the bedroll,Свернуть спальник

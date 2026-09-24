@@ -5,6 +5,18 @@ Maintained per branch; entries are added by whoever makes the change.
 
 ## [Unreleased] — `codex`
 
+### 2026-09-24 — Bedroll: sleep in the field (#63) (claudeflow)
+
+Added
+- `bedroll` item, found at the bunker (First Exit layout `bedroll_bunker`).
+- `BedrollComponent` on the Player. `B` (`lay_bedroll`) spends the bedroll
+  into a roll laid along Henry's facing, with a kneel. The roll offers
+  F — Sleep through the same `SleepSpot`, so `SleepController` still refuses
+  unsafe cold or wet, and a Roll-up prompt at its head returns it to the
+  inventory. A laid roll is saved and restored (`saveable`). `B` stands in
+  until the inventory has a Use action.
+- `test_bedroll.gd`.
+
 ### 2026-09-24 — Flare pass 2: raised hand, spark fountain, breathing light (claudeflow)
 
 Changed

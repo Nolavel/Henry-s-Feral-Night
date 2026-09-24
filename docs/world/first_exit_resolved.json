@@ -677,6 +677,14 @@
 			"kind": "pickup",
 			"x": 1211.0,
 			"z": -868.3
+		},
+		{
+			"count": 1,
+			"id": "bedroll_bunker",
+			"item_id": "bedroll",
+			"kind": "pickup",
+			"x": 1418.5,
+			"z": -947.0
 		}
 	],
 	"spawn": {

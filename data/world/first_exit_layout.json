@@ -944,6 +944,14 @@
     0.5
    ],
    "route": "shore"
+  },
+  {
+   "id": "bedroll_bunker",
+   "item_id": "bedroll",
+   "count": 1,
+   "x": 1418.5,
+   "z": -947.0,
+   "route": "start"
   }
  ],
  "_scarcity": "Shelter has 5 openings, the route holds 3 boards. Tinder only in the fort store or the collapsed house n3: no tinder, no fire."
