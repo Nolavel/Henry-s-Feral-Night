@@ -31,16 +31,4 @@ if [ ! -x "$PREFIX/godot-mono/${GODOT_PKG%_x86_64}.x86_64" ]; then
 fi
 ln -sf "$PREFIX/godot-mono/${GODOT_PKG%_x86_64}.x86_64" "$HOME/.local/bin/godot"
 
-## Terrain3D GDExtension binaries are not vendored; fetch the pinned release.
-TERRAIN3D_VERSION="${TERRAIN3D_VERSION:-v1.0.1-stable}"
-TERRAIN3D_ZIP="${TERRAIN3D_ZIP:-Terrain3D_v1.0.1.zip}"
-PROJECT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")/../.." && pwd)"
-
-if [ ! -f "$PROJECT_DIR/addons/terrain_3d/bin/libterrain.linux.debug.x86_64.so" ]; then
-	curl -sSL -o /tmp/terrain3d.zip \
-		"https://github.com/TokisanGames/Terrain3D/releases/download/${TERRAIN3D_VERSION}/${TERRAIN3D_ZIP}"
-	unzip -q -o /tmp/terrain3d.zip "addons/terrain_3d/bin/*" -d "$PROJECT_DIR"
-	rm -f /tmp/terrain3d.zip
-fi
-
 "$HOME/.local/bin/godot" --headless --version

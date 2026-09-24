@@ -38,7 +38,7 @@ Handover rules:
 - Godot.NET.Sdk: **4.8.0-dev.6**
 - .NET target: **net8.0**
 - Main development scene: `res://tests/scenes/TestScene.tscn`
-- Terrain3D remains a third-party addon. Do not rewrite its internal code as project gameplay code.
+- Terrain is `IslandTerrain` built from the heightmap PNG; edit heights in Blender, not in code.
 
 ## Repository hygiene
 
@@ -52,6 +52,6 @@ Handover rules:
 
 - Player movement, rotation, camera, interaction, and survival components keep separate ownership.
 - Camera feedback may lag aesthetically, but input response must not be delayed by stacked smoothing systems.
-- Terrain3D owns terrain geometry/LOD. Project streaming owns gameplay content chunks.
+- `IslandTerrain` owns terrain geometry/LOD. Project streaming owns gameplay content chunks.
 - Streaming must preload before activation and use unload hysteresis; do not load on boundary entry and immediately free on boundary exit.
 - Chunk definitions are data-driven. Avoid one `@onready` variable and one `match` arm per chunk.

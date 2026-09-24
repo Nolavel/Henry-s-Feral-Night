@@ -5,6 +5,20 @@ Maintained per branch; entries are added by whoever makes the change.
 
 ## [Unreleased] — `codex`
 
+### 2026-09-24 — Terrain stage 4: Terrain3D removed (claudeflow)
+
+Removed
+- The Terrain3D addon, its editor plugin entry, its CI download and cache key,
+  and the `.gitignore` rule for its binaries.
+- The Graciosa Terrain3D region data (25 MB), `dump_island_heights.gd` and
+  `export_heightmap.py`; the heightmap PNG is now the only terrain source.
+- Capture tools that needed the Terrain3D node (`capture_freemans_sky.gd`,
+  `capture_island_visual_fx.gd`, `capture_production_snow.gd`) and
+  `terrain3d_stylized_capture.gdshader`.
+
+Changed
+- `capture_first_exit.gd` and `island_report.py` work only on the heightmap.
+
 ### 2026-09-24 — Terrain stage 3: the main scene runs on IslandTerrain (claudeflow)
 
 Changed

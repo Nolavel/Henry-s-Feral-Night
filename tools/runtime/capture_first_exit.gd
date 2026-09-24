@@ -8,12 +8,10 @@ extends SceneTree
 
 const SCENE: String = "res://experimental_location/scenes/Graciosa_Island_Terrain.tscn"
 const BLOCKOUT: String = "res://scenes/world/first_exit/first_exit_blockout.tscn"
-const TERRAIN_DIR: String = "res://experimental_location/Graciosa/terrain_graciosa"
 const OUT_DIR: String = "user://shots/first_exit"
 const WARMUP_FRAMES: int = 60
 ## [name, camera position, look-at target]; both heights are above the ground.
-## HFN_SHOT=<index> renders one shot per process: Terrain3D under lavapipe can
-## crash on a camera jump, so tools loop over processes instead.
+## HFN_SHOT=<index> renders only that shot.
 const SHOTS: Array = [
 	["from_bunker", Vector3(1421.0, 1.7, -945.0), Vector3(1140.0, 6.0, -690.0)],
 	["aerial_sector", Vector3(1470.0, 150.0, -990.0), Vector3(1170.0, 0.0, -690.0)],
@@ -27,7 +25,6 @@ const SHOTS: Array = [
 var _frame: int = 0
 var _shot: int = -1
 var _camera: Camera3D
-var _terrain: Terrain3D
 var _island: IslandTerrain
 var _only: int = -1
 
@@ -74,23 +71,14 @@ func _process(_delta: float) -> bool:
 func _lift(p: Vector3) -> Vector3:
 	if _island != null:
 		return Vector3(p.x, p.y + maxf(_island.get_height(p.x, p.z), 0.0), p.z)
-	if _terrain == null:
-		return p
-	var h: float = _terrain.data.get_height(Vector3(p.x, 0.0, p.z))
-	return Vector3(p.x, p.y + (0.0 if is_nan(h) else maxf(h, 0.0)), p.z)
+	return p
 
 
-## The heightmap IslandTerrain; HFN_TERRAIN=terrain3d renders the old Terrain3D.
+## Stage terrain is the heightmap IslandTerrain.
 func _build_stage() -> void:
-	if OS.get_environment("HFN_TERRAIN") != "terrain3d":
-		_island = IslandTerrain.new()
-		_island.focus = null
-		root.add_child(_island)
-	else:
-		var terrain := Terrain3D.new()
-		terrain.data_directory = TERRAIN_DIR
-		root.add_child(terrain)
-		_terrain = terrain
+	_island = IslandTerrain.new()
+	_island.focus = null
+	root.add_child(_island)
 	var sea := MeshInstance3D.new()
 	var plane := PlaneMesh.new()
 	plane.size = Vector2(6000.0, 6000.0)
