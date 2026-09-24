@@ -5,6 +5,12 @@ Maintained per branch; entries are added by whoever makes the change.
 
 ## [Unreleased] — `codex`
 
+### 2026-09-24 — First Exit split: land night vs Coast / Thin Ice (#24) (claudeflow)
+
+Changed
+- `docs/world/FIRST_EXIT.md`: First Exit (milestone A) is the land night only;
+  the ice route moves to milestone B, Coast / Thin Ice.
+
 ### 2026-09-24 — Bedroll: sleep in the field (#63) (claudeflow)
 
 Added

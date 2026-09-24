@@ -188,13 +188,14 @@ At walking pace a one-way crossing is about 5 minutes. With searching,
 boarding, firing the stove and the weather turn, that fits the milestone's
 10–15 minutes.
 
-## Ice: pending the coastal zone
+## Ice: moved to milestone B (Coast / Thin Ice)
 
-The inland lagoon is **rejected** (author, PR #43). Ice belongs to the real
-coast: small islets and atolls, frozen straits and ice bridges between them,
-shoals, the shore-fast ice edge, and ice-locked ships as landmarks, shelters
-and risk points. Until that zone exists, the `ice` route is unconfirmed and
-nothing in the greybox assumes it.
+First Exit is split (author decision, issue #24). **Milestone A, First Exit**,
+is the land night only: shelter, road, junction and return, with no ice route.
+**Milestone B, Coast / Thin Ice**, owns ice on the real coast: islets and
+atolls, frozen straits and ice bridges, shoals, the shore-fast ice edge and
+ice-locked ships. The inland lagoon stays rejected (PR #43). Nothing in the
+milestone A greybox assumes ice.
 
 ## Reference: the tropical island before the cold
 
