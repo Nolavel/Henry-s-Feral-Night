@@ -28,6 +28,7 @@ var _frame: int = 0
 var _shot: int = -1
 var _camera: Camera3D
 var _terrain: Terrain3D
+var _island: IslandTerrain
 var _only: int = -1
 
 
@@ -37,7 +38,12 @@ func _initialize() -> void:
 		_only = int(OS.get_environment("HFN_SHOT"))
 		_shot = _only - 1
 	if OS.get_environment("HFN_FULL_SCENE") == "1":
-		root.add_child((load(SCENE) as PackedScene).instantiate())
+		var scene: Node = (load(SCENE) as PackedScene).instantiate()
+		if OS.get_environment("HFN_TERRAIN") == "mesh":
+			scene.get_node(^"NavigationRegion3D/Terrain3D").free()
+			_island = IslandTerrain.new()
+			scene.add_child(_island)
+		root.add_child(scene)
 	else:
 		_build_stage()
 
@@ -62,22 +68,32 @@ func _process(_delta: float) -> bool:
 			quit()
 			return true
 		_camera.look_at_from_position(_lift(SHOTS[_shot][1]), _lift(SHOTS[_shot][2]))
+		if _island != null:
+			_island.update_now()
 	return false
 
 
 ## Raises a point by the ground under it; the sea counts as ground level 0.
 func _lift(p: Vector3) -> Vector3:
+	if _island != null:
+		return Vector3(p.x, p.y + maxf(_island.get_height(p.x, p.z), 0.0), p.z)
 	if _terrain == null:
 		return p
 	var h: float = _terrain.data.get_height(Vector3(p.x, 0.0, p.z))
 	return Vector3(p.x, p.y + (0.0 if is_nan(h) else maxf(h, 0.0)), p.z)
 
 
+## HFN_TERRAIN=mesh renders the heightmap IslandTerrain instead of Terrain3D.
 func _build_stage() -> void:
-	var terrain := Terrain3D.new()
-	terrain.data_directory = TERRAIN_DIR
-	root.add_child(terrain)
-	_terrain = terrain
+	if OS.get_environment("HFN_TERRAIN") == "mesh":
+		_island = IslandTerrain.new()
+		_island.focus = null
+		root.add_child(_island)
+	else:
+		var terrain := Terrain3D.new()
+		terrain.data_directory = TERRAIN_DIR
+		root.add_child(terrain)
+		_terrain = terrain
 	var sea := MeshInstance3D.new()
 	var plane := PlaneMesh.new()
 	plane.size = Vector2(6000.0, 6000.0)

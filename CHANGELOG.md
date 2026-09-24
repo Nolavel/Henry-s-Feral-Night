@@ -5,6 +5,26 @@ Maintained per branch; entries are added by whoever makes the change.
 
 ## [Unreleased] — `codex`
 
+### 2026-09-24 — Terrain stage 2: IslandTerrain from the heightmap (claudeflow)
+
+Added
+- `IslandTerrain` + `IslandHeightmap`: the island ground built from the
+  heightmap. It has 128 m chunks with 1/4/16 m levels of detail, skirts, and
+  HeightMapShape3D collision near the focus; `get_height` matches the Python
+  tools exactly. The terrain shader colours by height and slope, with the
+  shared snow cover on top.
+- `tools/world/bake_terrain.py` writes `world/terrain/graciosa_height_la8.png`,
+  the game-readable copy of the source (Godot drops 16-bit PNGs to 8-bit).
+- `test_island_terrain.gd`.
+
+Changed
+- Heightmap export adds a sea bed that shelves from the coast instead of
+  Terrain3D's flat 0 m plane. The source PNG was re-exported.
+
+Found
+- The full Graciosa scene no longer crashes under lavapipe once Terrain3D is
+  swapped for IslandTerrain (3 of 3 runs, 7 shots each).
+
 ### 2026-09-24 — Terrain heightmap becomes the source of truth, stage 1 (claudeflow)
 
 Added

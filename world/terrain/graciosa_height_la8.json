@@ -8,5 +8,7 @@
  "width": 4123,
  "height": 2836,
  "axes": "col -> +X east, row -> +Z south (Godot); Blender: x = X, y = -Z, z = height",
- "note": "Exported from Terrain3D 'terrain_graciosa', 2026-09-24."
+ "note": "Exported from Terrain3D 'terrain_graciosa', 2026-09-24.",
+ "encoding": "LA8: grey16 = L * 256 + A",
+ "source_sha1": "a75cf9b04b1f532b717762d35e9a2fe05e95c00b"
 }

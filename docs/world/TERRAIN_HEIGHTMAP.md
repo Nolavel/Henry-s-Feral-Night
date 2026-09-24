@@ -12,10 +12,10 @@ it. Godot does not import this folder (`.gdignore`).
 | Property | Value |
 |---|---|
 | Format | 16-bit greyscale PNG, lossless |
-| Size | 4128 × 2866 px, **1 px = 1 m** |
-| Pixel → world | `x = origin_x + col`, `z = origin_z + row` (origin −2296, −1545) |
+| Size | 4123 × 2836 px, **1 px = 1 m** |
+| Pixel → world | `x = origin_x + col`, `z = origin_z + row` (origin −2292, −1532) |
 | Grey → height | 0…65535 linear onto **−16…+48 m** (fixed, ~1 mm per step) |
-| Sea level | 0 m. Open sea outside the island is −12 m. |
+| Sea level | 0 m. The sea bed shelves from the coast: about −1.8 m at 10 m out, −7.6 m at 60 m, −12 m in open water. Terrain3D had a flat 0 m plane there. |
 | Axes | Godot: +X east, +Z south. Blender: x = X, y = −Z, z = height. |
 
 The PNG was exported from Terrain3D `terrain_graciosa` with a maximum error of
@@ -65,11 +65,52 @@ Measured on the PNG, the First Exit route lengths match the Terrain3D
 measurement to the metre. The coast-exposure band differs by a few metres
 because it is now sampled at 1 m instead of 2 m.
 
+## In the game: `IslandTerrain`
+
+Godot reads a 16-bit PNG as 8-bit, which gives 25 cm height steps. The game
+therefore reads a baked copy with the same bytes:
+`world/terrain/graciosa_height_la8.png`, an 8-bit grey+alpha PNG where
+L = high byte and A = low byte. It is imported as a raw `Image`, so no alpha
+fix-up touches it. Rebuild it after every edit of the source:
+
+```bash
+PYTHONPATH=tools/world python3 tools/world/bake_terrain.py
+```
+
+The JSON next to it records the source's SHA-1, so a stale bake is detectable.
+
+`scripts/systems/world/terrain/island_terrain.gd` (`IslandTerrain`) builds the
+ground:
+- 128 m chunks with three levels of detail: 1 m within 192 m, 4 m within
+  768 m, 16 m beyond. Only chunks that rise above −1.5 m are built.
+- Skirts on every chunk, so seams between levels never gap.
+- `HeightMapShape3D` collision only within about 200 m of the focus (the
+  player, or the camera).
+- Chunks rebuild a few per frame, so there is no hitch.
+- `get_height(x, z)` gives the exact bilinear ground height, the same numbers
+  the Python tools use.
+
+Its shader, `shaders/environment/terrain/island_terrain.gdshader`, colours by
+height and slope (sand at the tide line, turf on flats, rock on slopes) and
+adds the shared settled snow driven by the `snow_cover` global.
+
+`test_island_terrain.gd` checks the exact height at a known pixel, that detail
+follows the focus, and that collision under the spawn matches the ground
+within 15 cm.
+
+**Stability:**
+- With `IslandTerrain` in place of Terrain3D, the full Graciosa scene rendered
+  all 7 First Exit shots in **3 of 3 runs** under lavapipe. With Terrain3D it
+  crashed every time.
+- The light stage with the mesh terrain renders all shots in one process.
+- To reproduce: `HFN_FULL_SCENE=1 HFN_TERRAIN=mesh` with
+  `tools/runtime/capture_first_exit.gd`.
+
 ## Stages
 
 1. **Done:** heightmap as source, Blender round trip, tools on the PNG.
-2. Generator: chunked terrain meshes (64 m tiles, 2–3 LODs), `HeightMapShape3D`
-   collision, one terrain shader (slope/height colour + global snow).
+2. **Done:** `IslandTerrain` with chunks, LOD, skirts, collision and shader.
+   The main scene still uses Terrain3D until stage 3 signs off.
 3. Side by side with Terrain3D in the First Exit sector: renders, route metrics,
    navigation, ice and footprints must match.
 4. Remove Terrain3D from the scene, CI (`setup_env.sh` download) and
