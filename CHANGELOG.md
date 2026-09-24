@@ -5,6 +5,27 @@ Maintained per branch; entries are added by whoever makes the change.
 
 ## [Unreleased] — `codex`
 
+### 2026-09-24 — Issue #56: carry firewood, cabinet, working actions (claudeflow)
+
+Added
+- `CarryComponent` on the Player. An item flagged `carried_in_hands` (firewood)
+  puts Henry in a `Carry` state. Walking plays UAL2 `Walk_Carry`; standing keeps
+  the idle legs with the carry arms. The armful is a real prop on a
+  `spine_03` BoneAttachment. The carry ends when the last log leaves the
+  inventory, for example into the stove.
+- `Cabinet` (an InteractiveArea) with a door on a real hinge. It requests
+  `chest_open` and swings the door after a 0.45 s hand delay, and refuses input
+  while the door moves. Built into the First Exit shelter against the east wall.
+- `tools/runtime/capture_shelter_slice.gd`: an in-scene demo of pickup, carry,
+  stove, cabinet and window repair through the normal approach path, rendered
+  through its own SubViewport. Frames are in `docs/art/issue56/`.
+
+Changed
+- Merged Codex's approved animation layer from #51 (`1ccccf8`).
+- Working actions (`interact`, `pickup`, `fix`, `chest_open`) root Henry until the
+  clip ends. The existing breach repair now reads as `Fixing_Kneeling` with no
+  sliding.
+
 ### 2026-09-24 — Coat skirt no longer lets the thighs through (claudeflow)
 
 Fixed
