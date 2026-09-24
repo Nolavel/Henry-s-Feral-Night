@@ -208,6 +208,9 @@ func play_action_animation(action: StringName) -> bool:
 ## when there is no camera.
 ## Wet clothes show on the body: the thermal model's wetness darkens them.
 func on_world_ready(context: WorldContext) -> void:
+	var held_light := get_node_or_null(^"HeldLightComponent") as HeldLightComponent
+	if held_light != null:
+		held_light.on_world_ready(context)
 	var thermal := context.get_system(THERMAL_SCRIPT) as ThermalManager
 	if thermal == null or animation_component == null:
 		return

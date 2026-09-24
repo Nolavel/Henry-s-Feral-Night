@@ -11,6 +11,7 @@
 [ext_resource type="Script" uid="uid://buc8iltj8gtn0" path="res://scripts/actors/player/henry/components/equipment_component.gd" id="90_equip"]
 [ext_resource type="Script" uid="uid://jwbyt4ch7e7l" path="res://scripts/actors/player/henry/components/inventory_component.gd" id="91_inv"]
 [ext_resource type="Script" path="res://scripts/actors/player/henry/components/carry_component.gd" id="96_carry"]
+[ext_resource type="Script" path="res://scripts/actors/player/henry/components/held_light_component.gd" id="97_light"]
 [ext_resource type="Script" uid="uid://0rnwid612a8i" path="res://scripts/systems/survival/consumption_controller.gd" id="92_consume"]
 [ext_resource type="Script" uid="uid://ddo2xkwqouann" path="res://scripts/actors/player/henry/components/foot_contact_sensor.gd" id="94_feet"]
 [ext_resource type="Resource" path="res://data/equipment/player_layout.tres" id="93_layout"]
@@ -60,6 +61,10 @@ starter_slot_items = Dictionary[StringName, StringName]({
 [node name="InventoryComponent" type="Node" parent="." node_paths=PackedStringArray("equipment")]
 script = ExtResource("91_inv")
 equipment = NodePath("../EquipmentComponent")
+
+[node name="HeldLightComponent" type="Node" parent="." node_paths=PackedStringArray("inventory")]
+script = ExtResource("97_light")
+inventory = NodePath("../InventoryComponent")
 
 [node name="CarryComponent" type="Node" parent="." node_paths=PackedStringArray("inventory")]
 script = ExtResource("96_carry")

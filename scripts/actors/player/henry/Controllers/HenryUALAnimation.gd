@@ -23,10 +23,11 @@ const CROUCH_FWD_ALIASES: Array[StringName] = [&"Crouch_Fwd_Loop", &"Crouch_Fwd"
 const JUMP_START_ALIASES: Array[StringName] = [&"Jump_Start"]
 const JUMP_LOOP_ALIASES: Array[StringName] = [&"Jump_Loop"]
 const JUMP_LAND_ALIASES: Array[StringName] = [&"Jump_Land"]
+const TORCH_ALIASES: Array[StringName] = [&"Idle_Torch", &"Idle_Torch_Loop"]
 const CARRY_WALK_ALIASES: Array[StringName] = [&"UAL2/Walk_Carry", &"Walk_Carry_Loop"]  # Godot drops _Loop on import
 ## Bones the carry pose leaves to the idle clip; the rest hold the load.
 const LOWER_BODY_BONES: Array[StringName] = [&"root", &"pelvis", &"spine_01", &"thigh_l", &"calf_l",
-	&"foot_l", &"ball_l", &"thigh_r", &"calf_r", &"foot_r", &"ball_r"]
+	&"foot_l", &"ball_l", &"thigh_r", &"calf_r", &"foot_r", &"ball_r", &"ball_leaf_l", &"ball_leaf_r"]
 ## Full-body actions during which Henry stands still.
 const LOCKING_ACTIONS: Array[StringName] = [&"interact", &"pickup", &"fix", &"chest_open"]
 ## Walking speed of the authored carry cycle, m/s.
@@ -98,6 +99,15 @@ const GARMENT_PARTS: Dictionary = {
 ## Kenny's faded plush, lighter than the pack so the silhouette separates.
 @export var kenny_color: Color = Color(0.55, 0.45, 0.34)
 
+@export_group("Held in hand")
+## Bone of the shared held-item socket; flares and later lights use it.
+@export var hand_bone: StringName = &"hand_r"
+## Prop offset from the hand bone, in the bone's space.
+@export var hand_prop_offset: Vector3 = Vector3(0.0, 0.09, 0.03)
+@export var hand_prop_rotation_deg: Vector3 = Vector3(0.0, 0.0, 0.0)
+## How fast the right arm eases into and out of the held pose.
+@export_range(1.0, 20.0, 0.5) var hold_pose_rate: float = 8.0
+
 @export_group("Carried load")
 ## Bone the armful rides on; the carry cycle keeps both hands around it.
 @export var carry_bone: StringName = &"spine_03"
@@ -136,6 +146,10 @@ var _resolved_jump_start: StringName = &""
 var _resolved_jump_loop: StringName = &""
 var _resolved_jump_land: StringName = &""
 var _resolved_carry_walk: StringName = &""
+var _resolved_torch: StringName = &""
+var _hand_socket: BoneAttachment3D
+var _held_prop: Node3D
+var _hold_pose: float = 0.0
 var _current_action: StringName = &""
 var _carried: ItemResource = null
 ## Props shown in Henry's arms while carried, by ItemResource.attached_mesh_node_name.
@@ -177,6 +191,9 @@ func _ready() -> void:
 func update_animation_blend(_delta: float) -> void:
 	if animation_tree == null or player == null:
 		return
+	var hold_target: float = 1.0 if is_instance_valid(_held_prop) else 0.0
+	_hold_pose = move_toward(_hold_pose, hold_target, hold_pose_rate * _delta)
+	animation_tree.set("parameters/hold_pose/blend_amount", _hold_pose)
 
 	_blend_position = 0.0
 	if player.has_method("get_locomotion_speed_ratio"):
@@ -230,6 +247,56 @@ func set_carried_item(item: ItemResource) -> void:
 	var shown: StringName = item.attached_mesh_node_name if item != null else &""
 	for prop_name: StringName in _carry_props:
 		(_carry_props[prop_name] as Node3D).visible = prop_name == shown
+
+
+## The shared held-item socket on the right hand, made on first use.
+func get_hand_socket() -> BoneAttachment3D:
+	if is_instance_valid(_hand_socket) or skeleton == null:
+		return _hand_socket
+	_hand_socket = BoneAttachment3D.new()
+	_hand_socket.name = "HandSocketR"
+	_hand_socket.bone_name = hand_bone
+	skeleton.add_child(_hand_socket)
+	return _hand_socket
+
+
+## Puts a prop in Henry's right hand and raises the arm into the held pose
+## (Idle_Torch over whatever the legs are doing).
+func hold_in_hand(prop: Node3D) -> void:
+	var socket: BoneAttachment3D = get_hand_socket()
+	if socket == null:
+		return
+	if is_instance_valid(_held_prop) and _held_prop != prop:
+		release_hand()
+	if prop.get_parent() != null:
+		prop.get_parent().remove_child(prop)
+	socket.add_child(prop)
+	var rot: Vector3 = hand_prop_rotation_deg * (PI / 180.0)
+	prop.transform = Transform3D(Basis.from_euler(rot), hand_prop_offset)
+	_set_layers_recursive(prop, portrait_render_layers | 1)
+	_held_prop = prop
+
+
+## Takes the prop out of the hand without freeing it; the arm eases down.
+func release_hand() -> Node3D:
+	var prop: Node3D = _held_prop if is_instance_valid(_held_prop) else null
+	_held_prop = null
+	if prop != null and prop.get_parent() != null:
+		var world_xf: Transform3D = prop.global_transform
+		prop.get_parent().remove_child(prop)
+		prop.transform = world_xf
+	return prop
+
+
+func get_held_prop() -> Node3D:
+	return _held_prop if is_instance_valid(_held_prop) else null
+
+
+func _set_layers_recursive(node: Node, layers: int) -> void:
+	if node is VisualInstance3D:
+		(node as VisualInstance3D).layers = layers
+	for child: Node in node.get_children():
+		_set_layers_recursive(child, layers)
 
 
 func is_carrying() -> bool:
@@ -575,6 +642,7 @@ func _setup_animation_tree() -> void:
 	_resolved_jump_loop = _resolve_clip(JUMP_LOOP_ALIASES)
 	_resolved_jump_land = _resolve_clip(JUMP_LAND_ALIASES)
 	_resolved_carry_walk = _resolve_clip(CARRY_WALK_ALIASES)
+	_resolved_torch = _resolve_clip(TORCH_ALIASES)
 	if _resolved_carry_walk == &"":
 		push_warning("HenryUALAnimation: no Walk_Carry_Loop clip; carrying keeps normal locomotion.")
 
@@ -652,10 +720,25 @@ func _setup_animation_tree() -> void:
 	actions.fadeout_time = 0.12
 
 	var tree_root := AnimationNodeBlendTree.new()
-	tree_root.add_node(&"base", base, Vector2(-360.0, 0.0))
+	tree_root.add_node(&"base", base, Vector2(-560.0, 0.0))
+	## Right arm (and only it) raised into the held pose over any locomotion.
+	var hold_pose := AnimationNodeBlend2.new()
+	hold_pose.filter_enabled = true
+	var torch_clip: StringName = _resolved_torch if _resolved_torch != &"" else _resolved_idle
+	_force_locomotion_loop(torch_clip)
+	var torch_anim: Animation = animation_player.get_animation(torch_clip)
+	for track: int in torch_anim.get_track_count():
+		var path: NodePath = torch_anim.track_get_path(track)
+		var bone := StringName(path.get_concatenated_subnames())
+		if String(bone).ends_with("_r") and not LOWER_BODY_BONES.has(bone):
+			hold_pose.set_filter_path(path, true)
+	tree_root.add_node(&"hold_clip", _clip(torch_clip), Vector2(-560.0, 220.0))
+	tree_root.add_node(&"hold_pose", hold_pose, Vector2(-320.0, 0.0))
+	tree_root.connect_node(&"hold_pose", 0, &"base")
+	tree_root.connect_node(&"hold_pose", 1, &"hold_clip")
 	tree_root.add_node(&"action_clip", _action_node, Vector2(-360.0, 220.0))
 	tree_root.add_node(&"actions", actions, Vector2(-80.0, 0.0))
-	tree_root.connect_node(&"actions", 0, &"base")
+	tree_root.connect_node(&"actions", 0, &"hold_pose")
 	tree_root.connect_node(&"actions", 1, &"action_clip")
 	tree_root.connect_node(&"output", 0, &"actions")
 
