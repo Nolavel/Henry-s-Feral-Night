@@ -18,6 +18,23 @@ const IDLE_ALIASES: Array[StringName] = [&"Idle_Loop", &"Idle"]
 const WALK_ALIASES: Array[StringName] = [&"Walk_Loop", &"Walk"]
 const JOG_ALIASES: Array[StringName] = [&"Jog_Fwd_Loop", &"Jog_Fwd"]
 const SPRINT_ALIASES: Array[StringName] = [&"Sprint_Loop", &"Sprint"]
+const CROUCH_IDLE_ALIASES: Array[StringName] = [&"Crouch_Idle_Loop", &"Crouch_Idle"]
+const CROUCH_FWD_ALIASES: Array[StringName] = [&"Crouch_Fwd_Loop", &"Crouch_Fwd"]
+const JUMP_START_ALIASES: Array[StringName] = [&"Jump_Start"]
+const JUMP_LOOP_ALIASES: Array[StringName] = [&"Jump_Loop"]
+const JUMP_LAND_ALIASES: Array[StringName] = [&"Jump_Land"]
+
+const ACTION_ALIASES: Dictionary = {
+	&"interact": [&"Interact"],
+	&"pickup": [&"PickUp_Table", &"Pickup_Table"],
+	&"fix": [&"Fixing_Kneeling"],
+	&"consume": [&"Consume", &"UAL2/Consume"],
+	&"chest_open": [&"Chest_Open", &"UAL2/Chest_Open"],
+	&"hit_chest": [&"Hit_Chest"],
+	&"hit_head": [&"Hit_Head"],
+	&"sit_enter": [&"Sitting_Enter"],
+	&"sit_exit": [&"Sitting_Exit"],
+}
 
 @export_group("Locomotion Blend")
 ## Position of the authored walk cycle in normalized 0..1 real speed.
@@ -97,6 +114,8 @@ const GARMENT_PIECES: Dictionary = {
 var animation_player: AnimationPlayer
 var skeleton: Skeleton3D
 var animation_tree: AnimationTree
+var _state_playback: AnimationNodeStateMachinePlayback
+var _action_node: AnimationNodeAnimation
 
 ## Placeholder meshes a garment names in GarmentData.mesh_node_name.
 var _garment_meshes: Dictionary = {}
@@ -113,6 +132,11 @@ var _resolved_idle: StringName = &""
 var _resolved_walk: StringName = &""
 var _resolved_jog: StringName = &""
 var _resolved_sprint: StringName = &""
+var _resolved_crouch_idle: StringName = &""
+var _resolved_crouch_fwd: StringName = &""
+var _resolved_jump_start: StringName = &""
+var _resolved_jump_loop: StringName = &""
+var _resolved_jump_land: StringName = &""
 
 
 func _ready() -> void:
@@ -160,7 +184,60 @@ func update_animation_blend(_delta: float) -> void:
 	if Vector2(player.velocity.x, player.velocity.z).length() < MOVEMENT_EPSILON:
 		_blend_position = 0.0
 
-	animation_tree.set("parameters/locomotion/blend_position", _blend_position)
+	animation_tree.set("parameters/base/Grounded/blend_position", _blend_position)
+	var crouch_blend: float = 0.0
+	if player.has_method("get_crouch_speed_ratio"):
+		crouch_blend = float(player.call("get_crouch_speed_ratio"))
+	animation_tree.set("parameters/base/Crouch/blend_position", crouch_blend)
+
+
+func update_animation_state(jump_started: bool, landed: bool) -> void:
+	if _state_playback == null or player == null:
+		return
+	var current: StringName = _state_playback.get_current_node()
+	if landed:
+		_state_playback.travel(&"Land")
+		return
+	if current == &"Land":
+		return
+	if jump_started:
+		_state_playback.travel(&"JumpStart")
+		return
+	if current == &"JumpStart":
+		return
+	if not player.is_on_floor():
+		_state_playback.travel(&"AirLoop")
+		return
+	var crouching: bool = player.has_method("is_crouching") and bool(player.call("is_crouching"))
+	_state_playback.travel(&"Crouch" if crouching else &"Grounded")
+
+
+func play_action(action: StringName) -> bool:
+	if animation_tree == null or _action_node == null:
+		return false
+	var clip_name: StringName = _resolve_action_clip(action)
+	if clip_name == &"":
+		return false
+	var animation: Animation = animation_player.get_animation(clip_name)
+	if animation != null:
+		animation.loop_mode = Animation.LOOP_NONE
+	_action_node.animation = clip_name
+	animation_tree.set("parameters/actions/request", AnimationNodeOneShot.ONE_SHOT_REQUEST_FIRE)
+	return true
+
+
+func abort_action() -> void:
+	if animation_tree != null:
+		animation_tree.set("parameters/actions/request", AnimationNodeOneShot.ONE_SHOT_REQUEST_FADE_OUT)
+
+
+func _resolve_action_clip(action: StringName) -> StringName:
+	if not ACTION_ALIASES.has(action):
+		return &""
+	var aliases: Array[StringName] = []
+	for value: Variant in ACTION_ALIASES[action]:
+		aliases.append(StringName(value))
+	return _resolve_clip(aliases)
 
 
 ## ADT head look: standing, the head eases toward where the camera looks;
@@ -441,24 +518,33 @@ func _setup_animation_tree() -> void:
 	_resolved_walk = _resolve_clip(WALK_ALIASES)
 	_resolved_jog = _resolve_clip(JOG_ALIASES)
 	_resolved_sprint = _resolve_clip(SPRINT_ALIASES)
+	_resolved_crouch_idle = _resolve_clip(CROUCH_IDLE_ALIASES)
+	_resolved_crouch_fwd = _resolve_clip(CROUCH_FWD_ALIASES)
+	_resolved_jump_start = _resolve_clip(JUMP_START_ALIASES)
+	_resolved_jump_loop = _resolve_clip(JUMP_LOOP_ALIASES)
+	_resolved_jump_land = _resolve_clip(JUMP_LAND_ALIASES)
 
 	if _resolved_idle == &"":
 		_resolved_idle = _first_available_clip()
 	if _resolved_idle == &"":
 		push_error("HenryUALAnimation: no usable UAL animations found.")
 		return
+	if _resolved_walk == &"": _resolved_walk = _resolved_idle
+	if _resolved_jog == &"": _resolved_jog = _resolved_walk
+	if _resolved_sprint == &"": _resolved_sprint = _resolved_jog
+	if _resolved_crouch_idle == &"": _resolved_crouch_idle = _resolved_idle
+	if _resolved_crouch_fwd == &"": _resolved_crouch_fwd = _resolved_crouch_idle
+	if _resolved_jump_start == &"": _resolved_jump_start = _resolved_idle
+	if _resolved_jump_loop == &"": _resolved_jump_loop = _resolved_jump_start
+	if _resolved_jump_land == &"": _resolved_jump_land = _resolved_idle
 
-	if _resolved_walk == &"":
-		_resolved_walk = _resolved_idle
-	if _resolved_jog == &"":
-		_resolved_jog = _resolved_walk
-	if _resolved_sprint == &"":
-		_resolved_sprint = _resolved_jog
-
-	_force_locomotion_loop(_resolved_idle)
-	_force_locomotion_loop(_resolved_walk)
-	_force_locomotion_loop(_resolved_jog)
-	_force_locomotion_loop(_resolved_sprint)
+	for clip_name: StringName in [
+		_resolved_idle, _resolved_walk, _resolved_jog, _resolved_sprint,
+		_resolved_crouch_idle, _resolved_crouch_fwd, _resolved_jump_loop,
+	]:
+		_force_locomotion_loop(clip_name)
+	_force_clip_once(_resolved_jump_start)
+	_force_clip_once(_resolved_jump_land)
 
 	var locomotion := AnimationNodeBlendSpace1D.new()
 	locomotion.min_space = 0.0
@@ -470,9 +556,45 @@ func _setup_animation_tree() -> void:
 	locomotion.add_blend_point(_clip(_resolved_jog), jog_blend_position, -1, &"jog")
 	locomotion.add_blend_point(_clip(_resolved_sprint), 1.0, -1, &"sprint")
 
+	var crouch := AnimationNodeBlendSpace1D.new()
+	crouch.min_space = 0.0
+	crouch.max_space = 1.0
+	crouch.value_label = "crouch speed"
+	crouch.sync = true
+	crouch.add_blend_point(_clip(_resolved_crouch_idle), 0.0, -1, &"idle")
+	crouch.add_blend_point(_clip(_resolved_crouch_fwd), 1.0, -1, &"forward")
+
+	var base := AnimationNodeStateMachine.new()
+	base.add_node(&"Grounded", locomotion, Vector2(0.0, 0.0))
+	base.add_node(&"Crouch", crouch, Vector2(0.0, 180.0))
+	base.add_node(&"JumpStart", _clip(_resolved_jump_start), Vector2(260.0, -120.0))
+	base.add_node(&"AirLoop", _clip(_resolved_jump_loop), Vector2(520.0, -120.0))
+	base.add_node(&"Land", _clip(_resolved_jump_land), Vector2(780.0, 0.0))
+	_add_state_transition(base, &"Grounded", &"Crouch", 0.12)
+	_add_state_transition(base, &"Crouch", &"Grounded", 0.12)
+	_add_state_transition(base, &"Grounded", &"JumpStart", 0.06)
+	_add_state_transition(base, &"Crouch", &"JumpStart", 0.06)
+	_add_state_transition(base, &"Grounded", &"AirLoop", 0.08)
+	_add_state_transition(base, &"Crouch", &"AirLoop", 0.08)
+	_add_state_transition(base, &"JumpStart", &"AirLoop", 0.08, true)
+	_add_state_transition(base, &"JumpStart", &"Land", 0.05)
+	_add_state_transition(base, &"AirLoop", &"Land", 0.08)
+	_add_state_transition(base, &"Land", &"Grounded", 0.10, true)
+	_add_state_transition(base, &"Land", &"Crouch", 0.10)
+
+	var default_action: StringName = _resolve_action_clip(&"interact")
+	_action_node = _clip(default_action if default_action != &"" else _resolved_idle)
+	var actions := AnimationNodeOneShot.new()
+	actions.fadein_time = 0.08
+	actions.fadeout_time = 0.12
+
 	var tree_root := AnimationNodeBlendTree.new()
-	tree_root.add_node(&"locomotion", locomotion, Vector2(-280.0, 0.0))
-	tree_root.connect_node(&"output", 0, &"locomotion")
+	tree_root.add_node(&"base", base, Vector2(-360.0, 0.0))
+	tree_root.add_node(&"action_clip", _action_node, Vector2(-360.0, 220.0))
+	tree_root.add_node(&"actions", actions, Vector2(-80.0, 0.0))
+	tree_root.connect_node(&"actions", 0, &"base")
+	tree_root.connect_node(&"actions", 1, &"action_clip")
+	tree_root.connect_node(&"output", 0, &"actions")
 
 	animation_tree = AnimationTree.new()
 	animation_tree.name = "AnimationTree"
@@ -480,7 +602,20 @@ func _setup_animation_tree() -> void:
 	add_child(animation_tree)
 	animation_tree.anim_player = animation_tree.get_path_to(animation_player)
 	animation_tree.active = true
-	animation_tree.set("parameters/locomotion/blend_position", 0.0)
+	animation_tree.set("parameters/base/Grounded/blend_position", 0.0)
+	animation_tree.set("parameters/base/Crouch/blend_position", 0.0)
+	_state_playback = animation_tree.get("parameters/base/playback") as AnimationNodeStateMachinePlayback
+	if _state_playback != null:
+		_state_playback.start(&"Grounded")
+
+
+func _add_state_transition(state_machine: AnimationNodeStateMachine, from: StringName, to: StringName, xfade: float, auto_advance: bool = false) -> void:
+	var transition := AnimationNodeStateMachineTransition.new()
+	transition.xfade_time = xfade
+	if auto_advance:
+		transition.advance_mode = AnimationNodeStateMachineTransition.ADVANCE_MODE_AUTO
+		transition.switch_mode = AnimationNodeStateMachineTransition.SWITCH_MODE_AT_END
+	state_machine.add_transition(from, to, transition)
 
 
 func _force_locomotion_loop(animation_name: StringName) -> void:
@@ -489,6 +624,14 @@ func _force_locomotion_loop(animation_name: StringName) -> void:
 	var animation: Animation = animation_player.get_animation(animation_name)
 	if animation != null:
 		animation.loop_mode = Animation.LOOP_LINEAR
+
+
+func _force_clip_once(animation_name: StringName) -> void:
+	if animation_name == &"":
+		return
+	var animation: Animation = animation_player.get_animation(animation_name)
+	if animation != null:
+		animation.loop_mode = Animation.LOOP_NONE
 
 
 func _clip(animation_name: StringName) -> AnimationNodeAnimation:
@@ -518,6 +661,8 @@ func _normalize_clip_name(animation_name: StringName) -> String:
 		normalized = normalized.trim_suffix("_armature")
 	if normalized.contains("|"):
 		normalized = normalized.get_slice("|", normalized.get_slice_count("|") - 1)
+	if normalized.contains("/"):
+		normalized = normalized.get_slice("/", normalized.get_slice_count("/") - 1)
 	return normalized
 
 

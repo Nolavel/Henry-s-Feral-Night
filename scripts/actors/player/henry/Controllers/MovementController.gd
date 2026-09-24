@@ -8,6 +8,8 @@ class_name MovementController
 @export_group("Параметры движения")
 ## Real walking pace; a sortie is timed in human minutes.
 @export var walk_speed: float = 1.5
+## Deliberate low gait for thin ice and cramped shelter interiors.
+@export var crouch_speed: float = 0.9
 ## A run in winter clothing, not a sprinter's burst.
 @export var sprint_speed: float = 4.5
 @export var gravity: float = 9.8
@@ -46,6 +48,7 @@ var _jump_release_fired_this_frame: bool = false
 var _sprint_allowed: bool = true
 var _debug_label: Label = null
 var _was_on_floor_last_frame: bool = false
+var _crouching: bool = false
 
 func _ready() -> void:
 	if walk_speed <= 0.0:
@@ -95,7 +98,7 @@ func process_movement(
 
 	# === 3) Прыжок на удержание ===
 	if on_floor_now:
-		if jump_is_pressed:
+		if jump_is_pressed and not _crouching:
 			_jump_hold_armed = true
 		if _jump_hold_armed and jump_just_released:
 			if stamina_manager == null or stamina_manager.try_jump():
@@ -135,7 +138,7 @@ func process_movement(
 
 	# === 6) Плавный спринт с системой стамины ===
 	var sprint_multiplier: float = sprint_speed / max(walk_speed, 0.001)
-	var should_sprint: bool = sprint_is_pressed and has_input and _sprint_allowed
+	var should_sprint: bool = sprint_is_pressed and has_input and _sprint_allowed and not _crouching
 
 	if should_sprint and stamina_manager:
 		if not stamina_manager.is_consuming_stamina:
@@ -166,7 +169,8 @@ func process_movement(
 		_sprint_blend = lerp(_sprint_blend, 1.0, down_rate)
 
 	# === 7) Целевая скорость С учётом уклона ===
-	var target_speed: float = walk_speed * _sprint_blend * slope_modifier
+	var base_speed: float = crouch_speed if _crouching else walk_speed
+	var target_speed: float = base_speed * (_sprint_blend if not _crouching else 1.0) * slope_modifier
 	var target_vel: Vector3 = planar_dir * target_speed
 
 	# === 8) Разгон / торможение ===
@@ -192,6 +196,23 @@ func process_movement(
 		if on_floor_now:
 			floor_angle = rad_to_deg(acos(clamp(player.get_floor_normal().y, 0.0, 1.0)))
 		_debug_label.text = "Speed: %.2f | Angle: %.1f° | Slope: %.2fx" % [speed, floor_angle, slope_modifier]
+
+func set_crouching(active: bool) -> void:
+	_crouching = active
+	if _crouching:
+		_sprint_blend = 1.0
+		_sprint_inertia_timer = 0.0
+		_jump_hold_armed = false
+
+
+func is_crouching() -> bool:
+	return _crouching
+
+
+func get_crouch_speed_ratio(player_velocity: Vector3) -> float:
+	var speed: float = Vector2(player_velocity.x, player_velocity.z).length()
+	return clampf(speed / maxf(crouch_speed, 0.001), 0.0, 1.0)
+
 
 func get_sprint_blend() -> float:
 	var sprint_multiplier: float = sprint_speed / max(walk_speed, 0.001)
