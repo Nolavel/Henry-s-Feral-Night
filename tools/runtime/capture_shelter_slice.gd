@@ -48,7 +48,6 @@ func _initialize() -> void:
 	_view.size = Vector2i(1280, 720)
 	_view.render_target_update_mode = SubViewport.UPDATE_ALWAYS
 	root.add_child(_view)
-	_view.world_3d = root.get_viewport().world_3d
 	_camera = Camera3D.new()
 	_camera.fov = 55.0
 	_view.add_child(_camera)
