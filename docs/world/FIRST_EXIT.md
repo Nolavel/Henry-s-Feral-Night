@@ -222,6 +222,10 @@ Typology, not a copy of a real place. It sets scale for props.
 
 ## Regenerating
 
+The terrain source is now the heightmap PNG (`docs/world/TERRAIN_HEIGHTMAP.md`). The route tools take
+`world/terrain/source/graciosa_height.png` in place of the dump directory. Terrain3D is still what
+renders the island until stage 2 of that plan lands.
+
 ```bash
 # 1. heights + scene markers -> user://island/
 godot --headless --path . --script res://tools/world/dump_island_heights.gd

@@ -1,0 +1,12 @@
+{
+ "origin_x": -2296.0,
+ "origin_z": -1545.0,
+ "m_per_px": 1.0,
+ "height_min": -16.0,
+ "height_max": 48.0,
+ "sea_level": 0.0,
+ "width": 4128,
+ "height": 2866,
+ "axes": "col -> +X east, row -> +Z south (Godot); Blender: x = X, y = -Z, z = height",
+ "note": "Exported from Terrain3D 'terrain_graciosa', 2026-09-24."
+}
