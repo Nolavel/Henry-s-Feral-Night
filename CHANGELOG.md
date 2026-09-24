@@ -5,6 +5,16 @@ Maintained per branch; entries are added by whoever makes the change.
 
 ## [Unreleased] — `codex`
 
+### 2026-09-24 — Coat skirt no longer lets the thighs through (claudeflow)
+
+Fixed
+- The coat's skirt cross-section is the larger of an ellipse and the body's
+  measured outline, so it never sits inside the hip at rest.
+- The hem follows the thighs up to 90%: each side follows its own leg, and the
+  centre line follows both legs' average.
+- The skirt's top tucks under the coat, which closes the gap at the waist.
+- Idle, walk and sprint renders show no thigh through the cloth.
+
 ### 2026-09-24 — Outfit pass 2: longer coat, placket, seams (claudeflow)
 
 Changed
