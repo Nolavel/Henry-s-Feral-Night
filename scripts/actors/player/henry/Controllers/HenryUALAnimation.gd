@@ -13,6 +13,10 @@ extends Node3D
 ## UAL is strictly in-place. CharacterBody3D remains authoritative for motion.
 
 const MOVEMENT_EPSILON: float = 0.05
+## Rounded placeholders stay cheap enough to build at runtime. The old mesh
+## defaults were far denser than a greybox garment needs.
+const GARMENT_RADIAL_SEGMENTS: int = 16
+const GARMENT_RINGS: int = 8
 
 const IDLE_ALIASES: Array[StringName] = [&"Idle_Loop", &"Idle"]
 const WALK_ALIASES: Array[StringName] = [&"Walk_Loop", &"Walk"]
@@ -60,31 +64,39 @@ const SPRINT_ALIASES: Array[StringName] = [&"Sprint_Loop", &"Sprint"]
 ## Offset from the bone in model space; the mannequin faces +Z, so back is -Z.
 @export var backpack_offset: Vector3 = Vector3(0.0, 0.0, -0.2)
 @export var backpack_color: Color = Color(0.36, 0.33, 0.28)
-## Greybox clothing: pieces per garment mesh name, built on the rest pose.
-## "seg" [bone, to_bone, radius, pad]; "blob" [bone, offset, radii]; "block" [bone, offset, size].
+## Greybox clothing: overlapping soft volumes built on the rest pose.
+## "seg" [bone, to_bone, radius, pad] follows a limb; "blob"
+## [bone, model-space offset, radii] forms an ellipsoidal shell. Deliberate
+## overlap keeps joints covered while the rigid bone pieces animate.
 const GARMENT_PIECES: Dictionary = {
 	&"Hat": {"color": Color(0.55, 0.24, 0.2), "pieces": [
 		["blob", &"Head", Vector3(0.0, 0.13, 0.0), Vector3(0.115, 0.085, 0.12)],
 		["blob", &"Head", Vector3(0.0, 0.08, 0.0), Vector3(0.12, 0.035, 0.125)]]},
 	&"Coat": {"color": Color(0.33, 0.35, 0.28), "pieces": [
-		["block", &"spine_02", Vector3(0.0, 0.02, 0.0), Vector3(0.4, 0.62, 0.27)],
-		["block", &"pelvis", Vector3(0.0, -0.08, 0.0), Vector3(0.38, 0.26, 0.26)],
-		["blob", &"neck_01", Vector3(0.0, -0.02, 0.0), Vector3(0.1, 0.06, 0.1)],
-		["seg", &"upperarm_l", &"lowerarm_l", 0.075, 0.02],
-		["seg", &"lowerarm_l", &"hand_l", 0.066, -0.03],
-		["seg", &"upperarm_r", &"lowerarm_r", 0.075, 0.02],
-		["seg", &"lowerarm_r", &"hand_r", 0.066, -0.03]]},
+		## Broad chest -> narrower waist -> softly flared hem.
+		["blob", &"spine_02", Vector3(0.0, 0.11, 0.0), Vector3(0.225, 0.245, 0.155)],
+		["blob", &"spine_02", Vector3(0.0, -0.15, 0.0), Vector3(0.195, 0.19, 0.145)],
+		["blob", &"pelvis", Vector3(0.0, -0.06, 0.0), Vector3(0.205, 0.155, 0.15)],
+		["blob", &"neck_01", Vector3(0.0, -0.02, 0.0), Vector3(0.11, 0.065, 0.11)],
+		## Shoulder caps bridge the torso shell and articulated sleeves.
+		["blob", &"upperarm_l", Vector3.ZERO, Vector3(0.11, 0.105, 0.12)],
+		["blob", &"upperarm_r", Vector3.ZERO, Vector3(0.11, 0.105, 0.12)],
+		["seg", &"upperarm_l", &"lowerarm_l", 0.092, 0.035],
+		["seg", &"lowerarm_l", &"hand_l", 0.076, -0.01],
+		["seg", &"upperarm_r", &"lowerarm_r", 0.092, 0.035],
+		["seg", &"lowerarm_r", &"hand_r", 0.076, -0.01]]},
 	&"Trousers": {"color": Color(0.27, 0.29, 0.35), "pieces": [
-		["block", &"pelvis", Vector3(0.0, -0.02, 0.0), Vector3(0.34, 0.2, 0.24)],
-		["seg", &"thigh_l", &"calf_l", 0.085, 0.02],
-		["seg", &"calf_l", &"foot_l", 0.07, -0.08],
-		["seg", &"thigh_r", &"calf_r", 0.085, 0.02],
-		["seg", &"calf_r", &"foot_r", 0.07, -0.08]]},
+		["blob", &"pelvis", Vector3(0.0, -0.04, 0.0), Vector3(0.18, 0.13, 0.14)],
+		["seg", &"thigh_l", &"calf_l", 0.1, 0.045],
+		["seg", &"calf_l", &"foot_l", 0.078, -0.035],
+		["seg", &"thigh_r", &"calf_r", 0.1, 0.045],
+		["seg", &"calf_r", &"foot_r", 0.078, -0.035]]},
 	&"Boots": {"color": Color(0.2, 0.16, 0.13), "pieces": [
-		["block", &"foot_l", Vector3(0.0, -0.04, 0.08), Vector3(0.12, 0.13, 0.3)],
-		["block", &"foot_l", Vector3(0.0, 0.08, -0.01), Vector3(0.13, 0.18, 0.14)],
-		["block", &"foot_r", Vector3(0.0, -0.04, 0.08), Vector3(0.12, 0.13, 0.3)],
-		["block", &"foot_r", Vector3(0.0, 0.08, -0.01), Vector3(0.13, 0.18, 0.14)]]},
+		## Long toe shells overlap rounded ankle shafts; no rectangular footwear.
+		["blob", &"foot_l", Vector3(0.0, -0.04, 0.1), Vector3(0.08, 0.065, 0.165)],
+		["blob", &"foot_l", Vector3(0.0, 0.07, -0.01), Vector3(0.085, 0.12, 0.095)],
+		["blob", &"foot_r", Vector3(0.0, -0.04, 0.1), Vector3(0.08, 0.065, 0.165)],
+		["blob", &"foot_r", Vector3(0.0, 0.07, -0.01), Vector3(0.085, 0.12, 0.095)]]},
 }
 ## How much fully soaked clothing darkens.
 @export_range(0.0, 1.0, 0.05) var wet_darkening: float = 0.45
@@ -379,6 +391,8 @@ func _attach_garments() -> void:
 					var capsule := CapsuleMesh.new()
 					capsule.radius = float(piece[3])
 					capsule.height = maxf(length, capsule.radius * 2.0)
+					capsule.radial_segments = GARMENT_RADIAL_SEGMENTS
+					capsule.rings = GARMENT_RINGS
 					capsule.material = material
 					mesh_inst.mesh = capsule
 					var y: Vector3 = along.normalized()
@@ -388,15 +402,11 @@ func _attach_garments() -> void:
 					var sphere := SphereMesh.new()
 					sphere.radius = 1.0
 					sphere.height = 2.0
+					sphere.radial_segments = GARMENT_RADIAL_SEGMENTS
+					sphere.rings = GARMENT_RINGS
 					sphere.material = material
 					mesh_inst.mesh = sphere
 					global_xf = Transform3D(Basis.from_scale(piece[3]), rest.origin + piece[2])
-				"block":
-					var box := BoxMesh.new()
-					box.size = piece[3]
-					box.material = material
-					mesh_inst.mesh = box
-					global_xf = Transform3D(Basis.IDENTITY, rest.origin + piece[2])
 			mesh_inst.transform = rest.affine_inverse() * global_xf
 			attachment.add_child(mesh_inst)
 		_garment_meshes[garment_name] = group

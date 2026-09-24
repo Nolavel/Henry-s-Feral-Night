@@ -29,6 +29,7 @@ func _run() -> void:
 	_test_the_backpack_is_worn_in_the_pack_slot()
 	_test_kenny_rides_the_fixture_and_weighs()
 	_test_worn_clothes_show_and_darken_when_wet()
+	_test_worn_clothes_use_rounded_primitives()
 	if _failures > 0:
 		push_error("equipment: %d check(s) failed" % _failures)
 		quit(1)
@@ -374,4 +375,29 @@ func _test_worn_clothes_show_and_darken_when_wet() -> void:
 	visual.set_wetness(1.0)
 	var wet: Color = (coat_mesh.mesh.surface_get_material(0) as StandardMaterial3D).albedo_color
 	_check(wet.get_luminance() < dry.get_luminance() - 0.05, "wet clothes do not read darker")
+	_dispose(player)
+
+
+## Greybox garments must follow Henry with soft primitive shells. A BoxMesh in
+## these groups immediately brings back the unreadable cardboard silhouette.
+func _test_worn_clothes_use_rounded_primitives() -> void:
+	var player := CharacterBody3D.new()
+	var equipment := EquipmentComponent.new()
+	equipment.name = "EquipmentComponent"
+	equipment.layout = load(LAYOUT) as EquipmentLayout
+	equipment.starter_garment_ids = [&"worn_coat", &"knit_hat", &"work_trousers", &"worn_boots"]
+	player.add_child(equipment)
+	var visual := (load("res://scenes/actors/player/HenryUALVisual.tscn") as PackedScene).instantiate() as HenryUALAnimation
+	player.add_child(visual)
+	root.add_child(player)
+	for garment_name: String in ["Hat", "Coat", "Trousers", "Boots"]:
+		var garment := visual.find_child(garment_name, true, false) as Node3D
+		var meshes: Array[Node] = garment.find_children("*", "MeshInstance3D", true, false)
+		_check(not meshes.is_empty(), "%s has no visual pieces" % garment_name)
+		for child: Node in meshes:
+			var mesh_instance := child as MeshInstance3D
+			_check(
+				mesh_instance.mesh is SphereMesh or mesh_instance.mesh is CapsuleMesh,
+				"%s still contains a hard-edged %s" % [garment_name, mesh_instance.mesh.get_class()]
+			)
 	_dispose(player)

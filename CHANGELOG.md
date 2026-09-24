@@ -5,6 +5,20 @@ Maintained per branch; entries are added by whoever makes the change.
 
 ## [Unreleased] — `codex`
 
+### 2026-09-24 — Rounded UAL clothing silhouette (codex)
+
+Changed
+- Replaced the hard-edged coat torso, trouser waist and boot `BoxMesh`
+  placeholders with overlapping ellipsoidal shells. Shoulder caps bridge the
+  coat into thicker articulated capsule sleeves; tapered body volumes now read
+  chest, waist and hem instead of a rectangular block.
+- Capped procedural garment primitives at 16 radial segments and 8 rings so
+  the softer silhouette does not increase the greybox runtime cost.
+
+Tests
+- Equipment coverage now rejects hard-edged primitives inside the visible
+  hat, coat, trousers and boots groups.
+
 ### 2026-09-24 — First Exit: the working loop moved into the route (claudeflow)
 
 Added
