@@ -97,6 +97,31 @@ Performance choice
 
 ## [Unreleased] — `claudeflow`
 
+### 2026-09-23 — Vital HUD: X layout, quieter cells
+
+Changed
+- Cells turned 45° into an X with a wider centre; the health band starts from
+  the centre of the X and runs right beneath the cells.
+- No coloured fill at rest: neutral translucent level, rust only when low.
+  Cells sit at 45% opacity and go opaque while draining, refilling or critical.
+- A drain now draws the cell toward the centre instead of pushing it out.
+
+### 2026-09-23 — Experimental vital HUD: pentagon diamond and health band
+
+Added
+- `VitalCluster`: four pentagons in a diamond, tips to the centre — warmth top,
+  water left, food right, sleep bottom. Level fills from the outer edge; a drain
+  nudges the cell out and flashes it dull red, a refill grows it for ~2 s with a
+  green-gold edge, under 15% it breathes and sits out. Warmth has its own
+  cold scale. Procedural, all sizes/colours/timings exported.
+- `HealthStrip`: the old red HUD band, smaller, as the health bar — same
+  `BG_indicatorSURV` shader and fade, cut to current health, with a pale damage
+  trail that catches up.
+
+Changed
+- The old vital icons (`vital_signs_enabled = false`) and the wide red band are
+  hidden, not deleted, for easy rollback.
+
 ### 2026-09-23 — Colour grade follows the shelter; Cold Ash LUTs retuned
 
 Added
