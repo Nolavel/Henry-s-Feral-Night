@@ -15,6 +15,9 @@ var _player: Player
 var _interact: InteractComponent
 var _inventory: InventoryComponent
 var _camera: Camera3D
+## Renders the shared 3D world through the capture camera only: no game
+## camera, no HUD.
+var _view: SubViewport
 var _fill: OmniLight3D
 var _zone: Node3D
 var _firewood: InteractiveArea
@@ -41,9 +44,14 @@ func _initialize() -> void:
 	_feed = _zone.find_child("Feed", true, false) as HeatSourceFeed
 	_cabinet = _zone.find_child("Open", true, false) as Cabinet
 	_board = _zone.find_child("BackWindow1", true, false).find_child("BoardUp", true, false) as BreachBoardUp
+	_view = SubViewport.new()
+	_view.size = Vector2i(1280, 720)
+	_view.render_target_update_mode = SubViewport.UPDATE_ALWAYS
+	root.add_child(_view)
+	_view.world_3d = root.get_viewport().world_3d
 	_camera = Camera3D.new()
 	_camera.fov = 55.0
-	scene.add_child(_camera)
+	_view.add_child(_camera)
 	## Capture-only fill light so the dark shelter interior reads in frames.
 	_fill = OmniLight3D.new()
 	_fill.light_energy = 1.4
@@ -59,7 +67,6 @@ func _process(delta: float) -> bool:
 	if _time < WARMUP:
 		return false
 	_quiet_game_view()
-	_camera.make_current()
 	_frame_camera()
 	if _phase_time > PHASE_TIMEOUT:
 		_say("phase %d timed out; henry at %s" % [_phase, _player.global_position])
@@ -122,18 +129,10 @@ func _process(delta: float) -> bool:
 	return false
 
 
-## The game camera, HUD and prompt labels spawn at runtime; frames want only
-## the world through this capture's camera.
+## Prompt labels spawn and fade in at runtime; the frames hide them.
 func _quiet_game_view() -> void:
 	for node: Node in root.find_children("*", "", true, false):
-		if node is Camera3D and node != _camera:
-			node.process_mode = Node.PROCESS_MODE_DISABLED
-			(node as Camera3D).current = false
-		elif node is CanvasLayer:
-			(node as CanvasLayer).visible = false
-		elif node is Control and node.get_parent() == root:
-			(node as Control).visible = false
-		elif node is Label3D:
+		if node is Label3D:
 			(node as Label3D).visible = false
 
 
@@ -147,7 +146,7 @@ func _next(shots: Array) -> void:
 func _take_due_shots() -> void:
 	while not _shots.is_empty() and _phase_time >= float(_shots[0][0]):
 		var name: String = _shots.pop_front()[1]
-		var image: Image = root.get_viewport().get_texture().get_image()
+		var image: Image = _view.get_texture().get_image()
 		image.save_png("%s/%s.png" % [OUT_DIR, name])
 		_say("shot %s action=%s locked=%s carry=%s" % [name, _player.animation_component._current_action,
 			_player.animation_component.is_action_locking(), _player.animation_component.is_carrying()])
