@@ -5,6 +5,21 @@ Maintained per branch; entries are added by whoever makes the change.
 
 ## [Unreleased] — `codex`
 
+### 2026-09-24 — Terrain heightmap becomes the source of truth, stage 1 (claudeflow)
+
+Added
+- `world/terrain/source/graciosa_height.png` (+ `.json`): the island as a
+  16-bit 1 m heightmap, −16…+48 m, exported from Terrain3D with at most
+  0.5 mm error (8 MB against 25 MB of Terrain3D regions).
+- `tools/blender/heightmap_import.py` / `heightmap_export.py`: Blender round
+  trip. Import the whole island or a window as a grid, sculpt, and write back
+  only the changed heights. Verified headless with `bpy`.
+- `tools/world/heightmap.py`; `island_report.py` and `route_metrics.py` read
+  the PNG directly. See `docs/world/TERRAIN_HEIGHTMAP.md`.
+
+Fixed
+- `route_metrics.py` crashed drawing pickups (no footprint size).
+
 ### 2026-09-24 — First Exit: the working loop moved into the route (claudeflow)
 
 Added

@@ -1,6 +1,6 @@
 """Measures First Exit routes on the real heightfield and draws the layout.
 
-Usage: python3 tools/world/route_metrics.py <dump_dir> <layout.json> <out_prefix>
+Usage: python3 tools/world/route_metrics.py <heightmap.png|dump_dir> <layout.json> <out_prefix>
 Per route: length, share over sea (ice), time at walk speeds, steepest grade,
 share within 25 m of the coast (wind exposure). Also checks the landmark is
 visible from the spawn eye.
@@ -21,9 +21,13 @@ RESOLVED = "docs/world/first_exit_resolved.json"
 
 
 def main():
-    dump, layout_path, out = sys.argv[1:4]
-    meta = json.load(open(f"{dump}/meta.json"))
-    h = np.fromfile(f"{dump}/heights.f32", dtype=np.float32).reshape(meta["rows"], meta["cols"])
+    source, layout_path, out = sys.argv[1:4]
+    if source.endswith(".png"):
+        import heightmap
+        meta, h = heightmap.load(source)
+    else:
+        meta = json.load(open(f"{source}/meta.json"))
+        h = np.fromfile(f"{source}/heights.f32", dtype=np.float32).reshape(meta["rows"], meta["cols"])
     step, ox, oz = meta["step_m"], meta["origin_x"], meta["origin_z"]
     layout = json.load(open(layout_path))
     if "--with-proposals" in sys.argv:
@@ -152,6 +156,10 @@ def _draw(h, meta, layout, resolved, report, out):
         if s["kind"] == "street_lamp":
             cx, cz = px(s["x"], s["z"])
             d.ellipse([cx - 2, cz - 2, cx + 2, cz + 2], fill=(250, 240, 160))
+            continue
+        if s["kind"] == "pickup":
+            cx, cz = px(s["x"], s["z"])
+            d.rectangle([cx - 3, cz - 3, cx + 3, cz + 3], fill=(255, 120, 200))
             continue
         w, dp = s["size"][0], s["size"][1]
         yaw = math.radians(s.get("yaw_deg", 0))

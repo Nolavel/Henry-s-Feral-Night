@@ -6,8 +6,8 @@ extends SceneTree
 const TERRAIN_DIR: String = "res://experimental_location/Graciosa/terrain_graciosa"
 const SCENE: String = "res://experimental_location/scenes/Graciosa_Island_Terrain.tscn"
 const OUT_DIR: String = "user://island"
-## Sample spacing in metres; 2 m resolves a house footprint.
-const STEP_M: float = 2.0
+## Sample spacing in metres; 1 m matches the Terrain3D vertex spacing.
+const STEP_M: float = 1.0
 
 
 func _initialize() -> void:
@@ -24,9 +24,9 @@ func _initialize() -> void:
 	heights.resize(cols * rows)
 	var data: Terrain3DData = terrain.data
 	for r: int in range(rows):
-		var z: float = bounds.position.y + (float(r) + 0.5) * STEP_M
+		var z: float = bounds.position.y + float(r) * STEP_M
 		for c: int in range(cols):
-			var x: float = bounds.position.x + (float(c) + 0.5) * STEP_M
+			var x: float = bounds.position.x + float(c) * STEP_M
 			var h: float = data.get_height(Vector3(x, 0.0, z))
 			heights[r * cols + c] = h if not is_nan(h) else -20.0
 	var file := FileAccess.open(OUT_DIR + "/heights.f32", FileAccess.WRITE)
