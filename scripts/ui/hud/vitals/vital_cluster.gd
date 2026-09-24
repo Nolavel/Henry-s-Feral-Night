@@ -25,6 +25,10 @@ const ROW_WARMTH: int = 3
 @export var centre_gap: float = 22.0
 @export var outline_width: float = 2.0
 @export var icon_size: float = 30.0
+## Height of the quiet figure standing between the top cells, above the health bar.
+@export var silhouette_height: float = 44.0
+## Distance from the centre down to the figure's feet, the health bar's top.
+@export var silhouette_floor: float = 15.0
 
 @export_group("Motion")
 ## A change smaller than this is not a pulse, so steady drift stays quiet.
@@ -43,7 +47,9 @@ const ROW_WARMTH: int = 3
 @export_range(0.0, 1.0, 0.05) var active_alpha: float = 1.0
 
 @export_group("Colours")
-@export var base_color: Color = Color("#2A2E33CC")
+## Solid backing of every cell; the level shows through the glyph, not a fill.
+@export var base_color: Color = Color("#2A2E3399")
+@export var silhouette_color: Color = Color("#15181B8C")
 @export var normal_color: Color = Color("#F1F2EC")
 @export var warning_color: Color = Color("#D2A943")
 @export var critical_color: Color = Color("#C34E42")
@@ -168,6 +174,7 @@ func _restart_motion(cell: VitalCell) -> void:
 func _draw() -> void:
 	var centre: Vector2 = size * 0.5
 	var shape: PackedVector2Array = VitalCell.pentagon(cell_width, cell_height, cell_tip)
+	_draw_silhouette(centre + Vector2(0.0, -silhouette_floor))
 	for cell: VitalCell in cells.values():
 		_draw_cell(cell, centre, shape)
 
@@ -185,10 +192,7 @@ func _draw_cell(cell: VitalCell, centre: Vector2, shape: PackedVector2Array) -> 
 	var anchor: Vector2 = centre + out * maxf(centre_gap - cell.push - critical_inset, 0.0)
 	var xform := Transform2D(angle, Vector2.ONE * (1.0 + cell.grow), 0.0, anchor)
 	var outline: PackedVector2Array = xform * shape
-	draw_colored_polygon(outline, _faded(base_color, alpha))
-	var fill: PackedVector2Array = _fill_polygon(shape, cell.level)
-	if fill.size() >= 3:
-		draw_colored_polygon(xform * fill, _faded(_state_color(cell), alpha * 0.58))
+	draw_colored_polygon(outline, base_color)
 	var edge: Color = _state_color(cell)
 	if cell.flash > 0.0:
 		var flash: Color = drain_flash if cell.pulse == VitalCell.Pulse.DRAIN else refill_flash
@@ -210,22 +214,22 @@ func _draw_icon(cell: VitalCell, xform: Transform2D, alpha: float) -> void:
 	)
 	var tint: Color = _state_color(cell)
 	tint.a = 0.96 * alpha
-	draw_texture_rect_region(rect, ICON_ATLAS, source, tint)
+	draw_texture_rect_region(ICON_ATLAS, rect, source, tint)
 
 
-## The part of the pentagon filled to `level`, measured from its outer base in.
-func _fill_polygon(shape: PackedVector2Array, level: float) -> PackedVector2Array:
-	if level <= 0.001:
-		return PackedVector2Array()
-	var depth: float = cell_height * level
-	var band := PackedVector2Array([
-		Vector2(-cell_width, -cell_height - 1.0),
-		Vector2(cell_width, -cell_height - 1.0),
-		Vector2(cell_width, -cell_height + depth),
-		Vector2(-cell_width, -cell_height + depth),
+## A plain standing figure, feet at `feet`, scaled to silhouette_height.
+func _draw_silhouette(feet: Vector2) -> void:
+	var k: float = silhouette_height / 52.0
+	var body := PackedVector2Array([
+		Vector2(-3, -41), Vector2(3, -41), Vector2(11, -38), Vector2(12, -20),
+		Vector2(8, -20), Vector2(7, -30), Vector2(7, -18), Vector2(6, 0),
+		Vector2(1.5, 0), Vector2(0, -16), Vector2(-1.5, 0), Vector2(-6, 0),
+		Vector2(-7, -18), Vector2(-7, -30), Vector2(-8, -20), Vector2(-12, -20),
+		Vector2(-11, -38),
 	])
-	var clipped: Array[PackedVector2Array] = Geometry2D.intersect_polygons(shape, band)
-	return clipped[0] if not clipped.is_empty() else PackedVector2Array()
+	var xform := Transform2D(0.0, Vector2(k * 0.85, k), 0.0, feet)
+	draw_colored_polygon(xform * body, silhouette_color)
+	draw_circle(xform * Vector2(0.0, -46.5), 5.0 * k, silhouette_color)
 
 
 func _state_color(cell: VitalCell) -> Color:

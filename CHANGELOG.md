@@ -5,6 +5,16 @@ Maintained per branch; entries are added by whoever makes the change.
 
 ## [Unreleased] — `codex`
 
+### 2026-09-24 — Solid vital cells, a quiet figure, and a compile fix (claudeflow)
+
+Changed
+- Vital pentagons are a solid translucent backing; the level fill is gone.
+- A plain grey standing figure sits between the top cells, above the health bar.
+
+Fixed
+- `VitalCluster` failed to compile on `main`: `draw_texture_rect_region` arguments
+  were swapped and the glyph atlas SVG had no `.import`, so the HUD never loaded.
+
 ### 2026-09-24 — Original HFN vital glyphs and threshold morphs
 
 Changed
