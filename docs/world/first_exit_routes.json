@@ -5,8 +5,8 @@
    "label": "North beach: exposed, predictable",
    "length_m": 496,
    "over_sea_m": 0,
-   "coast_band_m": 277,
-   "steepest_deg": 12.2,
+   "coast_band_m": 284,
+   "steepest_deg": 11.2,
    "minutes_walk": 5.5,
    "minutes_sprint": 1.8
   },
@@ -16,7 +16,7 @@
    "length_m": 432,
    "over_sea_m": 0,
    "coast_band_m": 0,
-   "steepest_deg": 8.3,
+   "steepest_deg": 7.9,
    "minutes_walk": 4.8,
    "minutes_sprint": 1.6
   },
@@ -26,7 +26,7 @@
    "length_m": 514,
    "over_sea_m": 0,
    "coast_band_m": 0,
-   "steepest_deg": 8.4,
+   "steepest_deg": 13.7,
    "minutes_walk": 5.7,
    "minutes_sprint": 1.9
   }
