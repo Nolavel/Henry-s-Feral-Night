@@ -347,8 +347,8 @@ func _test_climbing_out_requires_thrashing_first() -> void:
 ## The author's call in issue #7: the bay is a real gamble at a sprint and a
 ## safe, slow crossing on foot. Same bay and route as capture_ice_map.gd.
 func _test_sprinting_the_bay_breaks_walking_it_does_not() -> void:
-	var walk: float = _cross_bay(IceField.Gait.WALK, 4.0)
-	var sprint: float = _cross_bay(IceField.Gait.SPRINT, 8.0)
+	var walk: float = _cross_bay(IceField.Gait.WALK, 1.5)
+	var sprint: float = _cross_bay(IceField.Gait.SPRINT, 4.5)
 	_check(walk < 0.0, "walking the bay broke through at %.0f m" % walk)
 	_check(sprint >= 0.0, "sprinting the bay survived, so the shortcut is free")
 	## Mid-bay, not at the first step off the shore.

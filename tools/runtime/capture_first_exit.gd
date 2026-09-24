@@ -11,22 +11,29 @@ const BLOCKOUT: String = "res://scenes/world/first_exit/first_exit_blockout.tscn
 const TERRAIN_DIR: String = "res://experimental_location/Graciosa/terrain_graciosa"
 const OUT_DIR: String = "user://shots/first_exit"
 const WARMUP_FRAMES: int = 60
-## [name, camera position, look-at target]
+## [name, camera position, look-at target]; both heights are above the ground.
+## HFN_SHOT=<index> renders one shot per process: Terrain3D under lavapipe can
+## crash on a camera jump, so tools loop over processes instead.
 const SHOTS: Array = [
-	["from_bunker", Vector3(1421.0, 5.0, -945.0), Vector3(1119.0, 12.0, -668.0)],
-	["aerial_sector", Vector3(1520.0, 170.0, -1060.0), Vector3(1230.0, 0.0, -790.0)],
-	["shelter_close", Vector3(1135.0, 9.0, -612.0), Vector3(1101.0, 3.0, -650.0)],
-	["fort_ruins", Vector3(1372.0, 14.0, -700.0), Vector3(1335.0, 3.0, -760.0)],
-	["bunker_door", Vector3(1412.0, 4.0, -935.0), Vector3(1427.0, 2.5, -952.0)],
+	["from_bunker", Vector3(1421.0, 1.7, -945.0), Vector3(1140.0, 6.0, -690.0)],
+	["aerial_sector", Vector3(1470.0, 150.0, -990.0), Vector3(1170.0, 0.0, -690.0)],
+	["shelter_lot", Vector3(1150.0, 1.7, -676.0), Vector3(1128.0, 1.5, -645.0)],
+	["junction", Vector3(1075.0, 4.0, -648.0), Vector3(1116.0, 1.0, -690.0)],
+	["suburb_aerial", Vector3(1215.0, 55.0, -590.0), Vector3(1100.0, 0.0, -662.0)],
 ]
 
 var _frame: int = 0
 var _shot: int = -1
 var _camera: Camera3D
+var _terrain: Terrain3D
+var _only: int = -1
 
 
 func _initialize() -> void:
 	DirAccess.make_dir_recursive_absolute(ProjectSettings.globalize_path(OUT_DIR))
+	if OS.get_environment("HFN_SHOT") != "":
+		_only = int(OS.get_environment("HFN_SHOT"))
+		_shot = _only - 1
 	if OS.get_environment("HFN_FULL_SCENE") == "1":
 		root.add_child((load(SCENE) as PackedScene).instantiate())
 	else:
@@ -44,22 +51,31 @@ func _process(_delta: float) -> bool:
 		root.add_child(_camera)
 	_camera.make_current()
 	if (_frame - WARMUP_FRAMES) % 20 == 0:
-		if _shot >= 0:
+		if _shot >= 0 and (_only < 0 or _shot == _only):
 			var shot_name: String = SHOTS[_shot][0]
 			root.get_viewport().get_texture().get_image().save_png("%s/%s.png" % [OUT_DIR, shot_name])
 			print("first exit capture: ", shot_name)
 		_shot += 1
-		if _shot >= SHOTS.size():
+		if _shot >= SHOTS.size() or (_only >= 0 and _shot > _only):
 			quit()
 			return true
-		_camera.look_at_from_position(SHOTS[_shot][1], SHOTS[_shot][2])
+		_camera.look_at_from_position(_lift(SHOTS[_shot][1]), _lift(SHOTS[_shot][2]))
 	return false
+
+
+## Raises a point by the ground under it; the sea counts as ground level 0.
+func _lift(p: Vector3) -> Vector3:
+	if _terrain == null:
+		return p
+	var h: float = _terrain.data.get_height(Vector3(p.x, 0.0, p.z))
+	return Vector3(p.x, p.y + (0.0 if is_nan(h) else maxf(h, 0.0)), p.z)
 
 
 func _build_stage() -> void:
 	var terrain := Terrain3D.new()
 	terrain.data_directory = TERRAIN_DIR
 	root.add_child(terrain)
+	_terrain = terrain
 	var sea := MeshInstance3D.new()
 	var plane := PlaneMesh.new()
 	plane.size = Vector2(6000.0, 6000.0)

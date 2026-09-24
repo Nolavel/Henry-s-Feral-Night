@@ -14,9 +14,10 @@ from PIL import Image, ImageDraw, ImageFont
 
 SEA = 0.3
 EYE_M = 1.6
-WALK_SPEEDS = {"current_walk": 4.0, "proposed_walk": 2.0}
+WALK_SPEEDS = {"walk": 1.5, "sprint": 4.5}
 COAST_BAND_M = 25.0
-ROUTE_COLOURS = {"shore": (80, 200, 255), "ruins": (255, 170, 60), "ice": (235, 235, 255)}
+ROUTE_COLOURS = {"shore": (80, 200, 255), "ruins": (255, 170, 60), "road": (120, 255, 140), "ice": (235, 235, 255)}
+RESOLVED = "docs/world/first_exit_resolved.json"
 
 
 def main():
@@ -40,9 +41,13 @@ def main():
         c, r = int((x - ox) / step), int((z - oz) / step)
         return coast_dist[r, c] < COAST_BAND_M and land[r, c]
 
+    resolved = json.load(open(RESOLVED))["footprints"]
+    shelter = next((f for f in resolved if f.get("is_shelter")), None)
     report = {"routes": [], "landmarks": []}
     for route in layout["routes"]:
-        pts = route["points"]
+        pts = list(route["points"])
+        if shelter is not None:
+            pts.append(shelter["house_front"])
         length = sea = coast = 0.0
         steepest = 0.0
         for (x0, z0), (x1, z1) in zip(pts, pts[1:]):
@@ -72,10 +77,10 @@ def main():
 
     spawn = layout["spawn"]
     sy = height(spawn["x"], spawn["z"]) + EYE_M
-    for s in layout["structures"]:
-        if s["kind"] not in ("water_tower", "chapel", "house_bungalow", "bunker_portal"):
+    for s in resolved:
+        if s["kind"] not in ("water_tower", "chapel", "lot", "bunker_portal"):
             continue
-        top = height(s["x"], s["z"]) + s["size"][2]
+        top = height(s["x"], s["z"]) + (5.0 if s["kind"] == "lot" else s["size"][2])
         dist = math.hypot(s["x"] - spawn["x"], s["z"] - spawn["z"])
         n = int(dist / step)
         blocked = False
@@ -88,7 +93,7 @@ def main():
         report["landmarks"].append({"id": s["id"], "distance_m": round(dist), "visible_from_spawn": not blocked})
 
     json.dump(report, open(f"{out}.json", "w"), indent=1)
-    _draw(h, meta, layout, report, out)
+    _draw(h, meta, layout, resolved, report, out)
     for r in report["routes"]:
         print(r)
     for l in report["landmarks"]:
@@ -112,10 +117,10 @@ def _apply_proposals(h, meta, layout):
     return h
 
 
-def _draw(h, meta, layout, report, out):
+def _draw(h, meta, layout, resolved, report, out):
     step, ox, oz = meta["step_m"], meta["origin_x"], meta["origin_z"]
-    xs = [p[0] for r in layout["routes"] for p in r["points"]] + [s["x"] for s in layout["structures"]]
-    zs = [p[1] for r in layout["routes"] for p in r["points"]] + [s["z"] for s in layout["structures"]]
+    xs = [p[0] for r in layout["routes"] for p in r["points"]] + [s["x"] for s in resolved]
+    zs = [p[1] for r in layout["routes"] for p in r["points"]] + [s["z"] for s in resolved]
     pad = 60
     x0, x1, z0, z1 = min(xs) - pad, max(xs) + pad, min(zs) - pad, max(zs) + pad
     c0, c1, r0, r1 = int((x0 - ox) / step), int((x1 - ox) / step), int((z0 - oz) / step), int((z1 - oz) / step)
@@ -141,22 +146,30 @@ def _draw(h, meta, layout, report, out):
             x, z = ax + (bx - ax) * i / n, az + (bz - az) * i / n
             cx, cz = px(x, z)
             d.ellipse([cx - 3, cz - 3, cx + 3, cz + 3], fill=(70, 120, 70))
-    for s in layout["structures"]:
+    for road in layout.get("roads", []):
+        d.line([px(*p) for p in road["points"]], fill=(40, 40, 44), width=max(2, int(road["width"] / step * k)))
+    for s in resolved:
+        if s["kind"] == "street_lamp":
+            cx, cz = px(s["x"], s["z"])
+            d.ellipse([cx - 2, cz - 2, cx + 2, cz + 2], fill=(250, 240, 160))
+            continue
         w, dp = s["size"][0], s["size"][1]
         yaw = math.radians(s.get("yaw_deg", 0))
         corners = []
         for sx, sz in ((-w / 2, -dp / 2), (w / 2, -dp / 2), (w / 2, dp / 2), (-w / 2, dp / 2)):
             corners.append(px(s["x"] + sx * math.cos(yaw) + sz * math.sin(yaw),
                               s["z"] - sx * math.sin(yaw) + sz * math.cos(yaw)))
-        d.polygon(corners, fill=(60, 60, 60), outline=(255, 255, 255))
-        cx, cz = px(s["x"], s["z"])
-        d.text((cx + 8, cz - 8), s["id"], fill=(255, 255, 255), font=font, stroke_width=2, stroke_fill=(0, 0, 0))
+        fill = (150, 90, 60) if s.get("is_shelter") else ((90, 90, 90) if s["kind"] == "lot" else (60, 60, 60))
+        d.polygon(corners, fill=fill, outline=(255, 255, 255))
+        if s["kind"] != "lot" or s.get("is_shelter"):
+            cx, cz = px(s["x"], s["z"])
+            d.text((cx + 8, cz - 8), s["id"], fill=(255, 255, 255), font=font, stroke_width=2, stroke_fill=(0, 0, 0))
     sp = px(layout["spawn"]["x"], layout["spawn"]["z"])
     d.ellipse([sp[0] - 7, sp[1] - 7, sp[0] + 7, sp[1] + 7], fill=(230, 60, 50))
     y = 10
     for r in report["routes"]:
-        text = (f"{r['id']}: {r['length_m']} m, {r['minutes_current_walk']} min @4 m/s, "
-                f"{r['minutes_proposed_walk']} min @2 m/s, ice {r['over_sea_m']} m, coast {r['coast_band_m']} m")
+        text = (f"{r['id']}: {r['length_m']} m, walk {r['minutes_walk']} min, sprint {r['minutes_sprint']} min, "
+                f"coast {r['coast_band_m']} m")
         d.text((10, y), text, fill=ROUTE_COLOURS.get(r["id"], (255, 255, 255)), font=font, stroke_width=2,
                stroke_fill=(0, 0, 0))
         y += 20

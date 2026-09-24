@@ -21,11 +21,11 @@ const SPRINT_ALIASES: Array[StringName] = [&"Sprint_Loop", &"Sprint"]
 
 @export_group("Locomotion Blend")
 ## Position of the authored walk cycle in normalized 0..1 real speed.
-## Henry currently walks at 4 m/s and sprints at 8 m/s, so 0.50 is physical.
-@export_range(0.1, 0.75, 0.01) var walk_blend_position: float = 0.50
+## Henry walks at 1.5 m/s and sprints at 4.5 m/s, so 0.33 is physical.
+@export_range(0.1, 0.75, 0.01) var walk_blend_position: float = 0.33
 ## Jog sits between walk and full sprint. This is a feel point rather than a
 ## separate gameplay speed tier: MovementController still owns actual speed.
-@export_range(0.5, 0.95, 0.01) var jog_blend_position: float = 0.78
+@export_range(0.5, 0.95, 0.01) var jog_blend_position: float = 0.67
 
 @export_group("Visual")
 @export var portrait_render_layers: int = 16
@@ -121,7 +121,7 @@ func update_animation_blend(_delta: float) -> void:
 		_blend_position = float(player.call("get_locomotion_speed_ratio"))
 	else:
 		var planar_speed: float = Vector2(player.velocity.x, player.velocity.z).length()
-		_blend_position = clampf(planar_speed / 8.0, 0.0, 1.0)
+		_blend_position = clampf(planar_speed / 4.5, 0.0, 1.0)
 
 	if Vector2(player.velocity.x, player.velocity.z).length() < MOVEMENT_EPSILON:
 		_blend_position = 0.0

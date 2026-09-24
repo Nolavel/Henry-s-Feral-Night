@@ -143,8 +143,14 @@ through about 29 m from shore, mid-bay, while walking crosses intact, slow walk
 included. `test_ice_field.gd` locks this in, so a later retune that makes the
 shortcut free again fails the suite.
 
+**Rescaled for real walking speed (2026-09-24).** Walk went 4 → 1.5 m/s and
+sprint 8 → 4.5 m/s. Drain is per second, so a slower gait stands longer on
+each 4 m tile. `drain_per_second` 0.0375 → 0.0140625 (× 1.5/4) keeps the damage
+per tile walked identical. `sprint_multiplier` 8 → 12 does the same for the
+sprint. The walk-holds / sprint-breaks test is unchanged.
+
 One consequence to know about: standing still on the thinnest ice breaks it in
-about three seconds. The bay is for crossing, not for stopping on.
+about eight seconds. The bay is for crossing, not for stopping on.
 
 ## 8. Not built yet
 
