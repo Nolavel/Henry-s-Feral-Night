@@ -110,12 +110,21 @@ within 15 cm.
 
 1. **Done:** heightmap as source, Blender round trip, tools on the PNG.
 2. **Done:** `IslandTerrain` with chunks, LOD, skirts, collision and shader.
-   The main scene still uses Terrain3D until stage 3 signs off.
+3. **Done:** the main scene runs on `IslandTerrain`.
+   - The `NavigationRegion3D` and its Terrain3D child are removed; the nav
+     mesh was empty and nothing used it.
+   - `IslandTerrain` follows the Player, and the Player starts at the spawner.
+   - The blockout builder samples the heightmap, so Blender edits reach the
+     greybox on rebuild.
+   - Checked: the main scene ran 600 frames without a crash, and full-scene
+     captures succeeded in 2 of 2 runs with 7 shots each.
 3. Side by side with Terrain3D in the First Exit sector: renders, route metrics,
    navigation, ice and footprints must match.
-4. Remove Terrain3D from the scene, CI (`setup_env.sh` download) and
-   `addons/`. The blockout builder and `capture_first_exit.gd` sample the
-   heightmap instead of Terrain3D.
+4. Remove Terrain3D from `addons/`, `project.godot`, CI (`setup_env.sh`
+   download) and the old capture tools (`capture_island_visual_fx.gd`,
+   `capture_freemans_sky.gd`, `capture_production_snow.gd`, plus
+   `terrain3d_stylized_capture.gdshader`). `dump_island_heights.gd` stays until
+   then as the record of how the heightmap was exported.
 
-Until stage 4, Terrain3D still renders the island in game. Edits to the PNG
-only reach the game once stage 2 lands.
+Terrain3D is still in `addons/`, in `project.godot`'s plugin list and in
+CI's setup until stage 4. The game no longer uses it.

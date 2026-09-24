@@ -52,6 +52,8 @@ func _check_pickups() -> void:
 		if pickup == null:
 			continue
 		_check(ItemCatalog.get_item(pickup.item_id) != null, "pickup %s holds unknown item %s" % [pickup.name, pickup.item_id])
+		_check(pickup.get_signal_connection_list(&"body_entered").size() == 1,
+			"pickup %s has %d body_entered connections, expected 1" % [pickup.name, pickup.get_signal_connection_list(&"body_entered").size()])
 		totals[pickup.item_id] = int(totals.get(pickup.item_id, 0)) + pickup.count
 	_check(int(totals.get(&"boards", 0)) < 5, "enough boards to seal every opening (%d)" % int(totals.get(&"boards", 0)))
 	_check(int(totals.get(&"boards", 0)) >= 2, "too few boards to matter (%d)" % int(totals.get(&"boards", 0)))
