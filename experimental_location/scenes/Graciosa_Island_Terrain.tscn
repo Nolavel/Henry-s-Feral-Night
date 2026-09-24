@@ -5,6 +5,7 @@
 [ext_resource type="PackedScene" uid="uid://ciy301x7wh6ie" path="res://scenes/actors/player/player.tscn" id="2_8hwqn"]
 [ext_resource type="PackedScene" uid="uid://duxn5rqcau5dw" path="res://tools/StatsDisplay/StatsDisplay.tscn" id="5_h70bg"]
 [ext_resource type="PackedScene" uid="uid://cvv8y27vmgjfi" path="res://scenes/game/systems/world/WorldEnvironmentSystem.tscn" id="6_pbfqm"]
+[ext_resource type="PackedScene" path="res://scenes/world/first_exit/first_exit_blockout.tscn" id="7_fexit"]
 
 [sub_resource type="NavigationMesh" id="NavigationMesh_gciob"]
 
@@ -439,8 +440,10 @@ metadata/debug_color = Color(0.45490196, 0.49019608, 0.96862745, 0.78431374)
 light_energy = 11.797
 light_volumetric_fog_energy = 0.0
 
+[node name="FirstExitBlockout" parent="." instance=ExtResource("7_fexit")]
+
 [node name="FirstSpawner" type="Marker3D" parent="."]
-transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 1420, 3, -943)
+transform = Transform3D(-0.669131, 0, -0.743145, 0, 1, 0, 0.743145, 0, -0.669131, 1420, 3, -943)
 
 [connection signal="body_entered" from="WorldStreamManager/Silvan Heights/Loc_SilvanHeights" to="WorldStreamManager" method="_on_loc_silvan_heights_body_entered"]
 [connection signal="body_exited" from="WorldStreamManager/Silvan Heights/Loc_SilvanHeights" to="WorldStreamManager" method="_on_loc_silvan_heights_body_exited"]

@@ -5,6 +5,24 @@ Maintained per branch; entries are added by whoever makes the change.
 
 ## [Unreleased] — `codex`
 
+### 2026-09-24 — First Exit: island analysis and greybox (claudeflow)
+
+Added
+- `docs/world/FIRST_EXIT.md`: where the game starts on Graciosa, island
+  metrics, buildable sites, measured routes, tropical reference typology and
+  the author decisions the milestone needs (lagoon, walk speed, distance).
+- `tools/world/dump_island_heights.gd`, `island_report.py`, `route_metrics.py`:
+  heightfield dump, height/slope maps with buildable sites, route length /
+  ice / coast-exposure metrics and landmark visibility.
+- `data/world/first_exit_layout.json` and `tools/world/build_first_exit_blockout.gd`:
+  data-driven greybox (bunker door, redoubt, battery, sheds, bus stop,
+  bungalows, water tower, church, jetty, 36 dead palms) placed on terrain
+  heights; instanced in the main scene.
+- `tools/runtime/capture_first_exit.gd`: greybox renders.
+
+Changed
+- `FirstSpawner` faces the water tower; `World` now applies the spawner's yaw.
+
 ### 2026-09-24 — Dead player layer removed (claudeflow)
 
 Removed

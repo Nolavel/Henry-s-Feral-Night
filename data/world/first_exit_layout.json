@@ -1,0 +1,390 @@
+{
+ "_doc": "First Exit greybox layout on Graciosa's east peninsula. World metres, +X east, -Z north. Y is sampled from the terrain by tools/world/build_first_exit_blockout.gd. Edit here, re-run the builder and tools/world/route_metrics.py. See docs/world/FIRST_EXIT.md. Spawn yaw 132 faces the water tower (Godot forward is -Z).",
+ "spawn": {
+  "x": 1420,
+  "z": -943,
+  "yaw_deg": 132
+ },
+ "structures": [
+  {
+   "id": "bunker_portal",
+   "kind": "bunker_portal",
+   "x": 1427,
+   "z": -952,
+   "yaw_deg": 323,
+   "size": [
+    9,
+    7,
+    5
+   ],
+   "note": "Locked blast door; Henry wakes 8 m in front of it."
+  },
+  {
+   "id": "bunker_vent",
+   "kind": "vent_stack",
+   "x": 1436,
+   "z": -962,
+   "yaw_deg": 0,
+   "size": [
+    1.2,
+    1.2,
+    4
+   ]
+  },
+  {
+   "id": "redoubt",
+   "kind": "fort_ring",
+   "x": 1400,
+   "z": -905,
+   "yaw_deg": 0,
+   "size": [
+    28,
+    28,
+    2.2
+   ],
+   "note": "East Point Redoubt: low colonial stone ring, wind break, no roof."
+  },
+  {
+   "id": "alata_battery",
+   "kind": "battery",
+   "x": 1345,
+   "z": -741,
+   "yaw_deg": 120,
+   "size": [
+    14,
+    10,
+    2.5
+   ],
+   "note": "Gun pit on the highest flat ground (7.8 m); ruins route loot."
+  },
+  {
+   "id": "fort_store",
+   "kind": "shed",
+   "x": 1297,
+   "z": -745,
+   "yaw_deg": 30,
+   "size": [
+    6,
+    4,
+    3
+   ],
+   "note": "Powder store, boards + tinder."
+  },
+  {
+   "id": "patrol_hut",
+   "kind": "shed",
+   "x": 1315,
+   "z": -847,
+   "yaw_deg": 35,
+   "size": [
+    4,
+    4,
+    2.8
+   ],
+   "note": "Sentry hut, food tin."
+  },
+  {
+   "id": "bus_stop",
+   "kind": "bus_shelter",
+   "x": 1236,
+   "z": -728,
+   "yaw_deg": 30,
+   "size": [
+    4,
+    1.6,
+    2.6
+   ],
+   "note": "Road-side wind shelter halfway; visible function from afar."
+  },
+  {
+   "id": "shelter_house",
+   "kind": "house_bungalow",
+   "x": 1101,
+   "z": -645,
+   "yaw_deg": 30,
+   "size": [
+    8,
+    10,
+    3.2
+   ],
+   "note": "Destination. Tropical bungalow on piers, veranda, big openings; retrofitted chimney. Becomes the repairable shelter."
+  },
+  {
+   "id": "water_tower",
+   "kind": "water_tower",
+   "x": 1119,
+   "z": -668,
+   "yaw_deg": 0,
+   "size": [
+    5,
+    5,
+    16
+   ],
+   "note": "Landmark next to the shelter; must be visible from the bunker door."
+  },
+  {
+   "id": "house_2",
+   "kind": "house_bungalow",
+   "x": 1075,
+   "z": -597,
+   "yaw_deg": 20,
+   "size": [
+    7,
+    9,
+    3.0
+   ],
+   "note": "Gutted, roof half gone."
+  },
+  {
+   "id": "house_3",
+   "kind": "house_bungalow",
+   "x": 1031,
+   "z": -609,
+   "yaw_deg": 35,
+   "size": [
+    7,
+    8,
+    3.0
+   ]
+  },
+  {
+   "id": "house_4",
+   "kind": "house_bungalow",
+   "x": 1169,
+   "z": -687,
+   "yaw_deg": 25,
+   "size": [
+    6,
+    8,
+    3.0
+   ],
+   "note": "Boarded by later survivors: the retrofit layer."
+  },
+  {
+   "id": "church",
+   "kind": "chapel",
+   "x": 1023,
+   "z": -563,
+   "yaw_deg": 30,
+   "size": [
+    8,
+    14,
+    7
+   ],
+   "note": "Santa Cruz outskirts silhouette, bell gable."
+  },
+  {
+   "id": "jetty",
+   "kind": "pier",
+   "x": 1085,
+   "z": -742,
+   "yaw_deg": 300,
+   "size": [
+    3,
+    30,
+    1.2
+   ],
+   "note": "North-shore jetty into frozen sea."
+  }
+ ],
+ "palm_rows": [
+  {
+   "id": "north_beach",
+   "from": [
+    1395,
+    -985
+   ],
+   "to": [
+    1250,
+    -905
+   ],
+   "spacing": 13,
+   "lean_to_deg": 330
+  },
+  {
+   "id": "gateway_cove",
+   "from": [
+    1230,
+    -870
+   ],
+   "to": [
+    1140,
+    -790
+   ],
+   "spacing": 12,
+   "lean_to_deg": 320
+  },
+  {
+   "id": "village_lane",
+   "from": [
+    1180,
+    -700
+   ],
+   "to": [
+    1040,
+    -600
+   ],
+   "spacing": 15,
+   "lean_to_deg": 300
+  },
+  {
+   "id": "south_shore",
+   "from": [
+    1410,
+    -830
+   ],
+   "to": [
+    1370,
+    -750
+   ],
+   "spacing": 14,
+   "lean_to_deg": 120
+  }
+ ],
+ "routes": [
+  {
+   "id": "shore",
+   "label": "North sand bar: exposed, predictable",
+   "points": [
+    [
+     1420,
+     -943
+    ],
+    [
+     1385,
+     -962
+    ],
+    [
+     1320,
+     -915
+    ],
+    [
+     1260,
+     -892
+    ],
+    [
+     1195,
+     -850
+    ],
+    [
+     1140,
+     -805
+    ],
+    [
+     1110,
+     -760
+    ],
+    [
+     1101,
+     -645
+    ]
+   ]
+  },
+  {
+   "id": "ruins",
+   "label": "Fort ruins: loot, detour, more time",
+   "points": [
+    [
+     1420,
+     -943
+    ],
+    [
+     1400,
+     -905
+    ],
+    [
+     1315,
+     -847
+    ],
+    [
+     1345,
+     -741
+    ],
+    [
+     1297,
+     -745
+    ],
+    [
+     1230,
+     -735
+    ],
+    [
+     1169,
+     -700
+    ],
+    [
+     1101,
+     -645
+    ]
+   ]
+  },
+  {
+   "id": "ice",
+   "label": "Lagoon ice: shortest, gait- and load-sensitive",
+   "points": [
+    [
+     1420,
+     -943
+    ],
+    [
+     1360,
+     -890
+    ],
+    [
+     1300,
+     -850
+    ],
+    [
+     1170,
+     -780
+    ],
+    [
+     1101,
+     -645
+    ]
+   ]
+  }
+ ],
+ "terrain_proposals": [
+  {
+   "id": "salt_lagoon",
+   "kind": "lagoon",
+   "depth_m": -1.5,
+   "note": "PROPOSAL, not carved. Frozen salt pond across the peninsula: the ice route crosses it, the shore route walks the exposed sand bar north of it, the ruins route detours south through the fort. Needs author sign-off before Terrain3D is edited.",
+   "polygon": [
+    [
+     1320,
+     -860
+    ],
+    [
+     1275,
+     -878
+    ],
+    [
+     1215,
+     -845
+    ],
+    [
+     1160,
+     -800
+    ],
+    [
+     1150,
+     -770
+    ],
+    [
+     1190,
+     -752
+    ],
+    [
+     1250,
+     -775
+    ],
+    [
+     1305,
+     -815
+    ]
+   ]
+  }
+ ]
+}
