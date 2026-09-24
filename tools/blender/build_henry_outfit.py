@@ -35,7 +35,8 @@ ZIP_COLOUR = (0.35, 0.35, 0.33)
 ## Jacket skirt: bottom as a share of body height, push-out and flare in metres.
 SKIRT_BOTTOM = 0.385
 SKIRT_PUSH = 0.034
-SKIRT_FLARE = 0.03
+SKIRT_FLARE = 0.045
+SKIRT_LEG_FOLLOW = 0.9  # thigh share at the hem; the top ring stays on the pelvis
 DECIMATE_RATIO = 0.35
 CUTS = {}
 ## Garments whose edge follows whole faces; the rest also keep faces straddling it.
@@ -262,7 +263,7 @@ def build_skirt(arm, body):
 	the pelvis and partly to each thigh, so it swings instead of splitting."""
 	pelvis = arm.matrix_world @ arm.data.bones["pelvis"].head_local
 	left_x = (arm.matrix_world @ arm.data.bones["thigh_l"].head_local).x - pelvis.x
-	top, bottom = CUTS["hem"] + 0.04, CUTS["skirt_bottom"]
+	top, bottom = CUTS["hem"] + 0.09, CUTS["skirt_bottom"]  # top tucks under the coat
 	segments, rows = 24, 5
 	## An ellipse around hips and thighs, deeper at the back than the front; it
 	## bridges the gap between the legs instead of following it.
@@ -273,11 +274,20 @@ def build_skirt(arm, body):
 			rx = max(rx, abs(p.x - pelvis.x))
 			front = max(front, pelvis.y - p.y)
 			back = max(back, p.y - pelvis.y)
+	measured = [0.0] * segments
+	for v in body.data.vertices:
+		p = body.matrix_world @ v.co
+		if bottom - 0.02 < p.z < top:
+			d = Vector((p.x - pelvis.x, p.y - pelvis.y))
+			i = int((math.atan2(d.y, d.x) + math.pi) / (2 * math.pi) * segments) % segments
+			measured[i] = max(measured[i], d.length)
+	## Never inside the body: the larger of the ellipse and the measured outline.
 	radius = []
 	for i in range(segments):
 		a = (i + 0.5) / segments * 2 * math.pi - math.pi
 		ry = back if math.sin(a) > 0.0 else front
-		radius.append(rx * ry / math.hypot(ry * math.cos(a), rx * math.sin(a)))
+		ellipse = rx * ry / math.hypot(ry * math.cos(a), rx * math.sin(a))
+		radius.append(max(ellipse, measured[i - 1], measured[i], measured[(i + 1) % segments]))
 	mesh = bpy.data.meshes.new("Outfit_Skirt")
 	skirt = bpy.data.objects.new("Outfit_Skirt", mesh)
 	bpy.context.collection.objects.link(skirt)
@@ -289,7 +299,7 @@ def build_skirt(arm, body):
 		ring = []
 		for i in range(segments):
 			a = (i + 0.5) / segments * 2 * math.pi - math.pi
-			rad = radius[i] + SKIRT_PUSH + SKIRT_FLARE * t
+			rad = radius[i] + SKIRT_PUSH * (0.6 if r == 0 else 1.0) + SKIRT_FLARE * t
 			ring.append(bm.verts.new((pelvis.x + math.cos(a) * rad, pelvis.y + math.sin(a) * rad, z)))
 		grid.append(ring)
 	for r in range(rows - 1):
@@ -302,10 +312,13 @@ def build_skirt(arm, body):
 	groups = {n: skirt.vertex_groups.new(name=n) for n in ("pelvis", "thigh_l", "thigh_r")}
 	for idx, v in enumerate(mesh.vertices):
 		t = (idx // segments) / (rows - 1)
-		side = v.co.x - pelvis.x
-		leg = 0.8 * t * min(1.0, abs(side) / 0.09)
+		## The hem follows the thighs: sides their own leg, the centre line both
+		## legs' average, so a leg swinging forward carries the cloth with it.
+		leg = SKIRT_LEG_FOLLOW * t
+		to_left = 0.5 + 0.5 * max(-1.0, min(1.0, (v.co.x - pelvis.x) / 0.08 * math.copysign(1.0, left_x)))
 		groups["pelvis"].add([idx], 1.0 - leg, "REPLACE")
-		groups["thigh_l" if side * left_x > 0 else "thigh_r"].add([idx], leg, "REPLACE")
+		groups["thigh_l"].add([idx], leg * to_left, "REPLACE")
+		groups["thigh_r"].add([idx], leg * (1.0 - to_left), "REPLACE")
 	finish(skirt, arm, "Skirt", JACKET_COLOUR, 0.010)
 	return skirt
 
