@@ -34,3 +34,5 @@ INTERACT_OPEN,Open,Открыть
 INTERACT_USE,Use,Использовать
 BREACH_REFUSED_NO_BOARDS,You need boards,Нужны доски
 PICKUP_REFUSED_TOO_HEAVY,Too heavy to carry,Слишком тяжело нести
+CABINET_OPEN,Open the cabinet,Открыть шкаф
+CABINET_CLOSE,Close the cabinet,Закрыть шкаф

@@ -19,6 +19,7 @@ const BREACH_SCRIPT: String = "res://scripts/systems/survival/shelter_breach.gd"
 const BOARD_SCRIPT: String = "res://scripts/environment/interactive/breach_board_up.gd"
 const HEAT_SCRIPT: String = "res://scripts/systems/survival/heat_source.gd"
 const FEED_SCRIPT: String = "res://scripts/environment/interactive/heat_source_feed.gd"
+const CABINET_SCRIPT: String = "res://scripts/environment/interactive/cabinet.gd"
 const PICKUP_SCRIPT: String = "res://scripts/environment/interactive/item_pickup.gd"
 ## House openings shared by the walls and the breaches: [x, width, is_door].
 const WINDOW_GAPS: Array = [[-0.25, 2.0], [0.3, 1.6]]
@@ -438,6 +439,38 @@ func _shelter_gameplay(house: Node3D, w: float, d: float, h: float) -> void:
 	feed.position = Vector3(0.9, 0.0, 0.0)
 	_add(stove, feed)
 	_prompt_shape(feed, Vector3(1.2, 1.4, 1.4))
+	_cabinet(zone, Vector3(w * 0.5 - 0.5, floor_y - zone.position.y, -d * 0.2))
+
+
+## A low kitchen cabinet against the east wall, facing into the room, with a
+## door on a real hinge on its left edge.
+func _cabinet(parent: Node3D, pos: Vector3) -> void:
+	var cab := Node3D.new()
+	cab.name = "Cabinet"
+	cab.position = pos
+	cab.rotation.y = -PI * 0.5  # local +Z, the front, faces west into the room
+	_add(parent, cab)
+	var body: MeshInstance3D = _box(cab, Vector3(0.0, 0.45, -0.21), Vector3(0.8, 0.9, 0.03), _wood)
+	_box(cab, Vector3(-0.385, 0.45, 0.0), Vector3(0.03, 0.9, 0.45), _wood)
+	_box(cab, Vector3(0.385, 0.45, 0.0), Vector3(0.03, 0.9, 0.45), _wood)
+	_box(cab, Vector3(0.0, 0.885, 0.0), Vector3(0.8, 0.03, 0.45), _wood)
+	_box(cab, Vector3(0.0, 0.03, 0.0), Vector3(0.8, 0.06, 0.45), _wood)
+	_box(cab, Vector3(0.0, 0.45, 0.0), Vector3(0.74, 0.02, 0.4), _wood, false)
+	var hinge := Node3D.new()
+	hinge.name = "DoorHinge"
+	hinge.position = Vector3(-0.39, 0.45, 0.225)
+	_add(cab, hinge)
+	_box(hinge, Vector3(0.39, 0.0, 0.012), Vector3(0.78, 0.84, 0.025), _board, false)
+	_box(hinge, Vector3(0.7, 0.05, 0.035), Vector3(0.03, 0.12, 0.03), _metal, false)
+	var prompt: Node3D = (load(INTERACTIVE_SCENE) as PackedScene).instantiate()
+	prompt.name = "Open"
+	prompt.set_script(load(CABINET_SCRIPT))
+	prompt.set(&"interactable_scene", null)
+	prompt.set(&"door_hinge", hinge)
+	prompt.set(&"interactive_mesh", body)
+	prompt.position = Vector3(0.0, 0.0, 0.7)
+	_add(cab, prompt)
+	_prompt_shape(prompt, Vector3(1.0, 1.4, 1.0))
 
 
 ## Gives an instanced InteractiveArea its own box trigger.

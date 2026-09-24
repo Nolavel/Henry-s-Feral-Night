@@ -288,11 +288,20 @@ func _test_gait_follows_velocity() -> void:
 		binder.classify(Vector3(0.0, -9.0, 0.0)) == IceField.Gait.STILL,
 		"falling was mistaken for horizontal movement"
 	)
-	## No crouch action exists in the project, so CROUCH must never be reported.
+	var movement := MovementController.new()
+	root.add_child(movement)
+	binder.movement_controller = movement
+	movement.set_crouching(true)
 	_check(
-		binder.classify(Vector3(1.0, 0.0, 0.0)) != IceField.Gait.CROUCH,
-		"CROUCH was reported although no crouch action is bound"
+		binder.classify(Vector3(1.0, 0.0, 0.0)) == IceField.Gait.CROUCH,
+		"the real crouch state did not reach IceField.Gait.CROUCH"
 	)
+	movement.set_crouching(false)
+	_check(
+		binder.classify(Vector3(1.0, 0.0, 0.0)) == IceField.Gait.WALK,
+		"leaving crouch did not restore the walking gait"
+	)
+	_dispose(movement)
 	_dispose(binder)
 	_dispose(field)
 

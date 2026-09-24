@@ -9,3 +9,5 @@ display_name = "Firewood"
 weight = 3.0
 max_stack = 8
 size_class = 2
+attached_mesh_node_name = &"CarryFirewood"
+carried_in_hands = true

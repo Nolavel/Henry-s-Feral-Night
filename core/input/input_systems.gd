@@ -49,6 +49,7 @@ const ACTION_MOVE_LEFT: StringName = &"move_left"
 const ACTION_MOVE_RIGHT: StringName = &"move_right"
 const ACTION_SPRINT: StringName = &"sprint"
 const ACTION_JUMP: StringName = &"jump"
+const ACTION_CROUCH: StringName = &"crouch"
 const ACTION_INTERACT: StringName = &"interact"
 const ACTION_SLEEP: StringName = &"sleep"
 const ACTION_SLEEP_CANCEL: StringName = &"sleep_cancel"
@@ -230,6 +231,12 @@ func is_sprinting() -> bool:
 	if _is_movement_blocked():
 		return false
 	return InputMap.has_action(ACTION_SPRINT) and Input.is_action_pressed(ACTION_SPRINT)
+
+
+func is_crouching() -> bool:
+	if _is_movement_blocked():
+		return false
+	return InputMap.has_action(ACTION_CROUCH) and Input.is_action_pressed(ACTION_CROUCH)
 
 
 ## -1 full left lean, +1 full right; zero while movement is blocked.

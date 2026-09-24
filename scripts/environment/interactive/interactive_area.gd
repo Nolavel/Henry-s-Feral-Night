@@ -1,6 +1,10 @@
 extends Area3D
 class_name InteractiveArea
 
+## Optional semantic animation requested on Henry when this interaction fires.
+## Empty lets InteractComponent choose a generic action.
+@export var player_animation_action: StringName = &""
+
 enum InteractionType {
 	PUSHABLE,
 	PICKUP,

@@ -100,6 +100,16 @@ func try_interact() -> void:
 func _perform(target: InteractiveArea) -> void:
 	if not is_instance_valid(target):
 		return
+	if _player != null and _player.has_method(&"play_action_animation"):
+		var action: StringName = target.player_animation_action
+		if action == &"":
+			if target is ItemPickup:
+				action = &"pickup"
+			elif target is BreachBoardUp:
+				action = &"fix"
+			else:
+				action = &"interact"
+		_player.call(&"play_action_animation", action)
 	target.interact()
 	interaction_performed.emit(target)
 
