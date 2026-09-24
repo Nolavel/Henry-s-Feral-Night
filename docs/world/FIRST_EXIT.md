@@ -123,6 +123,13 @@ limit through `EquipmentComponent.get_carried_weight()`, so he costs load from
 the first step. He is drawn as a plush silhouette strapped to the outside of
 the pack, and he disappears if he leaves the fixture.
 
+## Clothes on the body
+
+Each worn garment shows as a greybox layer on Henry: knit hat, coat with
+sleeves, trousers, boots. A layer disappears when the garment comes off.
+Wetness from the thermal model darkens every layer, so a soaking reads on
+the body, not only in the HUD.
+
 ## Movement speed
 
 Henry now moves at human speed (author): **walk 1.5 m/s, sprint 4.5 m/s**, down

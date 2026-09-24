@@ -28,6 +28,7 @@ func _run() -> void:
 	_test_clothing_slows_freezing()
 	_test_the_backpack_is_worn_in_the_pack_slot()
 	_test_kenny_rides_the_fixture_and_weighs()
+	_test_worn_clothes_show_and_darken_when_wet()
 	if _failures > 0:
 		push_error("equipment: %d check(s) failed" % _failures)
 		quit(1)
@@ -347,4 +348,30 @@ func _test_kenny_rides_the_fixture_and_weighs() -> void:
 	equipment.unequip(&"back_fixture")
 	_check(kenny != null and not kenny.visible, "Kenny still shows after coming off")
 	_check(is_equal_approx(inventory.get_total_weight(), 0.0), "weight stays after Kenny comes off")
+	_dispose(player)
+
+
+## Hat, coat, trousers and boots show while worn, hide when removed, and
+## darken as they get wet.
+func _test_worn_clothes_show_and_darken_when_wet() -> void:
+	var player := CharacterBody3D.new()
+	var equipment := EquipmentComponent.new()
+	equipment.name = "EquipmentComponent"
+	equipment.layout = load(LAYOUT) as EquipmentLayout
+	equipment.starter_garment_ids = [&"worn_coat", &"knit_hat", &"work_trousers", &"worn_boots"]
+	player.add_child(equipment)
+	var visual := (load("res://scenes/actors/player/HenryUALVisual.tscn") as PackedScene).instantiate() as HenryUALAnimation
+	player.add_child(visual)
+	root.add_child(player)
+	for mesh_name: String in ["Hat", "Coat", "Trousers", "Boots"]:
+		var node := visual.find_child(mesh_name, true, false) as Node3D
+		_check(node != null and node.visible, "%s is not shown while worn" % mesh_name)
+	equipment.unequip(&"head")
+	var hat := visual.find_child("Hat", true, false) as Node3D
+	_check(hat != null and not hat.visible, "the hat still shows after taking it off")
+	var coat_mesh := visual.find_child("Coat", true, false).find_children("*", "MeshInstance3D", true, false)[0] as MeshInstance3D
+	var dry: Color = (coat_mesh.mesh.surface_get_material(0) as StandardMaterial3D).albedo_color
+	visual.set_wetness(1.0)
+	var wet: Color = (coat_mesh.mesh.surface_get_material(0) as StandardMaterial3D).albedo_color
+	_check(wet.get_luminance() < dry.get_luminance() - 0.05, "wet clothes do not read darker")
 	_dispose(player)

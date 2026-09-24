@@ -25,7 +25,7 @@ script = ExtResource("garment")
 body_slot_id = &"torso"
 pockets = [SubResource("P_coat_left"), SubResource("P_coat_right")]
 insulation_c = 5.5
-mesh_node_name = &""
+mesh_node_name = &"Coat"
 
 [resource]
 script = ExtResource("item")

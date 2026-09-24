@@ -5,6 +5,8 @@ class_name Player
 ## Emitted when a scripted walk ends: arrived, stopped, or taken over by WASD.
 signal movement_stopped
 
+const THERMAL_SCRIPT: GDScript = preload("res://scripts/systems/survival/thermal_manager.gd")
+
 # === КОМПОНЕНТЫ ===
 @onready var movement: MovementController = $MovementController
 @onready var animation_component: HenryUALAnimation = $HenryUALVisual
@@ -90,6 +92,15 @@ func _physics_process(delta: float) -> void:
 
 ## Flat direction the active camera looks, for the head look; Henry's facing
 ## when there is no camera.
+## Wet clothes show on the body: the thermal model's wetness darkens them.
+func on_world_ready(context: WorldContext) -> void:
+	var thermal := context.get_system(THERMAL_SCRIPT) as ThermalManager
+	if thermal == null or animation_component == null:
+		return
+	thermal.wetness_changed.connect(animation_component.set_wetness)
+	animation_component.set_wetness(thermal.get_wetness())
+
+
 func get_view_direction() -> Vector3:
 	var camera: Camera3D = get_viewport().get_camera_3d()
 	var forward: Vector3 = -(camera.global_transform.basis.z if camera != null else global_transform.basis.z)

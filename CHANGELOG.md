@@ -5,9 +5,13 @@ Maintained per branch; entries are added by whoever makes the change.
 
 ## [Unreleased] — `codex`
 
-### 2026-09-24 — First Exit: route clutter and Kenny on the pack (claudeflow)
+### 2026-09-24 — First Exit: route clutter, Kenny on the pack, visible clothes (claudeflow)
 
 Added
+- Visible greybox clothes. Hat, coat with sleeves, trousers and boots are
+  built on the UAL bones and shown per equipment slot through the garments'
+  `mesh_node_name`. They darken with the thermal model's wetness
+  (`HenryUALAnimation.set_wetness`, wired in `Player.on_world_ready`).
 - Route clutter from the layout: cars, pickups, a van and a bus (overturned,
   sunk in drift, doors open), bins and dumpsters. Placed per route to break
   sprint lines and create choke points (Grok, #42).
