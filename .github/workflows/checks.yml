@@ -1,0 +1,42 @@
+name: checks
+
+## Cheap gate for main: import, filename hygiene, headless test suites.
+## No rendering here; render locally with tools/ci/render.sh.
+on:
+  pull_request:
+    branches: [main]
+    paths-ignore:
+      - "docs/**"
+      - "**/*.md"
+  workflow_dispatch:
+
+concurrency:
+  group: checks-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  checks:
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Cache Godot and Terrain3D
+        uses: actions/cache@v4
+        with:
+          path: |
+            ~/.local/opt/godot-mono
+            addons/terrain_3d/bin
+          key: godot-4.8-dev6-terrain3d-v1.0.1
+
+      - name: Provision Godot (headless only)
+        run: SKIP_APT=1 tools/ci/setup_env.sh
+
+      - name: Import project
+        run: ~/.local/bin/godot --headless --import --quit || true
+
+      - name: Check filenames and uid files
+        run: tools/ci/check_filenames.sh
+
+      - name: Run headless test suites
+        run: tools/ci/run_tests.sh

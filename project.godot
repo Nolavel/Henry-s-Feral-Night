@@ -28,6 +28,7 @@ settings/addon_root_folder="res://addons/debug_draw_3d"
 
 PlayerState="*res://core/player_state/player_state.gd"
 InputSystems="*res://core/input/input_systems.gd"
+SoundSystem="*res://core/audio/sound_system.gd"
 
 [display]
 

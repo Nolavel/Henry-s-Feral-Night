@@ -15,8 +15,11 @@ GODOT_VERSION="${GODOT_VERSION:-4.8-dev6}"
 GODOT_PKG="Godot_v${GODOT_VERSION}_mono_linux_x86_64"
 PREFIX="$HOME/.local/opt"
 
-$SUDO apt-get update -qq
-$SUDO apt-get install -y -qq mesa-vulkan-drivers vulkan-tools xvfb unzip dotnet-sdk-8.0
+## CI's headless checks need no GPU stack; SKIP_APT=1 skips it.
+if [ -z "${SKIP_APT:-}" ]; then
+	$SUDO apt-get update -qq
+	$SUDO apt-get install -y -qq mesa-vulkan-drivers vulkan-tools xvfb unzip dotnet-sdk-8.0
+fi
 
 mkdir -p "$PREFIX" "$HOME/.local/bin"
 if [ ! -x "$PREFIX/godot-mono/${GODOT_PKG%_x86_64}.x86_64" ]; then

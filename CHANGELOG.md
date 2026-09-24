@@ -5,6 +5,21 @@ Maintained per branch; entries are added by whoever makes the change.
 
 ## [Unreleased] — `codex`
 
+### 2026-09-24 — Audio system and a cheaper CI gate (claudeflow)
+
+Added
+- `SoundSystem` autoload with `SoundEvent` (variations, jitter, voice limits,
+  cooldown) and `SoundLayer` (parameter-driven loops); bus layout with an
+  interior low-pass. `WorldAudioBinder` feeds wind, shelter and footsteps.
+  See `docs/technical/AUDIO.md`.
+
+Changed
+- CI is one `checks` workflow on pull requests to `main`: import, filename
+  check, headless suites. The lavapipe render and both visual-FX preview
+  workflows are gone; render locally with `tools/ci/render.sh`.
+- `run_tests.sh` kills a hung suite after `SUITE_TIMEOUT` seconds (180) and
+  counts it as failed.
+
 ### 2026-09-24 — Solid vital cells, a quiet figure, and a compile fix (claudeflow)
 
 Changed
