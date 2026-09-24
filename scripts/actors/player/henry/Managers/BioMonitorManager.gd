@@ -81,7 +81,6 @@ var has_recently_rested: bool = false
 
 # === ССЫЛКИ ===
 @export var dn_manager: DayNightManager
-@export var bio_monitor_ui: Control
 
 func _ready():
 	# Инициализация начальных значений
@@ -98,9 +97,7 @@ func _ready():
 		dn_manager.time_changed.connect(_on_time_changed)
 	else:
 		print("ОШИБКА: DayNightManager не назначен в BioMonitorManager!")
-		
-	if not bio_monitor_ui:
-		print("ОШИБКА: PlayerHUD_Control не назначен в BioMonitorManager! Динамические оповещения не будут работать.")
+
 
 	# Инициализация начального прогресса и состояний
 	call_deferred("emit_initial_progress")
@@ -144,10 +141,6 @@ func _on_time_changed(_formatted_time: String, _is_day: bool, _day_number: int, 
 		# === ПРОВЕРКА КРИТИЧЕСКИХ СОСТОЯНИЙ ===
 		check_critical_states()
 		
-		# === UI МЕТОДЫ (если назначен) ===
-		if bio_monitor_ui:
-			# Upper/Lower алерты только если НЕ в критических состояниях
-			trigger_ui_alerts()
 
 ## Applies the hourly drain of every vital.
 func process_hourly_consumption():
@@ -208,20 +201,6 @@ func check_critical_states():
 		print("Игрок восстановил энергию.")
 
 ## Fires UI alerts when a vital changes.
-func trigger_ui_alerts():
-	# Голод - только если не в критическом состоянии и значение уменьшилось
-	if not is_currently_critically_hungry and current_calories < previous_calories:
-		bio_monitor_ui.trigger_hourly_hunger_alert()
-	
-	# Жажда - только если не в критическом состоянии и значение уменьшилось
-	if not is_currently_critically_thirsty and current_hydration < previous_hydration:
-		bio_monitor_ui.trigger_hourly_thirst_alert()
-	
-	# Энергия - только если не в критическом состоянии и значение уменьшилось
-	if not is_currently_critically_tired and current_energy < previous_energy:
-		bio_monitor_ui.trigger_hourly_energy_alert()
-
-# === РАСЧЕТ ПРОГРЕССА ===
 func calculate_hunger_progress() -> float:
 	return clamp(current_calories / max_calories, 0.0, 1.0)
 
@@ -248,8 +227,6 @@ func add_calories(amount: float):
 		print("Игрок поел, больше не в критическом голоде.")
 	
 	# Показываем Upper alert при восполнении
-	if bio_monitor_ui:
-		bio_monitor_ui.trigger_hunger_upper_alert()
 
 ## Adds hydration and updates the UI.
 func add_hydration(amount: float):
@@ -267,8 +244,6 @@ func add_hydration(amount: float):
 		print("Игрок восстановил гидратацию.")
 	
 	# Показываем Upper alert при восполнении
-	if bio_monitor_ui:
-		bio_monitor_ui.trigger_thirst_upper_alert()
 
 ## Adds energy and updates the UI.
 func add_energy(amount: float):
@@ -286,8 +261,6 @@ func add_energy(amount: float):
 		print("Игрок восстановил энергию.")
 	
 	# Показываем Upper alert при восполнении
-	if bio_monitor_ui:
-		bio_monitor_ui.trigger_energy_upper_alert()
 
 ## Restores energy over a night and charges the night's own metabolism.
 ## Sleep is not a free reset: a starving or parched body rests badly.

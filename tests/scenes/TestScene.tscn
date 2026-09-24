@@ -1,4 +1,4 @@
-[gd_scene load_steps=27 format=3 uid="uid://bcxsh1dufbls3"]
+[gd_scene format=3 uid="uid://bcxsh1dufbls3"]
 
 [ext_resource type="Script" path="res://world/world.gd" id="90_world"]
 [ext_resource type="PackedScene" path="res://scenes/environment/shelter/test_shelter.tscn" id="91_shelter"]
@@ -112,29 +112,8 @@ mesh = SubResource("BoxMesh_efhgp")
 [node name="Player" parent="." instance=ExtResource("4_vhdnb")]
 transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 0, 1, 0)
 
-[node name="DETAILS Low Poly" parent="Player/player_base_mesh/GeneralSkeleton/RetargetModifier3D/OriginalSkeleton" index="1"]
-surface_material_override/0 = null
-
-[node name="Boots Low Poly" parent="Player/player_base_mesh/GeneralSkeleton/RetargetModifier3D/OriginalSkeleton" index="2"]
-surface_material_override/0 = null
-
-[node name="Low Poly Headset" parent="Player/player_base_mesh/GeneralSkeleton/RetargetModifier3D/OriginalSkeleton" index="4"]
-surface_material_override/0 = null
-
-[node name="BioMonitorManager" parent="Player" index="10" node_paths=PackedStringArray("dn_manager", "bio_monitor_ui")]
+[node name="BioMonitorManager" parent="Player" node_paths=PackedStringArray("dn_manager")]
 dn_manager = NodePath("../../WorldEnvironmentSystem/DayNightManager")
-bio_monitor_ui = NodePath("../InGameUI/Vital_Signs")
-
-[node name="Vital_Signs" parent="Player/InGameUI" index="0" node_paths=PackedStringArray("player", "bio_monitor")]
-player = NodePath("../..")
-bio_monitor = NodePath("../../BioMonitorManager")
-
-[node name="Active_Weapon_Highlight" parent="Player/HUD/CombatHUD/Icon_Weapons" index="0"]
-layout_mode = 0
-offset_left = 0.0
-offset_top = 0.0
-offset_right = 50.0
-offset_bottom = 40.0
 
 [node name="MeshWall" type="MeshInstance3D" parent="."]
 transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 0, 2.52639, -10)
@@ -291,4 +270,3 @@ shape = SubResource("SphereShape3D_pickup")
 
 [editable path="WorldEnvironmentSystem"]
 [editable path="Player"]
-[editable path="Player/InGameUI"]

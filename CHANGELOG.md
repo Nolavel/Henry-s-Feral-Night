@@ -5,6 +5,16 @@ Maintained per branch; entries are added by whoever makes the change.
 
 ## [Unreleased] — `codex`
 
+### 2026-09-24 — Dead player layer removed (claudeflow)
+
+Removed
+- The hidden Genesis8 Henry (skeleton, meshes, materials) embedded in
+  `player.tscn`: 1.7 MB -> 4 KB. The UAL mannequin is the only body.
+- Old HUD: `InGameUI`, `vital_signs.gd`, `CombatHUD` and its weapon slots, debug
+  labels; `BioMonitorManager` no longer pokes a UI.
+- Gizmo (the pre-Kenny robot): scene, scripts, the C# flashlight duplicate,
+  test model and icons.
+
 ### 2026-09-24 — Audio system and a cheaper CI gate (claudeflow)
 
 Added

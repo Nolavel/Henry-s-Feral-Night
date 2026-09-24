@@ -1,4 +1,4 @@
-[gd_scene load_steps=16 format=3 uid="uid://cg14lfow57cog"]
+[gd_scene format=3 uid="uid://cg14lfow57cog"]
 
 [ext_resource type="Script" path="res://world/world.gd" id="1_8hwqn"]
 [ext_resource type="PackedScene" uid="uid://dputwp1am8vfu" path="res://scenes/game/systems/camera/tps_camera.tscn" id="1_ftega"]
@@ -94,13 +94,8 @@ metadata/_edit_group_ = true
 [node name="Player" parent="." instance=ExtResource("2_8hwqn")]
 transform = Transform3D(-4.37114e-08, 0, 1, 0, 1, 0, -1, 0, -4.37114e-08, 1247, 20, -829)
 
-[node name="BioMonitorManager" parent="Player" index="10" node_paths=PackedStringArray("dn_manager", "bio_monitor_ui")]
+[node name="BioMonitorManager" parent="Player" node_paths=PackedStringArray("dn_manager")]
 dn_manager = NodePath("../../WorldEnvironmentSystem/DayNightManager")
-bio_monitor_ui = NodePath("../InGameUI/Vital_Signs")
-
-[node name="Vital_Signs" parent="Player/InGameUI" index="0" node_paths=PackedStringArray("player", "bio_monitor")]
-player = NodePath("../..")
-bio_monitor = NodePath("../../BioMonitorManager")
 
 [node name="PlayerCamera" parent="." node_paths=PackedStringArray("player") instance=ExtResource("1_ftega")]
 transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 1442.73, 15, -1005.2396)
@@ -477,5 +472,4 @@ transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 1420, 3, -943)
 [connection signal="body_exited" from="WorldStreamManager/Harborlight District/Loc_HarborlightDistrict" to="WorldStreamManager" method="_on_loc_harborlight_district_body_exited"]
 
 [editable path="Player"]
-[editable path="Player/InGameUI"]
 [editable path="WorldEnvironmentSystem"]
