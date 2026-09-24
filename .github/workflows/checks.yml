@@ -31,8 +31,11 @@ jobs:
       - name: Provision Godot (headless only)
         run: SKIP_APT=1 tools/ci/setup_env.sh
 
-      - name: Import project
-        run: ~/.local/bin/godot --headless --import --quit || true
+      - name: Import gate (clean import, every script compiles)
+        run: tools/ci/import_gate.sh
+
+      - name: Input map overlaps
+        run: python3 tools/ci/check_input_map.py
 
       - name: Check filenames and uid files
         run: tools/ci/check_filenames.sh

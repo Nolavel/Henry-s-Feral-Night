@@ -21,7 +21,8 @@ author. Claude flags cost and risk for them.
 
 - Claude owns `claudeflow` — **one branch, always**. Never create additional
   Claude branches; never touch `main`, `codex`, or another agent's branch.
-- Integration into `main` happens only when the author explicitly asks.
+- Merging `main` into `claudeflow` is routine (see below); integration into
+  `main` happens only when the author asks. Same rule as `AGENTS.md`.
 
 ## Staying in sync
 

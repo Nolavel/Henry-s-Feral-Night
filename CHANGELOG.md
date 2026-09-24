@@ -5,6 +5,31 @@ Maintained per branch; entries are added by whoever makes the change.
 
 ## [Unreleased] — `codex`
 
+### 2026-09-24 — Build hygiene from the #58 review (claudeflow)
+
+Added
+- `tools/ci/import_gate.sh`: the CI import now fails on load errors (second
+  pass, after cold-cache ordering noise) and compiles every project script
+  (`tools/ci/compile_scripts.gd`). This replaces `--import --quit || true`.
+- `tools/ci/check_input_map.py`: two actions on one key fail CI unless
+  `tools/ci/input_overlap_allowlist.txt` gives the reason.
+
+Changed
+- README rewritten after ADT's layout: what is in, run, controls, layout, docs,
+  agents, licence. Engine is 4.8-dev6, not 4.5.
+- `AGENTS.md` / `CLAUDE.md` now share one branch rule: agents merge `main`
+  into their own branch freely, and integration into `main` needs the author.
+- `docs/THIRD_PARTY_NOTICES.md` credits Godot and Quaternius UAL, and flags the
+  audio files whose source is unrecorded. `ual/NOTICE.md` now says UAL2 is used.
+
+Removed
+- `project.godot` noise: the 5 s boot splash, the low-processor sleep, the
+  orphan cursor hotspot, explicit defaults, the orphan `[debug_draw_3d]`
+  section, and the unused `use_ability_gizmo_1` action (it clashed with Z).
+- Orphans: `experimental_location/exp/` (HTerrain data), the unreferenced
+  `player_test_model` FBX with a broken texture path, and the empty skeleton
+  folders `autoloads/`, `levels/`, `systems/`, `ui/`.
+
 ### 2026-09-24 — Issue #56: carry firewood, cabinet, working actions (claudeflow)
 
 Added

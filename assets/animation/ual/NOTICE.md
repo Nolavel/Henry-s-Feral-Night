@@ -7,8 +7,11 @@ authoritative; the animation layer only reads the player's resulting velocity.
 - Upstream: Quaternius — Universal Animation Library
 - License: CC0 1.0 Universal / public domain dedication
 - UAL1 binary used by the player: `Unreal-Godot/UAL1_Standard.glb`
-- UAL2 is vendored alongside it as a compatible secondary animation library,
-  but is not currently instantiated by Henry.
+- UAL2 (`Unreal-Godot_2/UAL2_Standard.glb`) is loaded as Henry's secondary
+  animation library `UAL2` (carry, chest open, consume and other actions).
+- `assets/characters/henry/henry_outfit.glb` is built from the UAL1 mannequin
+  and armature by `tools/blender/build_henry_outfit.py`; the garments are
+  project work.
 
 DOGWATCH is the architectural reference for this integration: its player/crew
 visuals use the same UAL-style non-root-motion split between gameplay movement
