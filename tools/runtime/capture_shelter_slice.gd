@@ -41,12 +41,6 @@ func _initialize() -> void:
 	_feed = _zone.find_child("Feed", true, false) as HeatSourceFeed
 	_cabinet = _zone.find_child("Open", true, false) as Cabinet
 	_board = _zone.find_child("BackWindow1", true, false).find_child("BoardUp", true, false) as BreachBoardUp
-	## Frames show the world, not the HUD, and only this capture's camera.
-	for layer: Node in scene.find_children("*", "CanvasLayer", true, false):
-		(layer as CanvasLayer).visible = false
-	for cam: Node in scene.find_children("*", "Camera3D", true, false):
-		cam.process_mode = Node.PROCESS_MODE_DISABLED
-		(cam as Camera3D).current = false
 	_camera = Camera3D.new()
 	_camera.fov = 55.0
 	scene.add_child(_camera)
@@ -64,6 +58,7 @@ func _process(delta: float) -> bool:
 	_phase_time += delta
 	if _time < WARMUP:
 		return false
+	_quiet_game_view()
 	_camera.make_current()
 	_frame_camera()
 	if _phase_time > PHASE_TIMEOUT:
@@ -125,6 +120,21 @@ func _process(delta: float) -> bool:
 				quit()
 	_take_due_shots()
 	return false
+
+
+## The game camera, HUD and prompt labels spawn at runtime; frames want only
+## the world through this capture's camera.
+func _quiet_game_view() -> void:
+	for node: Node in root.find_children("*", "", true, false):
+		if node is Camera3D and node != _camera:
+			node.process_mode = Node.PROCESS_MODE_DISABLED
+			(node as Camera3D).current = false
+		elif node is CanvasLayer:
+			(node as CanvasLayer).visible = false
+		elif node is Control and node.get_parent() == root:
+			(node as Control).visible = false
+		elif node is Label3D:
+			(node as Label3D).visible = false
 
 
 func _next(shots: Array) -> void:
