@@ -11,7 +11,8 @@ One agent uses one branch. Agents never share a working branch.
 - Never commit directly to `main`.
 - Never push commits to another agent's branch.
 - Never force-move another agent's branch.
-- Merge/rebase only when the user explicitly asks for integration.
+- An agent may merge `main` into its own branch at any time to stay in sync (merge, never rebase).
+- Integration into `main` happens only when the author asks for it.
 - Before writing, verify the current branch belongs to the acting agent.
 
 If an agent cannot create or write its own branch, it must stop instead of falling back to `main`.

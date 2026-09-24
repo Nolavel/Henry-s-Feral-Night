@@ -12,17 +12,9 @@ config/name="Henry`s Feral Night"
 config/tags=[]
 run/main_scene="res://experimental_location/scenes/Graciosa_Island_Terrain.tscn"
 config/features=PackedStringArray("4.8", "C#", "Forward Plus")
-run/max_fps=0.0
-run/low_processor_mode_sleep_usec=6900.0
-run/frame_delay_msec=0.0
 boot_splash/fullsize=false
 boot_splash/image="uid://7vujivcaksjj"
 config/icon="res://icon.svg"
-boot_splash/minimum_display_time=5000
-
-[debug_draw_3d]
-
-settings/addon_root_folder="res://addons/debug_draw_3d"
 
 [autoload]
 
@@ -38,13 +30,8 @@ window/size/mode=3
 window/size/initial_position_type=1.0
 window/size/initial_position="(0, 0)"
 window/size/borderless=true
-window/size/window_width_override=0.0
-window/size/window_height_override=0.0
 window/stretch/mode="viewport"
-window/handheld/orientation=0.0
 window/vsync/vsync_mode=1.0
-mouse_cursor/custom_image_hotspot="(0, 0)"
-mouse_cursor/tooltip_position_offset="(10, 10)"
 
 [dotnet]
 
@@ -537,11 +524,6 @@ toggle_flashlight={
 "toggle camera view"={
 "deadzone": 0.5,
 "events": [Object(InputEventKey,"resource_local_to_scene":false,"resource_name":"","device":-1,"window_id":0,"alt_pressed":false,"shift_pressed":false,"ctrl_pressed":false,"meta_pressed":false,"pressed":false,"keycode":0,"physical_keycode":86,"key_label":0,"unicode":118,"location":0,"echo":false,"script":null)
-]
-}
-use_ability_gizmo_1={
-"deadzone": 0.5,
-"events": [Object(InputEventKey,"resource_local_to_scene":false,"resource_name":"","device":-1,"window_id":0,"alt_pressed":false,"shift_pressed":false,"ctrl_pressed":false,"meta_pressed":false,"pressed":false,"keycode":0,"physical_keycode":90,"key_label":0,"unicode":122,"location":0,"echo":false,"script":null)
 ]
 }
 use_ability_gizmo_2={

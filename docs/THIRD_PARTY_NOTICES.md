@@ -9,6 +9,27 @@ arrived in commit `5496269` with terrain experiments and was never replaced —
 so the project was formally published as MIT by someone unconnected to it. That
 was never an intentional grant. See issue #5.
 
+## Godot Engine
+
+<https://godotengine.org> — Copyright (c) 2014-present Godot Engine
+contributors; (c) 2007-2014 Juan Linietsky, Ariel Manzur. MIT License,
+<https://godotengine.org/license>. Godot bundles further components under their
+own licences; the full list comes from `Engine.get_license_text()` and
+`Engine.get_copyright_info()`. **Must ship with builds.**
+
+## Quaternius Universal Animation Library (UAL1, UAL2)
+
+Mannequin, armature and animation clips in `assets/animation/ual/`. CC0 1.0
+(public domain dedication); no attribution required, credited anyway. Details
+and provenance in [`assets/animation/ual/NOTICE.md`](../assets/animation/ual/NOTICE.md).
+Henry's outfit GLB is derived from the UAL1 mannequin.
+
+## Audio — provenance not yet recorded
+
+`assets/audio/music/intro/intro_game_01.mp3` and the files under
+`assets/audio/sfx/` have no recorded source or licence. Until they do, they
+must not ship in a build. Owner: the author.
+
 ## Code ported from Nolavel/ADT
 
 Parts of the body and interaction layer (items, catalog, garments, equipment,
