@@ -1,7 +1,7 @@
 class_name HeldLightComponent
 extends Node
 
-## Lights a road flare from the inventory into Henry's right hand (L). A second
+## Lights a road flare from the inventory into Henry's raised hand (L). A second
 ## press drops it where he stands; either way it burns out and is gone.
 
 signal flare_lit(flare: HeldFlare)

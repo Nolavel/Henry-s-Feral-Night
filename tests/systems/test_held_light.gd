@@ -1,6 +1,6 @@
 extends SceneTree
 
-## Held flare: L spends a flare from the inventory into the shared right-hand
+## Held flare: L spends a flare from the inventory into the shared hand
 ## socket, the arm eases into the held pose, a second press drops it burning.
 ## Run: godot --headless --script tests/systems/test_held_light.gd
 
@@ -37,7 +37,7 @@ func _process(delta: float) -> bool:
 			var flare := _visual.get_held_prop() as HeldFlare
 			_check(flare != null and flare.is_burning(), "no burning flare in Henry's hand")
 			_check(flare != null and flare.get_parent() == _visual.get_hand_socket(), "the flare is not on the shared hand socket")
-			_check(_visual.get_hand_socket().bone_name == &"hand_r", "the hand socket is not on hand_r")
+			_check(_visual.get_hand_socket().bone_name == &"hand_l", "the hand socket is not on the Idle_Torch hand (hand_l)")
 		10:
 			_visual.update_animation_blend(0.5)
 			_check(float(_visual.animation_tree.get("parameters/hold_pose/blend_amount")) > 0.9, "the arm did not rise into the held pose")

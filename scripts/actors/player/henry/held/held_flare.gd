@@ -50,6 +50,11 @@ var _sparks: GPUParticles3D
 var _fragments: GPUParticles3D
 var _smoke: GPUParticles3D
 var _smoke_process: ParticleProcessMaterial
+var _spark_process: ParticleProcessMaterial
+## 0..1 gush level: rises in uneven spurts, decays between them, and drives the
+## spark fountain and the light's reach together.
+var _gush: float = 0.0
+var _gush_timer_s: float = 0.0
 
 var _rng := RandomNumberGenerator.new()
 var _runtime_visuals_enabled: bool = true
@@ -147,6 +152,7 @@ func _process(delta: float) -> void:
 	var smoke_follow: float = 1.0 - exp(-delta * 2.8)
 	_smoke_energy = lerpf(_smoke_energy, _current_energy, smoke_follow)
 
+	_update_gush(delta)
 	_apply_energy()
 
 	_wind_timer_s -= delta
@@ -175,11 +181,24 @@ func _pick_next_energy() -> void:
 	_target_energy = target
 
 
+## Spurts: at random short intervals the tip spits a fountain (gush jumps up),
+## which then sags; a surge in burn energy makes a spurt likely.
+func _update_gush(delta: float) -> void:
+	_gush_timer_s -= delta
+	if _gush_timer_s <= 0.0:
+		_gush_timer_s = _rng.randf_range(0.12, 0.55)
+		var chance: float = 0.35 + clampf(_current_energy - 0.9, 0.0, 0.4) * 1.5
+		if _rng.randf() < chance:
+			_gush = maxf(_gush, _rng.randf_range(0.55, 1.0))
+	_gush = move_toward(_gush, 0.0, delta * _rng.randf_range(1.1, 2.4))
+
+
 func _apply_energy() -> void:
 	if _light != null:
 		var light_t: float = clampf((_current_energy - 0.45) / 0.85, 0.0, 1.0)
 		_light.light_energy = lerpf(base_light_energy * 0.72, surge_light_energy, light_t)
-		_light.omni_range = light_range_m * lerpf(0.92, 1.08, light_t)
+		## The lit circle on the ground breathes with the burn and each spurt.
+		_light.omni_range = light_range_m * lerpf(0.7, 1.15, light_t) * lerpf(1.0, 1.3, _gush)
 
 	if _core_material != null:
 		_core_material.emission_energy_multiplier = lerpf(
@@ -193,7 +212,10 @@ func _apply_energy() -> void:
 
 	var hiss: float = sin(_burn_elapsed_s * 24.7) * 0.045 + sin(_burn_elapsed_s * 41.3 + 0.8) * 0.025
 	if _sparks != null:
-		_sparks.amount_ratio = clampf(0.36 + _current_energy * 0.52 + hiss, 0.18, 1.0)
+		_sparks.amount_ratio = clampf(0.22 + _gush * 0.78 + (_current_energy - 0.9) * 0.4 + hiss, 0.12, 1.0)
+	if _spark_process != null:
+		_spark_process.initial_velocity_min = lerpf(1.6, 3.2, _gush)
+		_spark_process.initial_velocity_max = lerpf(3.4, 7.2, _gush)
 	if _fragments != null:
 		_fragments.amount_ratio = clampf((_current_energy - 0.62) * 0.90, 0.06, 0.62)
 	if _smoke != null:
@@ -301,8 +323,8 @@ func _build_flare() -> void:
 
 func _make_spark_layer() -> GPUParticles3D:
 	var particles := GPUParticles3D.new()
-	particles.amount = 112
-	particles.lifetime = 0.48
+	particles.amount = 360
+	particles.lifetime = 0.85
 	particles.randomness = 0.68
 	particles.local_coords = false
 	particles.fixed_fps = 30
@@ -312,24 +334,35 @@ func _make_spark_layer() -> GPUParticles3D:
 	var process := ParticleProcessMaterial.new()
 	process.emission_shape = ParticleProcessMaterial.EMISSION_SHAPE_POINT
 	process.direction = Vector3.UP
-	process.spread = 24.0
-	process.initial_velocity_min = 1.8
-	process.initial_velocity_max = 4.8
-	process.gravity = Vector3(0.0, -3.2, 0.0)
-	process.scale_min = 0.45
-	process.scale_max = 1.35
-	process.color = Color(1.0, 0.12, 0.018, 1.0)
+	process.spread = 34.0
+	process.initial_velocity_min = 1.6
+	process.initial_velocity_max = 3.4
+	## Real gravity, so the jet arcs over and falls as a fountain.
+	process.gravity = Vector3(0.0, -9.8, 0.0)
+	process.damping_min = 0.4
+	process.damping_max = 1.6
+	process.scale_min = 0.5
+	process.scale_max = 1.5
+	## Hot sparks read orange-white at the tip, cooling toward red.
+	var spark_ramp := Gradient.new()
+	spark_ramp.set_color(0, Color(1.0, 0.85, 0.55, 1.0))
+	spark_ramp.add_point(0.35, Color(1.0, 0.42, 0.1, 1.0))
+	spark_ramp.set_color(spark_ramp.get_point_count() - 1, Color(0.9, 0.08, 0.02, 0.0))
+	var spark_ramp_tex := GradientTexture1D.new()
+	spark_ramp_tex.gradient = spark_ramp
+	process.color_ramp = spark_ramp_tex
 	particles.process_material = process
+	_spark_process = process
 	## Soft radial billboard: avoids the tiny square/diamond read seen under
 	## lavapipe while keeping the validated cone width.
-	particles.draw_pass_1 = _spark_mesh(0.0054, Color(1.0, 0.18, 0.025, 1.0), 7.0)
+	particles.draw_pass_1 = _spark_mesh(0.0085, Color(1.0, 0.6, 0.25, 1.0), 7.0)
 	return particles
 
 
 func _make_fragment_layer() -> GPUParticles3D:
 	var particles := GPUParticles3D.new()
-	particles.amount = 24
-	particles.lifetime = 0.95
+	particles.amount = 60
+	particles.lifetime = 1.2
 	particles.randomness = 0.82
 	particles.local_coords = false
 	particles.fixed_fps = 30
