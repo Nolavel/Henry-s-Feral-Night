@@ -10,7 +10,7 @@ config_version=5
 
 config/name="Henry`s Feral Night"
 config/tags=[]
-run/main_scene="res://tests/scenes/TestScene.tscn"
+run/main_scene="res://experimental_location/scenes/Graciosa_Island_Terrain.tscn"
 config/features=PackedStringArray("4.8", "C#", "Forward Plus")
 run/max_fps=0.0
 run/low_processor_mode_sleep_usec=6900.0
