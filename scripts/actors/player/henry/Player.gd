@@ -50,6 +50,10 @@ func _ready() -> void:
 		_standing_collision_position = main_collision.position
 	if health_system != null:
 		health_system.damage_taken.connect(_on_damage_taken_for_animation)
+	var carry := get_node_or_null(^"CarryComponent") as CarryComponent
+	if carry != null and animation_component != null:
+		carry.carry_changed.connect(animation_component.set_carried_item)
+		animation_component.set_carried_item(carry.get_carried_item())
 	if consumption_controller != null:
 		consumption_controller.consumed.connect(
 			func(_item_id: StringName, _item: ItemResource) -> void:
@@ -93,6 +97,11 @@ func _physics_process(delta: float) -> void:
 		else:
 			world_dir = _walk_direction()
 			sprint_is_pressed = false
+	## Working actions (pickup, repair, opening) root Henry until they end.
+	if is_instance_valid(animation_component) and animation_component.is_action_locking():
+		world_dir = Vector3.ZERO
+		jump_just_pressed = false
+		sprint_is_pressed = false
 	_face_towards(world_dir, delta)
 	input_dir = global_transform.basis.orthonormalized().inverse() * world_dir
 

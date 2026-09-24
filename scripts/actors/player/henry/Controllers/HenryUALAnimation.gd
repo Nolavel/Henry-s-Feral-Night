@@ -23,6 +23,14 @@ const CROUCH_FWD_ALIASES: Array[StringName] = [&"Crouch_Fwd_Loop", &"Crouch_Fwd"
 const JUMP_START_ALIASES: Array[StringName] = [&"Jump_Start"]
 const JUMP_LOOP_ALIASES: Array[StringName] = [&"Jump_Loop"]
 const JUMP_LAND_ALIASES: Array[StringName] = [&"Jump_Land"]
+const CARRY_WALK_ALIASES: Array[StringName] = [&"UAL2/Walk_Carry", &"Walk_Carry_Loop"]  # Godot drops _Loop on import
+## Bones the carry pose leaves to the idle clip; the rest hold the load.
+const LOWER_BODY_BONES: Array[StringName] = [&"root", &"pelvis", &"spine_01", &"thigh_l", &"calf_l",
+	&"foot_l", &"ball_l", &"thigh_r", &"calf_r", &"foot_r", &"ball_r"]
+## Full-body actions during which Henry stands still.
+const LOCKING_ACTIONS: Array[StringName] = [&"interact", &"pickup", &"fix", &"chest_open"]
+## Walking speed of the authored carry cycle, m/s.
+const CARRY_WALK_SPEED: float = 1.5
 
 const ACTION_ALIASES: Dictionary = {
 	&"interact": [&"Interact"],
@@ -90,6 +98,12 @@ const GARMENT_PARTS: Dictionary = {
 ## Kenny's faded plush, lighter than the pack so the silhouette separates.
 @export var kenny_color: Color = Color(0.55, 0.45, 0.34)
 
+@export_group("Carried load")
+## Bone the armful rides on; the carry cycle keeps both hands around it.
+@export var carry_bone: StringName = &"spine_03"
+## Load centre from the bone in model space: +Z is in front of Henry.
+@export var carry_offset: Vector3 = Vector3(0.0, -0.14, 0.3)
+
 @onready var player: CharacterBody3D = get_parent() as CharacterBody3D
 @onready var model: Node = $Model
 
@@ -121,6 +135,11 @@ var _resolved_crouch_fwd: StringName = &""
 var _resolved_jump_start: StringName = &""
 var _resolved_jump_loop: StringName = &""
 var _resolved_jump_land: StringName = &""
+var _resolved_carry_walk: StringName = &""
+var _current_action: StringName = &""
+var _carried: ItemResource = null
+## Props shown in Henry's arms while carried, by ItemResource.attached_mesh_node_name.
+var _carry_props: Dictionary = {}
 
 
 func _ready() -> void:
@@ -144,6 +163,7 @@ func _ready() -> void:
 	_paint_body()
 	_attach_backpack()
 	_attach_garments()
+	_attach_carry_props()
 	_bind_equipment()
 	_setup_head_look()
 	_make_animation_library_local()
@@ -173,6 +193,10 @@ func update_animation_blend(_delta: float) -> void:
 	if player.has_method("get_crouch_speed_ratio"):
 		crouch_blend = float(player.call("get_crouch_speed_ratio"))
 	animation_tree.set("parameters/base/Crouch/blend_position", crouch_blend)
+	var speed: float = Vector2(player.velocity.x, player.velocity.z).length()
+	animation_tree.set("parameters/base/Carry/arms_pace/scale", speed / CARRY_WALK_SPEED)
+	animation_tree.set("parameters/base/Carry/walk_pace/scale", speed / CARRY_WALK_SPEED)
+	animation_tree.set("parameters/base/Carry/move/blend_amount", clampf(speed / 0.3, 0.0, 1.0))
 
 
 func update_animation_state(jump_started: bool, landed: bool) -> void:
@@ -193,7 +217,34 @@ func update_animation_state(jump_started: bool, landed: bool) -> void:
 		_state_playback.travel(&"AirLoop")
 		return
 	var crouching: bool = player.has_method("is_crouching") and bool(player.call("is_crouching"))
-	_state_playback.travel(&"Crouch" if crouching else &"Grounded")
+	if crouching:
+		_state_playback.travel(&"Crouch")
+	else:
+		_state_playback.travel(&"Carry" if _carried != null and _has_carry_state() else &"Grounded")
+
+
+## Shows the carried item's prop and switches locomotion to the carry cycle;
+## null frees the hands. CarryComponent decides what is carried.
+func set_carried_item(item: ItemResource) -> void:
+	_carried = item
+	var shown: StringName = item.attached_mesh_node_name if item != null else &""
+	for prop_name: StringName in _carry_props:
+		(_carry_props[prop_name] as Node3D).visible = prop_name == shown
+
+
+func is_carrying() -> bool:
+	return _carried != null
+
+
+## True while a full-body action plays that Henry must stand still for.
+func is_action_locking() -> bool:
+	if animation_tree == null or not LOCKING_ACTIONS.has(_current_action):
+		return false
+	return bool(animation_tree.get("parameters/actions/active"))
+
+
+func _has_carry_state() -> bool:
+	return _resolved_carry_walk != &""
 
 
 func play_action(action: StringName) -> bool:
@@ -206,6 +257,7 @@ func play_action(action: StringName) -> bool:
 	if animation != null:
 		animation.loop_mode = Animation.LOOP_NONE
 	_action_node.animation = clip_name
+	_current_action = action
 	animation_tree.set("parameters/actions/request", AnimationNodeOneShot.ONE_SHOT_REQUEST_FIRE)
 	return true
 
@@ -434,6 +486,48 @@ func _attach_garments() -> void:
 			_skin_parts[garment_name] = skin
 
 
+## An armful of logs across the forearms, hidden until firewood is carried.
+func _attach_carry_props() -> void:
+	if skeleton == null:
+		return
+	var bone: int = skeleton.find_bone(carry_bone)
+	if bone < 0:
+		push_warning("HenryUALAnimation: no bone %s for carried loads." % carry_bone)
+		return
+	var attachment := BoneAttachment3D.new()
+	attachment.name = "CarryAttachment"
+	attachment.bone_name = carry_bone
+	skeleton.add_child(attachment)
+	var rest: Transform3D = skeleton.get_bone_global_rest(bone)
+	var bundle := Node3D.new()
+	bundle.name = "CarryFirewood"
+	bundle.transform = rest.affine_inverse() * Transform3D(Basis.IDENTITY, rest.origin + carry_offset)
+	bundle.visible = false
+	attachment.add_child(bundle)
+	var bark := StandardMaterial3D.new()
+	bark.albedo_color = Color(0.36, 0.26, 0.18)
+	bark.roughness = 1.0
+	## [centre, radius, length, roll] per log, lying across Henry's chest.
+	var logs: Array = [
+		[Vector3(-0.06, 0.0, 0.0), 0.055, 0.46, 4.0],
+		[Vector3(0.06, 0.0, 0.01), 0.05, 0.42, -6.0],
+		[Vector3(0.0, 0.09, 0.0), 0.05, 0.44, 8.0],
+	]
+	for spec: Array in logs:
+		var cylinder := CylinderMesh.new()
+		cylinder.top_radius = spec[1]
+		cylinder.bottom_radius = spec[1]
+		cylinder.height = spec[2]
+		cylinder.radial_segments = 7
+		cylinder.material = bark
+		var log_mesh := MeshInstance3D.new()
+		log_mesh.mesh = cylinder
+		log_mesh.layers = portrait_render_layers
+		log_mesh.transform = Transform3D(Basis.from_euler(Vector3(0.0, deg_to_rad(spec[3]), PI * 0.5)), spec[0])
+		bundle.add_child(log_mesh)
+	_carry_props[&"CarryFirewood"] = bundle
+
+
 ## Soaked clothing reads darker; 0 dry to 1 soaked.
 func set_wetness(wetness: float) -> void:
 	_wetness = clampf(wetness, 0.0, 1.0)
@@ -480,6 +574,9 @@ func _setup_animation_tree() -> void:
 	_resolved_jump_start = _resolve_clip(JUMP_START_ALIASES)
 	_resolved_jump_loop = _resolve_clip(JUMP_LOOP_ALIASES)
 	_resolved_jump_land = _resolve_clip(JUMP_LAND_ALIASES)
+	_resolved_carry_walk = _resolve_clip(CARRY_WALK_ALIASES)
+	if _resolved_carry_walk == &"":
+		push_warning("HenryUALAnimation: no Walk_Carry_Loop clip; carrying keeps normal locomotion.")
 
 	if _resolved_idle == &"":
 		_resolved_idle = _first_available_clip()
@@ -538,6 +635,15 @@ func _setup_animation_tree() -> void:
 	_add_state_transition(base, &"AirLoop", &"Land", 0.08)
 	_add_state_transition(base, &"Land", &"Grounded", 0.10, true)
 	_add_state_transition(base, &"Land", &"Crouch", 0.10)
+	if _has_carry_state():
+		_force_locomotion_loop(_resolved_carry_walk)
+		base.add_node(&"Carry", _build_carry_tree(), Vector2(0.0, -180.0))
+		for other: StringName in [&"Grounded", &"Crouch"]:
+			_add_state_transition(base, other, &"Carry", 0.15)
+			_add_state_transition(base, &"Carry", other, 0.15)
+		_add_state_transition(base, &"Carry", &"JumpStart", 0.06)
+		_add_state_transition(base, &"Carry", &"AirLoop", 0.08)
+		_add_state_transition(base, &"Land", &"Carry", 0.10)
 
 	var default_action: StringName = _resolve_action_clip(&"interact")
 	_action_node = _clip(default_action if default_action != &"" else _resolved_idle)
@@ -561,9 +667,38 @@ func _setup_animation_tree() -> void:
 	animation_tree.active = true
 	animation_tree.set("parameters/base/Grounded/blend_position", 0.0)
 	animation_tree.set("parameters/base/Crouch/blend_position", 0.0)
+	animation_tree.set("parameters/base/Carry/arms/blend_amount", 1.0)
 	_state_playback = animation_tree.get("parameters/base/playback") as AnimationNodeStateMachinePlayback
 	if _state_playback != null:
 		_state_playback.start(&"Grounded")
+
+
+## Carry locomotion: the carry cycle at real speed while moving; standing, the
+## idle legs with the carry cycle's arms frozen around the load.
+func _build_carry_tree() -> AnimationNodeBlendTree:
+	var tree := AnimationNodeBlendTree.new()
+	tree.add_node(&"idle", _clip(_resolved_idle), Vector2(-400.0, 0.0))
+	## Frozen arms for standing and the full cycle for walking; a node output
+	## feeds only one input, so each branch has its own clip and pace.
+	for branch: String in ["arms", "walk"]:
+		tree.add_node(StringName(branch + "_clip"), _clip(_resolved_carry_walk), Vector2(-600.0, 200.0))
+		tree.add_node(StringName(branch + "_pace"), AnimationNodeTimeScale.new(), Vector2(-400.0, 200.0))
+		tree.connect_node(StringName(branch + "_pace"), 0, StringName(branch + "_clip"))
+	var arms := AnimationNodeBlend2.new()
+	arms.filter_enabled = true
+	var clip: Animation = animation_player.get_animation(_resolved_carry_walk)
+	for track: int in clip.get_track_count():
+		var path: NodePath = clip.track_get_path(track)
+		if not LOWER_BODY_BONES.has(StringName(path.get_concatenated_subnames())):
+			arms.set_filter_path(path, true)
+	tree.add_node(&"arms", arms, Vector2(-200.0, 0.0))
+	tree.connect_node(&"arms", 0, &"idle")
+	tree.connect_node(&"arms", 1, &"arms_pace")
+	tree.add_node(&"move", AnimationNodeBlend2.new(), Vector2(0.0, 0.0))
+	tree.connect_node(&"move", 0, &"arms")
+	tree.connect_node(&"move", 1, &"walk_pace")
+	tree.connect_node(&"output", 0, &"move")
+	return tree
 
 
 func _add_state_transition(state_machine: AnimationNodeStateMachine, from: StringName, to: StringName, xfade: float, auto_advance: bool = false) -> void:

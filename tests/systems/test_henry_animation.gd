@@ -43,6 +43,8 @@ func _process(_delta: float) -> bool:
 			_check(_visual.play_action(&"interact"), "interact action clip did not resolve")
 		6:
 			_check(bool(_visual.animation_tree.get("parameters/actions/active")), "OneShot did not become active")
+			_check(_visual.is_action_locking(), "a working action does not root Henry")
+			_check_carry()
 			_finish()
 	return false
 
@@ -58,6 +60,21 @@ func _build() -> void:
 	root.add_child(_body)
 	_check(_visual.animation_tree != null, "AnimationTree was not built")
 	_check(_visual._state_playback != null, "state-machine playback was not exposed")
+
+
+## Firewood in the arms: the UAL2 carry cycle resolves, the Carry state exists
+## and the armful shows only while carried.
+func _check_carry() -> void:
+	_check(_visual._resolved_carry_walk == &"UAL2/Walk_Carry", "UAL2 Walk_Carry did not resolve")
+	var tree := _visual.animation_tree.tree_root as AnimationNodeBlendTree
+	var machine := tree.get_node(&"base") as AnimationNodeStateMachine
+	_check(machine.has_node(&"Carry"), "Carry state is missing")
+	var prop := _visual.find_child("CarryFirewood", true, false) as Node3D
+	_check(prop != null and not prop.visible, "the armful shows before anything is carried")
+	_visual.set_carried_item(load("res://data/items/firewood.tres") as ItemResource)
+	_check(prop != null and prop.visible and _visual.is_carrying(), "carried firewood is not in Henry's arms")
+	_visual.set_carried_item(null)
+	_check(prop != null and not prop.visible and not _visual.is_carrying(), "the armful stays after the carry ends")
 
 
 func _check_transition_modes() -> void:
