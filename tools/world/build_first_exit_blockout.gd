@@ -14,10 +14,21 @@ const SHOULDER_M: float = 1.0
 const DITCH_M: float = 1.2
 ## Length of one road piece; short enough to follow the ground.
 const ROAD_STEP_M: float = 3.0
+const INTERACTIVE_SCENE: String = "res://scenes/environment/interactive/InteractiveArea.tscn"
+const ZONE_SCRIPT: String = "res://scripts/systems/survival/thermal_zone.gd"
+const BREACH_SCRIPT: String = "res://scripts/systems/survival/shelter_breach.gd"
+const BOARD_SCRIPT: String = "res://scripts/environment/interactive/breach_board_up.gd"
+const HEAT_SCRIPT: String = "res://scripts/systems/survival/heat_source.gd"
+const FEED_SCRIPT: String = "res://scripts/environment/interactive/heat_source_feed.gd"
+const PICKUP_SCRIPT: String = "res://scripts/environment/interactive/item_pickup.gd"
+## House openings shared by the walls and the breaches: [x, width, is_door].
+const WINDOW_GAPS: Array = [[-0.25, 2.0], [0.3, 1.6]]
 
 var _terrain: Terrain3D
 var _root: Node3D
 var _roads: Dictionary = {}
+## Built anchors by layout id, for pickups placed relative to them.
+var _anchors: Dictionary = {}
 var _resolved: Array = []
 var _rng := RandomNumberGenerator.new()
 var _concrete := StandardMaterial3D.new()
@@ -61,6 +72,8 @@ func _initialize() -> void:
 		_build_palm_row(row)
 	if layout.has("verge_palms"):
 		_build_verge_palms(layout["verge_palms"], layout.get("lots", []))
+	for pickup: Dictionary in layout.get("pickups", []):
+		_build_pickup(pickup)
 	var spawn: Dictionary = layout["spawn"]
 	var marker := Marker3D.new()
 	marker.name = "SpawnPoint"
@@ -220,6 +233,7 @@ func _build_lot(lot: Dictionary) -> void:
 	node.set_meta(&"note", lot.get("note", ""))
 	node.set_meta(&"depth", depth)
 	_add(_root, node)
+	_anchors[lot["id"]] = node
 	## Local frame: +Z faces the road, the lot spans x ±width/2, z ±depth/2.
 	var house: Array = lot["house"]
 	var hw: float = float(house[0])
@@ -239,6 +253,8 @@ func _build_lot(lot: Dictionary) -> void:
 	_bungalow(house_node, hw, hd, hh, state)
 	for retrofit: String in lot.get("retrofits", []):
 		_retrofit(house_node, retrofit, hw, hd, hh, node)
+	if bool(lot.get("is_shelter", false)):
+		_shelter_gameplay(house_node, hw, hd, hh)
 	if bool(lot.get("outbuilding", false)):
 		var shed := Node3D.new()
 		shed.name = "Outbuilding"
@@ -327,7 +343,10 @@ func _bungalow(node: Node3D, w: float, d: float, h: float, state: String = "kept
 	walls.name = "Walls"
 	walls.position.y = floor_y
 	_add(node, walls)
-	_room(walls, w, d, h - floor_y, 0.2, 1.1, [[-w * 0.25, 2.0], [w * 0.3, 1.6]], _wood, false)
+	var gaps: Array = []
+	for gap: Array in WINDOW_GAPS:
+		gaps.append([w * float(gap[0]), gap[1]])
+	_room(walls, w, d, h - floor_y, 0.2, 1.1, gaps, _wood, false)
 	if state == "roofless":
 		_box(node, Vector3(w * 0.25, h + 0.3, -d * 0.3), Vector3(w * 0.5, 0.15, d * 0.4), _wood)
 		return
@@ -340,6 +359,131 @@ func _bungalow(node: Node3D, w: float, d: float, h: float, state: String = "kept
 		slope.rotation.z = -side * pitch
 	var lean: MeshInstance3D = _box(node, Vector3(0, h - 0.2, d * 0.5 + 1.6), Vector3(w + 0.6, 0.12, 3.4), _wood)
 	lean.rotation.x = deg_to_rad(8.0)
+
+
+# --- Shelter gameplay -------------------------------------------------------
+
+## The working shelter from TestScene, fitted to the bungalow: an interior
+## ThermalZone, one ShelterBreach per opening with a board-up prompt, and a
+## stove that heats the zone. Sleep and save need nothing more.
+func _shelter_gameplay(house: Node3D, w: float, d: float, h: float) -> void:
+	var floor_y: float = 0.8
+	var inner_h: float = h - floor_y
+	var zone := Area3D.new()
+	zone.name = "ShelterZone"
+	zone.set_script(load(ZONE_SCRIPT))
+	zone.set(&"temperature_offset_c", 8.0)
+	zone.set(&"wind_exposure", 0.05)
+	zone.set(&"is_interior", true)
+	zone.set(&"max_heated_offset_c", 18.0)
+	zone.position = Vector3(0.0, floor_y + inner_h * 0.5, 0.0)
+	_add(house, zone)
+	var zone_shape := CollisionShape3D.new()
+	var box := BoxShape3D.new()
+	box.size = Vector3(w - 0.4, inner_h, d - 0.4)
+	zone_shape.shape = box
+	_add(zone, zone_shape)
+	## Openings: front door, then windows front and back. Severity by size.
+	var openings: Array = [["Door", 0.0, 1.1, 1.0, 0.3, 1.0]]
+	for i: int in range(WINDOW_GAPS.size()):
+		var gap: Array = WINDOW_GAPS[i]
+		var severity: float = 0.25 if float(gap[1]) >= 2.0 else 0.2
+		openings.append(["FrontWindow%d" % (i + 1), w * float(gap[0]), float(gap[1]), 1.45, severity, 1.0])
+		openings.append(["BackWindow%d" % (i + 1), w * float(gap[0]), float(gap[1]), 1.45, severity, -1.0])
+	for opening: Array in openings:
+		var side: float = opening[5]
+		var breach := Node3D.new()
+		breach.name = opening[0]
+		breach.set_script(load(BREACH_SCRIPT))
+		breach.set(&"severity", opening[4])
+		breach.set(&"name_key", "BREACH_DOOR" if opening[0] == "Door" else "BREACH_WINDOW")
+		## -Z of the breach points out of the house.
+		breach.position = Vector3(float(opening[1]), float(opening[3]) + floor_y - zone.position.y, side * d * 0.5)
+		breach.rotation.y = PI if side > 0.0 else 0.0
+		_add(zone, breach)
+		var boards := Node3D.new()
+		boards.name = "Boards"
+		boards.visible = false
+		_add(breach, boards)
+		var tall: float = 2.0 if opening[0] == "Door" else 1.1
+		for k: int in range(3):
+			var plank: MeshInstance3D = _box(boards, Vector3(0, -tall * 0.35 + float(k) * tall * 0.35, 0.12),
+				Vector3(float(opening[2]) + 0.3, 0.2, 0.05), _board, false)
+			plank.rotation.z = deg_to_rad(float(k - 1) * 6.0)
+		breach.set(&"boarded_visual", boards)
+		var prompt: Node3D = (load(INTERACTIVE_SCENE) as PackedScene).instantiate()
+		prompt.name = "BoardUp"
+		prompt.set_script(load(BOARD_SCRIPT))
+		prompt.set(&"interactable_scene", null)
+		prompt.position = Vector3(0.0, -0.4, 0.9)
+		_add(breach, prompt)
+		_prompt_shape(prompt, Vector3(float(opening[2]), 1.6, 1.2))
+	var stove := Node3D.new()
+	stove.name = "Stove"
+	stove.set_script(load(HEAT_SCRIPT))
+	stove.set(&"starts_burning", false)
+	stove.position = Vector3(-w * 0.5 + 0.9, floor_y + 0.1 - zone.position.y, -d * 0.2)
+	_add(zone, stove)
+	stove.set(&"heats_zone", zone)
+	_box(stove, Vector3(0, 0.45, 0), Vector3(0.8, 0.9, 0.8), _metal)
+	var flame := OmniLight3D.new()
+	flame.name = "Flame"
+	flame.visible = false
+	flame.light_color = Color(1.0, 0.55, 0.2)
+	flame.light_energy = 2.5
+	flame.omni_range = 6.0
+	flame.position = Vector3(0, 1.1, 0)
+	_add(stove, flame)
+	stove.set(&"flame_light", flame)
+	var feed: Node3D = (load(INTERACTIVE_SCENE) as PackedScene).instantiate()
+	feed.name = "Feed"
+	feed.set_script(load(FEED_SCRIPT))
+	feed.set(&"interactable_scene", null)
+	feed.position = Vector3(0.9, 0.0, 0.0)
+	_add(stove, feed)
+	_prompt_shape(feed, Vector3(1.2, 1.4, 1.4))
+
+
+## Gives an instanced InteractiveArea its own box trigger.
+func _prompt_shape(prompt: Node3D, size: Vector3) -> void:
+	var box := BoxShape3D.new()
+	box.size = size
+	var col := prompt.get_node_or_null(^"CollisionShape3D") as CollisionShape3D
+	if col != null:
+		col.shape = box
+
+
+## An item on the ground, relative to a built anchor or at world x, z.
+func _build_pickup(spec: Dictionary) -> void:
+	var world := Vector3.ZERO
+	if spec.has("anchor"):
+		var parts: PackedStringArray = String(spec["anchor"]).split("/", true, 1)
+		var anchor: Node3D = _anchors.get(parts[0])
+		if anchor == null:
+			push_warning("pickup %s: no anchor %s" % [spec["id"], spec["anchor"]])
+			return
+		var local := Vector3(float(spec["local"][0]), float(spec["local"][1]), float(spec["local"][2]))
+		var target: Node3D = anchor.get_node(parts[1]) as Node3D if parts.size() > 1 else anchor
+		world = anchor.transform * (target.transform * local if target != anchor else local)
+	else:
+		world = _ground(float(spec["x"]), float(spec["z"]))
+	if not bool(spec.get("keep_height", false)):
+		world.y = _ground(world.x, world.z).y + 0.15
+	var pickup: Node3D = (load(INTERACTIVE_SCENE) as PackedScene).instantiate()
+	pickup.name = String(spec["id"]).to_pascal_case()
+	pickup.set_script(load(PICKUP_SCRIPT))
+	pickup.set(&"interactable_scene", null)
+	pickup.set(&"item_id", StringName(spec["item_id"]))
+	pickup.set(&"count", int(spec.get("count", 1)))
+	pickup.position = world
+	_add(_root, pickup)
+	var sphere := SphereShape3D.new()
+	sphere.radius = 0.6
+	var col := pickup.get_node_or_null(^"CollisionShape3D") as CollisionShape3D
+	if col != null:
+		col.shape = sphere
+	_resolved.append({"id": spec["id"], "kind": "pickup", "item_id": spec["item_id"], "count": int(spec.get("count", 1)),
+		"x": snappedf(world.x, 0.1), "z": snappedf(world.z, 0.1)})
 
 
 # --- Structures -------------------------------------------------------------
@@ -376,6 +520,7 @@ func _build_structure(s: Dictionary) -> void:
 	node.rotation.y = deg_to_rad(yaw_deg)
 	node.set_meta(&"note", s.get("note", ""))
 	_add(_root, node)
+	_anchors[s["id"]] = node
 	_resolved.append({"id": s["id"], "kind": s["kind"], "x": snappedf(x, 0.1), "z": snappedf(z, 0.1),
 		"yaw_deg": snappedf(yaw_deg, 0.1), "size": size})
 	match String(s["kind"]):

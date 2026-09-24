@@ -597,6 +597,86 @@
 			"x": 1362.0,
 			"yaw_deg": 200.0,
 			"z": -858.0
+		},
+		{
+			"count": 1,
+			"id": "boards_fort_1",
+			"item_id": "boards",
+			"kind": "pickup",
+			"x": 1296.2,
+			"z": -744.0
+		},
+		{
+			"count": 1,
+			"id": "boards_fort_2",
+			"item_id": "boards",
+			"kind": "pickup",
+			"x": 1297.6,
+			"z": -746.3
+		},
+		{
+			"count": 1,
+			"id": "tinder_fort",
+			"item_id": "tinder",
+			"kind": "pickup",
+			"x": 1296.8,
+			"z": -746.3
+		},
+		{
+			"count": 1,
+			"id": "stew_patrol_hut",
+			"item_id": "tinned_stew",
+			"kind": "pickup",
+			"x": 1315.0,
+			"z": -848.0
+		},
+		{
+			"count": 1,
+			"id": "firewood_bus_stop",
+			"item_id": "firewood",
+			"kind": "pickup",
+			"x": 1204.8,
+			"z": -733.1
+		},
+		{
+			"count": 1,
+			"id": "boards_next_door",
+			"item_id": "boards",
+			"kind": "pickup",
+			"x": 1109.0,
+			"z": -645.4
+		},
+		{
+			"count": 2,
+			"id": "firewood_shed_n1",
+			"item_id": "firewood",
+			"kind": "pickup",
+			"x": 1080.6,
+			"z": -674.4
+		},
+		{
+			"count": 1,
+			"id": "tinder_collapsed_n3",
+			"item_id": "tinder",
+			"kind": "pickup",
+			"x": 1043.5,
+			"z": -643.0
+		},
+		{
+			"count": 1,
+			"id": "firewood_shelter",
+			"item_id": "firewood",
+			"kind": "pickup",
+			"x": 1139.1,
+			"z": -653.1
+		},
+		{
+			"count": 1,
+			"id": "stew_beach_wreck",
+			"item_id": "tinned_stew",
+			"kind": "pickup",
+			"x": 1211.0,
+			"z": -868.3
 		}
 	],
 	"spawn": {
