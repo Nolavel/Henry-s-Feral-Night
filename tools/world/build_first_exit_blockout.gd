@@ -1,11 +1,10 @@
 extends SceneTree
 
 ## Builds the First Exit greybox from data/world/first_exit_layout.json onto the
-## Graciosa terrain, saves it as a scene and writes every resolved footprint.
+## island heightmap, saves it as a scene and writes every resolved footprint.
 ## Run: godot --headless --script res://tools/world/build_first_exit_blockout.gd
 
 const LAYOUT: String = "res://data/world/first_exit_layout.json"
-const TERRAIN_DIR: String = "res://experimental_location/Graciosa/terrain_graciosa"
 const OUT_SCENE: String = "res://scenes/world/first_exit/first_exit_blockout.tscn"
 const OUT_RESOLVED: String = "res://docs/world/first_exit_resolved.json"
 ## Slabs and walls reach this far below the lowest ground under them.
@@ -24,7 +23,7 @@ const PICKUP_SCRIPT: String = "res://scripts/environment/interactive/item_pickup
 ## House openings shared by the walls and the breaches: [x, width, is_door].
 const WINDOW_GAPS: Array = [[-0.25, 2.0], [0.3, 1.6]]
 
-var _terrain: Terrain3D
+var _heights: IslandHeightmap
 var _root: Node3D
 var _roads: Dictionary = {}
 ## Built anchors by layout id, for pickups placed relative to them.
@@ -47,11 +46,7 @@ var _shapes: Dictionary = {}
 
 
 func _initialize() -> void:
-	_terrain = Terrain3D.new()
-	_terrain.data_directory = TERRAIN_DIR
-	root.add_child(_terrain)
-	await process_frame
-	await process_frame
+	_heights = IslandHeightmap.load_default()
 	_setup_materials()
 	_rng.seed = 20260924
 	var layout: Dictionary = JSON.parse_string(FileAccess.get_file_as_string(LAYOUT))
@@ -80,6 +75,7 @@ func _initialize() -> void:
 	marker.position = _ground(float(spawn["x"]), float(spawn["z"])) + Vector3.UP * 0.2
 	marker.rotation.y = deg_to_rad(float(spawn["yaw_deg"]))
 	_add(_root, marker)
+	_drop_instanced_connections(_root)
 	var packed := PackedScene.new()
 	packed.pack(_root)
 	var err: Error = ResourceSaver.save(packed, OUT_SCENE)
@@ -817,8 +813,7 @@ func _add(parent: Node, child: Node) -> void:
 
 
 func _ground(x: float, z: float) -> Vector3:
-	var h: float = _terrain.data.get_height(Vector3(x, 0.0, z))
-	return Vector3(x, 0.0 if is_nan(h) else h, z)
+	return Vector3(x, _heights.get_height(x, z), z)
 
 
 ## Lowest ground under a rotated footprint, so nothing floats.
@@ -832,6 +827,17 @@ func _footprint_min(x: float, z: float, w: float, d: float, yaw_deg: float) -> f
 			var p := Vector2(x + lx * cos(yaw) + lz * sin(yaw), z - lx * sin(yaw) + lz * cos(yaw))
 			lowest = minf(lowest, _ground(p.x, p.y).y)
 	return lowest
+
+
+## InteractiveArea.tscn wires its own body signals; packing would save them a
+## second time on each instance, so they are dropped and the instance restores them.
+func _drop_instanced_connections(node: Node) -> void:
+	if node.scene_file_path == INTERACTIVE_SCENE:
+		for signal_name: StringName in [&"body_entered", &"body_exited"]:
+			for c: Dictionary in node.get_signal_connection_list(signal_name):
+				node.disconnect(signal_name, c["callable"])
+	for child: Node in node.get_children():
+		_drop_instanced_connections(child)
 
 
 func _count(node: Node) -> int:

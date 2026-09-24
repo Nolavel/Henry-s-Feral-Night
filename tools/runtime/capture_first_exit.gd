@@ -2,8 +2,8 @@ extends SceneTree
 
 ## Captures the First Exit greybox on the Graciosa terrain: the view from the
 ## bunker door toward the landmark, an oblique aerial, the shelter and the fort.
-## Builds a light stage (terrain, blockout, sun, sky) because the full Graciosa
-## scene crashes under lavapipe; HFN_FULL_SCENE=1 uses the real scene instead.
+## Renders a light stage (terrain, blockout, sun, sky); HFN_FULL_SCENE=1 renders
+## the real main scene with every system running.
 ## Run: xvfb-run godot --path . --rendering-driver vulkan --script res://tools/runtime/capture_first_exit.gd
 
 const SCENE: String = "res://experimental_location/scenes/Graciosa_Island_Terrain.tscn"
@@ -39,11 +39,8 @@ func _initialize() -> void:
 		_shot = _only - 1
 	if OS.get_environment("HFN_FULL_SCENE") == "1":
 		var scene: Node = (load(SCENE) as PackedScene).instantiate()
-		if OS.get_environment("HFN_TERRAIN") == "mesh":
-			scene.get_node(^"NavigationRegion3D/Terrain3D").free()
-			_island = IslandTerrain.new()
-			scene.add_child(_island)
 		root.add_child(scene)
+		_island = scene.get_node_or_null(^"IslandTerrain") as IslandTerrain
 	else:
 		_build_stage()
 
@@ -83,9 +80,9 @@ func _lift(p: Vector3) -> Vector3:
 	return Vector3(p.x, p.y + (0.0 if is_nan(h) else maxf(h, 0.0)), p.z)
 
 
-## HFN_TERRAIN=mesh renders the heightmap IslandTerrain instead of Terrain3D.
+## The heightmap IslandTerrain; HFN_TERRAIN=terrain3d renders the old Terrain3D.
 func _build_stage() -> void:
-	if OS.get_environment("HFN_TERRAIN") == "mesh":
+	if OS.get_environment("HFN_TERRAIN") != "terrain3d":
 		_island = IslandTerrain.new()
 		_island.focus = null
 		root.add_child(_island)

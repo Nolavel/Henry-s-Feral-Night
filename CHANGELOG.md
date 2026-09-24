@@ -5,6 +5,21 @@ Maintained per branch; entries are added by whoever makes the change.
 
 ## [Unreleased] — `codex`
 
+### 2026-09-24 — Terrain stage 3: the main scene runs on IslandTerrain (claudeflow)
+
+Changed
+- Graciosa's main scene uses `IslandTerrain` in place of `NavigationRegion3D`
+  and Terrain3D; the nav mesh was empty and unused. It follows the Player,
+  which now starts at the spawner. The lavapipe crash is gone: 600 frames of
+  the main scene, and full-scene captures in 2 of 2 runs.
+- The blockout builder samples the heightmap instead of Terrain3D.
+- `capture_first_exit.gd` renders the mesh terrain by default.
+
+Fixed
+- Generated interactives (pickups, board-up and stove prompts) saved their
+  body signals twice and logged "already connected" at load. The route test
+  now checks for exactly one connection.
+
 ### 2026-09-24 — Terrain stage 2: IslandTerrain from the heightmap (claudeflow)
 
 Added

@@ -243,11 +243,8 @@ for i in 0 1 2 3 4; do HFN_SHOT=$i xvfb-run godot --path . --rendering-driver vu
 
 Python needs `numpy`, `scipy`, `pillow` and `matplotlib`.
 
-## Known issue
+## Known issue (resolved)
 
-Under CPU Vulkan (lavapipe) the full Graciosa scene crashes a few seconds in,
-with `propagate_notification()` called from a non-main thread and then a
-SIGSEGV. `TestScene` renders fine. A bare Terrain3D also crashes now and then
-on a large camera jump. The capture tool therefore renders a light stage
-(terrain, greybox, sun, sky) with one shot per process. This needs checking on
-a real GPU.
+The full Graciosa scene crashed under lavapipe. The crash came from Terrain3D,
+and the main scene now runs on `IslandTerrain` (see `TERRAIN_HEIGHTMAP.md`).
+Captures render the real scene with `HFN_FULL_SCENE=1`.

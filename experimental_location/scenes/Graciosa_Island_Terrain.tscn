@@ -6,72 +6,7 @@
 [ext_resource type="PackedScene" uid="uid://duxn5rqcau5dw" path="res://tools/StatsDisplay/StatsDisplay.tscn" id="5_h70bg"]
 [ext_resource type="PackedScene" uid="uid://cvv8y27vmgjfi" path="res://scenes/game/systems/world/WorldEnvironmentSystem.tscn" id="6_pbfqm"]
 [ext_resource type="PackedScene" path="res://scenes/world/first_exit/first_exit_blockout.tscn" id="7_fexit"]
-
-[sub_resource type="NavigationMesh" id="NavigationMesh_gciob"]
-
-[sub_resource type="Gradient" id="Gradient_3yugc"]
-offsets = PackedFloat32Array(0.2, 1)
-colors = PackedColorArray(1, 1, 1, 1, 0, 0, 0, 1)
-
-[sub_resource type="FastNoiseLite" id="FastNoiseLite_2kskv"]
-noise_type = 2
-frequency = 0.03
-cellular_jitter = 3.0
-cellular_return_type = 0
-domain_warp_enabled = true
-domain_warp_type = 1
-domain_warp_amplitude = 50.0
-domain_warp_fractal_type = 2
-domain_warp_fractal_lacunarity = 1.5
-domain_warp_fractal_gain = 1.0
-
-[sub_resource type="NoiseTexture2D" id="NoiseTexture2D_0xu8p"]
-noise = SubResource("FastNoiseLite_2kskv")
-color_ramp = SubResource("Gradient_3yugc")
-seamless = true
-
-[sub_resource type="Terrain3DMaterial" id="Terrain3DMaterial_pm2sj"]
-_shader_parameters = {
-&"bias_distance": 512.0,
-&"blend_sharpness": 0.5,
-&"depth_blur": 0.0,
-&"enable_macro_variation": true,
-&"enable_projection": true,
-&"flat_terrain_normals": false,
-&"macro_variation1": Color(1, 1, 1, 1),
-&"macro_variation2": Color(1, 1, 1, 1),
-&"macro_variation_slope": 0.333,
-&"mipmap_bias": 1.0,
-&"noise1_angle": 0.0,
-&"noise1_offset": Vector2(0.5, 0.5),
-&"noise1_scale": 0.04,
-&"noise2_scale": 0.076,
-&"noise_texture": SubResource("NoiseTexture2D_0xu8p"),
-&"projection_threshold": 0.8
-}
-show_region_grid = true
-show_checkered = true
-
-[sub_resource type="StandardMaterial3D" id="StandardMaterial3D_3e4jx"]
-transparency = 4
-cull_mode = 2
-vertex_color_use_as_albedo = true
-backlight_enabled = true
-backlight = Color(0.5, 0.5, 0.5, 1)
-distance_fade_mode = 1
-distance_fade_min_distance = 128.0
-distance_fade_max_distance = 96.0
-
-[sub_resource type="Terrain3DMeshAsset" id="Terrain3DMeshAsset_r35sr"]
-generated_type = 1
-height_offset = 0.5
-material_override = SubResource("StandardMaterial3D_3e4jx")
-last_lod = 0
-last_shadow_lod = 0
-lod0_range = 128.0
-
-[sub_resource type="Terrain3DAssets" id="Terrain3DAssets_am4gq"]
-mesh_list = Array[Terrain3DMeshAsset]([SubResource("Terrain3DMeshAsset_r35sr")])
+[ext_resource type="Script" path="res://scripts/systems/world/terrain/island_terrain.gd" id="8_island"]
 
 [sub_resource type="StandardMaterial3D" id="StandardMaterial3D_gciob"]
 albedo_color = Color(0.29803923, 0.5803922, 1, 1)
@@ -93,7 +28,7 @@ metadata/_edit_group_ = true
 [node name="StreamContainer" type="Node3D" parent="."]
 
 [node name="Player" parent="." instance=ExtResource("2_8hwqn")]
-transform = Transform3D(-4.37114e-08, 0, 1, 0, 1, 0, -1, 0, -4.37114e-08, 1247, 20, -829)
+transform = Transform3D(-4.37114e-08, 0, 1, 0, 1, 0, -1, 0, -4.37114e-08, 1420, 3, -943)
 
 [node name="BioMonitorManager" parent="Player" node_paths=PackedStringArray("dn_manager")]
 dn_manager = NodePath("../../WorldEnvironmentSystem/DayNightManager")
@@ -102,19 +37,9 @@ dn_manager = NodePath("../../WorldEnvironmentSystem/DayNightManager")
 transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 1442.73, 15, -1005.2396)
 player = NodePath("../Player")
 
-[node name="NavigationRegion3D" type="NavigationRegion3D" parent="."]
-navigation_mesh = SubResource("NavigationMesh_gciob")
-
-[node name="Terrain3D" type="Terrain3D" parent="NavigationRegion3D"]
-data_directory = "res://experimental_location/Graciosa/terrain_graciosa"
-material = SubResource("Terrain3DMaterial_pm2sj")
-assets = SubResource("Terrain3DAssets_am4gq")
-show_grid = true
-show_instances = false
-show_region_grid = true
-show_checkered = true
-top_level = true
-metadata/_edit_lock_ = true
+[node name="IslandTerrain" type="Node3D" parent="." node_paths=PackedStringArray("focus")]
+script = ExtResource("8_island")
+focus = NodePath("../Player")
 
 [node name="MeshInstance3D" type="MeshInstance3D" parent="."]
 transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 0, 0.04, 0)
