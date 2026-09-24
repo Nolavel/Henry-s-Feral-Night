@@ -26,6 +26,8 @@ func _run() -> void:
 	_check(flare.get_node_or_null("Tip/FlareLight") != null, "real light was not built")
 	_check(flare.is_burning(), "auto_ignite did not light the flare")
 	_check(flare.get_current_energy() > 0.0, "burning flare reports zero energy")
+	_check(is_equal_approx(flare.base_light_energy, 2.8), "review-tuned base light energy regressed")
+	_check(is_equal_approx(flare.light_range_m, 4.5), "review-tuned light range regressed")
 
 	flare.extinguish()
 	_check(not flare.is_burning(), "extinguish did not stop the flare")

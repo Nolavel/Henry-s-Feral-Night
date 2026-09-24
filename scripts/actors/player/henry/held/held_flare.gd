@@ -27,9 +27,11 @@ const WEATHER_CONTROLLER_SCRIPT: GDScript = preload(
 
 @export_group("Light")
 @export var light_color: Color = Color(1.0, 0.19, 0.055, 1.0)
-@export_range(0.5, 12.0, 0.1) var base_light_energy: float = 4.0
+## Tuned after the first in-scene night pass: enough to read Henry and nearby
+## geometry without flooding a small shelter in saturated red.
+@export_range(0.5, 12.0, 0.1) var base_light_energy: float = 2.8
 @export_range(1.0, 16.0, 0.1) var surge_light_energy: float = 6.8
-@export_range(2.0, 12.0, 0.1) var light_range_m: float = 6.5
+@export_range(2.0, 12.0, 0.1) var light_range_m: float = 4.5
 ## Shadows are deliberately off for the normal production tier.
 @export var enable_shadows: bool = false
 
@@ -318,7 +320,9 @@ func _make_spark_layer() -> GPUParticles3D:
 	process.scale_max = 1.35
 	process.color = Color(1.0, 0.12, 0.018, 1.0)
 	particles.process_material = process
-	particles.draw_pass_1 = _spark_mesh(0.0045)
+	## Soft radial billboard: avoids the tiny square/diamond read seen under
+	## lavapipe while keeping the validated cone width.
+	particles.draw_pass_1 = _spark_mesh(0.0054, Color(1.0, 0.18, 0.025, 1.0), 7.0)
 	return particles
 
 
@@ -343,7 +347,7 @@ func _make_fragment_layer() -> GPUParticles3D:
 	process.scale_max = 1.7
 	process.color = Color(1.0, 0.075, 0.012, 1.0)
 	particles.process_material = process
-	particles.draw_pass_1 = _spark_mesh(0.0065)
+	particles.draw_pass_1 = _spark_mesh(0.0090, Color(1.0, 0.075, 0.012, 1.0), 8.5)
 	return particles
 
 
@@ -368,10 +372,12 @@ func _make_smoke_layer() -> GPUParticles3D:
 	_smoke_process.scale_max = 1.55
 
 	var gradient := Gradient.new()
-	gradient.set_color(0, Color(0.18, 0.16, 0.15, 0.0))
-	gradient.add_point(0.12, Color(0.20, 0.18, 0.17, 0.48))
-	gradient.add_point(0.55, Color(0.28, 0.27, 0.28, 0.24))
-	gradient.set_color(gradient.get_point_count() - 1, Color(0.32, 0.32, 0.34, 0.0))
+	## Smoke needs enough warm midtone to separate from a black night sky, but
+	## it still fades back toward neutral grey as it leaves the hot tip.
+	gradient.set_color(0, Color(0.52, 0.24, 0.18, 0.0))
+	gradient.add_point(0.12, Color(0.48, 0.28, 0.24, 0.42))
+	gradient.add_point(0.52, Color(0.38, 0.33, 0.33, 0.24))
+	gradient.set_color(gradient.get_point_count() - 1, Color(0.31, 0.32, 0.35, 0.0))
 	var ramp := GradientTexture1D.new()
 	ramp.gradient = gradient
 	_smoke_process.color_ramp = ramp
@@ -381,29 +387,54 @@ func _make_smoke_layer() -> GPUParticles3D:
 	return particles
 
 
-func _spark_mesh(radius: float) -> SphereMesh:
-	var mesh := SphereMesh.new()
-	mesh.radius = radius
-	mesh.height = radius * 2.0
+func _spark_mesh(size: float, tint: Color, emission_energy: float) -> QuadMesh:
+	var mesh := QuadMesh.new()
+	mesh.size = Vector2(size, size)
+
 	var material := StandardMaterial3D.new()
+	material.transparency = BaseMaterial3D.TRANSPARENCY_ALPHA
+	material.blend_mode = BaseMaterial3D.BLEND_MODE_ADD
 	material.shading_mode = BaseMaterial3D.SHADING_MODE_UNSHADED
+	material.billboard_mode = BaseMaterial3D.BILLBOARD_ENABLED
+	material.vertex_color_use_as_albedo = true
+	material.cull_mode = BaseMaterial3D.CULL_DISABLED
+	material.albedo_color = tint
+	material.albedo_texture = _soft_particle_texture(24, 1.9)
 	material.emission_enabled = true
-	material.emission = Color(1.0, 0.065, 0.012, 1.0)
-	material.emission_energy_multiplier = 8.0
-	material.albedo_color = Color(1.0, 0.20, 0.025, 1.0)
+	material.emission = tint
+	material.emission_energy_multiplier = emission_energy
 	mesh.material = material
 	return mesh
 
 
 func _smoke_quad() -> QuadMesh:
 	var mesh := QuadMesh.new()
-	mesh.size = Vector2(0.075, 0.075)
+	mesh.size = Vector2(0.085, 0.085)
 	var material := StandardMaterial3D.new()
 	material.transparency = BaseMaterial3D.TRANSPARENCY_ALPHA
-	material.shading_mode = BaseMaterial3D.SHADING_MODE_UNSHADED
 	material.billboard_mode = BaseMaterial3D.BILLBOARD_ENABLED
 	material.vertex_color_use_as_albedo = true
-	material.albedo_color = Color(1.0, 1.0, 1.0, 0.72)
+	material.albedo_texture = _soft_particle_texture(32, 1.35)
+	material.albedo_color = Color(0.95, 0.78, 0.72, 0.72)
+	material.roughness = 1.0
+	material.emission_enabled = true
+	## Only a faint warm self-lift. The real OmniLight still provides most of
+	## the local illumination; this keeps smoke readable once it leaves the
+	## strongest part of the light volume.
+	material.emission = Color(0.28, 0.045, 0.018, 1.0)
+	material.emission_energy_multiplier = 0.24
 	material.cull_mode = BaseMaterial3D.CULL_DISABLED
 	mesh.material = material
 	return mesh
+
+
+func _soft_particle_texture(size: int, falloff_power: float) -> ImageTexture:
+	var image := Image.create(size, size, false, Image.FORMAT_RGBA8)
+	var denom: float = maxf(float(size - 1), 1.0)
+	for y: int in range(size):
+		for x: int in range(size):
+			var uv := Vector2(float(x) / denom, float(y) / denom)
+			var radial: float = clampf(1.0 - (uv - Vector2(0.5, 0.5)).length() * 2.0, 0.0, 1.0)
+			var alpha: float = pow(radial, falloff_power)
+			image.set_pixel(x, y, Color(1.0, 1.0, 1.0, alpha))
+	return ImageTexture.create_from_image(image)
