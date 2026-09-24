@@ -13,6 +13,8 @@ const NIGHT_HOUR: float = 22.5
 var _player: Player
 var _light: HeldLightComponent
 var _zone: Node3D
+## Henry's spawn at the bunker door: open ground for the outdoor shots.
+var _spawn: Vector3
 var _view: SubViewport
 var _camera: Camera3D
 var _time: float = 0.0
@@ -48,6 +50,7 @@ func _process(delta: float) -> bool:
 	_frame_camera()
 	match _phase:
 		0:
+			_spawn = _player.global_position
 			_set_night_and_wind()
 			_teleport(_zone.global_position)
 			var inventory: InventoryComponent = InventoryComponent.find_in(_player)
@@ -57,9 +60,9 @@ func _process(delta: float) -> bool:
 			_next([[1.5, "01_shelter_standing"], [3.0, "02_shelter_standing_late"]], "front")
 		1:
 			if _shots.is_empty():
-				var outside: Vector3 = _zone.global_position + (_zone.global_transform.basis.z * 7.0)
-				_teleport(outside)
-				_player.move_to_position(outside + _zone.global_transform.basis.x * 8.0)
+				_player.global_position = _spawn
+				_player.velocity = Vector3.ZERO
+				_player.move_to_position(_spawn + Vector3(-8.0, 0.0, 6.0))
 				_next([[1.2, "03_walking_a"], [2.4, "04_walking_b"]], "front")
 		2:
 			if _shots.is_empty():
