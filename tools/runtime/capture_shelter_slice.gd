@@ -8,6 +8,8 @@ extends SceneTree
 const SCENE: String = "res://experimental_location/scenes/Graciosa_Island_Terrain.tscn"
 const OUT_DIR: String = "user://shots/slice"
 const WARMUP: float = 3.0
+## A phase that waits longer than this is reported and the capture quits.
+const PHASE_TIMEOUT: float = 20.0
 
 var _player: Player
 var _interact: InteractComponent
@@ -33,7 +35,7 @@ func _initialize() -> void:
 	_player = scene.find_child("Player", true, false) as Player
 	_interact = _player.find_child("InteractComponent", true, false) as InteractComponent
 	_inventory = InventoryComponent.find_in(_player)
-	_firewood = scene.find_child("firewood_shelter", true, false) as InteractiveArea
+	_firewood = scene.find_child("FirewoodShelter", true, false) as InteractiveArea
 	var shelter: Node = _firewood.get_parent() if _firewood != null else scene
 	_zone = scene.find_child("ShelterZone", true, false) as Node3D
 	_feed = _zone.find_child("Feed", true, false) as HeatSourceFeed
@@ -58,6 +60,11 @@ func _process(delta: float) -> bool:
 		return false
 	_camera.make_current()
 	_frame_camera()
+	if _phase_time > PHASE_TIMEOUT:
+		_say("phase %d timed out; henry at %s" % [_phase, _player.global_position])
+		_write_log()
+		quit(1)
+		return false
 	match _phase:
 		0:
 			_teleport_near(_firewood, 3.2)
