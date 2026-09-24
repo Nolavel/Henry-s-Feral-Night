@@ -63,6 +63,7 @@ unless `tools/ci/input_overlap_allowlist.txt` says why that is safe.
 | `Esc` | pause |
 | `F` on a bed or mattress | sleep: wheel or `←` `→` hours, `F`/`Enter` sleep, `Esc` cancel |
 | `L` | light a road flare / drop it |
+| `Tab` | Player Hub: the pack opens on Henry's back; move items between the pack and pockets. `Tab`/`Esc` closes |
 | `B` | lay the bedroll (until the inventory has Use); `F` on it sleeps, `F` at its head rolls it up |
 
 ## Layout

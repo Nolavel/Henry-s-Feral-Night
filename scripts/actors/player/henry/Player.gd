@@ -10,6 +10,7 @@ const THERMAL_SCRIPT: GDScript = preload("res://scripts/systems/survival/thermal
 # === КОМПОНЕНТЫ ===
 @onready var movement: MovementController = $MovementController
 @onready var animation_component: HenryUALAnimation = $HenryUALVisual
+@onready var hub: PlayerHubComponent = get_node_or_null(^"PlayerHubComponent") as PlayerHubComponent
 @onready var main_collision: CollisionShape3D = $Main_Collision
 @onready var health_system: PlayerHealthSystem = $PlayerHealthSystem
 @onready var consumption_controller: ConsumptionController = $ConsumptionController
@@ -97,8 +98,9 @@ func _physics_process(delta: float) -> void:
 		else:
 			world_dir = _walk_direction()
 			sprint_is_pressed = false
-	## Working actions (pickup, repair, opening) root Henry until they end.
-	if is_instance_valid(animation_component) and animation_component.is_action_locking():
+	## Working actions (pickup, repair, opening) and the Hub root Henry.
+	var in_hub: bool = is_instance_valid(hub) and hub.is_open()
+	if in_hub or (is_instance_valid(animation_component) and animation_component.is_action_locking()):
 		world_dir = Vector3.ZERO
 		jump_just_pressed = false
 		sprint_is_pressed = false

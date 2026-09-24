@@ -10,6 +10,7 @@
 [ext_resource type="Script" uid="uid://djgsya3tmwfqa" path="res://scripts/actors/player/henry/Managers/BioMonitorManager.gd" id="10_mvyhi"]
 [ext_resource type="Script" uid="uid://buc8iltj8gtn0" path="res://scripts/actors/player/henry/components/equipment_component.gd" id="90_equip"]
 [ext_resource type="Script" uid="uid://jwbyt4ch7e7l" path="res://scripts/actors/player/henry/components/inventory_component.gd" id="91_inv"]
+[ext_resource type="Script" path="res://scripts/actors/player/henry/components/player_hub_component.gd" id="99_hub"]
 [ext_resource type="Script" path="res://scripts/actors/player/henry/components/carry_component.gd" id="96_carry"]
 [ext_resource type="Script" path="res://scripts/actors/player/henry/components/held_light_component.gd" id="97_light"]
 [ext_resource type="Script" path="res://scripts/actors/player/henry/components/bedroll_component.gd" id="98_bedroll"]
@@ -61,6 +62,11 @@ starter_slot_items = Dictionary[StringName, StringName]({
 
 [node name="InventoryComponent" type="Node" parent="." node_paths=PackedStringArray("equipment")]
 script = ExtResource("91_inv")
+equipment = NodePath("../EquipmentComponent")
+
+[node name="PlayerHubComponent" type="Node" parent="." node_paths=PackedStringArray("inventory", "equipment")]
+script = ExtResource("99_hub")
+inventory = NodePath("../InventoryComponent")
 equipment = NodePath("../EquipmentComponent")
 
 [node name="BedrollComponent" type="Node" parent="." node_paths=PackedStringArray("inventory")]
