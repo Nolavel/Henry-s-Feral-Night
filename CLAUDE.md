@@ -41,7 +41,8 @@ rule changes) and `global.json` (take `main`'s).
 ## Engine baseline
 
 - Godot **4.8-dev6 .NET (mono)**, `Godot.NET.Sdk` 4.8.x, `net8.0`.
-- Renderer: Forward+ / Vulkan. CI renders on CPU via lavapipe (see `tools/ci/`).
+- Renderer: Forward+ / Vulkan. CI runs headless suites only; render locally on
+  CPU via lavapipe (`tools/ci/render.sh`).
 - Main development scene: `res://tests/scenes/TestScene.tscn`.
 - Terrain3D stays a vendored third-party addon; it is never edited as game code.
 
