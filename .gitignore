@@ -40,3 +40,7 @@ shots/
 
 # Terrain3D GDExtension binaries (fetched by tools/ci/setup_env.sh)
 addons/terrain_3d/bin/
+
+# Python
+__pycache__/
+*.pyc
