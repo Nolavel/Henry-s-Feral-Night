@@ -1,11 +1,9 @@
 class_name SleepPrompt
 extends Control
 
-## Hold-to-open sleep dialog. S is also move_backward, so the hold only charges
-## while sleeping is actually possible and the player is not moving.
+## Sleep dialog, opened by a SleepSpot through the normal interact path. Hours
+## step with the mouse wheel or left/right; F or Enter sleeps, Esc cancels.
 
-## Emitted while the hold charges, 0.0 to 1.0, for the ring or bar.
-signal hold_progress_changed(progress: float)
 ## Emitted when the dialog opens or closes.
 signal dialog_visibility_changed(open: bool)
 ## Emitted when the chosen duration changes, so the label can follow.
@@ -22,18 +20,10 @@ const SLEEP_CONTROLLER_SCRIPT: GDScript = preload("res://scripts/systems/save/sl
 ## headless suite without autoloads still runs this scene.
 const INPUT_SYSTEMS_PATH: NodePath = ^"/root/InputSystems"
 
-const HOLD_ACTION: StringName = &"sleep"
-const CONFIRM_ACTION: StringName = &"interact"
-const CANCEL_ACTION: StringName = &"sleep_cancel"
-const LESS_ACTION: StringName = &"sleep_hours_less"
-const MORE_ACTION: StringName = &"sleep_hours_more"
-const MOVE_ACTIONS: Array[StringName] = [
-	&"move_forward", &"move_backward", &"move_left", &"move_right", &"jump", &"sprint"
-]
-
-@export_group("Hold")
-## Seconds the player must hold before the dialog opens. A tap does nothing.
-@export var hold_seconds: float = 1.0
+## Group SleepSpots use to find the dialog; there is one per world.
+const GROUP: StringName = &"sleep_prompt"
+const CONFIRM_ACTIONS: Array[StringName] = [&"interact", &"ui_accept"]
+const CANCEL_ACTIONS: Array[StringName] = [&"sleep_cancel", &"ui_cancel"]
 
 @export_group("Duration")
 @export var minimum_hours: int = 1
@@ -44,16 +34,11 @@ const MOVE_ACTIONS: Array[StringName] = [
 @export var sleep_controller: SleepController
 ## Optional label showing the chosen duration; text is set by the owning scene.
 @export var hours_label: Label
-## Optional bar or ring filled by the hold, expects a 0..1 value range.
-@export var hold_indicator: Range
 ## Optional panel shown while the dialog is open.
 @export var dialog_panel: Control
-## Optional hint shown only while the dialog is closed.
-@export var hold_hint: Control
 ## Optional warning shown when the fire will not last the chosen duration.
 @export var warning_label: Control
 
-var _hold_time: float = 0.0
 var _is_open: bool = false
 var _hours: int = 8
 
@@ -67,10 +52,10 @@ func on_world_ready(context: WorldContext) -> void:
 
 func _ready() -> void:
 	process_mode = Node.PROCESS_MODE_ALWAYS
+	add_to_group(GROUP)
 	resolve_nodes()
 	_hours = clampi(default_hours, minimum_hours, maximum_hours)
 	_set_dialog_visible(false)
-	set_process(true)
 
 
 ## Fills in any widget the scene did not assign. A node-reference export on a
@@ -79,40 +64,47 @@ func _ready() -> void:
 func resolve_nodes() -> void:
 	if dialog_panel == null:
 		dialog_panel = get_node_or_null("Dialog") as Control
-	if hold_indicator == null:
-		hold_indicator = get_node_or_null("HoldIndicator") as Range
 	if hours_label == null:
 		hours_label = get_node_or_null("Dialog/Rows/HoursRow/Hours") as Label
-	if hold_hint == null:
-		hold_hint = get_node_or_null("HoldHint") as Control
 	if warning_label == null:
 		warning_label = get_node_or_null("Dialog/Rows/Warning") as Control
-
-
-func _process(delta: float) -> void:
-	if _is_open:
-		return
-	_update_hold(delta)
 
 
 func _input(event: InputEvent) -> void:
 	if not _is_open:
 		return
-	if event.is_action_pressed(CANCEL_ACTION):
+	var step: int = _hour_step(event)
+	if step != 0:
+		_set_hours(_hours + step)
+	elif _pressed_any(event, CANCEL_ACTIONS):
 		close()
-		get_viewport().set_input_as_handled()
-		return
-	if event.is_action_pressed(LESS_ACTION):
-		_set_hours(_hours - 1)
-		get_viewport().set_input_as_handled()
-		return
-	if event.is_action_pressed(MORE_ACTION):
-		_set_hours(_hours + 1)
-		get_viewport().set_input_as_handled()
-		return
-	if event.is_action_pressed(CONFIRM_ACTION):
+	elif _pressed_any(event, CONFIRM_ACTIONS):
 		confirm()
-		get_viewport().set_input_as_handled()
+	else:
+		return
+	get_viewport().set_input_as_handled()
+
+
+## +1 or -1 for wheel up/down and right/left, 0 for anything else.
+func _hour_step(event: InputEvent) -> int:
+	var wheel := event as InputEventMouseButton
+	if wheel != null and wheel.pressed:
+		if wheel.button_index == MOUSE_BUTTON_WHEEL_UP:
+			return 1
+		if wheel.button_index == MOUSE_BUTTON_WHEEL_DOWN:
+			return -1
+	if event.is_action_pressed(&"ui_right"):
+		return 1
+	if event.is_action_pressed(&"ui_left"):
+		return -1
+	return 0
+
+
+func _pressed_any(event: InputEvent, actions: Array[StringName]) -> bool:
+	for action: StringName in actions:
+		if InputMap.has_action(action) and event.is_action_pressed(action):
+			return true
+	return false
 
 
 ## Hours the player currently has selected.
@@ -124,24 +116,17 @@ func is_open() -> bool:
 	return _is_open
 
 
-## Progress of the current hold, 0.0 to 1.0.
-func get_hold_progress() -> float:
-	return clampf(_hold_time / maxf(0.01, hold_seconds), 0.0, 1.0)
-
-
-## True when holding would charge right now: sleep is possible and Henry is
-## standing still, so S is unambiguous rather than a walk-backwards input.
-func can_begin_hold() -> bool:
+## Opens the dialog when sleeping is possible here; otherwise emits refused
+## with the reason and stays closed. SleepSpot calls this on F.
+func request_open() -> bool:
 	if sleep_controller == null:
 		return false
-	if sleep_controller.can_sleep() != SleepController.Refusal.NONE:
+	var refusal: SleepController.Refusal = sleep_controller.can_sleep()
+	if refusal != SleepController.Refusal.NONE:
+		refused.emit(SleepController.describe_refusal(refusal))
 		return false
-	return not _is_moving()
-
-
-## Charges or decays the hold. Public so tests can drive it without a frame.
-func update_hold(delta: float) -> void:
-	_update_hold(delta)
+	open()
+	return true
 
 
 ## Opens the dialog and pauses the world behind it.
@@ -149,8 +134,6 @@ func open() -> void:
 	if _is_open:
 		return
 	_is_open = true
-	_hold_time = 0.0
-	hold_progress_changed.emit(0.0)
 	_set_hours(_hours)
 	_set_dialog_visible(true)
 	## Pause belongs to PlayerState, which owns the coupling between it and
@@ -163,8 +146,6 @@ func close() -> void:
 	if not _is_open:
 		return
 	_is_open = false
-	_hold_time = 0.0
-	hold_progress_changed.emit(0.0)
 	_set_dialog_visible(false)
 	_player_state_call(&"close_menu")
 
@@ -191,33 +172,6 @@ func _player_state_call(method: StringName) -> void:
 	var state: Node = get_node_or_null(^"/root/PlayerState")
 	if state != null:
 		state.call(method)
-
-
-func _update_hold(delta: float) -> void:
-	if not Input.is_action_pressed(HOLD_ACTION) or not can_begin_hold():
-		if _hold_time > 0.0:
-			_hold_time = 0.0
-			if hold_indicator != null:
-				hold_indicator.value = 0.0
-			hold_progress_changed.emit(0.0)
-		return
-	_hold_time += delta
-	var progress: float = get_hold_progress()
-	if hold_indicator != null:
-		hold_indicator.value = progress
-	hold_progress_changed.emit(progress)
-	if _hold_time >= hold_seconds:
-		open()
-
-
-## Any movement intent cancels the hold, which is what keeps S usable for walking.
-func _is_moving() -> bool:
-	for action: StringName in MOVE_ACTIONS:
-		if action == HOLD_ACTION:
-			continue
-		if InputMap.has_action(action) and Input.is_action_pressed(action):
-			return true
-	return false
 
 
 func _set_hours(value: int) -> void:
@@ -267,10 +221,6 @@ func _set_dialog_visible(open_now: bool) -> void:
 	_claim_interact(open_now)
 	if dialog_panel != null:
 		dialog_panel.visible = open_now
-	if hold_indicator != null:
-		hold_indicator.visible = not open_now
-	if hold_hint != null:
-		hold_hint.visible = not open_now
 	dialog_visibility_changed.emit(open_now)
 
 

@@ -36,3 +36,5 @@ BREACH_REFUSED_NO_BOARDS,You need boards,Нужны доски
 PICKUP_REFUSED_TOO_HEAVY,Too heavy to carry,Слишком тяжело нести
 CABINET_OPEN,Open the cabinet,Открыть шкаф
 CABINET_CLOSE,Close the cabinet,Закрыть шкаф
+SLEEP_PROMPT,Sleep,Спать
+SLEEP_DIALOG_KEYS,"Wheel or ← →  hours      [ F ]  sleep and save      [ Esc ]  cancel","Колесо или ← →  часы      [ F ]  спать и сохранить      [ Esc ]  отмена"

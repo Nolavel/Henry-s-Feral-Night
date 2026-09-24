@@ -20,6 +20,7 @@ const BOARD_SCRIPT: String = "res://scripts/environment/interactive/breach_board
 const HEAT_SCRIPT: String = "res://scripts/systems/survival/heat_source.gd"
 const FEED_SCRIPT: String = "res://scripts/environment/interactive/heat_source_feed.gd"
 const CABINET_SCRIPT: String = "res://scripts/environment/interactive/cabinet.gd"
+const SLEEP_SPOT_SCRIPT: String = "res://scripts/environment/interactive/sleep_spot.gd"
 const PICKUP_SCRIPT: String = "res://scripts/environment/interactive/item_pickup.gd"
 ## House openings shared by the walls and the breaches: [x, width, is_door].
 const WINDOW_GAPS: Array = [[-0.25, 2.0], [0.3, 1.6]]
@@ -440,6 +441,25 @@ func _shelter_gameplay(house: Node3D, w: float, d: float, h: float) -> void:
 	_add(stove, feed)
 	_prompt_shape(feed, Vector3(1.2, 1.4, 1.4))
 	_cabinet(zone, Vector3(w * 0.5 - 0.5, floor_y - zone.position.y, -d * 0.2))
+	_mattress(zone, Vector3(-w * 0.5 + 0.8, floor_y - zone.position.y, d * 0.22))
+
+
+## A mattress on the floor by the west wall: the shelter's place to sleep.
+func _mattress(parent: Node3D, pos: Vector3) -> void:
+	var bed := Node3D.new()
+	bed.name = "Mattress"
+	bed.position = pos
+	_add(parent, bed)
+	var pad: MeshInstance3D = _box(bed, Vector3(0.0, 0.1, 0.0), Vector3(0.9, 0.2, 1.9), _paint, false)
+	_box(bed, Vector3(0.0, 0.24, -0.72), Vector3(0.6, 0.1, 0.32), _paint, false)
+	var prompt: Node3D = (load(INTERACTIVE_SCENE) as PackedScene).instantiate()
+	prompt.name = "Sleep"
+	prompt.set_script(load(SLEEP_SPOT_SCRIPT))
+	prompt.set(&"interactable_scene", null)
+	prompt.set(&"interactive_mesh", pad)
+	prompt.position = Vector3(0.7, 0.0, 0.0)
+	_add(bed, prompt)
+	_prompt_shape(prompt, Vector3(1.2, 1.4, 2.0))
 
 
 ## A low kitchen cabinet against the east wall, facing into the room, with a
