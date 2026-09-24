@@ -5,6 +5,18 @@ Maintained per branch; entries are added by whoever makes the change.
 
 ## [Unreleased] — `codex`
 
+### 2026-09-24 — Flare pass 2: raised hand, spark fountain, breathing light (claudeflow)
+
+Changed
+- UAL `Idle_Torch` raises the *left* hand, so the shared hand socket and the
+  held pose moved to `hand_l`. The flare is carried at chest height, tipped
+  out of the fist.
+- Sparks are a gravity fountain that spits in uneven spurts: more particles,
+  higher speed during a spurt, and a colour ramp from orange-white to red.
+  The light's reach breathes with the burn and swells on each spurt.
+- Includes Codex's polish `f3ee73f`: soft spark billboards, warmer smoke,
+  4.5 m / 2.8 indoor-friendly light.
+
 ### 2026-09-24 — Road flare in Henry's hand (#57) (claudeflow)
 
 Added

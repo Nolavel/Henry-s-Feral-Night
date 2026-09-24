@@ -101,10 +101,13 @@ const GARMENT_PARTS: Dictionary = {
 
 @export_group("Held in hand")
 ## Bone of the shared held-item socket; flares and later lights use it.
-@export var hand_bone: StringName = &"hand_r"
+## UAL's Idle_Torch raises the left hand, so held lights ride there.
+@export var hand_bone: StringName = &"hand_l"
 ## Prop offset from the hand bone, in the bone's space.
-@export var hand_prop_offset: Vector3 = Vector3(0.0, 0.09, 0.03)
-@export var hand_prop_rotation_deg: Vector3 = Vector3(0.0, 0.0, 0.0)
+## Pushed past the fingers and tipped out of the fist, so the tube and its
+## burning tip read clear of Henry's hand.
+@export var hand_prop_offset: Vector3 = Vector3(0.0, 0.12, 0.06)
+@export var hand_prop_rotation_deg: Vector3 = Vector3(-55.0, 0.0, 0.0)
 ## How fast the right arm eases into and out of the held pose.
 @export_range(1.0, 20.0, 0.5) var hold_pose_rate: float = 8.0
 
@@ -254,13 +257,13 @@ func get_hand_socket() -> BoneAttachment3D:
 	if is_instance_valid(_hand_socket) or skeleton == null:
 		return _hand_socket
 	_hand_socket = BoneAttachment3D.new()
-	_hand_socket.name = "HandSocketR"
+	_hand_socket.name = "HandSocket"
 	_hand_socket.bone_name = hand_bone
 	skeleton.add_child(_hand_socket)
 	return _hand_socket
 
 
-## Puts a prop in Henry's right hand and raises the arm into the held pose
+## Puts a prop in Henry's socket hand and raises the arm into the held pose
 ## (Idle_Torch over whatever the legs are doing).
 func hold_in_hand(prop: Node3D) -> void:
 	var socket: BoneAttachment3D = get_hand_socket()
@@ -721,7 +724,8 @@ func _setup_animation_tree() -> void:
 
 	var tree_root := AnimationNodeBlendTree.new()
 	tree_root.add_node(&"base", base, Vector2(-560.0, 0.0))
-	## Right arm (and only it) raised into the held pose over any locomotion.
+	## The socket's arm (and only it) raised into the held pose over any locomotion.
+	var side_suffix: String = String(hand_bone).right(2)
 	var hold_pose := AnimationNodeBlend2.new()
 	hold_pose.filter_enabled = true
 	var torch_clip: StringName = _resolved_torch if _resolved_torch != &"" else _resolved_idle
@@ -730,7 +734,7 @@ func _setup_animation_tree() -> void:
 	for track: int in torch_anim.get_track_count():
 		var path: NodePath = torch_anim.track_get_path(track)
 		var bone := StringName(path.get_concatenated_subnames())
-		if String(bone).ends_with("_r") and not LOWER_BODY_BONES.has(bone):
+		if String(bone).ends_with(side_suffix) and not LOWER_BODY_BONES.has(bone):
 			hold_pose.set_filter_path(path, true)
 	tree_root.add_node(&"hold_clip", _clip(torch_clip), Vector2(-560.0, 220.0))
 	tree_root.add_node(&"hold_pose", hold_pose, Vector2(-320.0, 0.0))
