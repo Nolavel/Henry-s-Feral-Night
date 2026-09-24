@@ -64,7 +64,7 @@ const SPRINT_ALIASES: Array[StringName] = [&"Sprint_Loop", &"Sprint"]
 ## Skin_<name> is the body under that garment, hidden while it is worn.
 const GARMENT_PARTS: Dictionary = {
 	&"Hat": [&"Outfit_Beanie", &"Outfit_BeanieCuff"],
-	&"Coat": [&"Outfit_Jacket", &"Outfit_Hood"],
+	&"Coat": [&"Outfit_Jacket", &"Outfit_Skirt", &"Outfit_Hood", &"Outfit_Trim"],
 	&"Trousers": [&"Outfit_Pants"],
 	&"Boots": [&"Outfit_Boots", &"Outfit_Sole"],
 }
@@ -340,13 +340,15 @@ func _attach_garments() -> void:
 			if mesh_inst == null:
 				push_warning("HenryUALAnimation: outfit mesh %s is missing." % part)
 				continue
-			var source := mesh_inst.mesh.surface_get_material(0) as BaseMaterial3D  # under the body paint
-			var material := StandardMaterial3D.new()
-			material.albedo_color = source.albedo_color if source != null else body_color
-			material.roughness = 1.0
-			material.set_meta(&"dry_color", material.albedo_color)
-			mesh_inst.material_override = material
-			_garment_materials[part] = material
+			mesh_inst.material_override = null  # drop the body paint
+			for surface: int in mesh_inst.mesh.get_surface_count():
+				var source := mesh_inst.mesh.surface_get_material(surface) as BaseMaterial3D
+				var material := StandardMaterial3D.new()
+				material.albedo_color = source.albedo_color if source != null else body_color
+				material.roughness = 1.0
+				material.set_meta(&"dry_color", material.albedo_color)
+				mesh_inst.set_surface_override_material(surface, material)
+				_garment_materials["%s:%d" % [part, surface]] = material
 			mesh_inst.reparent(group)
 			mesh_inst.skeleton = mesh_inst.get_path_to(skeleton)
 		_garment_meshes[garment_name] = group
