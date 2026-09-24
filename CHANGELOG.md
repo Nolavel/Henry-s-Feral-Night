@@ -5,6 +5,23 @@ Maintained per branch; entries are added by whoever makes the change.
 
 ## [Unreleased] — `codex`
 
+### 2026-09-24 — Original HFN vital glyphs and threshold morphs
+
+Changed
+- Replaced the four legacy bitmap glyphs inside `VitalCluster` with one original
+  HFN SVG atlas: stomach, droplet, closing eye and falling thermometer.
+- Each glyph has eight baked frames. A 0.35 s morph plays only when the value
+  crosses 50% or 10%, reverses on recovery and never loops while idle.
+- At 50% and above indicators stay off-white; below 50% the icon, outline and
+  level fill turn muted yellow; below 10% they turn muted red.
+- The always-running critical breathing was removed. Critical cells retain a
+  static inset and stronger opacity, so danger remains legible without motion.
+- Glyphs render at 30 px with a dark keyline for both snow and dark interiors.
+
+Tests
+- `test_vital_cluster.gd` now locks the exact 50% and 10% boundaries and the
+  final critical morph frame.
+
 ### 2026-09-24 — Remove legacy map and portrait cameras
 
 Removed
