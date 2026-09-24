@@ -5,6 +5,23 @@ Maintained per branch; entries are added by whoever makes the change.
 
 ## [Unreleased] — `codex`
 
+### 2026-09-24 — First Exit: suburb on the old road, human speeds (claudeflow)
+
+Changed
+- Greybox reworked per the author (PR #43). It is now an old coast road with
+  a gravel bed, shoulders, ditches, broken asphalt, a junction and a lane to
+  the jetty, and leaning or broken street lamps. Eleven lots face the road,
+  each with a driveway, a fenced plot with a gate, a shed, a water tank, and
+  winter retrofits (boarded, vestibule, stovepipe, insulation, snow fence).
+  Some lots are roofless or collapsed. Houses have gable roofs. Resolved
+  footprints are written to `docs/world/first_exit_resolved.json`.
+- Walk 4 → 1.5 m/s, sprint 8 → 4.5 m/s. Locomotion blend points follow.
+  The ice drain and sprint multiplier are rescaled so per-tile damage is
+  unchanged.
+
+Removed
+- The inland salt lagoon proposal. Ice moves to the real coast later.
+
 ### 2026-09-24 — First Exit: island analysis and greybox (claudeflow)
 
 Added

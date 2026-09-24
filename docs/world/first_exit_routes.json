@@ -2,69 +2,104 @@
  "routes": [
   {
    "id": "shore",
-   "label": "North sand bar: exposed, predictable",
-   "length_m": 502,
-   "over_sea_m": 26,
-   "coast_band_m": 240,
+   "label": "North beach: exposed, predictable",
+   "length_m": 496,
+   "over_sea_m": 0,
+   "coast_band_m": 277,
    "steepest_deg": 12.2,
-   "minutes_current_walk": 2.1,
-   "minutes_proposed_walk": 4.2
+   "minutes_walk": 5.5,
+   "minutes_sprint": 1.8
+  },
+  {
+   "id": "road",
+   "label": "Old road past the fort: readable, open",
+   "length_m": 432,
+   "over_sea_m": 0,
+   "coast_band_m": 0,
+   "steepest_deg": 8.3,
+   "minutes_walk": 4.8,
+   "minutes_sprint": 1.6
   },
   {
    "id": "ruins",
-   "label": "Fort ruins: loot, detour, more time",
-   "length_m": 530,
+   "label": "Fort ruins: loot, detours, more time",
+   "length_m": 514,
    "over_sea_m": 0,
    "coast_band_m": 0,
    "steepest_deg": 8.4,
-   "minutes_current_walk": 2.2,
-   "minutes_proposed_walk": 4.4
-  },
-  {
-   "id": "ice",
-   "label": "Lagoon ice: shortest, gait- and load-sensitive",
-   "length_m": 451,
-   "over_sea_m": 0,
-   "coast_band_m": 0,
-   "steepest_deg": 7.8,
-   "minutes_current_walk": 1.9,
-   "minutes_proposed_walk": 3.8
+   "minutes_walk": 5.7,
+   "minutes_sprint": 1.9
   }
  ],
  "landmarks": [
+  {
+   "id": "shelter_house",
+   "distance_m": 406,
+   "visible_from_spawn": false
+  },
+  {
+   "id": "lot_s2",
+   "distance_m": 429,
+   "visible_from_spawn": false
+  },
+  {
+   "id": "lot_s3",
+   "distance_m": 454,
+   "visible_from_spawn": false
+  },
+  {
+   "id": "lot_s4",
+   "distance_m": 479,
+   "visible_from_spawn": false
+  },
+  {
+   "id": "lot_s5",
+   "distance_m": 505,
+   "visible_from_spawn": false
+  },
+  {
+   "id": "lot_s6",
+   "distance_m": 531,
+   "visible_from_spawn": false
+  },
+  {
+   "id": "lot_n1",
+   "distance_m": 427,
+   "visible_from_spawn": false
+  },
+  {
+   "id": "lot_n2",
+   "distance_m": 452,
+   "visible_from_spawn": false
+  },
+  {
+   "id": "lot_n3",
+   "distance_m": 479,
+   "visible_from_spawn": false
+  },
+  {
+   "id": "lot_n4",
+   "distance_m": 505,
+   "visible_from_spawn": false
+  },
+  {
+   "id": "lot_n5",
+   "distance_m": 531,
+   "visible_from_spawn": false
+  },
   {
    "id": "bunker_portal",
    "distance_m": 11,
    "visible_from_spawn": true
   },
   {
-   "id": "shelter_house",
-   "distance_m": 437,
-   "visible_from_spawn": false
-  },
-  {
    "id": "water_tower",
-   "distance_m": 408,
+   "distance_m": 360,
    "visible_from_spawn": true
   },
   {
-   "id": "house_2",
-   "distance_m": 489,
-   "visible_from_spawn": false
-  },
-  {
-   "id": "house_3",
-   "distance_m": 513,
-   "visible_from_spawn": false
-  },
-  {
-   "id": "house_4",
-   "distance_m": 359,
-   "visible_from_spawn": false
-  },
-  {
-   "id": "church",
-   "distance_m": 550,
+   "id": "chapel",
+   "distance_m": 577,
    "visible_from_spawn": false
   }
  ]

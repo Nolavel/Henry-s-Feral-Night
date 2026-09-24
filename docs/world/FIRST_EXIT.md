@@ -36,7 +36,7 @@ house without terrain edits.
 ![First Exit area](first_exit_area.png)
 
 Henry starts at **`FirstSpawner` (1420, 3, −943)** on the east peninsula, facing
-**yaw 132°**, which points at the water tower. The peninsula runs ~800 m
+**yaw 132°**, toward the suburb and its water tower. The peninsula runs ~800 m
 south-west from the tip at Guards Beach and is **150–250 m wide**.
 
 The scene already names this sector (Label3D and streaming chunks):
@@ -44,62 +44,86 @@ East Point Redoubt, Alata Battery, Gateway Cove, The Patrol Trail, Radio
 Shadow, The Waiting Hill, Echo Glade and The Pit Descent. The greybox reuses
 those names: a colonial fort on a former tropical island.
 
-## Greybox
+## Greybox: a suburb on the old road
 
 `scenes/world/first_exit/first_exit_blockout.tscn` is instanced in the main
-scene. Every piece has collision; houses and sheds have door and window gaps
-so they can be entered and later carry `ShelterBreach` points.
+scene and generated from the layout. Every piece has collision. Houses and
+sheds have door and window gaps, so they can be entered and later carry
+`ShelterBreach` points. **The spatial logic comes first, prop count second**
+(author, PR #43): in a frame with no labels a player should read that a road
+ran here, that a suburb lined it, that the bungalow belongs to that suburb,
+and that the cold came after the settlement was built.
 
-| id | What | Position (x, z) | Role |
-|---|---|---|---|
-| `bunker_portal` | Blast door in a concrete face, earth berm | 1427, −952 | Locked exile door; Henry starts 10 m in front |
-| `redoubt` | Low stone ring, Ø 28 m, 2.2 m high | 1400, −905 | First wind break |
-| `patrol_hut` | Sentry hut 4×4 m | 1315, −847 | Ruins route: food tin |
-| `alata_battery` | Gun pit on the highest flat ground (7.8 m) | 1345, −741 | Ruins route landmark |
-| `fort_store` | Powder store 6×4 m | 1297, −745 | Ruins route: boards, tinder |
-| `bus_stop` | Roadside shelter | 1236, −728 | Visible halfway wind shelter |
-| `shelter_house` | Bungalow 8×10 m on 0.8 m piers, 3 m veranda, big openings, retrofit chimney | 1101, −645 | **Destination**: the repairable shelter |
-| `water_tower` | 16 m tower | 1119, −668 | **Landmark**, visible from the bunker door |
-| `house_2`…`house_4`, `church` | Santa Cruz outskirts | 1023…1169, −563…−687 | Silhouette, later loot |
-| `jetty` | 30 m pier into the frozen sea | 1085, −742 | Future ice access |
-| palm rows | 36 dead coconut palms, 7–11 m, lean to seaward | north beach, cove, village lane, south shore | Tropical past |
+**The road** (`roads` in the layout) is the old coast road. It runs from the
+fort (1390, −875) south-west through Santa Cruz's edge to the chapel.
+- It is built as a gravel bed with a 6 m carriageway, 1 m shoulders and
+  drainage ditches on both sides.
+- About 12 % of the asphalt pieces are missing, so the bed shows through.
+- A lane branches north at the **junction** (1120, −668) to the jetty. This is
+  the one crossroads, and the jetty continues the lane into the frozen sea.
+- Street lamps stand on the verge. About a quarter lean, some have lost their
+  heads, and one lies across the ditch.
 
+**Lots** (`lots` in the layout) are placed by distance `s` along the road and
+a side, not by coordinates. Each lot is 18 × 24 m and gets:
+- the house facing the road, a gravel driveway to the carriageway, and a low
+  fence with a gate at the driveway;
+- optionally a yard shed and a raised water tank;
+- the **winter retrofit layer**: `boarded` openings, a `vestibule` enclosing
+  the veranda, a `stovepipe` through the wall, `insulation` panels on the cold
+  side, a `snow_fence` upwind;
+- a state: kept, `roofless` or `collapsed`.
+
+Eleven lots, five north and six south. The builder writes every final
+position to `docs/world/first_exit_resolved.json`: **agents read positions from
+there**.
+
+| Anchor | Where | Role |
+|---|---|---|
+| `bunker_portal` | 1427, −952, 11 m behind the spawn | Locked exile door |
+| `redoubt`, `patrol_hut`, `alata_battery`, `fort_store` | 1300–1400, −740…−905 | Fort ruins at the head of the road: loot, detours |
+| `bus_stop` | north verge of the road | Proof of the old bus line; halfway wind shelter |
+| `water_tower` | north of the junction | Suburb landmark, **visible from the bunker door** (360 m) |
+| `shelter_house` | first lot south of the junction | Destination on the near edge of the suburb. Its original tropical openings are still open: the player boards them. |
+| `jetty` | end of the lane | Ties the suburb to the sea |
+| `chapel` | end of the street, south side | Closes the street view |
+| Palms | north beach, cove, south shore, and the road verge between lots | Planted avenue of the old town, now dead |
+
+![Suburb from above](greybox_suburb_aerial.png)
+![The shelter lot on the street](greybox_shelter_lot.png)
+![The junction and the tower](greybox_junction.png)
 ![From the bunker door](greybox_from_bunker.png)
-![Shelter and water tower](greybox_shelter_close.png)
-![Fort ruins](greybox_fort_ruins.png)
+
+## Movement speed
+
+Henry now moves at human speed (author): **walk 1.5 m/s, sprint 4.5 m/s**, down
+from 4 and 8. The locomotion blend points moved with it (walk 0.33, jog 0.67 of
+sprint). The ice drain was rescaled so the damage per tile crossed is
+unchanged (see `ICE_SYSTEM.md` §7).
 
 ## Routes, measured
 
-![Routes with the proposed lagoon](first_exit_routes_lagoon.png)
+![Routes](first_exit_routes.png)
 
-| Route | Length | @ 4 m/s (current walk) | @ 2 m/s | On ice | Wind-exposed coast band (< 25 m from shore) |
-|---|---|---|---|---|---|
-| Shore (north sand bar) | 502 m | 2.1 min | 4.2 min | — | **313 m** |
-| Ruins (fort detour) | 530 m | 2.2 min | 4.4 min | — | 74 m |
-| Ice (across lagoon) | 451 m | 1.9 min | 3.8 min | **186 m** | 50 m |
+Each route ends at the shelter's front door.
 
-With the lagoon (next section), the ice route is shortest and least
-wind-exposed, but it carries the ice risk. The shore route spends the longest
-time in the coastal wind. The ruins route is the longest and pays for it with
-loot.
+| Route | Length | Walking | Sprinting | Wind-exposed coast band (< 25 m from shore) |
+|---|---|---|---|---|
+| Road (past the fort) | 432 m | 4.8 min | 1.6 min | 0 m |
+| Shore (north beach) | 496 m | 5.5 min | 1.8 min | **277 m** |
+| Ruins (fort detour) | 514 m | 5.7 min | 1.9 min | 0 m (loot stops add time) |
 
-## Decisions the author must make
+At walking pace a one-way crossing is about 5 minutes. With searching,
+boarding, firing the stove and the weather turn, that fits the milestone's
+10–15 minutes.
 
-1. **Ice needs a lagoon.** On the current terrain the peninsula has no bay:
-   the best sea shortcut found by search saves only 15–17 %, and the drafted
-   ice route was the *longest* (574 m). The proposal is a **frozen salt lagoon**
-   (polygon `salt_lagoon` in the layout JSON, about 180 × 90 m, 1.5 m deep)
-   across the peninsula. Salt ponds of this kind are typical of dry tropical
-   islands (Bonaire, Anguilla, Culebra). The lagoon is **not carved yet**:
-   editing Terrain3D is a content decision.
-2. **Walk speed 4 m/s is about 2.8× a human walk.** At that speed the whole
-   sector is 2 minutes end to end, so First Exit's 10–15 minutes would come
-   only from searching, repairing and waiting. At ~2 m/s the routes take
-   4–5 minutes, which leaves the rest for shelter work, detours and the weather
-   turn. This is a `MovementController` tuning call.
-3. **Shelter distance.** 443 m from the door. To lengthen the sortie without
-   slowing Henry, the destination can move into Santa Cruz proper (church
-   cluster at ~560 m) or further south-west.
+## Ice: pending the coastal zone
+
+The inland lagoon is **rejected** (author, PR #43). Ice belongs to the real
+coast: small islets and atolls, frozen straits and ice bridges between them,
+shoals, the shore-fast ice edge, and ice-locked ships as landmarks, shelters
+and risk points. Until that zone exists, the `ice` route is unconfirmed and
+nothing in the greybox assumes it.
 
 ## Reference: the tropical island before the cold
 
@@ -123,7 +147,7 @@ Typology, not a copy of a real place. It sets scale for props.
   7–9 m apart in groves. Dead ones lose the crown, and the grey fronds hang
   straight down.
 - **Coast**: sand bars and salt ponds behind the beach. Mangrove stumps would
-  sit in the lagoon margins.
+  sit in the coastal shallows.
 
 ## Regenerating
 
@@ -134,12 +158,12 @@ D="$HOME/.local/share/godot/app_userdata/Henry\`s Feral Night/island"
 # 2. maps and buildable sites (whole island, then a window: cx cz half_m)
 python3 tools/world/island_report.py "$D" docs/world/graciosa_overview
 python3 tools/world/island_report.py "$D" docs/world/first_exit_area 1300 -900 350
-# 3. route metrics (add --with-proposals to include the lagoon)
-python3 tools/world/route_metrics.py "$D" data/world/first_exit_layout.json docs/world/first_exit_routes_lagoon --with-proposals
+# 3. route metrics (run after step 4: reads first_exit_resolved.json)
+python3 tools/world/route_metrics.py "$D" data/world/first_exit_layout.json docs/world/first_exit_routes
 # 4. rebuild the greybox scene from the layout
 godot --headless --path . --script res://tools/world/build_first_exit_blockout.gd
-# 5. renders (light stage; HFN_FULL_SCENE=1 for the real scene)
-xvfb-run godot --path . --rendering-driver vulkan --script res://tools/runtime/capture_first_exit.gd
+# 5. renders, one shot per process (light stage; HFN_FULL_SCENE=1 for the real scene)
+for i in 0 1 2 3 4; do HFN_SHOT=$i xvfb-run godot --path . --rendering-driver vulkan --script res://tools/runtime/capture_first_exit.gd; done
 ```
 
 Python needs `numpy`, `scipy`, `pillow` and `matplotlib`.
@@ -148,7 +172,7 @@ Python needs `numpy`, `scipy`, `pillow` and `matplotlib`.
 
 Under CPU Vulkan (lavapipe) the full Graciosa scene crashes a few seconds in,
 with `propagate_notification()` called from a non-main thread and then a
-SIGSEGV. `TestScene` and a bare Terrain3D render fine. The crash only appears
-with the scene's Terrain3D and its assets. The capture tool therefore renders
-on a light stage (terrain, greybox, sun, sky). This needs checking on a real
-GPU.
+SIGSEGV. `TestScene` renders fine. A bare Terrain3D also crashes now and then
+on a large camera jump. The capture tool therefore renders a light stage
+(terrain, greybox, sun, sky) with one shot per process. This needs checking on
+a real GPU.

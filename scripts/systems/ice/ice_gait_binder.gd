@@ -27,7 +27,7 @@ signal gait_changed(gait: IceField.Gait)
 @export var still_speed_mps: float = 0.35
 ## Horizontal speed at or above which he counts as sprinting, in m/s. Ignored
 ## when a movement controller is wired.
-@export var sprint_speed_mps: float = 6.0
+@export var sprint_speed_mps: float = 3.5
 
 @export_group("Crouch")
 ## Input action for crouching. The project has no crouch yet, so this is empty

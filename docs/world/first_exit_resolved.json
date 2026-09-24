@@ -1,0 +1,451 @@
+{
+	"footprints": [
+		{
+			"id": "lamp_main_street_0",
+			"kind": "street_lamp",
+			"x": 1349.9,
+			"z": -831.4
+		},
+		{
+			"id": "lamp_main_street_1",
+			"kind": "street_lamp",
+			"x": 1330.6,
+			"z": -807.4
+		},
+		{
+			"id": "lamp_main_street_2",
+			"kind": "street_lamp",
+			"x": 1305.4,
+			"z": -787.8
+		},
+		{
+			"id": "lamp_main_street_3",
+			"kind": "street_lamp",
+			"x": 1279.9,
+			"z": -769.4
+		},
+		{
+			"id": "lamp_main_street_4",
+			"kind": "street_lamp",
+			"x": 1252.4,
+			"z": -753.1
+		},
+		{
+			"id": "lamp_main_street_5",
+			"kind": "street_lamp",
+			"x": 1224.9,
+			"z": -736.8
+		},
+		{
+			"id": "lamp_main_street_6",
+			"kind": "street_lamp",
+			"x": 1197.3,
+			"z": -720.5
+		},
+		{
+			"id": "lamp_main_street_7",
+			"kind": "street_lamp",
+			"x": 1169.8,
+			"z": -704.1
+		},
+		{
+			"id": "lamp_main_street_8",
+			"kind": "street_lamp",
+			"x": 1142.5,
+			"z": -687.3
+		},
+		{
+			"id": "lamp_main_street_9",
+			"kind": "street_lamp",
+			"x": 1115.2,
+			"z": -670.3
+		},
+		{
+			"id": "lamp_main_street_10",
+			"kind": "street_lamp",
+			"x": 1088.6,
+			"z": -652.6
+		},
+		{
+			"id": "lamp_main_street_11",
+			"kind": "street_lamp",
+			"x": 1061.9,
+			"z": -634.8
+		},
+		{
+			"id": "lamp_main_street_12",
+			"kind": "street_lamp",
+			"x": 1035.5,
+			"z": -616.7
+		},
+		{
+			"id": "lamp_main_street_13",
+			"kind": "street_lamp",
+			"x": 1009.2,
+			"z": -598.5
+		},
+		{
+			"id": "lamp_main_street_14",
+			"kind": "street_lamp",
+			"x": 983.2,
+			"z": -579.4
+		},
+		{
+			"id": "lamp_jetty_lane_0",
+			"kind": "street_lamp",
+			"x": 1113.1,
+			"z": -676.1
+		},
+		{
+			"id": "lamp_jetty_lane_1",
+			"kind": "street_lamp",
+			"x": 1103.3,
+			"z": -702.3
+		},
+		{
+			"house_front": [
+				1131.5,
+				-661.3
+			],
+			"id": "shelter_house",
+			"is_shelter": true,
+			"kind": "lot",
+			"retrofits": [
+				"stovepipe"
+			],
+			"size": [
+				18.0,
+				24.0
+			],
+			"state": "kept",
+			"x": 1133.8,
+			"yaw_deg": -148.3,
+			"z": -655.7
+		},
+		{
+			"house_front": [
+				1110.9,
+				-647.9
+			],
+			"id": "lot_s2",
+			"is_shelter": false,
+			"kind": "lot",
+			"retrofits": [
+				"boarded",
+				"stovepipe",
+				"snow_fence"
+			],
+			"size": [
+				18.0,
+				24.0
+			],
+			"state": "kept",
+			"x": 1113.4,
+			"yaw_deg": -146.3,
+			"z": -642.3
+		},
+		{
+			"house_front": [
+				1090.1,
+				-634.0
+			],
+			"id": "lot_s3",
+			"is_shelter": false,
+			"kind": "lot",
+			"retrofits": [
+				"vestibule",
+				"insulation"
+			],
+			"size": [
+				18.0,
+				24.0
+			],
+			"state": "kept",
+			"x": 1092.6,
+			"yaw_deg": -146.3,
+			"z": -628.5
+		},
+		{
+			"house_front": [
+				1069.3,
+				-620.2
+			],
+			"id": "lot_s4",
+			"is_shelter": false,
+			"kind": "lot",
+			"retrofits": [],
+			"size": [
+				18.0,
+				24.0
+			],
+			"state": "roofless",
+			"x": 1071.8,
+			"yaw_deg": -146.3,
+			"z": -614.6
+		},
+		{
+			"house_front": [
+				1047.2,
+				-605.0
+			],
+			"id": "lot_s5",
+			"is_shelter": false,
+			"kind": "lot",
+			"retrofits": [
+				"boarded"
+			],
+			"size": [
+				18.0,
+				24.0
+			],
+			"state": "kept",
+			"x": 1049.8,
+			"yaw_deg": -145.4,
+			"z": -599.5
+		},
+		{
+			"house_front": [
+				1025.8,
+				-590.2
+			],
+			"id": "lot_s6",
+			"is_shelter": false,
+			"kind": "lot",
+			"retrofits": [
+				"snow_fence"
+			],
+			"size": [
+				18.0,
+				24.0
+			],
+			"state": "kept",
+			"x": 1028.4,
+			"yaw_deg": -145.4,
+			"z": -584.7
+		},
+		{
+			"house_front": [
+				1093.8,
+				-664.6
+			],
+			"id": "lot_n1",
+			"is_shelter": false,
+			"kind": "lot",
+			"retrofits": [
+				"vestibule",
+				"stovepipe",
+				"snow_fence"
+			],
+			"size": [
+				18.0,
+				24.0
+			],
+			"state": "kept",
+			"x": 1091.3,
+			"yaw_deg": 33.7,
+			"z": -670.1
+		},
+		{
+			"house_front": [
+				1073.0,
+				-650.7
+			],
+			"id": "lot_n2",
+			"is_shelter": false,
+			"kind": "lot",
+			"retrofits": [
+				"boarded"
+			],
+			"size": [
+				18.0,
+				24.0
+			],
+			"state": "kept",
+			"x": 1070.5,
+			"yaw_deg": 33.7,
+			"z": -656.3
+		},
+		{
+			"house_front": [
+				1050.4,
+				-635.6
+			],
+			"id": "lot_n3",
+			"is_shelter": false,
+			"kind": "lot",
+			"retrofits": [],
+			"size": [
+				18.0,
+				24.0
+			],
+			"state": "collapsed",
+			"x": 1047.8,
+			"yaw_deg": 34.6,
+			"z": -641.1
+		},
+		{
+			"house_front": [
+				1029.0,
+				-620.8
+			],
+			"id": "lot_n4",
+			"is_shelter": false,
+			"kind": "lot",
+			"retrofits": [
+				"insulation",
+				"stovepipe"
+			],
+			"size": [
+				18.0,
+				24.0
+			],
+			"state": "kept",
+			"x": 1026.4,
+			"yaw_deg": 34.6,
+			"z": -626.3
+		},
+		{
+			"house_front": [
+				1007.6,
+				-606.0
+			],
+			"id": "lot_n5",
+			"is_shelter": false,
+			"kind": "lot",
+			"retrofits": [],
+			"size": [
+				18.0,
+				24.0
+			],
+			"state": "kept",
+			"x": 1005.0,
+			"yaw_deg": 34.6,
+			"z": -611.5
+		},
+		{
+			"id": "bunker_portal",
+			"kind": "bunker_portal",
+			"size": [
+				9.0,
+				7.0,
+				5.0
+			],
+			"x": 1427.0,
+			"yaw_deg": 323.0,
+			"z": -952.0
+		},
+		{
+			"id": "bunker_vent",
+			"kind": "vent_stack",
+			"size": [
+				1.2,
+				1.2,
+				4.0
+			],
+			"x": 1436.0,
+			"yaw_deg": 0.0,
+			"z": -962.0
+		},
+		{
+			"id": "redoubt",
+			"kind": "fort_ring",
+			"size": [
+				28.0,
+				28.0,
+				2.2
+			],
+			"x": 1400.0,
+			"yaw_deg": 0.0,
+			"z": -905.0
+		},
+		{
+			"id": "alata_battery",
+			"kind": "battery",
+			"size": [
+				14.0,
+				10.0,
+				2.5
+			],
+			"x": 1345.0,
+			"yaw_deg": 120.0,
+			"z": -741.0
+		},
+		{
+			"id": "fort_store",
+			"kind": "shed",
+			"size": [
+				6.0,
+				4.0,
+				3.0
+			],
+			"x": 1297.0,
+			"yaw_deg": 30.0,
+			"z": -745.0
+		},
+		{
+			"id": "patrol_hut",
+			"kind": "shed",
+			"size": [
+				4.0,
+				4.0,
+				2.8
+			],
+			"x": 1315.0,
+			"yaw_deg": 35.0,
+			"z": -847.0
+		},
+		{
+			"id": "water_tower",
+			"kind": "water_tower",
+			"size": [
+				5.0,
+				5.0,
+				16.0
+			],
+			"x": 1142.6,
+			"yaw_deg": 31.7,
+			"z": -713.9
+		},
+		{
+			"id": "bus_stop",
+			"kind": "bus_shelter",
+			"size": [
+				4.0,
+				1.6,
+				2.6
+			],
+			"x": 1204.0,
+			"yaw_deg": 30.5,
+			"z": -732.7
+		},
+		{
+			"id": "chapel",
+			"kind": "chapel",
+			"size": [
+				8.0,
+				14.0,
+				7.0
+			],
+			"x": 991.9,
+			"yaw_deg": -143.1,
+			"z": -556.2
+		},
+		{
+			"id": "jetty",
+			"kind": "pier",
+			"size": [
+				3.0,
+				30.0,
+				1.2
+			],
+			"x": 1094.0,
+			"yaw_deg": -158.7,
+			"z": -736.0
+		}
+	],
+	"spawn": {
+		"x": 1420.0,
+		"yaw_deg": 132.0,
+		"z": -943.0
+	}
+}

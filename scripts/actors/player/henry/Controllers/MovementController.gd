@@ -6,8 +6,10 @@ class_name MovementController
 
 # === ПАРАМЕТРЫ ДВИЖЕНИЯ ===
 @export_group("Параметры движения")
-@export var walk_speed: float = 4.0
-@export var sprint_speed: float = 8.0
+## Real walking pace; a sortie is timed in human minutes.
+@export var walk_speed: float = 1.5
+## A run in winter clothing, not a sprinter's burst.
+@export var sprint_speed: float = 4.5
 @export var gravity: float = 9.8
 @export var max_floor_angle: float = 45.0  # НОВОЕ: максимальный угол подъёма (в градусах)
 @export var floor_snap_length: float = 0.1  # НОВОЕ: "прилипание" к полу
@@ -48,7 +50,7 @@ var _was_on_floor_last_frame: bool = false
 func _ready() -> void:
 	if walk_speed <= 0.0:
 		push_warning("Walk speed must be positive, setting to 4.0")
-		walk_speed = 4.0
+		walk_speed = 1.5
 	if sprint_speed <= walk_speed:
 		push_warning("Sprint speed must be greater than walk speed")
 		sprint_speed = walk_speed * 2.0
