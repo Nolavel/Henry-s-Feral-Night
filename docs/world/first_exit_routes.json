@@ -1,0 +1,71 @@
+{
+ "routes": [
+  {
+   "id": "shore",
+   "label": "North sand bar: exposed, predictable",
+   "length_m": 502,
+   "over_sea_m": 26,
+   "coast_band_m": 240,
+   "steepest_deg": 12.2,
+   "minutes_current_walk": 2.1,
+   "minutes_proposed_walk": 4.2
+  },
+  {
+   "id": "ruins",
+   "label": "Fort ruins: loot, detour, more time",
+   "length_m": 530,
+   "over_sea_m": 0,
+   "coast_band_m": 0,
+   "steepest_deg": 8.4,
+   "minutes_current_walk": 2.2,
+   "minutes_proposed_walk": 4.4
+  },
+  {
+   "id": "ice",
+   "label": "Lagoon ice: shortest, gait- and load-sensitive",
+   "length_m": 451,
+   "over_sea_m": 0,
+   "coast_band_m": 0,
+   "steepest_deg": 7.8,
+   "minutes_current_walk": 1.9,
+   "minutes_proposed_walk": 3.8
+  }
+ ],
+ "landmarks": [
+  {
+   "id": "bunker_portal",
+   "distance_m": 11,
+   "visible_from_spawn": true
+  },
+  {
+   "id": "shelter_house",
+   "distance_m": 437,
+   "visible_from_spawn": false
+  },
+  {
+   "id": "water_tower",
+   "distance_m": 408,
+   "visible_from_spawn": true
+  },
+  {
+   "id": "house_2",
+   "distance_m": 489,
+   "visible_from_spawn": false
+  },
+  {
+   "id": "house_3",
+   "distance_m": 513,
+   "visible_from_spawn": false
+  },
+  {
+   "id": "house_4",
+   "distance_m": 359,
+   "visible_from_spawn": false
+  },
+  {
+   "id": "church",
+   "distance_m": 550,
+   "visible_from_spawn": false
+  }
+ ]
+}

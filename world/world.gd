@@ -128,6 +128,7 @@ func _place_player() -> void:
 	player.global_position = (
 		first_spawner_marker.global_position + Vector3(0.0, SPAWN_CLEARANCE, 0.0)
 	)
+	player.global_rotation.y = first_spawner_marker.global_rotation.y
 	first_spawner_marker.queue_free()
 	first_spawner_marker = null
 
