@@ -1,14 +1,17 @@
 class_name VitalCluster
 extends Control
 
-## Four pentagons in an X, tips to the centre: warmth top-left, water top-right,
-## food bottom-right, sleep bottom-left. A drain draws a cell in, a refill grows it.
+## Four pentagons in an X with original HFN glyphs and threshold-only morphs.
 
 const THERMAL_SCRIPT: GDScript = preload("res://scripts/systems/survival/thermal_manager.gd")
-const ICON_THIRST: Texture2D = preload("res://assets/textures/ui/game/biomonitor/thirst_icon.png")
-const ICON_HUNGER: Texture2D = preload("res://assets/textures/ui/game/biomonitor/hunger_icon.png")
-const ICON_SLEEP: Texture2D = preload("res://assets/textures/ui/game/biomonitor/sleep.png")
-const ICON_WARMTH: Texture2D = preload("res://assets/textures/ui/game/biomonitor/temperature_icon.png")
+const ICON_ATLAS: Texture2D = preload("res://assets/textures/ui/game/biomonitor/hfn_vital_morphs.svg")
+const MORPH_FRAME_COUNT: int = 8
+## The SVG renders at 4x: eight 96 px frames across four 96 px rows.
+const MORPH_CELL_PX: float = 96.0
+const ROW_HUNGER: int = 0
+const ROW_THIRST: int = 1
+const ROW_SLEEP: int = 2
+const ROW_WARMTH: int = 3
 
 @export var bio_monitor: BioMonitorManager
 @export var thermal_manager: ThermalManager
@@ -21,17 +24,19 @@ const ICON_WARMTH: Texture2D = preload("res://assets/textures/ui/game/biomonitor
 ## Gap between each tip and the centre.
 @export var centre_gap: float = 22.0
 @export var outline_width: float = 2.0
-@export var icon_size: float = 26.0
+@export var icon_size: float = 30.0
 
 @export_group("Motion")
 ## A change smaller than this is not a pulse, so steady drift stays quiet.
 @export_range(0.0, 0.2, 0.005) var pulse_threshold: float = 0.01
+## Morphs play once when 50% or 10% is crossed; they never idle-loop.
+@export_range(0.25, 0.4, 0.01) var morph_duration: float = 0.35
 ## A drain draws the cell this far toward the centre.
 @export var drain_push_px: float = 6.0
 @export var drain_duration: float = 0.35
 @export var refill_scale: float = 0.15
 @export var refill_duration: float = 2.0
-## A critical cell sits this far in and breathes.
+## A critical cell rests this far inward without continuous animation.
 @export var critical_push_px: float = 3.0
 ## Whole-cell opacity at rest, and while it drains, refills or is critical.
 @export_range(0.0, 1.0, 0.05) var idle_alpha: float = 0.45
@@ -39,33 +44,26 @@ const ICON_WARMTH: Texture2D = preload("res://assets/textures/ui/game/biomonitor
 
 @export_group("Colours")
 @export var base_color: Color = Color("#2A2E33CC")
-@export var outline_color: Color = Color("#C9CED2")
-## Neutral level fill; only a low level turns it rust.
-@export var fill_high: Color = Color("#C9CED2")
-@export var fill_mid: Color = Color("#9BA3AA")
-@export var fill_low: Color = Color("#B8452F")
+@export var normal_color: Color = Color("#F1F2EC")
+@export var warning_color: Color = Color("#D2A943")
+@export var critical_color: Color = Color("#C34E42")
 @export var drain_flash: Color = Color("#A34A3A")
 @export var refill_flash: Color = Color("#A8C47A")
-@export var warmth_normal: Color = Color("#D8DADB")
-@export var warmth_cold: Color = Color("#7FB6D9")
-@export var warmth_critical: Color = Color("#BFF1F5")
 
 var cells: Dictionary = {}
-var _time: float = 0.0
 
 
 func _ready() -> void:
 	mouse_filter = Control.MOUSE_FILTER_IGNORE
-	cells[&"warmth"] = VitalCell.new(&"warmth", Vector2(-1.0, -1.0), ICON_WARMTH)
-	cells[&"thirst"] = VitalCell.new(&"thirst", Vector2(1.0, -1.0), ICON_THIRST)
-	cells[&"hunger"] = VitalCell.new(&"hunger", Vector2(1.0, 1.0), ICON_HUNGER)
-	cells[&"sleep"] = VitalCell.new(&"sleep", Vector2(-1.0, 1.0), ICON_SLEEP)
+	cells[&"warmth"] = VitalCell.new(&"warmth", Vector2(-1.0, -1.0), ROW_WARMTH)
+	cells[&"thirst"] = VitalCell.new(&"thirst", Vector2(1.0, -1.0), ROW_THIRST)
+	cells[&"hunger"] = VitalCell.new(&"hunger", Vector2(1.0, 1.0), ROW_HUNGER)
+	cells[&"sleep"] = VitalCell.new(&"sleep", Vector2(-1.0, 1.0), ROW_SLEEP)
 	_bind_bio_monitor()
 	_bind_thermal()
 
 
-func _process(delta: float) -> void:
-	_time += delta
+func _process(_delta: float) -> void:
 	queue_redraw()
 
 
@@ -76,12 +74,16 @@ func on_world_ready(context: WorldContext) -> void:
 		_bind_thermal()
 
 
-## Feeds one vital 0..1; pulses when it moved enough.
+## Feeds one vital 0..1; pulses on movement and morphs only across thresholds.
 func set_vital(id: StringName, value: float) -> void:
 	var cell: VitalCell = cells.get(id)
 	if cell == null:
 		return
-	match cell.set_level(value, pulse_threshold):
+	var previous_severity: int = cell.severity
+	var pulse: int = cell.set_level(value, pulse_threshold)
+	if cell.severity != previous_severity:
+		_play_morph(cell)
+	match pulse:
 		VitalCell.Pulse.DRAIN:
 			_play_drain(cell)
 		VitalCell.Pulse.REFILL:
@@ -118,15 +120,16 @@ func _on_body_temperature(_celsius: float, normalised: float) -> void:
 	set_vital(&"warmth", normalised)
 
 
-## Sets a level without a pulse, for the first reading.
+## Sets a level and matching baked frame without playing an initial animation.
 func _seed(id: StringName, value: float) -> void:
 	var cell: VitalCell = cells.get(id)
 	if cell != null:
 		cell.set_level(value, INF)
+		cell.morph_frame = cell.target_morph_frame()
 
 
 func _play_drain(cell: VitalCell) -> void:
-	_restart(cell)
+	_restart_motion(cell)
 	cell.pulse = VitalCell.Pulse.DRAIN
 	cell.tween.tween_property(cell, ^"push", drain_push_px, drain_duration * 0.35) \
 			.set_trans(Tween.TRANS_QUAD).set_ease(Tween.EASE_OUT)
@@ -137,7 +140,7 @@ func _play_drain(cell: VitalCell) -> void:
 
 
 func _play_refill(cell: VitalCell) -> void:
-	_restart(cell)
+	_restart_motion(cell)
 	cell.pulse = VitalCell.Pulse.REFILL
 	cell.tween.tween_property(cell, ^"grow", refill_scale, refill_duration * 0.2) \
 			.set_trans(Tween.TRANS_BACK).set_ease(Tween.EASE_OUT)
@@ -148,7 +151,15 @@ func _play_refill(cell: VitalCell) -> void:
 	cell.tween.parallel().tween_property(cell, ^"flash", 0.0, refill_duration * 0.3)
 
 
-func _restart(cell: VitalCell) -> void:
+func _play_morph(cell: VitalCell) -> void:
+	if cell.morph_tween != null and cell.morph_tween.is_valid():
+		cell.morph_tween.kill()
+	cell.morph_tween = create_tween()
+	cell.morph_tween.tween_property(cell, ^"morph_frame", cell.target_morph_frame(), morph_duration) \
+			.set_trans(Tween.TRANS_SINE).set_ease(Tween.EASE_IN_OUT)
+
+
+func _restart_motion(cell: VitalCell) -> void:
 	if cell.tween != null and cell.tween.is_valid():
 		cell.tween.kill()
 	cell.tween = create_tween()
@@ -162,33 +173,44 @@ func _draw() -> void:
 
 
 func _draw_cell(cell: VitalCell, centre: Vector2, shape: PackedVector2Array) -> void:
-	var breathe: float = 0.0
+	var critical_inset: float = critical_push_px if cell.critical else 0.0
 	var active: float = maxf(cell.flash, cell.grow / maxf(refill_scale, 0.001))
-	if cell.critical:
-		breathe = critical_push_px
-		active = maxf(active, 0.6 + 0.4 * (0.5 + 0.5 * sin(_time * 3.0)))
+	if cell.severity == VitalCell.Severity.WARNING:
+		active = maxf(active, 0.65)
+	elif cell.critical:
+		active = maxf(active, 1.0)
 	var alpha: float = lerpf(idle_alpha, active_alpha, clampf(active, 0.0, 1.0))
 	var out: Vector2 = cell.direction
 	var angle: float = Vector2.UP.angle_to(out)
-	var anchor: Vector2 = centre + out * maxf(centre_gap - cell.push - breathe, 0.0)
+	var anchor: Vector2 = centre + out * maxf(centre_gap - cell.push - critical_inset, 0.0)
 	var xform := Transform2D(angle, Vector2.ONE * (1.0 + cell.grow), 0.0, anchor)
 	var outline: PackedVector2Array = xform * shape
 	draw_colored_polygon(outline, _faded(base_color, alpha))
 	var fill: PackedVector2Array = _fill_polygon(shape, cell.level)
 	if fill.size() >= 3:
-		draw_colored_polygon(xform * fill, _faded(_fill_color(cell), alpha))
-	var edge: Color = outline_color
+		draw_colored_polygon(xform * fill, _faded(_state_color(cell), alpha * 0.58))
+	var edge: Color = _state_color(cell)
 	if cell.flash > 0.0:
 		var flash: Color = drain_flash if cell.pulse == VitalCell.Pulse.DRAIN else refill_flash
 		edge = edge.lerp(flash, cell.flash)
 	var closed := outline.duplicate()
 	closed.append(outline[0])
 	draw_polyline(closed, _faded(edge, alpha), outline_width * (1.0 + cell.flash * 0.6), true)
-	if cell.icon != null:
-		var middle: Vector2 = xform * Vector2(0.0, -(cell_height + cell_tip) * 0.5)
-		var icon_px: float = icon_size * (1.0 + cell.grow)
-		var rect := Rect2(middle - Vector2.ONE * icon_px * 0.5, Vector2.ONE * icon_px)
-		draw_texture_rect(cell.icon, rect, false, Color(1.0, 1.0, 1.0, 0.9 * alpha))
+	_draw_icon(cell, xform, alpha)
+
+
+func _draw_icon(cell: VitalCell, xform: Transform2D, alpha: float) -> void:
+	var middle: Vector2 = xform * Vector2(0.0, -(cell_height + cell_tip) * 0.5)
+	var icon_px: float = icon_size * (1.0 + cell.grow)
+	var rect := Rect2(middle - Vector2.ONE * icon_px * 0.5, Vector2.ONE * icon_px)
+	var frame: int = clampi(roundi(cell.morph_frame), 0, MORPH_FRAME_COUNT - 1)
+	var source := Rect2(
+		Vector2(float(frame) * MORPH_CELL_PX, float(cell.icon_row) * MORPH_CELL_PX),
+		Vector2.ONE * MORPH_CELL_PX
+	)
+	var tint: Color = _state_color(cell)
+	tint.a = 0.96 * alpha
+	draw_texture_rect_region(rect, ICON_ATLAS, source, tint)
 
 
 ## The part of the pentagon filled to `level`, measured from its outer base in.
@@ -206,21 +228,14 @@ func _fill_polygon(shape: PackedVector2Array, level: float) -> PackedVector2Arra
 	return clipped[0] if not clipped.is_empty() else PackedVector2Array()
 
 
-func _fill_color(cell: VitalCell) -> Color:
-	var colour: Color
-	if cell.id == &"warmth":
-		if cell.level > 0.5:
-			colour = warmth_cold.lerp(warmth_normal, (cell.level - 0.5) * 2.0)
-		else:
-			colour = warmth_critical.lerp(warmth_cold, cell.level * 2.0)
-	elif cell.level > 0.5:
-		colour = fill_mid.lerp(fill_high, (cell.level - 0.5) * 2.0)
-	elif cell.level > 0.25:
-		colour = fill_low.lerp(fill_mid, (cell.level - 0.25) * 4.0)
-	else:
-		colour = fill_low
-	colour.a = 0.55
-	return colour
+func _state_color(cell: VitalCell) -> Color:
+	match cell.severity:
+		VitalCell.Severity.WARNING:
+			return warning_color
+		VitalCell.Severity.CRITICAL:
+			return critical_color
+		_:
+			return normal_color
 
 
 static func _faded(colour: Color, alpha: float) -> Color:

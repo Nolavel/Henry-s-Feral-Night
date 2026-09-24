@@ -1,7 +1,6 @@
 extends SceneTree
 
-## The diamond vital HUD: a drain nudges its cell out, a refill grows it, a
-## low level turns critical, and the health strip leaves a trail on damage.
+## The vital HUD reacts to movement and changes colour/morph only at thresholds.
 ## Run: godot --headless --script tests/systems/test_vital_cluster.gd
 
 var _failures: int = 0
@@ -41,16 +40,22 @@ func _process(delta: float) -> bool:
 			_cluster.set_vital(&"hunger", 0.6)
 			_cluster.set_vital(&"thirst", 0.4)
 			_cluster.set_vital(&"thirst", 0.9)
-			_cluster.set_vital(&"sleep", 0.1)
+			_cluster.set_vital(&"sleep", 0.09)
 			_strip.set_health(100.0, 100.0, false)
 			_strip.set_health(60.0, 100.0)
 		8:
 			var hunger: VitalCell = _cluster.get_cell(&"hunger")
 			var thirst: VitalCell = _cluster.get_cell(&"thirst")
+			var sleep: VitalCell = _cluster.get_cell(&"sleep")
 			_check(hunger.pulse == VitalCell.Pulse.DRAIN, "a drain was not recognised")
 			_check(thirst.pulse == VitalCell.Pulse.REFILL, "a refill was not recognised")
-			_check(_cluster.get_cell(&"sleep").critical, "10% sleep is not critical")
+			_check(sleep.critical, "below 10% sleep is not critical")
+			_check(sleep.target_morph_frame() == VitalCell.MORPH_CRITICAL_FRAME, "critical morph does not target its final frame")
 			_check(not thirst.critical, "90% water reads as critical")
+			_check(VitalCell.severity_for_level(0.50) == VitalCell.Severity.NORMAL, "50% must remain neutral")
+			_check(VitalCell.severity_for_level(0.499) == VitalCell.Severity.WARNING, "below 50% must be warning")
+			_check(VitalCell.severity_for_level(0.10) == VitalCell.Severity.WARNING, "10% must remain warning")
+			_check(VitalCell.severity_for_level(0.099) == VitalCell.Severity.CRITICAL, "below 10% must be critical")
 			_check(is_equal_approx(_strip.ratio, 0.6) and _strip.trail > 0.61, "damage left no trail (ratio %.2f trail %.2f)" % [_strip.ratio, _strip.trail])
 	return false
 
