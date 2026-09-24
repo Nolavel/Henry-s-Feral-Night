@@ -62,6 +62,8 @@ unless `tools/ci/input_overlap_allowlist.txt` says why that is safe.
 | `L` | flashlight |
 | `Esc` | pause |
 | `F` on a bed or mattress | sleep: wheel or `←` `→` hours, `F`/`Enter` sleep, `Esc` cancel |
+| `L` | light a road flare / drop it |
+| `B` | lay the bedroll (until the inventory has Use); `F` on it sleeps, `F` at its head rolls it up |
 
 ## Layout
 
