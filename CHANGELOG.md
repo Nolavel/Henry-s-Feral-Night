@@ -5,6 +5,24 @@ Maintained per branch; entries are added by whoever makes the change.
 
 ## [Unreleased] — `codex`
 
+### 2026-09-24 — Henry's outfit from Blender (claudeflow)
+
+Added
+- `tools/blender/build_henry_outfit.py` builds a jacket with a rolled hood,
+  trousers, boots with soles and a beanie with a cuff around the UAL mannequin.
+  Each piece is cut from the body, smoothed, pushed out and thickened, so it
+  keeps the body's skin weights and bends at the elbows and knees.
+  Output: `assets/characters/henry/henry_outfit.glb`, with renders in
+  `docs/art/`.
+- Skin under each garment is split into `Skin_<item>` meshes. They are hidden
+  while that item is worn, so clothes never clip and removing one leaves no
+  hole.
+
+Changed
+- `HenryUALVisual` uses the outfit GLB; the same skeleton and the 45 clips.
+- `HenryUALAnimation` groups the outfit meshes per garment for equipment and
+  wetness, and no longer builds greybox primitives (`GARMENT_PIECES` removed).
+
 ### 2026-09-24 — Terrain stage 4: Terrain3D removed (claudeflow)
 
 Removed

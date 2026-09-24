@@ -369,9 +369,14 @@ func _test_worn_clothes_show_and_darken_when_wet() -> void:
 	equipment.unequip(&"head")
 	var hat := visual.find_child("Hat", true, false) as Node3D
 	_check(hat != null and not hat.visible, "the hat still shows after taking it off")
-	var coat_mesh := visual.find_child("Coat", true, false).find_children("*", "MeshInstance3D", true, false)[0] as MeshInstance3D
-	var dry: Color = (coat_mesh.mesh.surface_get_material(0) as StandardMaterial3D).albedo_color
+	var torso_skin := visual.find_child("Skin_Coat", true, false) as Node3D
+	_check(torso_skin != null and not torso_skin.visible, "skin under the coat shows through it")
+	var coat_group := visual.find_child("Coat", true, false) as Node3D
+	var coat_mesh := coat_group.find_children("*", "MeshInstance3D", true, false)[0] as MeshInstance3D
+	var dry: Color = (coat_mesh.get_active_material(0) as StandardMaterial3D).albedo_color
 	visual.set_wetness(1.0)
-	var wet: Color = (coat_mesh.mesh.surface_get_material(0) as StandardMaterial3D).albedo_color
+	var wet: Color = (coat_mesh.get_active_material(0) as StandardMaterial3D).albedo_color
 	_check(wet.get_luminance() < dry.get_luminance() - 0.05, "wet clothes do not read darker")
+	equipment.unequip(&"torso")
+	_check(not coat_group.visible and torso_skin.visible, "taking the coat off leaves a hole in the body")
 	_dispose(player)
