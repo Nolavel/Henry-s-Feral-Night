@@ -89,13 +89,9 @@ func _hide_capture_noise() -> void:
 	if stats != null:
 		stats.visible = false
 
-	var hud := _player.get_node_or_null("HUD") as CanvasItem
+	var hud := _player.get_node_or_null("VitalHUD") as CanvasLayer
 	if hud != null:
 		hud.visible = false
-
-	var in_game_ui := _player.get_node_or_null("InGameUI") as CanvasItem
-	if in_game_ui != null:
-		in_game_ui.visible = false
 
 
 func _prepare_output_dir() -> void:
