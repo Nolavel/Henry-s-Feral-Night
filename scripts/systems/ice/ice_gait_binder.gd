@@ -30,11 +30,22 @@ signal gait_changed(gait: IceField.Gait)
 @export var sprint_speed_mps: float = 3.5
 
 @export_group("Crouch")
-## Input action for crouching. The project has no crouch yet, so this is empty
-## by default and CROUCH is simply never reported.
-@export var crouch_action: StringName = &""
+## Legacy scene compatibility. Runtime crouch prefers MovementController.
+@export var crouch_action: StringName = &"crouch"
 
 var _gait: IceField.Gait = IceField.Gait.STILL
+
+
+func on_world_ready(context: WorldContext) -> void:
+	if character_body == null:
+		character_body = context.player as CharacterBody3D
+	_resolve_movement_controller()
+
+
+func _resolve_movement_controller() -> void:
+	if movement_controller != null or character_body == null:
+		return
+	movement_controller = character_body.get_node_or_null(^"MovementController") as MovementController
 
 
 func _physics_process(_delta: float) -> void:
@@ -83,12 +94,17 @@ func get_gait() -> IceField.Gait:
 
 
 func _is_sprinting(velocity: Vector3, speed: float) -> bool:
+	_resolve_movement_controller()
 	if movement_controller != null:
 		return movement_controller.is_currently_sprinting(velocity)
 	return speed >= sprint_speed_mps
 
 
 func _is_crouching() -> bool:
-	if crouch_action == &"" or not InputMap.has_action(crouch_action):
-		return false
-	return Input.is_action_pressed(crouch_action)
+	_resolve_movement_controller()
+	if movement_controller != null:
+		return movement_controller.is_crouching()
+	var input_systems: Node = get_node_or_null(^"/root/InputSystems")
+	if input_systems != null and input_systems.has_method(&"is_crouching"):
+		return bool(input_systems.call(&"is_crouching"))
+	return false
