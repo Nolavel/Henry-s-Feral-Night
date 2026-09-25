@@ -20,6 +20,7 @@ const BOARD_SCRIPT: String = "res://scripts/environment/interactive/breach_board
 const HEAT_SCRIPT: String = "res://scripts/systems/survival/heat_source.gd"
 const FEED_SCRIPT: String = "res://scripts/environment/interactive/heat_source_feed.gd"
 const CABINET_SCRIPT: String = "res://scripts/environment/interactive/cabinet.gd"
+const HINGED_DOOR_SCRIPT: String = "res://scripts/environment/interactive/hinged_door.gd"
 const SLEEP_SPOT_SCRIPT: String = "res://scripts/environment/interactive/sleep_spot.gd"
 const STOVE_WARMER_SCRIPT: String = "res://scripts/environment/stove/stove_warmer.gd"
 const STOVE_VISUAL_SCRIPT: String = "res://scripts/environment/stove/stove_visual.gd"
@@ -30,6 +31,16 @@ const PICKUP_LEDGER_SCRIPT: String = "res://scripts/environment/interactive/pick
 const PICKUP_SCRIPT: String = "res://scripts/environment/interactive/item_pickup.gd"
 ## House openings shared by the walls and the breaches: [x, width, is_door].
 const WINDOW_GAPS: Array = [[-0.25, 2.0], [0.3, 1.6]]
+## Henry's standing cylinder is 1 m wide and 2 m tall. These dimensions leave
+## honest clearance instead of making the player scrape an exact-fit opening.
+const HOUSE_FLOOR_Y: float = 0.8
+const HOUSE_FLOOR_TOP_Y: float = 0.9
+const HOUSE_ENTRY_RISE_M: float = 0.45
+const HOUSE_STAIR_RUN_M: float = 1.8
+const HOUSE_DOOR_WIDTH_M: float = 1.5
+const HOUSE_DOOR_HEIGHT_M: float = 2.25
+const HOUSE_DOOR_HEAD_Y: float = HOUSE_DOOR_HEIGHT_M + 0.1
+const HOUSE_EAVE_MIN_Y: float = HOUSE_FLOOR_TOP_Y + HOUSE_DOOR_HEIGHT_M + 0.2
 
 var _heights: IslandHeightmap
 var _root: Node3D
@@ -242,7 +253,7 @@ func _build_lot(lot: Dictionary) -> void:
 	var house: Array = lot["house"]
 	var hw: float = float(house[0])
 	var hd: float = float(house[1])
-	var hh: float = float(house[2])
+	var hh: float = maxf(float(house[2]), HOUSE_EAVE_MIN_Y)
 	var house_z: float = depth * 0.5 - float(lot["setback"]) - hd * 0.5 - 3.0
 	var drive_x: float = width * 0.5 - 2.5
 	_fence(node, width, depth, drive_x)
@@ -251,20 +262,33 @@ func _build_lot(lot: Dictionary) -> void:
 	_box(node, Vector3(drive_x, -0.15, depth * 0.5 + near * 0.5), Vector3(3.0, 0.4, near + 0.5), _gravel, false)
 	var house_node := Node3D.new()
 	house_node.name = "House"
-	house_node.position = Vector3(-1.0, 0.0, house_z)
+	## Anchor the raised house to the ground at the foot of its own veranda,
+	## never to the lowest point of the whole 18 x 24 m lot. The old lot-minimum
+	## anchor buried some northern decks and left other entrances floating.
+	var stair_foot_local := Vector3(-1.0, 0.0, house_z + hd * 0.5 + 3.0 + HOUSE_STAIR_RUN_M)
+	var stair_foot_world: Vector3 = node.transform * stair_foot_local
+	var entrance_ground_y: float = _ground(stair_foot_world.x, stair_foot_world.z).y
+	house_node.position = Vector3(
+		-1.0,
+		entrance_ground_y + HOUSE_ENTRY_RISE_M - HOUSE_FLOOR_TOP_Y - node.position.y,
+		house_z
+	)
 	_add(node, house_node)
 	var state: String = lot.get("state", "kept")
-	_bungalow(house_node, hw, hd, hh, state)
+	var entry_door: InteractiveArea = _bungalow(house_node, hw, hd, hh, state)
 	for retrofit: String in lot.get("retrofits", []):
 		_retrofit(house_node, retrofit, hw, hd, hh, node)
 	if bool(lot.get("is_shelter", false)):
-		_shelter_gameplay(house_node, hw, hd, hh)
+		_shelter_gameplay(house_node, hw, hd, hh, entry_door)
 	if bool(lot.get("outbuilding", false)):
 		var shed := Node3D.new()
 		shed.name = "Outbuilding"
 		shed.position = Vector3(-width * 0.5 + 2.5, 0.0, -depth * 0.5 + 2.5)
+		var shed_world: Vector3 = node.transform * shed.position
+		shed.position.y = _ground(shed_world.x, shed_world.z).y - node.position.y
 		_add(node, shed)
-		_room(shed, 3.0, 3.0, 2.4, 0.15, 0.9, [], _wood)
+		_room(shed, 3.0, 3.0, 2.5, 0.15, HOUSE_DOOR_WIDTH_M, [], _wood)
+		_hinged_door(shed, HOUSE_DOOR_WIDTH_M, HOUSE_DOOR_HEIGHT_M, 0.0, 1.5)
 	if bool(lot.get("tank", true)):
 		var tank := Node3D.new()
 		tank.name = "WaterTank"
@@ -277,7 +301,8 @@ func _build_lot(lot: Dictionary) -> void:
 	_resolved.append({"id": lot["id"], "kind": "lot", "is_shelter": bool(lot.get("is_shelter", false)),
 		"x": snappedf(centre.x, 0.1), "z": snappedf(centre.y, 0.1), "yaw_deg": snappedf(rad_to_deg(yaw), 0.1),
 		"size": [width, depth], "house_front": [snappedf(door.x, 0.1), snappedf(door.z, 0.1)],
-		"state": state, "retrofits": lot.get("retrofits", [])})
+		"state": state, "retrofits": lot.get("retrofits", []),
+		"entry_rise_m": HOUSE_ENTRY_RISE_M, "door_clearance": [HOUSE_DOOR_WIDTH_M, HOUSE_DOOR_HEIGHT_M]})
 
 
 ## Low picket fence around the plot with a gap for the driveway gate.
@@ -329,20 +354,25 @@ func _retrofit(house: Node3D, kind: String, w: float, d: float, h: float, lot: N
 
 ## Tropical house on piers: floor, veranda, walls with big openings, roof.
 ## "roofless" drops the roof, "collapsed" leaves only a corner of walls.
-func _bungalow(node: Node3D, w: float, d: float, h: float, state: String = "kept") -> void:
-	var floor_y: float = 0.8
+func _bungalow(node: Node3D, w: float, d: float, h: float, state: String = "kept") -> InteractiveArea:
+	var floor_y: float = HOUSE_FLOOR_Y
 	for px: float in [-w * 0.5 + 0.3, 0.0, w * 0.5 - 0.3]:
 		for pz: float in [-d * 0.5 + 0.3, d * 0.5 - 0.3, d * 0.5 + 2.7]:
 			_box(node, Vector3(px, (floor_y - SINK_M) * 0.5, pz), Vector3(0.3, floor_y + SINK_M, 0.3), _wood)
 	_box(node, Vector3(0, floor_y, 0), Vector3(w, 0.2, d), _wood)
-	_box(node, Vector3(0, floor_y, d * 0.5 + 1.5), Vector3(w, 0.15, 3.0), _wood)
-	_box(node, Vector3(0, floor_y * 0.5, d * 0.5 + 3.4), Vector3(1.4, 0.25, 0.8), _wood)
+	## The veranda and interior floor share one exact top plane. The previous
+	## 2.5 cm lip was still a vertical wall to a CharacterBody with no step-up.
+	_box(node, Vector3(0, HOUSE_FLOOR_TOP_Y - 0.075, d * 0.5 + 1.5), Vector3(w, 0.15, 3.0), _wood)
+	_entry_steps(node, d)
+	node.set_meta(&"entry_rise_m", HOUSE_ENTRY_RISE_M)
+	node.set_meta(&"door_width_m", HOUSE_DOOR_WIDTH_M)
+	node.set_meta(&"door_headroom_m", HOUSE_DOOR_HEIGHT_M)
 	if state == "collapsed":
 		_box(node, Vector3(-w * 0.5, floor_y + h * 0.3, -d * 0.25), Vector3(0.2, h * 0.6, d * 0.5), _wood)
 		_box(node, Vector3(-w * 0.25, floor_y + h * 0.4, -d * 0.5), Vector3(w * 0.5, h * 0.8, 0.2), _wood)
 		var slab: MeshInstance3D = _box(node, Vector3(w * 0.1, floor_y + 0.9, 0), Vector3(w * 0.8, 0.15, d * 0.7), _wood)
 		slab.rotation.z = deg_to_rad(18.0)
-		return
+		return null
 	var walls := Node3D.new()
 	walls.name = "Walls"
 	walls.position.y = floor_y
@@ -350,10 +380,12 @@ func _bungalow(node: Node3D, w: float, d: float, h: float, state: String = "kept
 	var gaps: Array = []
 	for gap: Array in WINDOW_GAPS:
 		gaps.append([w * float(gap[0]), gap[1]])
-	_room(walls, w, d, h - floor_y, 0.2, 1.1, gaps, _wood, false)
+	_room(walls, w, d, h - floor_y, 0.2, HOUSE_DOOR_WIDTH_M, gaps, _wood, false)
+	var entry_door: InteractiveArea = _hinged_door(node, HOUSE_DOOR_WIDTH_M, HOUSE_DOOR_HEIGHT_M,
+		HOUSE_FLOOR_TOP_Y, d * 0.5 + 0.02)
 	if state == "roofless":
 		_box(node, Vector3(w * 0.25, h + 0.3, -d * 0.3), Vector3(w * 0.5, 0.15, d * 0.4), _wood)
-		return
+		return entry_door
 	## Gable over the house, ridge along Z; the veranda gets its own low lean-to.
 	var pitch: float = deg_to_rad(24.0)
 	var half_span: float = (w * 0.5 + 0.5) / cos(pitch)
@@ -361,8 +393,85 @@ func _bungalow(node: Node3D, w: float, d: float, h: float, state: String = "kept
 		var slope: MeshInstance3D = _box(node, Vector3(side * (w * 0.25 + 0.25), h + 0.1 + tan(pitch) * (w * 0.25 + 0.25), 0),
 			Vector3(half_span, 0.15, d + 0.8), _wood)
 		slope.rotation.z = -side * pitch
-	var lean: MeshInstance3D = _box(node, Vector3(0, h - 0.2, d * 0.5 + 1.6), Vector3(w + 0.6, 0.12, 3.4), _wood)
+	## The old lean-to sat below Henry's 2 m collider at its outer edge and
+	## physically capped the veranda. Keep its underside above the doorway.
+	var lean: MeshInstance3D = _box(node, Vector3(0, h + 0.25, d * 0.5 + 1.6), Vector3(w + 0.6, 0.12, 3.4), _wood)
 	lean.rotation.x = deg_to_rad(8.0)
+	for x: float in [-w * 0.5 + 0.2, w * 0.5 - 0.2]:
+		_box(node, Vector3(x, (HOUSE_FLOOR_TOP_Y + h) * 0.5, d * 0.5 + 2.8),
+			Vector3(0.14, h - HOUSE_FLOOR_TOP_Y, 0.14), _wood)
+	return entry_door
+
+
+## Three visible timber treads sit over one shallow invisible ramp collider.
+## CharacterBody3D has no automatic step-up, so box-collider stairs can never
+## be the only path into a building.
+func _entry_steps(node: Node3D, d: float) -> void:
+	var steps := Node3D.new()
+	steps.name = "EntrySteps"
+	_add(node, steps)
+	var ground_y: float = HOUSE_FLOOR_TOP_Y - HOUSE_ENTRY_RISE_M
+	var rise: float = HOUSE_FLOOR_TOP_Y - ground_y
+	var count: int = 3
+	var tread: float = HOUSE_STAIR_RUN_M / float(count)
+	var inner_z: float = d * 0.5 + 3.0
+	for i: int in range(count):
+		var top_y: float = ground_y + rise * float(i + 1) / float(count)
+		var height: float = top_y - ground_y
+		var z: float = inner_z + HOUSE_STAIR_RUN_M - tread * (float(i) + 0.5)
+		_box(steps, Vector3(0.0, ground_y + height * 0.5, z),
+			Vector3(2.2, height, tread + 0.03), _wood, false)
+	var angle: float = atan2(rise, HOUSE_STAIR_RUN_M)
+	var ramp_length: float = Vector2(HOUSE_STAIR_RUN_M, rise).length()
+	var thickness: float = 0.1
+	var ramp: MeshInstance3D = _box(steps,
+		Vector3(0.0, (ground_y + HOUSE_FLOOR_TOP_Y) * 0.5 - cos(angle) * thickness * 0.5,
+			inner_z + HOUSE_STAIR_RUN_M * 0.5),
+		Vector3(2.0, thickness, ramp_length), _wood)
+	ramp.name = "EntryRamp"
+	ramp.rotation.x = angle
+	ramp.visible = false
+
+
+## A physical door leaf on a real hinge, targeted by Henry's F interaction.
+func _hinged_door(parent: Node3D, opening_width: float, opening_height: float,
+		bottom_y: float, z: float) -> InteractiveArea:
+	## Keep generated doors self-contained instead of inheriting authoring-scene
+	## defaults. That template used to carry a Flashlight; a null override was
+	## lost while packing and its StaticBody reappeared inside the doorway.
+	var door := Area3D.new()
+	door.name = "HouseDoor"
+	door.set_script(load(HINGED_DOOR_SCRIPT))
+	door.set(&"auto_detect_ground", false)
+	door.set(&"object_on_ground", false)
+	door.position = Vector3(0.0, bottom_y + opening_height * 0.5, z)
+	_add(parent, door)
+	var prompt_collision := CollisionShape3D.new()
+	prompt_collision.name = "CollisionShape3D"
+	_add(door, prompt_collision)
+	var info := Label3D.new()
+	info.name = "InfoLabel"
+	_add(door, info)
+	var icon := Sprite3D.new()
+	icon.name = "Sprite3D"
+	icon.texture = load("res://assets/textures/environment/interactive/icons/usable_icon.png")
+	icon.scale = Vector3.ONE * 0.75
+	_add(door, icon)
+	door.set(&"info_label", info)
+	door.set(&"icon_sprite", icon)
+	var hinge := Node3D.new()
+	hinge.name = "Hinge"
+	hinge.position.x = -opening_width * 0.5 + 0.04
+	_add(door, hinge)
+	var leaf_width: float = opening_width - 0.08
+	var leaf_height: float = opening_height - 0.07
+	var leaf: MeshInstance3D = _box(hinge, Vector3(leaf_width * 0.5, -0.015, 0.0),
+		Vector3(leaf_width, leaf_height, 0.08), _wood)
+	leaf.name = "DoorLeaf"
+	door.set(&"door_hinge", hinge)
+	door.set(&"interactive_mesh", leaf)
+	_prompt_shape(door, Vector3(opening_width + 0.5, opening_height + 0.2, 1.2))
+	return door as InteractiveArea
 
 
 # --- Shelter gameplay -------------------------------------------------------
@@ -370,8 +479,9 @@ func _bungalow(node: Node3D, w: float, d: float, h: float, state: String = "kept
 ## The working shelter from TestScene, fitted to the bungalow: an interior
 ## ThermalZone, one ShelterBreach per opening with a board-up prompt, and a
 ## stove that heats the zone. Sleep and save need nothing more.
-func _shelter_gameplay(house: Node3D, w: float, d: float, h: float) -> void:
-	var floor_y: float = 0.8
+func _shelter_gameplay(house: Node3D, w: float, d: float, h: float,
+		entry_door: InteractiveArea = null) -> void:
+	var floor_y: float = HOUSE_FLOOR_Y
 	var inner_h: float = h - floor_y
 	var zone := Area3D.new()
 	zone.name = "ShelterZone"
@@ -415,6 +525,8 @@ func _shelter_gameplay(house: Node3D, w: float, d: float, h: float) -> void:
 				Vector3(float(opening[2]) + 0.3, 0.2, 0.05), _board, false)
 			plank.rotation.z = deg_to_rad(float(k - 1) * 6.0)
 		breach.set(&"boarded_visual", boards)
+		if opening[0] == "Door" and entry_door != null:
+			entry_door.breach = breach
 		var prompt: Node3D = (load(INTERACTIVE_SCENE) as PackedScene).instantiate()
 		prompt.name = "BoardUp"
 		prompt.set_script(load(BOARD_SCRIPT))
@@ -648,7 +760,8 @@ func _build_structure(s: Dictionary) -> void:
 			_ring(node, w * 0.5, h, 1.4, 9, 0, _concrete, PI)
 			_box(node, Vector3(0, -SINK_M * 0.5, 0), Vector3(w, SINK_M + 0.2, d), _concrete)
 		"shed":
-			_room(node, w, d, h, 0.25, 1.2, [], _wood)
+			_room(node, w, d, h, 0.25, HOUSE_DOOR_WIDTH_M, [], _wood)
+			_hinged_door(node, HOUSE_DOOR_WIDTH_M, HOUSE_DOOR_HEIGHT_M, 0.0, d * 0.5 + 0.02)
 		"water_tower":
 			_water_tower(node, w, h)
 		"chapel":
@@ -768,7 +881,7 @@ func _wall_with_gaps(node: Node3D, z: float, w: float, t: float, base: float, h:
 		if cut[0] > cursor:
 			_box(node, Vector3((cursor + cut[0]) * 0.5, (base + h) * 0.5, z), Vector3(cut[0] - cursor, h - base, t), mat)
 		var sill: float = 0.0 if cut[2] else 0.9
-		var head: float = 2.1 if cut[2] else 2.0
+		var head: float = HOUSE_DOOR_HEAD_Y if cut[2] else 2.0
 		if sill > base:
 			_box(node, Vector3((cut[0] + cut[1]) * 0.5, (base + sill) * 0.5, z), Vector3(cut[1] - cut[0], sill - base, t), mat)
 		if head < h:

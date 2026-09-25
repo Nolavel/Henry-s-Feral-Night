@@ -32,6 +32,8 @@ INTERACT_PICKUP,Pick up,Подобрать
 INTERACT_PRESS,Press,Нажать
 INTERACT_OPEN,Open,Открыть
 INTERACT_USE,Use,Использовать
+HOUSE_DOOR_OPEN,Open door,Открыть дверь
+HOUSE_DOOR_CLOSE,Close door,Закрыть дверь
 BREACH_REFUSED_NO_BOARDS,You need boards,Нужны доски
 PICKUP_REFUSED_TOO_HEAVY,Too heavy to carry,Слишком тяжело нести
 CABINET_OPEN,Open the cabinet,Открыть шкаф

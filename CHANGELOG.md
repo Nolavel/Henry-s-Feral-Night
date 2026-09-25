@@ -5,6 +5,28 @@ Maintained per branch; entries are added by whoever makes the change.
 
 ## [Unreleased] — `codex`
 
+### 2026-09-25 — First Exit buildings made physically enterable (codex)
+
+Fixed
+- Re-anchored each bungalow to the ground at its own veranda approach instead
+  of the lowest point of the whole lot; northern decks no longer sink into the
+  terrain.
+- Replaced the decorative single veranda block with visible timber steps over
+  a shallow ramp collider, because Henry has no automatic step-up.
+- Widened house and shed openings, raised lintels and the veranda lean-to roof,
+  leaving real clearance around Henry's 1 m x 2 m collision body.
+
+Added
+- Standing houses and sheds now carry a physical hinged door that opens and
+  closes on `F`. Boarding the shelter doorway closes and locks that leaf.
+- Regression coverage checks all eleven bungalow approaches, door dimensions,
+  matching door collision and the open / close / board interaction lifecycle.
+
+Removed
+- The generic `InteractiveArea` template no longer silently spawns a test
+  flashlight. The TestScene flashlight now opts into that prop explicitly, so
+  generated repair prompts cannot place an invisible blocker in a doorway.
+
 ### 2026-09-25 — Restrained startup title (codex)
 
 Changed

@@ -1,15 +1,12 @@
-[gd_scene load_steps=5 format=3 uid="uid://btnxy5t02bhtw"]
+[gd_scene load_steps=4 format=3 uid="uid://btnxy5t02bhtw"]
 
 [ext_resource type="Script" path="res://scripts/environment/interactive/interactive_area.gd" id="1_5dbdg"]
 [ext_resource type="Texture2D" uid="uid://b1oxrq2c4tsb3" path="res://assets/textures/environment/interactive/icons/usable_icon.png" id="2_ca8kd"]
-[ext_resource type="PackedScene" uid="uid://otm5ic4xbx0g" path="res://scenes/environment/props/Flashlight/Flashlight.tscn" id="2_qllws"]
-
 [sub_resource type="SphereShape3D" id="SphereShape3D_28die"]
 radius = 6.0
 
 [node name="InteractiveArea" type="Area3D" node_paths=PackedStringArray("icon_sprite", "info_label")]
 script = ExtResource("1_5dbdg")
-interactable_scene = ExtResource("2_qllws")
 icon_sprite = NodePath("Sprite3D")
 info_label = NodePath("InfoLabel")
 object_on_ground = false
