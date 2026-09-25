@@ -15,7 +15,9 @@ Added
 - `PlayerHubComponent.use_from_zone()`: a pocketed item passes through the pack to
   its user and returns to the pocket if nothing could use it.
 - `HeldLightComponent.release_held()`: the next quick-access click drops the burning flare.
-- `tests/systems/test_quick_access.gd`.
+- `ConsumptionController` joins the Use contract: food and drink are eaten through
+  Hub Use or a pocket click. Nothing in gameplay called it before, so Henry could not eat.
+- `tests/systems/test_quick_access.gd` (pockets, flare, eating).
 
 Removed
 - `toggle_flashlight` (L) action and its handler.

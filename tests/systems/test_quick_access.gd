@@ -75,9 +75,23 @@ func _run() -> void:
 	user.set(&"accept", false)
 	_check(not quick.use_selected(), "a use nobody accepts reported success")
 	_check(_zone_item(hub, path) == &"road_flare", "a failed use did not put the flare back in its pocket")
+	_test_eating(body, inventory, hub)
 	_check(not InputMap.has_action(&"toggle_flashlight"), "the temporary L action is still mapped")
 	print("test_quick_access: %s" % ("PASS" if _failures == 0 else "%d FAILED" % _failures))
 	quit(1 if _failures > 0 else 0)
+
+
+## The missing link: nothing called ConsumptionController, so Henry could not eat.
+func _test_eating(body: Node, inventory: InventoryComponent, hub: PlayerHubComponent) -> void:
+	var eater := ConsumptionController.new()
+	eater.inventory = inventory
+	eater.bio_monitor = BioMonitorManager.new()
+	body.add_child(eater.bio_monitor)
+	body.add_child(eater)
+	inventory.try_add(load("res://data/items/tinned_stew.tres") as ItemResource)
+	_check(hub.can_use(&"tinned_stew"), "carried food offers no Use")
+	_check(hub.use_item(&"tinned_stew"), "Use did not eat the stew")
+	_check(not inventory.has_item(&"tinned_stew"), "the eaten stew is still carried")
 
 
 func _zone_item(hub: PlayerHubComponent, path: StringName) -> StringName:

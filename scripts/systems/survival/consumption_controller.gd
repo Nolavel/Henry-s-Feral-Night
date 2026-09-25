@@ -36,6 +36,16 @@ func can_consume(item_id: StringName) -> Refusal:
 	return Refusal.NONE
 
 
+## Item Use contract (PlayerHubComponent): Use on food or drink eats it.
+func can_use(item_id: StringName) -> bool:
+	return can_consume(item_id) == Refusal.NONE
+
+
+## The Player plays the eating animation on `consumed`.
+func use(item_id: StringName) -> bool:
+	return consume(item_id) == Refusal.NONE
+
+
 ## Consumes one of the item, wherever it is carried. Returns the refusal,
 ## or NONE when it was eaten.
 func consume(item_id: StringName) -> Refusal:
