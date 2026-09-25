@@ -1,10 +1,11 @@
 class_name ItemPickup
 extends InteractiveArea
 
-## An item lying in the world. F puts it in the pack and flies its mesh into the
-## top flap; too heavy to carry, and it stays where it is.
+## An item lying in the world. F prefers an empty Quick Access pocket when the
+## item fits; otherwise it goes into the pack and flies its mesh into the top
+## flap. Too heavy to carry, and it stays where it is.
 
-## Emitted after the item went into the pack.
+## Emitted after the item went into a pocket or the pack.
 signal picked_up(item_id: StringName, count: int)
 ## Emitted when the pack refused it, carrying the item id.
 signal pickup_refused(item_id: StringName)
@@ -26,6 +27,7 @@ const WORLD_GROUP: StringName = &"world_pickup"
 @export var world_id: StringName = &""
 
 var _inventory: InventoryComponent
+var _equipment: EquipmentComponent
 
 
 func _ready() -> void:
@@ -49,6 +51,8 @@ func can_interact() -> bool:
 
 
 ## Adds every unit or none: a half-taken stack would leave the world lying.
+## Prefer Quick Access (pockets via stow_anywhere) before the pack so small
+## tools like the road flare land where the player can use them without Hub.
 func pick_up() -> bool:
 	var item: ItemResource = ItemCatalog.get_item(item_id)
 	var inventory: InventoryComponent = _get_inventory()
@@ -59,13 +63,26 @@ func pick_up() -> bool:
 		pickup_refused.emit(item_id)
 		show_message(tr(TOO_HEAVY_KEY))
 		return false
+
+	var equipment: EquipmentComponent = _get_equipment()
+	var went_to_pack: bool = false
 	for i: int in range(count):
-		inventory.try_add(item)
+		var pocketed: bool = false
+		if equipment != null and not item.carried_in_hands:
+			var refusal: EquipmentComponent.Refusal = equipment.stow_anywhere(item_id)
+			pocketed = refusal == EquipmentComponent.Refusal.NONE
+		if not pocketed:
+			if not inventory.try_add(item):
+				## Should not happen after the weight gate, but stay safe.
+				pickup_refused.emit(item_id)
+				return false
+			went_to_pack = true
+
 	var ledger: PickupLedger = PickupLedger.find(get_tree()) if is_inside_tree() else null
 	if ledger != null:
 		ledger.record(world_id)
 	picked_up.emit(item_id, count)
-	if not item.carried_in_hands:  # armfuls go to the hands, not the pack
+	if went_to_pack and not item.carried_in_hands:
 		_hand_visual_to_pack()
 	queue_free()
 	return true
@@ -147,3 +164,15 @@ func _get_inventory() -> InventoryComponent:
 		return null
 	_inventory = InventoryComponent.find_in(get_tree().get_first_node_in_group("player"))
 	return _inventory
+
+
+func _get_equipment() -> EquipmentComponent:
+	if is_instance_valid(_equipment):
+		return _equipment
+	if not is_inside_tree():
+		return null
+	var player: Node = get_tree().get_first_node_in_group("player")
+	if player == null:
+		return null
+	_equipment = player.get_node_or_null(^"EquipmentComponent") as EquipmentComponent
+	return _equipment
