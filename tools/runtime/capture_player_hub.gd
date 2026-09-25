@@ -15,6 +15,7 @@ const STEPS: Array = [
 	[3.3, "hub", ""], [4.6, "", "03_hub_full"],
 	[4.7, "place", ""], [6.0, "", "07_hold_placement"],
 	[6.1, "use", ""], [6.8, "", "08_bedroll_preview"], [6.9, "confirm", ""], [8.0, "", "09_bedroll_laid"],
+	[16.0, "inspect", ""], [17.5, "", "10_full_inspection"],
 ]
 
 var _player: Player
@@ -64,6 +65,9 @@ func _process(delta: float) -> bool:
 				InventoryComponent.find_in(_player).try_add(load("res://data/items/bedroll.tres") as ItemResource)
 				_hub.open()
 				print("[hub] use=", _hub.use_item(&"bedroll"))
+			"inspect":
+				_hub.close()
+				print("[hub] inspect=", _hub.open_inspection())
 			"confirm":
 				print("[hub] laid=", (_player.get_node(^"BedrollComponent") as BedrollComponent).confirm_placement())
 			"place":
@@ -72,7 +76,7 @@ func _process(delta: float) -> bool:
 			"hub":
 				_player.animation_component.get_pack_rig().set_openness(PackRig.Openness.CLOSED, true)
 				print("[hub] open=", _hub.open())
-		if step[2] == "07_hold_placement":
+		if step[2] == "07_hold_placement" or step[2] == "10_full_inspection":
 			## The placement UI lives on the root viewport, so this frame is the game view.
 			root.get_texture().get_image().save_png("%s/%s.png" % [OUT_DIR, step[2]])
 		elif step[2] != "":

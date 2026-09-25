@@ -37,6 +37,8 @@ const LOCKING_ACTIONS: Array[StringName] = [&"interact", &"pickup", &"fix", &"ch
 const CARRY_WALK_SPEED: float = 1.5
 ## Kenny's feet sit this far below his origin; he is lifted by it when set down.
 const KENNY_SEAT_HEIGHT: float = 0.19
+const INTERACTIVE_SCENE: String = "res://scenes/environment/interactive/InteractiveArea.tscn"
+const PACK_INSPECT_SCRIPT: String = "res://scripts/actors/player/henry/pack/pack_inspect_prompt.gd"
 
 const ACTION_ALIASES: Dictionary = {
 	&"interact": [&"Interact"],
@@ -517,6 +519,7 @@ func set_pack_down(pack_xf: Transform3D, kenny_xf: Transform3D) -> void:
 	_pack_home = [_pack.get_parent(), _pack.transform]
 	_pack.reparent(world, false)
 	_pack.global_transform = pack_xf * Transform3D(Basis.IDENTITY, Vector3(0.0, backpack_size.y * 0.5, 0.0))
+	_add_inspect_prompt()
 	var kenny := _garment_meshes.get(&"Kenny") as Node3D
 	if kenny != null and kenny.visible:
 		_kenny_home = [kenny.get_parent(), kenny.transform]
@@ -526,6 +529,9 @@ func set_pack_down(pack_xf: Transform3D, kenny_xf: Transform3D) -> void:
 
 func pick_pack_up() -> void:
 	if not _pack_home.is_empty():
+		var prompt: Node = _pack.get_node_or_null(^"Inspect")
+		if prompt != null:
+			prompt.free()
 		_pack.set_openness(PackRig.Openness.CLOSED, true)
 		_pack.reparent(_pack_home[0], false)
 		_pack.transform = _pack_home[1]
@@ -535,6 +541,23 @@ func pick_pack_up() -> void:
 		kenny.reparent(_kenny_home[0], false)
 		kenny.transform = _kenny_home[1]
 		_kenny_home = []
+
+
+## F — Inspect pack, while it stands on the floor.
+func _add_inspect_prompt() -> void:
+	var area: Node3D = (load(INTERACTIVE_SCENE) as PackedScene).instantiate()
+	area.name = "Inspect"
+	area.set_script(load(PACK_INSPECT_SCRIPT))
+	area.set(&"interactable_scene", null)
+	area.set(&"object_on_ground", false)
+	area.set(&"icon_height_offset", 0.4)
+	area.set(&"info_height_offset", 0.55)
+	var col := area.get_node_or_null(^"CollisionShape3D") as CollisionShape3D
+	if col != null:
+		var shape := BoxShape3D.new()
+		shape.size = backpack_size + Vector3(0.1, 0.1, 0.1)
+		col.shape = shape
+	_pack.add_child(area)
 
 
 func is_pack_down() -> bool:

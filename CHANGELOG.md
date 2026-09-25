@@ -5,6 +5,20 @@ Maintained per branch; entries are added by whoever makes the change.
 
 ## [Unreleased] — `codex`
 
+### 2026-09-25 — Full pack inspection (#75) (claudeflow)
+
+Added
+- `PlayerHubComponent.open_inspection()`: a separate, slower Hub state. From the
+  Hub ("Take the pack off") the pack comes off and stands in front of Henry,
+  fully open, Kenny beside it; the camera looks down into it from past his left
+  shoulder. Closing puts it back on. Seated by the stove, F on the set-down pack
+  ("Go through the pack") opens inspection where it stands; afterwards it stays
+  there, ajar.
+- Extension point for sorting, sections, repair and crafting:
+  `inspection_opened(pack)` / `inspection_closed`, and the panel lists the pack's
+  sections in inspection mode.
+- `test_pack_inspection`; frame `docs/art/issue68/10_full_inspection.png`.
+
 ### 2026-09-25 — Seated reach: warm and eat from the seat (#42) (claudeflow)
 
 Changed

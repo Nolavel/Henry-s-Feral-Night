@@ -67,3 +67,9 @@ WAIT_ENDED_RECOVERED,Warm and dry,Согрелся и высох
 WAIT_ENDED_FIRE_OUT,The stove went out,Печь погасла
 WARM_PUT,Warm up,Разогреть
 WARM_WARMING,Warming…,Греется…
+HUB_INSPECT,Take the pack off,Снять рюкзак
+HUB_INSPECT_TITLE,Full inspection,Полная ревизия
+HUB_SECTION_MAIN,Main compartment,Главное отделение
+HUB_SECTION_LID,Lid,Клапан
+HUB_SECTION_SIDES,Side flaps,Боковые клапаны
+PACK_INSPECT,Go through the pack,Разобрать рюкзак
