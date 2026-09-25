@@ -18,11 +18,12 @@ func get_view_direction() -> Vector3:
 
 var _failures: int = 0
 var _frame: int = 0
+var _sit_time: float = 0.0
 var _body: CharacterBody3D
 var _visual: HenryUALAnimation
 
 
-func _process(_delta: float) -> bool:
+func _process(delta: float) -> bool:
 	_frame += 1
 	match _frame:
 		1:
@@ -45,8 +46,25 @@ func _process(_delta: float) -> bool:
 			_check(bool(_visual.animation_tree.get("parameters/actions/active")), "OneShot did not become active")
 			_check(_visual.is_action_locking(), "a working action does not root Henry")
 			_check_carry()
-			_finish()
+			_visual.set_sitting(true)
+			_visual.update_animation_state(false, false)
+		_:
+			if _frame > 6:
+				_update_sitting(delta)
 	return false
+
+
+## Frames run faster than real time headless, so the sit checks wait on elapsed time.
+func _update_sitting(delta: float) -> void:
+	_sit_time += delta
+	_visual.update_animation_state(false, false)
+	if _sit_time > 5.0 and _visual.is_sitting():
+		_check(String(_visual._state_playback.get_current_node()).begins_with("Sit"),
+			"sitting did not enter the sit states (%s)" % _visual._state_playback.get_current_node())
+		_visual.set_sitting(false)
+	elif _sit_time > 8.0:
+		_check(_visual._state_playback.get_current_node() != &"SitLoop", "standing up stayed in the sit loop")
+		_finish()
 
 
 func _build() -> void:
@@ -69,6 +87,7 @@ func _check_carry() -> void:
 	var tree := _visual.animation_tree.tree_root as AnimationNodeBlendTree
 	var machine := tree.get_node(&"base") as AnimationNodeStateMachine
 	_check(machine.has_node(&"Carry"), "Carry state is missing")
+	_check(machine.has_node(&"SitLoop") and machine.has_node(&"SitEnter"), "Sitting states are missing")
 	var prop := _visual.find_child("CarryFirewood", true, false) as Node3D
 	_check(prop != null and not prop.visible, "the armful shows before anything is carried")
 	_visual.set_carried_item(load("res://data/items/firewood.tres") as ItemResource)

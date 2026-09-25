@@ -12,6 +12,8 @@ const ROW_HUNGER: int = 0
 const ROW_THIRST: int = 1
 const ROW_SLEEP: int = 2
 const ROW_WARMTH: int = 3
+## Cells that show a trend mark; hunger, thirst and sleep only ever drift down.
+const TREND_IDS: Array[StringName] = [&"warmth"]
 
 @export var bio_monitor: BioMonitorManager
 @export var thermal_manager: ThermalManager
@@ -46,6 +48,13 @@ const ROW_WARMTH: int = 3
 @export_range(0.0, 1.0, 0.05) var idle_alpha: float = 0.45
 @export_range(0.0, 1.0, 0.05) var active_alpha: float = 1.0
 
+@export_group("Trend")
+## Seconds over which a value must move to show a trend mark.
+@export var trend_window: float = 1.5
+## Smallest move within the window that counts as a trend.
+@export var trend_epsilon: float = 0.002
+@export var trend_size: float = 7.0
+
 @export_group("Colours")
 ## Solid backing of every cell; the level shows through the glyph, not a fill.
 @export var base_color: Color = Color("#2A2E3399")
@@ -55,8 +64,16 @@ const ROW_WARMTH: int = 3
 @export var critical_color: Color = Color("#C34E42")
 @export var drain_flash: Color = Color("#A34A3A")
 @export var refill_flash: Color = Color("#A8C47A")
+## Water fill of the figure while clothes are wet.
+@export var wet_color: Color = Color("#5B8DB8B3")
 
 var cells: Dictionary = {}
+## Latest value per id (vital ids plus &"wetness"), its value at the window start and its trend -1/0/+1.
+var _values: Dictionary = {}
+var _window_start: Dictionary = {}
+var _trends: Dictionary = {}
+var _window_left: float = 0.0
+var _wetness: float = 0.0
 
 
 func _ready() -> void:
@@ -69,8 +86,32 @@ func _ready() -> void:
 	_bind_thermal()
 
 
-func _process(_delta: float) -> void:
+func _process(delta: float) -> void:
+	_window_left -= delta
+	if _window_left <= 0.0:
+		_window_left = trend_window
+		for id: StringName in _values:
+			var moved: float = float(_values[id]) - float(_window_start.get(id, _values[id]))
+			_trends[id] = 0 if absf(moved) < trend_epsilon else int(signf(moved))
+			_window_start[id] = _values[id]
 	queue_redraw()
+
+
+## Rising, falling or steady (+1, -1, 0) over the last window. Ids: the vitals and wetness.
+func get_trend(id: StringName) -> int:
+	return int(_trends.get(id, 0))
+
+
+## Clothing wetness 0..1: fills the figure from the feet and gets its own trend mark.
+func set_wetness(value: float) -> void:
+	_wetness = clampf(value, 0.0, 1.0)
+	_track(&"wetness", _wetness)
+
+
+func _track(id: StringName, value: float) -> void:
+	if not _window_start.has(id):
+		_window_start[id] = value
+	_values[id] = value
 
 
 ## The composition root builds the thermal model; the cluster finds it here.
@@ -85,6 +126,7 @@ func set_vital(id: StringName, value: float) -> void:
 	var cell: VitalCell = cells.get(id)
 	if cell == null:
 		return
+	_track(id, value)
 	var previous_severity: int = cell.severity
 	var pulse: int = cell.set_level(value, pulse_threshold)
 	if cell.severity != previous_severity:
@@ -119,7 +161,9 @@ func _bind_thermal() -> void:
 	if thermal_manager == null or thermal_manager.body_temperature_changed.is_connected(_on_body_temperature):
 		return
 	thermal_manager.body_temperature_changed.connect(_on_body_temperature)
+	thermal_manager.wetness_changed.connect(set_wetness)
 	_seed(&"warmth", thermal_manager.get_body_temperature_normalised())
+	set_wetness(thermal_manager.get_wetness())
 
 
 func _on_body_temperature(_celsius: float, normalised: float) -> void:
@@ -129,6 +173,7 @@ func _on_body_temperature(_celsius: float, normalised: float) -> void:
 ## Sets a level and matching baked frame without playing an initial animation.
 func _seed(id: StringName, value: float) -> void:
 	var cell: VitalCell = cells.get(id)
+	_track(id, value)
 	if cell != null:
 		cell.set_level(value, INF)
 		cell.morph_frame = cell.target_morph_frame()
@@ -201,6 +246,9 @@ func _draw_cell(cell: VitalCell, centre: Vector2, shape: PackedVector2Array) -> 
 	closed.append(outline[0])
 	draw_polyline(closed, _faded(edge, alpha), outline_width * (1.0 + cell.flash * 0.6), true)
 	_draw_icon(cell, xform, alpha)
+	if TREND_IDS.has(cell.id):
+		var outer: Vector2 = xform * Vector2(0.0, -(cell_height + cell_tip) * 0.5) + out.normalized() * (cell_width * 0.5 + trend_size)
+		_draw_trend(get_trend(cell.id), outer, get_trend(cell.id) > 0)
 
 
 func _draw_icon(cell: VitalCell, xform: Transform2D, alpha: float) -> void:
@@ -228,8 +276,29 @@ func _draw_silhouette(feet: Vector2) -> void:
 		Vector2(-11, -38),
 	])
 	var xform := Transform2D(0.0, Vector2(k * 0.85, k), 0.0, feet)
-	draw_colored_polygon(xform * body, silhouette_color)
+	var figure: PackedVector2Array = xform * body
+	draw_colored_polygon(figure, silhouette_color)
 	draw_circle(xform * Vector2(0.0, -46.5), 5.0 * k, silhouette_color)
+	if _wetness > 0.01:
+		var line: float = feet.y - silhouette_height * _wetness
+		var water := PackedVector2Array([Vector2(feet.x - 40.0, line), Vector2(feet.x + 40.0, line),
+			Vector2(feet.x + 40.0, feet.y + 1.0), Vector2(feet.x - 40.0, feet.y + 1.0)])
+		for wet: PackedVector2Array in Geometry2D.intersect_polygons(figure, water):
+			draw_colored_polygon(wet, wet_color)
+		var drying: int = get_trend(&"wetness")
+		_draw_trend(drying, feet + Vector2(silhouette_height * 0.35, -silhouette_height * 0.5), drying < 0)
+
+
+## A small arrow: up for rising, down for falling; green when the change helps Henry.
+func _draw_trend(trend: int, at: Vector2, good: bool) -> void:
+	if trend == 0:
+		return
+	var up: bool = trend > 0
+	var s: float = trend_size
+	var tip: Vector2 = at + Vector2(0.0, -s if up else s)
+	var points := PackedVector2Array([tip, at + Vector2(-s * 0.8, s * 0.3 if up else -s * 0.3),
+		at + Vector2(s * 0.8, s * 0.3 if up else -s * 0.3)])
+	draw_colored_polygon(points, refill_flash if good else drain_flash)
 
 
 func _state_color(cell: VitalCell) -> Color:

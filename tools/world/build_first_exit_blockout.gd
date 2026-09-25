@@ -21,6 +21,7 @@ const HEAT_SCRIPT: String = "res://scripts/systems/survival/heat_source.gd"
 const FEED_SCRIPT: String = "res://scripts/environment/interactive/heat_source_feed.gd"
 const CABINET_SCRIPT: String = "res://scripts/environment/interactive/cabinet.gd"
 const SLEEP_SPOT_SCRIPT: String = "res://scripts/environment/interactive/sleep_spot.gd"
+const REST_SPOT_SCRIPT: String = "res://scripts/environment/interactive/rest_spot.gd"
 const PICKUP_SCRIPT: String = "res://scripts/environment/interactive/item_pickup.gd"
 ## House openings shared by the walls and the breaches: [x, width, is_door].
 const WINDOW_GAPS: Array = [[-0.25, 2.0], [0.3, 1.6]]
@@ -442,6 +443,25 @@ func _shelter_gameplay(house: Node3D, w: float, d: float, h: float) -> void:
 	_prompt_shape(feed, Vector3(1.2, 1.4, 1.4))
 	_cabinet(zone, Vector3(w * 0.5 - 0.5, floor_y - zone.position.y, -d * 0.2))
 	_mattress(zone, Vector3(-w * 0.5 + 0.8, floor_y - zone.position.y, d * 0.22))
+	_rest_crate(zone, Vector3(-w * 0.5 + 2.3, floor_y - zone.position.y, -d * 0.2 + 1.1), stove.position)
+
+
+## A crate to sit on by the stove, turned so Henry faces the fire (-Z).
+func _rest_crate(parent: Node3D, pos: Vector3, facing: Vector3) -> void:
+	var seat := Node3D.new()
+	seat.name = "RestCrate"
+	seat.position = pos
+	var to_stove: Vector3 = facing - pos
+	seat.rotation.y = atan2(-to_stove.x, -to_stove.z)
+	_add(parent, seat)
+	var crate: MeshInstance3D = _box(seat, Vector3(0.0, 0.22, 0.25), Vector3(0.5, 0.44, 0.4), _wood, false)
+	var prompt: Node3D = (load(INTERACTIVE_SCENE) as PackedScene).instantiate()
+	prompt.name = "Rest"
+	prompt.set_script(load(REST_SPOT_SCRIPT))
+	prompt.set(&"interactable_scene", null)
+	prompt.set(&"interactive_mesh", crate)
+	_add(seat, prompt)
+	_prompt_shape(prompt, Vector3(1.2, 1.4, 1.2))
 
 
 ## A mattress on the floor by the west wall: the shelter's place to sleep.

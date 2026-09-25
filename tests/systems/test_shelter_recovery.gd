@@ -1,0 +1,86 @@
+extends SceneTree
+
+## Recovery by the stove (#42): a RestSpot sits Henry down and F stands him up;
+## vitals show rising/falling trend marks; wet clothes steam only near a burning stove.
+## Run: godot --headless --script tests/systems/test_shelter_recovery.gd
+
+var _failures: int = 0
+var _frame: int = 0
+var _time: float = 0.0
+var _cluster: VitalCluster
+var _steam: DryingSteamComponent
+var _thermal: ThermalManager
+var _stove: HeatSource
+
+
+func _process(delta: float) -> bool:
+	_frame += 1
+	_time += delta
+	if _frame == 1:
+		_test_rest()
+		_start_trend_and_steam()
+	elif _frame == 3:
+		_check(not _steam.is_steaming(), "dry clothes steam")
+		_thermal.add_wetness(0.6)
+	elif _frame == 5:
+		_check(not _steam.is_steaming(), "wet clothes steam with the stove cold")
+		_stove.ignite()
+	elif _frame == 7:
+		_check(_steam.is_steaming(), "wet clothes by a burning stove do not steam")
+		_cluster.set_vital(&"warmth", 0.5)
+		_cluster.set_wetness(0.6)
+	elif _frame == 8:
+		_cluster.set_vital(&"warmth", 0.7)
+		_cluster.set_wetness(0.3)
+	elif _time > _cluster.trend_window * 2.5:
+		_check(_cluster.get_trend(&"warmth") == 1, "rising warmth shows no up mark")
+		_check(_cluster.get_trend(&"wetness") == -1, "drying clothes show no down mark")
+		_check(_cluster.get_trend(&"hunger") == 0, "a steady vital shows a trend")
+		print("test_shelter_recovery: %s" % ("PASS" if _failures == 0 else "%d FAILED" % _failures))
+		quit(1 if _failures > 0 else 0)
+	return false
+
+
+func _test_rest() -> void:
+	var body := CharacterBody3D.new()
+	body.add_to_group(&"player")
+	var rest := RestComponent.new()
+	rest.name = "RestComponent"
+	body.add_child(rest)
+	root.add_child(body)
+	var seat := Node3D.new()
+	seat.position = Vector3(2.0, 0.0, 1.0)
+	seat.rotation.y = 0.7
+	root.add_child(seat)
+	_check(rest.sit(seat), "Henry did not sit")
+	_check(rest.is_sitting(), "Henry does not report sitting")
+	_check(Vector2(body.global_position.x, body.global_position.z).distance_to(Vector2(2.0, 1.0)) < 0.01,
+		"Henry was not moved onto the seat")
+	_check(not rest.sit(seat), "Henry sat twice")
+	var press := InputEventAction.new()
+	press.action = &"interact"
+	press.pressed = true
+	rest._input(press)
+	_check(not rest.is_sitting(), "F did not stand Henry up")
+
+
+func _start_trend_and_steam() -> void:
+	_cluster = VitalCluster.new()
+	_cluster.trend_window = 0.2
+	root.add_child(_cluster)
+	_cluster.set_vital(&"hunger", 0.8)
+	_thermal = ThermalManager.new()
+	root.add_child(_thermal)
+	_stove = HeatSource.new()
+	_stove.starts_burning = false
+	root.add_child(_stove)
+	_steam = DryingSteamComponent.new()
+	_steam.position = Vector3(1.0, 0.0, 0.0)
+	root.add_child(_steam)
+	_steam.set_thermal(_thermal)
+
+
+func _check(condition: bool, message: String) -> void:
+	if not condition:
+		_failures += 1
+		push_error("FAIL: " + message)
