@@ -5,6 +5,16 @@ Maintained per branch; entries are added by whoever makes the change.
 
 ## [Unreleased] — `codex`
 
+### 2026-09-25 — Hold-F manual placement (#68) (claudeflow)
+
+Added
+- Holding F (0.35 s, `PlayerHubComponent.HOLD_TIME`) through a pickup opens the
+  Hub in placement mode (`open_placement`): the pack opens fully, the item sits
+  under the cursor, the pack and pockets it fits are lit (by `SizeClass`), LMB
+  drags it and releasing drops it there and closes the Hub. A drop outside a lit
+  pocket leaves it in the pack. Tap F stays the quick stow.
+- `test_player_hub` covers the hold and the drop; frame `docs/art/issue68/07_hold_placement.png`.
+
 ### 2026-09-25 — Tap-F quick stow through the top flap (#68) (claudeflow)
 
 Added

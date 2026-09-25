@@ -18,6 +18,9 @@ const OVERWEIGHT: StringName = &"overweight"
 ## Seconds the stowed item rises, then drops into the open top flap.
 const STOW_LIFT_TIME: float = 0.28
 const STOW_DROP_TIME: float = 0.32
+const INTERACT_ACTION: StringName = &"interact"
+## Holding F this long after a pickup opens manual placement instead of a quick stow.
+const HOLD_TIME: float = 0.35
 const EXCLUDED_ZONES: Array[StringName] = [&"pack/pack_main"]
 
 @export var inventory: InventoryComponent
@@ -33,6 +36,9 @@ const EXCLUDED_ZONES: Array[StringName] = [&"pack/pack_main"]
 var pack: PackRig
 var _open: bool = false
 var _stows_in_flight: int = 0
+## F press tracking for hold-to-place: the item stowed during the current press.
+var _press_time: float = -1.0
+var _pressed_item: StringName = &""
 var _camera: Camera3D
 var _previous_camera: Camera3D
 var _panel: PlayerHubPanel
@@ -52,11 +58,27 @@ func _unhandled_input(event: InputEvent) -> void:
 		get_viewport().set_input_as_handled()
 
 
-## Esc closes the Hub before the pause menu hears it.
+## Esc closes the Hub before the pause menu hears it; F presses start the hold clock.
 func _input(event: InputEvent) -> void:
+	if InputMap.has_action(INTERACT_ACTION) and event.is_action_pressed(INTERACT_ACTION) and not event.is_echo():
+		_press_time = 0.0
+		_pressed_item = &""
 	if _open and InputMap.has_action(CLOSE_ACTION) and event.is_action_pressed(CLOSE_ACTION):
 		close()
 		get_viewport().set_input_as_handled()
+
+
+func _process(delta: float) -> void:
+	if _press_time < 0.0:
+		return
+	if not Input.is_action_pressed(INTERACT_ACTION):
+		_press_time = -1.0
+		return
+	_press_time += delta
+	if _press_time >= HOLD_TIME and _pressed_item != &"" and not _open:
+		var item_id: StringName = _pressed_item
+		_press_time = -1.0
+		open_placement(item_id)
 
 
 func is_open() -> bool:
@@ -78,6 +100,16 @@ func open() -> bool:
 	_enter_camera()
 	_show_panel()
 	hub_opened.emit()
+	return true
+
+
+## Hold F: the pack opens fully with the just-picked item under the cursor, to be
+## dragged into a pocket or left in the pack. Releasing the drag closes the Hub.
+func open_placement(item_id: StringName) -> bool:
+	if inventory == null or not inventory.has_item(item_id) or not open():
+		return false
+	if is_instance_valid(_panel):
+		_panel.begin_placement(item_id)
 	return true
 
 
@@ -167,7 +199,9 @@ func move_to_pack(zone_path: StringName) -> StringName:
 
 ## Tap-F stow: the item's visual lifts, flies into the top flap and is freed.
 ## The item is already in the inventory; this is presentation only.
-func stow_visual(visual: Node3D) -> void:
+func stow_visual(visual: Node3D, item_id: StringName = &"") -> void:
+	if _press_time >= 0.0:
+		_pressed_item = item_id
 	var rig: PackRig = _pack()
 	if visual == null:
 		return
