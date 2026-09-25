@@ -1,14 +1,17 @@
 class_name BedrollComponent
 extends Node
 
-## Lays Henry's bedroll on the ground so he can sleep away from a bed (B, until
-## the inventory has a Use action). The laid roll offers F — Sleep through the
-## usual SleepSpot and a prompt to roll it back up. Saved while laid out.
+## Lays Henry's bedroll so he can sleep away from a bed: Use in the Hub shows a
+## placement preview in front of him, F places it, Esc cancels. Saved while laid.
 
 signal bedroll_laid(bedroll: Node3D)
 signal bedroll_packed
 
-const ACTION: StringName = &"lay_bedroll"
+const CONFIRM_ACTION: StringName = &"interact"
+const CANCEL_ACTION: StringName = &"pause"
+const PLACE_HINT_KEY: String = "BEDROLL_PLACE_HINT"
+## Metres in front of Henry the roll's centre lands.
+const PLACE_DISTANCE: float = 1.3
 const ITEM_ID: StringName = &"bedroll"
 const INTERACTIVE_SCENE: String = "res://scenes/environment/interactive/InteractiveArea.tscn"
 const SLEEP_SPOT_SCRIPT: String = "res://scripts/environment/interactive/sleep_spot.gd"
@@ -18,6 +21,7 @@ const PACK_KEY: String = "BEDROLL_PACK"
 @export var inventory: InventoryComponent
 
 var _laid: Node3D
+var _preview: Node3D
 
 
 func _ready() -> void:
@@ -26,9 +30,92 @@ func _ready() -> void:
 		inventory = InventoryComponent.find_in(get_parent())
 
 
-func _unhandled_input(event: InputEvent) -> void:
-	if InputMap.has_action(ACTION) and event.is_action_pressed(ACTION):
-		lay_down()
+## F and Esc belong to the preview while it is up, before InteractComponent hears F.
+func _input(event: InputEvent) -> void:
+	if not is_placing():
+		return
+	if event.is_action_pressed(CONFIRM_ACTION) and not event.is_echo():
+		confirm_placement()
+		get_viewport().set_input_as_handled()
+	elif event.is_action_pressed(CANCEL_ACTION):
+		cancel_placement()
+		get_viewport().set_input_as_handled()
+
+
+func _process(_delta: float) -> void:
+	if is_placing():
+		_preview.global_transform = _front_transform()
+
+
+## Item Use contract (PlayerHubComponent): Use on the bedroll starts placement.
+func can_use(item_id: StringName) -> bool:
+	return item_id == ITEM_ID and not is_laid() and not is_placing() and inventory != null and inventory.has_item(item_id)
+
+
+func use(item_id: StringName) -> bool:
+	return can_use(item_id) and begin_placement()
+
+
+func is_placing() -> bool:
+	return is_instance_valid(_preview)
+
+
+## Shows a see-through roll in front of Henry that follows where he faces.
+func begin_placement() -> bool:
+	if is_placing() or is_laid() or inventory == null or not inventory.has_item(ITEM_ID):
+		return false
+	var world: Node = get_tree().current_scene if get_tree().current_scene != null else get_tree().root
+	_preview = Node3D.new()
+	_preview.name = "BedrollPreview"
+	world.add_child(_preview)
+	var ghost := StandardMaterial3D.new()
+	ghost.albedo_color = Color(0.55, 0.9, 0.6, 0.35)
+	ghost.transparency = BaseMaterial3D.TRANSPARENCY_ALPHA
+	ghost.shading_mode = BaseMaterial3D.SHADING_MODE_UNSHADED
+	var pad := MeshInstance3D.new()
+	var box := BoxMesh.new()
+	box.size = Vector3(0.75, 0.06, 1.9)
+	box.material = ghost
+	pad.mesh = box
+	pad.position = Vector3(0.0, 0.03, 0.0)
+	_preview.add_child(pad)
+	var hint := Label3D.new()
+	hint.text = tr(PLACE_HINT_KEY)
+	hint.billboard = BaseMaterial3D.BILLBOARD_ENABLED
+	hint.font_size = 28
+	hint.position = Vector3(0.0, 0.5, 0.0)
+	_preview.add_child(hint)
+	_preview.global_transform = _front_transform()
+	return true
+
+
+func confirm_placement() -> bool:
+	if not is_placing():
+		return false
+	var xf: Transform3D = _preview.global_transform
+	_clear_preview()
+	return _lay_at(xf)
+
+
+func cancel_placement() -> void:
+	_clear_preview()
+
+
+func _clear_preview() -> void:
+	if is_instance_valid(_preview):
+		_preview.queue_free()
+	_preview = null
+
+
+## Lengthwise in front of Henry; the body faces -Z.
+func _front_transform() -> Transform3D:
+	var body := get_parent() as Node3D
+	if body == null:
+		return Transform3D.IDENTITY
+	var facing: Vector3 = -body.global_transform.basis.z
+	facing.y = 0.0
+	facing = facing.normalized() if facing.length() > 0.01 else Vector3.FORWARD
+	return Transform3D(Basis(Vector3.UP, atan2(facing.x, facing.z)), body.global_position + facing * PLACE_DISTANCE)
 
 
 func is_laid() -> bool:
@@ -39,18 +126,18 @@ func get_laid_bedroll() -> Node3D:
 	return _laid if is_laid() else null
 
 
-## Spends the bedroll from the inventory and spreads it at Henry's feet,
-## lengthwise along where he faces. Refused while one is already laid.
+## Spends the bedroll and lays it straight in front of Henry, no preview.
 func lay_down() -> bool:
+	return _lay_at(_front_transform())
+
+
+func _lay_at(xf: Transform3D) -> bool:
 	var body := get_parent() as CharacterBody3D
 	if is_laid() or body == null or inventory == null or body.velocity.y < -0.5:  # not mid-fall
 		return false
 	if not inventory.try_remove(ITEM_ID):
 		return false
-	var facing: Vector3 = body.global_transform.basis.z
-	facing.y = 0.0
-	var spot: Vector3 = body.global_position + facing.normalized() * 1.1
-	_spawn(Transform3D(Basis(Vector3.UP, atan2(facing.x, facing.z)), spot))
+	_spawn(xf)
 	if body.has_method(&"play_action_animation"):
 		body.call(&"play_action_animation", &"fix")
 	return true

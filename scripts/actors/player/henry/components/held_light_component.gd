@@ -34,6 +34,15 @@ func _unhandled_input(event: InputEvent) -> void:
 		toggle()
 
 
+## Item Use contract (PlayerHubComponent): Use on a flare lights it.
+func can_use(item_id: StringName) -> bool:
+	return item_id == flare_item_id and not is_holding() and inventory != null and inventory.has_item(item_id)
+
+
+func use(item_id: StringName) -> bool:
+	return can_use(item_id) and light()
+
+
 func toggle() -> void:
 	if is_holding():
 		drop()

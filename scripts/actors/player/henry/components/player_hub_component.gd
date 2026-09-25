@@ -231,6 +231,30 @@ func _on_stow_landed(visual: Node3D) -> void:
 		rig.set_openness(PackRig.Openness.CLOSED)
 
 
+## Item Use contract: a sibling component with can_use(id) and use(id) handles it.
+func can_use(item_id: StringName) -> bool:
+	return _user_for(item_id) != null
+
+
+## Closes the Hub and hands the item to its user (bedroll: placement preview).
+func use_item(item_id: StringName) -> bool:
+	var user: Node = _user_for(item_id)
+	if user == null:
+		return false
+	close()
+	return bool(user.call(&"use", item_id))
+
+
+func _user_for(item_id: StringName) -> Node:
+	var body: Node = get_parent()
+	if body == null or inventory == null or not inventory.has_item(item_id):
+		return null
+	for child: Node in body.get_children():
+		if child != self and child.has_method(&"can_use") and bool(child.call(&"can_use", item_id)):
+			return child
+	return null
+
+
 ## Where the Hub camera settles: out from the pack's face, looking at it.
 func get_camera_target() -> Transform3D:
 	var body := get_parent() as Node3D

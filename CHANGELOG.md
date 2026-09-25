@@ -5,6 +5,21 @@ Maintained per branch; entries are added by whoever makes the change.
 
 ## [Unreleased] — `codex`
 
+### 2026-09-25 — Use action; bedroll via preview, B key removed (#68, #74) (claudeflow)
+
+Added
+- Item Use contract: `PlayerHubComponent.can_use()/use_item()` hand an item to the
+  sibling component whose `can_use(id)` accepts it. Hub panel has a Use button.
+- Bedroll Use: the Hub closes and a see-through roll follows in front of Henry;
+  `F` lays it there, `Esc` cancels (nothing is spent until placed).
+- Flare Use: lights it into the hand (same `HeldLightComponent.light()`; `L` stays for now).
+
+Removed
+- `lay_bedroll` (B) input action and its handler.
+
+Fixed
+- The bedroll was laid behind Henry (+Z); it now lands in front (-Z).
+
 ### 2026-09-25 — Hold-F manual placement (#68) (claudeflow)
 
 Added

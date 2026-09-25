@@ -1,6 +1,6 @@
 extends SceneTree
 
-## Bedroll: B spends it from the inventory into a laid roll with F — Sleep
+## Bedroll: Use in the Hub previews it, F places it; laying spends it from the inventory into a laid roll with F — Sleep
 ## (a SleepSpot) and a pack prompt; packing returns it; a save restores it.
 ## Run: godot --headless --script tests/systems/test_bedroll.gd
 
@@ -33,6 +33,7 @@ func _process(_delta: float) -> bool:
 			_check(_bedroll.get_save_data().is_empty(), "a packed bedroll still saves as laid")
 			_bedroll.load_save_data({"x": 1.0, "y": 0.0, "z": 2.0, "yaw": 0.5})
 			_check(_bedroll.is_laid(), "loading a save did not restore the laid bedroll")
+			_test_use_flow()
 			_finish()
 	return false
 
@@ -63,3 +64,31 @@ func _check(condition: bool, message: String) -> void:
 		return
 	_failures += 1
 	push_error("bedroll: %s" % message)
+
+
+## Hub Use → preview in front of Henry → confirm lays it; no B key any more.
+func _test_use_flow() -> void:
+	_check(not InputMap.has_action(&"lay_bedroll"), "the temporary B action is still mapped")
+	var body := CharacterBody3D.new()
+	var inventory := InventoryComponent.new()
+	body.add_child(inventory)
+	var bedroll := BedrollComponent.new()
+	bedroll.inventory = inventory
+	body.add_child(bedroll)
+	var hub := PlayerHubComponent.new()
+	hub.inventory = inventory
+	body.add_child(hub)
+	root.add_child(body)
+	_check(not hub.can_use(&"bedroll"), "Use was offered with no bedroll carried")
+	inventory.try_add(load("res://data/items/bedroll.tres") as ItemResource)
+	_check(hub.can_use(&"bedroll"), "the carried bedroll offers no Use")
+	_check(hub.use_item(&"bedroll"), "Use on the bedroll failed")
+	_check(bedroll.is_placing(), "Use did not start the placement preview")
+	_check(inventory.has_item(&"bedroll"), "the preview spent the bedroll before it was placed")
+	bedroll.cancel_placement()
+	_check(not bedroll.is_placing() and inventory.has_item(&"bedroll"), "cancelling lost the bedroll")
+	hub.use_item(&"bedroll")
+	_check(bedroll.confirm_placement(), "F did not lay the previewed bedroll")
+	_check(bedroll.is_laid() and not inventory.has_item(&"bedroll"), "the placed bedroll was not laid and spent")
+	var ahead: Vector3 = bedroll.get_laid_bedroll().global_position - body.global_position
+	_check(ahead.dot(-body.global_transform.basis.z) > 1.0, "the bedroll was laid behind Henry, not in front")
