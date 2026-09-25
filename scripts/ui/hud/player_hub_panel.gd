@@ -23,12 +23,15 @@ var _dragging: bool = false
 var _ghost: Label
 var _targets: Dictionary = {}  # Control -> zone path; empty path means the pack
 var _zone_paths: Array[StringName] = []
+var _inspect_button: Button
+var _mode: Label
 
 
 func _ready() -> void:
 	layer = 20
 	_build()
 	hub.contents_changed.connect(_refresh)
+	set_inspecting(hub.is_inspecting())
 	_refresh()
 
 
@@ -57,6 +60,11 @@ func _build() -> void:
 	buttons.add_child(_button(tr("HUB_USE"), _on_use))
 	buttons.add_child(_button(tr("HUB_TO_POCKET"), _on_to_pocket))
 	buttons.add_child(_button(tr("HUB_TO_PACK"), _on_to_pack))
+	_inspect_button = _button(tr("HUB_INSPECT"), func() -> void: hub.open_inspection())
+	column.add_child(_inspect_button)
+	_mode = _label("")
+	_mode.visible = false
+	column.add_child(_mode)
 	_status = _label("")
 	_status.autowrap_mode = TextServer.AUTOWRAP_WORD
 	column.add_child(_status)
@@ -85,6 +93,19 @@ func begin_placement(item_id: StringName) -> void:
 	_ghost.position = centre
 	add_child(_ghost)
 	Input.warp_mouse(centre)
+
+
+## Full inspection: the take-off button gives way to the mode title and the pack's
+## sections, where sorting, repair and crafting will hang later.
+func set_inspecting(on: bool) -> void:
+	_inspect_button.visible = not on
+	_mode.visible = on
+	if not on:
+		return
+	var sections: PackedStringArray = [tr("HUB_INSPECT_TITLE")]
+	for section: String in ["HUB_SECTION_MAIN", "HUB_SECTION_LID", "HUB_SECTION_SIDES"]:
+		sections.append("· " + tr(section))
+	_mode.text = "\n".join(sections)
 
 
 func is_placing() -> bool:

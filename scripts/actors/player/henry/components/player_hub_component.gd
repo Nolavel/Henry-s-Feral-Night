@@ -10,6 +10,10 @@ signal hub_closed
 signal contents_changed
 ## Emitted when a quick-stowed item has dropped into the pack.
 signal stow_landed
+## Full inspection: the pack is off, in front of Henry, fully open. Future
+## sorting, sections, repair and crafting attach here.
+signal inspection_opened(pack: PackRig)
+signal inspection_closed
 
 const ACTION: StringName = &"open hub"
 const CLOSE_ACTION: StringName = &"pause"
@@ -21,6 +25,9 @@ const STOW_DROP_TIME: float = 0.32
 const INTERACT_ACTION: StringName = &"interact"
 ## Holding F this long after a pickup opens manual placement instead of a quick stow.
 const HOLD_TIME: float = 0.35
+## Where inspection stands the pack and Kenny, in Henry's space (he faces -Z).
+const INSPECT_PACK_SPOT: Vector3 = Vector3(0.0, -0.9, -0.75)
+const INSPECT_KENNY_SPOT: Vector3 = Vector3(0.7, -0.9, -0.3)
 const EXCLUDED_ZONES: Array[StringName] = [&"pack/pack_main"]
 
 @export var inventory: InventoryComponent
@@ -42,6 +49,9 @@ var _pressed_item: StringName = &""
 var _camera: Camera3D
 var _previous_camera: Camera3D
 var _panel: PlayerHubPanel
+var _inspecting: bool = false
+## True when inspection took the pack off Henry's back (not already set down seated).
+var _took_pack_off: bool = false
 
 
 func _ready() -> void:
@@ -113,13 +123,52 @@ func open_placement(item_id: StringName) -> bool:
 	return true
 
 
+## Full inspection (#75): the pack comes off and stands in front of Henry, fully
+## open, the camera looks down at it. Seated with the pack already down, it opens there.
+func open_inspection() -> bool:
+	if _inspecting:
+		return false
+	var visual: HenryUALAnimation = _visual()
+	if visual == null or _pack() == null:
+		return false
+	if not _open and not open():
+		return false
+	var body := get_parent() as Node3D
+	_took_pack_off = not visual.is_pack_down()
+	if _took_pack_off:
+		var front: Transform3D = body.global_transform * Transform3D(Basis(Vector3.UP, PI), INSPECT_PACK_SPOT)  # flaps face Henry
+		var beside: Transform3D = body.global_transform * Transform3D(Basis(Vector3.UP, PI * 0.5), INSPECT_KENNY_SPOT)
+		visual.set_pack_down(front, beside)
+	_inspecting = true
+	_pack().set_openness(PackRig.Openness.FULL)
+	if is_instance_valid(_camera):
+		create_tween().set_trans(Tween.TRANS_SINE).tween_property(_camera, ^"global_transform", get_camera_target(), camera_blend_time)
+	if is_instance_valid(_panel):
+		_panel.set_inspecting(true)
+	inspection_opened.emit(_pack())
+	return true
+
+
+func is_inspecting() -> bool:
+	return _inspecting
+
+
 func close() -> bool:
 	if not _open:
 		return false
 	_open = false
 	var pack: PackRig = _pack()
+	var visual: HenryUALAnimation = _visual()
+	if _inspecting:
+		_inspecting = false
+		if _took_pack_off and visual != null:
+			visual.pick_pack_up()
+		_took_pack_off = false
+		inspection_closed.emit()
 	if pack != null:
-		pack.set_openness(PackRig.Openness.CLOSED)
+		## Set down by the stove it stays ajar; on the back it shuts.
+		var down: bool = visual != null and visual.is_pack_down()
+		pack.set_openness(PackRig.Openness.AJAR if down else PackRig.Openness.CLOSED)
 	_exit_camera()
 	if is_instance_valid(_panel):
 		_panel.queue_free()
@@ -274,6 +323,11 @@ func _user_for(item_id: StringName) -> Node:
 func get_camera_target() -> Transform3D:
 	var body := get_parent() as Node3D
 	var pack: PackRig = _pack()
+	if _inspecting and pack != null and pack.is_inside_tree():
+		## Beside Henry, past his left shoulder, looking down into the open pack on the floor.
+		var basis: Basis = body.global_transform.basis.orthonormalized()
+		var eye: Vector3 = body.global_position - basis.x * 0.9 + basis.z * 0.2 + Vector3(0.0, 0.7, 0.0)
+		return Transform3D(Basis.IDENTITY, eye).looking_at(pack.global_position, Vector3.UP)
 	var centre: Vector3
 	var outward: Vector3
 	if pack != null and pack.is_inside_tree():
