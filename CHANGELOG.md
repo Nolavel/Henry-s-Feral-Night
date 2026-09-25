@@ -5,6 +5,27 @@ Maintained per branch; entries are added by whoever makes the change.
 
 ## [Unreleased] — `codex`
 
+### 2026-09-25 — Quick access from pockets; L key removed (#68, #73/#74) (claudeflow)
+
+Added
+- `QuickAccessComponent` on the Player: mouse wheel (`quick_next`/`quick_prev`)
+  cycles worn pockets with a short readout; wheel click (`quick_use`) uses the
+  selected pocket's item through the Use contract; `1`–`4` (existing
+  `select item slot N`) pick and use a pocket directly. Q/E stay free for leaning.
+- `PlayerHubComponent.use_from_zone()`: a pocketed item passes through the pack to
+  its user and returns to the pocket if nothing could use it.
+- `HeldLightComponent.release_held()`: the next quick-access click drops the burning flare.
+- `ConsumptionController` joins the Use contract: food and drink are eaten through
+  Hub Use or a pocket click. Nothing in gameplay called it before, so Henry could not eat.
+- `tests/systems/test_quick_access.gd` (pockets, flare, eating).
+
+Removed
+- `toggle_flashlight` (L) action and its handler.
+
+Fixed
+- `tools/ci/check_input_map.py` ignored mouse-button events and quoted action
+  names (e.g. `open hub`), so their overlaps went unchecked.
+
 ### 2026-09-25 — Use action; bedroll via preview, B key removed (#68, #74) (claudeflow)
 
 Added

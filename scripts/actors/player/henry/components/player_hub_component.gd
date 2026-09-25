@@ -245,6 +245,21 @@ func use_item(item_id: StringName) -> bool:
 	return bool(user.call(&"use", item_id))
 
 
+## Uses a pocketed item: it passes through the pack to its user and goes back
+## to the pocket if nothing could use it.
+func use_from_zone(zone_path: StringName) -> bool:
+	var parts: PackedStringArray = String(zone_path).split(EquipmentComponent.POCKET_SEPARATOR)
+	if equipment == null or parts.size() != 2:
+		return false
+	var item_id: StringName = equipment.get_pocket_item(StringName(parts[0]), StringName(parts[1]))
+	if item_id == &"" or move_to_pack(zone_path) != &"":
+		return false
+	if use_item(item_id):
+		return true
+	move_to_zone(item_id, zone_path)
+	return false
+
+
 func _user_for(item_id: StringName) -> Node:
 	var body: Node = get_parent()
 	if body == null or inventory == null or not inventory.has_item(item_id):

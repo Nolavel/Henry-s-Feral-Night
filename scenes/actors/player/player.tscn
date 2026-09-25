@@ -11,6 +11,7 @@
 [ext_resource type="Script" uid="uid://buc8iltj8gtn0" path="res://scripts/actors/player/henry/components/equipment_component.gd" id="90_equip"]
 [ext_resource type="Script" uid="uid://jwbyt4ch7e7l" path="res://scripts/actors/player/henry/components/inventory_component.gd" id="91_inv"]
 [ext_resource type="Script" path="res://scripts/actors/player/henry/components/player_hub_component.gd" id="99_hub"]
+[ext_resource type="Script" path="res://scripts/actors/player/henry/components/quick_access_component.gd" id="99_quick"]
 [ext_resource type="Script" path="res://scripts/actors/player/henry/components/carry_component.gd" id="96_carry"]
 [ext_resource type="Script" path="res://scripts/actors/player/henry/components/held_light_component.gd" id="97_light"]
 [ext_resource type="Script" path="res://scripts/actors/player/henry/components/bedroll_component.gd" id="98_bedroll"]
@@ -68,6 +69,10 @@ equipment = NodePath("../EquipmentComponent")
 script = ExtResource("99_hub")
 inventory = NodePath("../InventoryComponent")
 equipment = NodePath("../EquipmentComponent")
+
+[node name="QuickAccessComponent" type="Node" parent="." node_paths=PackedStringArray("hub")]
+script = ExtResource("99_quick")
+hub = NodePath("../PlayerHubComponent")
 
 [node name="BedrollComponent" type="Node" parent="." node_paths=PackedStringArray("inventory")]
 script = ExtResource("98_bedroll")
