@@ -21,7 +21,10 @@ const WEATHER_CONTROLLER_SCRIPT: GDScript = preload(
 
 @export_group("Burn")
 @export var auto_ignite: bool = true
-@export_range(5.0, 300.0, 1.0) var burn_duration_s: float = 90.0
+## A real long-burning road flare is available in a 30-minute rating. First
+## Exit's 24-hour clock takes 3600 real seconds, so 75 real seconds here equal
+## 30 minutes in Henry's world.
+@export_range(5.0, 300.0, 1.0) var burn_duration_s: float = 75.0
 ## Fixed seed keeps local previews reproducible. Set 0 to randomise.
 @export var flare_seed: int = 1337
 

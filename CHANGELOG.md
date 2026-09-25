@@ -5,6 +5,19 @@ Maintained per branch; entries are added by whoever makes the change.
 
 ## [Unreleased] — `codex`
 
+### 2026-09-25 — Bunker road flare made part of the opening (codex)
+
+Added
+- One recognisable unlit road flare now lies beside the bunker bedroll instead
+  of the opening route starting without an emergency light.
+- Route coverage locks its placement, count and item-specific world visual.
+
+Changed
+- The flare burns for 75 real seconds: 30 minutes on First Exit's 3600-second
+  game-day clock, matching a real long-burning road-flare rating in game time.
+- Controls now document the existing pocket flow: `F` to collect, wheel to
+  select, wheel-click to strike, and wheel-click again to drop it burning.
+
 ### 2026-09-25 — First Exit buildings made physically enterable (codex)
 
 Fixed

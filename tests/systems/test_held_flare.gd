@@ -4,6 +4,8 @@ extends SceneTree
 ## GPU particle rendering is intentionally skipped in headless mode.
 
 const FLARE_SCENE := preload("res://scenes/actors/player/held/HeldFlare.tscn")
+const FIRST_EXIT_DAY_SECONDS: float = 3600.0
+const MINUTES_PER_DAY: float = 1440.0
 
 var _failures: int = 0
 
@@ -28,6 +30,10 @@ func _run() -> void:
 	_check(flare.get_current_energy() > 0.0, "burning flare reports zero energy")
 	_check(is_equal_approx(flare.base_light_energy, 2.8), "review-tuned base light energy regressed")
 	_check(is_equal_approx(flare.light_range_m, 4.5), "review-tuned light range regressed")
+	_check(
+		is_equal_approx(flare.burn_duration_s / FIRST_EXIT_DAY_SECONDS * MINUTES_PER_DAY, 30.0),
+		"flare no longer burns for 30 First Exit game minutes"
+	)
 
 	flare.extinguish()
 	_check(not flare.is_burning(), "extinguish did not stop the flare")
