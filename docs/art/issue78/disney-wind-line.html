@@ -1,0 +1,220 @@
+<!DOCTYPE html>
+<html lang="ru">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <title>Disney wind line — прямая, круг, прямая</title>
+    <style>
+      :root {
+        --bg: #0e141c;
+        --ink: #f3efe4;
+        --muted: #9aa7b4;
+        --stroke: 3px;
+        --loop: 72px;
+        --dur: 2.6s;
+      }
+
+      * {
+        box-sizing: border-box;
+      }
+
+      html,
+      body {
+        margin: 0;
+        background: var(--bg);
+        color: var(--ink);
+        font: 16px/1.5 "Segoe UI", system-ui, sans-serif;
+      }
+
+      .sheet {
+        width: min(960px, calc(100% - 32px));
+        margin: 0 auto;
+        padding: 40px 0 80px;
+      }
+
+      h1 {
+        font-weight: 500;
+        letter-spacing: -0.03em;
+        line-height: 1.15;
+        font-size: clamp(1.8rem, 4vw, 2.6rem);
+        margin: 0 0 8px;
+      }
+
+      p {
+        color: var(--muted);
+        max-width: 60ch;
+      }
+
+      /* 1. Canonical CSS construction: stem + circle + stem */
+      .wind {
+        position: relative;
+        height: var(--loop);
+        margin: 48px 0;
+      }
+
+      .wind::before,
+      .wind::after {
+        content: "";
+        position: absolute;
+        bottom: 0;
+        height: var(--stroke);
+        background: var(--ink);
+        border-radius: 999px;
+      }
+
+      .wind::before {
+        left: 0;
+        width: calc(50% - var(--loop) / 2 + var(--stroke));
+        -webkit-mask-image: linear-gradient(90deg, transparent, #000 28%);
+        mask-image: linear-gradient(90deg, transparent, #000 28%);
+      }
+
+      .wind::after {
+        right: 0;
+        width: calc(50% - var(--loop) / 2 + var(--stroke));
+        -webkit-mask-image: linear-gradient(90deg, #000 72%, transparent);
+        mask-image: linear-gradient(90deg, #000 72%, transparent);
+      }
+
+      .wind .curl {
+        position: absolute;
+        left: 50%;
+        bottom: 0;
+        width: var(--loop);
+        height: var(--loop);
+        border: var(--stroke) solid var(--ink);
+        border-radius: 50%;
+        transform: translateX(-50%) translateY(calc(var(--stroke) * 0.5));
+        box-sizing: border-box;
+      }
+
+      .wind.draw {
+        animation: reveal 2.8s cubic-bezier(0.22, 1, 0.36, 1) infinite;
+      }
+
+      @keyframes reveal {
+        0% {
+          clip-path: inset(-8px 100% -8px 0);
+        }
+        45% {
+          clip-path: inset(-8px 0 -8px 0);
+        }
+        70% {
+          clip-path: inset(-8px 0 -8px 0);
+        }
+        100% {
+          clip-path: inset(-8px 0 -8px 100%);
+        }
+      }
+
+      /* 2. SVG traveling gust — the Disney whoosh */
+      svg {
+        display: block;
+        width: 100%;
+      }
+
+      .gust {
+        fill: none;
+        stroke: var(--ink);
+        stroke-width: 2.8;
+        stroke-linecap: round;
+        stroke-linejoin: round;
+        stroke-dasharray: 0.2 0.8;
+        animation: travel var(--dur) linear infinite;
+        filter: drop-shadow(0 0 6px rgb(243 239 228 / 0.28));
+      }
+
+      .gust.b {
+        stroke-width: 2;
+        opacity: 0.65;
+        stroke-dasharray: 0.14 0.86;
+        animation-delay: calc(var(--dur) * -0.34);
+      }
+
+      .ghost {
+        fill: none;
+        stroke: rgb(243 239 228 / 0.38);
+        stroke-width: 2.8;
+        stroke-linecap: round;
+      }
+
+      @keyframes travel {
+        to {
+          stroke-dashoffset: -1;
+        }
+      }
+
+      .label {
+        font-size: 11px;
+        letter-spacing: 0.14em;
+        text-transform: uppercase;
+        fill: var(--muted);
+      }
+
+      .bone {
+        fill: none;
+        stroke: rgb(197 208 220 / 0.4);
+        stroke-dasharray: 4 5;
+      }
+
+      code {
+        font-size: 0.85em;
+        color: var(--ink);
+      }
+
+      @media (prefers-reduced-motion: reduce) {
+        .wind.draw,
+        .gust {
+          animation: none;
+        }
+        .gust {
+          stroke-dasharray: none;
+        }
+      }
+    </style>
+  </head>
+  <body>
+    <div class="sheet">
+      <h1>Линия ветра: прямая → круг → прямая</h1>
+      <p>
+        Диснеевский жест. Не шум и не частицы: одна черта входит прямой, завивает
+        полный круг на касательной и уходит снова прямой.
+      </p>
+
+      <!-- CSS-only construction -->
+      <div class="wind draw" aria-label="CSS: прямая, круг, прямая">
+        <span class="curl"></span>
+      </div>
+
+      <!-- SVG traveling dash (the cartoon gust) -->
+      <svg viewBox="0 0 1100 240" role="img" aria-label="Порыв по пути с петлёй">
+        <line class="bone" x1="40" y1="176" x2="1060" y2="176" />
+        <circle class="bone" cx="470" cy="120" r="56" />
+        <text class="label" x="140" y="214">прямая</text>
+        <text class="label" x="438" y="46">круг</text>
+        <text class="label" x="860" y="214">прямая</text>
+        <path
+          class="ghost"
+          d="M 48 176 L 470 176 A 56 56 0 0 1 470 64 A 56 56 0 0 1 470 176 L 1052 176"
+        />
+        <path
+          class="gust"
+          pathLength="1"
+          d="M 48 176 L 470 176 A 56 56 0 0 1 470 64 A 56 56 0 0 1 470 176 L 1052 176"
+        />
+        <path
+          class="gust b"
+          pathLength="1"
+          transform="translate(-24 14) scale(0.94)"
+          d="M 48 176 L 470 176 A 56 56 0 0 1 470 64 A 56 56 0 0 1 470 176 L 1052 176"
+        />
+      </svg>
+
+      <p>
+        CSS: <code>::before</code> — вход, <code>.curl</code> — круг,
+        <code>::after</code> — выход. SVG: одна path из линии + дуги 360° +
+        линии; короткий <code>stroke-dasharray</code> бежит по ней.
+      </p>
+    </div>
+  </body>
+</html>
