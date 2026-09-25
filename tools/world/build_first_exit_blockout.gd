@@ -21,6 +21,7 @@ const HEAT_SCRIPT: String = "res://scripts/systems/survival/heat_source.gd"
 const FEED_SCRIPT: String = "res://scripts/environment/interactive/heat_source_feed.gd"
 const CABINET_SCRIPT: String = "res://scripts/environment/interactive/cabinet.gd"
 const SLEEP_SPOT_SCRIPT: String = "res://scripts/environment/interactive/sleep_spot.gd"
+const STOVE_VISUAL_SCRIPT: String = "res://scripts/environment/stove/stove_visual.gd"
 const REST_SPOT_SCRIPT: String = "res://scripts/environment/interactive/rest_spot.gd"
 const PICKUP_SCRIPT: String = "res://scripts/environment/interactive/item_pickup.gd"
 ## House openings shared by the walls and the breaches: [x, width, is_door].
@@ -424,7 +425,20 @@ func _shelter_gameplay(house: Node3D, w: float, d: float, h: float) -> void:
 	stove.position = Vector3(-w * 0.5 + 0.9, floor_y + 0.1 - zone.position.y, -d * 0.2)
 	_add(zone, stove)
 	stove.set(&"heats_zone", zone)
-	_box(stove, Vector3(0, 0.45, 0), Vector3(0.8, 0.9, 0.8), _metal)
+	var iron := Node3D.new()
+	iron.name = "StoveVisual"
+	iron.set_script(load(STOVE_VISUAL_SCRIPT))
+	iron.position.y = -0.1  # the HeatSource sits 0.1 m up; the legs stand on the floor
+	_add(stove, iron)
+	var body := StaticBody3D.new()  # the stove still blocks Henry
+	body.name = "Body"
+	_add(stove, body)
+	var hull := CollisionShape3D.new()
+	var hull_shape := BoxShape3D.new()
+	hull_shape.size = Vector3(0.62, 0.8, 0.7)
+	hull.shape = hull_shape
+	hull.position = Vector3(0.0, 0.3, 0.0)
+	_add(body, hull)
 	var flame := OmniLight3D.new()
 	flame.name = "Flame"
 	flame.visible = false
