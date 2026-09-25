@@ -26,7 +26,7 @@ WEATHER_CALM,Calm,Штиль
 WEATHER_WINDY,Windy,Ветер
 WEATHER_SNOWFALL,Snowfall,Снегопад
 WEATHER_BLIZZARD,Blizzard,Буря
-FEED_PROMPT,Light or feed the stove,Разжечь или подкинуть в печь
+FEED_PROMPT,Add a log,Подкинуть полено
 INTERACT_PUSH,Push,Толкнуть
 INTERACT_PICKUP,Pick up,Подобрать
 INTERACT_PRESS,Press,Нажать
@@ -73,3 +73,4 @@ HUB_SECTION_MAIN,Main compartment,Главное отделение
 HUB_SECTION_LID,Lid,Клапан
 HUB_SECTION_SIDES,Side flaps,Боковые клапаны
 PACK_INSPECT,Go through the pack,Разобрать рюкзак
+LIGHT_PROMPT,Light the stove,Разжечь печь

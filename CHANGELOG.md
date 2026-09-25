@@ -5,6 +5,20 @@ Maintained per branch; entries are added by whoever makes the change.
 
 ## [Unreleased] — `codex`
 
+### 2026-09-25 — Lighting the stove as an act (#42) (claudeflow)
+
+Changed
+- F on the stove is a staged act on top of `HeatSourceFeed` (no new survival
+  architecture): tinder and a log go in at once, Henry kneels and holds still
+  (`Player.hold_still()`), the door swings open and a weak flame grows; only
+  after 5 s does the fire take, burn and heat. A log on a live fire is the short
+  act (door, log, door; 2 s) and needs no tinder. The prompt reads "Light the
+  stove" or "Add a log". `feed()` stays the instant path for systems and tests.
+- `StoveVisual` shows as many logs as a full load holds (6 h / 2 h = 3), not 4;
+  the log going in shows during the act. Balance is unchanged: 1 log = 2 h,
+  6 h max, so a full night still needs tending.
+- `test_stove_act`; frame `docs/art/issue42/07_lighting_act.png`.
+
 ### 2026-09-25 — Controls audit (#76) (claudeflow)
 
 Removed

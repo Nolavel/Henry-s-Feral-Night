@@ -5,8 +5,10 @@ extends Node3D
 ## draught vent, a firebox with one log per fuel unit left, a slotted door that
 ## glows, a cooktop and a flue. Front is +X, where the feed prompt stands.
 
-## Logs the firebox shows at most; one per fuel unit of hours left.
+## Log slots built; the source's full load decides how many can show (6 h / 2 h = 3).
 const MAX_LOGS: int = 4
+## How far the door swings open during an act, degrees.
+const DOOR_OPEN_DEG: float = 105.0
 const SIZE: Vector3 = Vector3(0.62, 0.0, 0.7)  # footprint depth (X) and width (Z)
 const LEG_H: float = 0.14
 const ASH_H: float = 0.12
@@ -23,6 +25,11 @@ var _embers: StandardMaterial3D
 var _logs: Array[Node3D] = []
 var _glow: OmniLight3D
 var _flicker_t: float = 0.0
+var _door: Node3D
+## 0..1 while a lighting act catches: a weak flame that grows before the fire takes.
+var _kindle: float = 0.0
+var _acting: bool = false
+var _act_log: bool = false
 
 
 func _ready() -> void:
@@ -33,6 +40,47 @@ func _ready() -> void:
 		source.fuel_changed.connect(func(_f: float) -> void: _refresh())
 		source.burning_changed.connect(func(_b: bool) -> void: _refresh())
 	_refresh()
+
+
+## Logs a full load shows: burn_duration_h / hours_per_fuel_unit, capped by the slots built.
+func get_capacity_logs() -> int:
+	if source == null or source.hours_per_fuel_unit <= 0.0 or source.burn_duration_h <= 0.0:
+		return MAX_LOGS
+	return clampi(ceili(source.burn_duration_h / source.hours_per_fuel_unit - 0.001), 1, MAX_LOGS)
+
+
+## A staged act at the stove: the door opens, a log goes in; lighting also grows
+## a weak flame over `seconds` before the fire itself takes.
+func begin_act(lighting: bool, seconds: float) -> void:
+	_acting = true
+	_act_log = true
+	_swing_door(true)
+	if lighting:
+		_kindle = 0.05
+		create_tween().tween_property(self, ^"_kindle", 1.0, seconds * 0.9).set_delay(seconds * 0.1)
+	_refresh()
+
+
+func end_act() -> void:
+	_acting = false
+	_act_log = false
+	_kindle = 0.0
+	_swing_door(false)
+	_refresh()
+
+
+func is_door_open() -> bool:
+	return _door != null and _door.rotation.y > 0.1
+
+
+func _swing_door(open: bool) -> void:
+	if _door == null:
+		return
+	var angle: float = deg_to_rad(DOOR_OPEN_DEG) if open else 0.0
+	if not is_inside_tree():
+		_door.rotation.y = angle
+		return
+	create_tween().set_trans(Tween.TRANS_SINE).tween_property(_door, ^"rotation:y", angle, 0.35)
 
 
 func get_visible_log_count() -> int:
@@ -48,25 +96,35 @@ func is_glowing() -> bool:
 
 
 func _process(delta: float) -> void:
+	if _acting and _kindle > 0.0 and not _glow.visible:
+		_glow.visible = true
+		_embers.emission_enabled = true
 	if not is_glowing():
 		return
 	_flicker_t += delta
 	var flicker: float = 0.8 + 0.2 * sin(_flicker_t * 7.3) * sin(_flicker_t * 3.1 + 1.7)
-	_glow.light_energy = 1.4 * flicker
-	_embers.emission_energy_multiplier = 2.2 * flicker
+	var strength: float = _kindle if _acting and _kindle > 0.0 and not _burning() else 1.0
+	_glow.light_energy = 1.4 * flicker * strength
+	_embers.emission_energy_multiplier = 2.2 * flicker * strength
 	if source != null and source.flame_light != null and source.flame_light.visible:
 		source.flame_light.light_energy = 2.5 * (0.85 + 0.15 * flicker)
 
 
+func _burning() -> bool:
+	return source != null and source.is_burning()
+
+
 func _refresh() -> void:
-	var burning: bool = source != null and source.is_burning()
+	var burning: bool = _burning()
 	var units: int = 0
 	if source != null and source.hours_per_fuel_unit > 0.0:
 		units = ceili(source.get_remaining_hours() / source.hours_per_fuel_unit - 0.001)
+	if _act_log:
+		units += 1  # the log going in shows before the fire takes it
 	for i: int in range(_logs.size()):
-		_logs[i].visible = i < clampi(units, 0, MAX_LOGS)
-	_glow.visible = burning
-	_embers.emission_enabled = burning
+		_logs[i].visible = i < clampi(units, 0, get_capacity_logs())
+	_glow.visible = burning or (_acting and _kindle > 0.0)
+	_embers.emission_enabled = burning or (_acting and _kindle > 0.0)
 	_embers.albedo_color = Color(0.9, 0.35, 0.1) if burning else Color(0.18, 0.17, 0.16)
 
 
@@ -127,6 +185,7 @@ func _build() -> void:
 func _build_door(hinge_at: Vector3) -> void:
 	var hinge := Node3D.new()
 	hinge.name = "DoorHinge"
+	_door = hinge
 	hinge.position = hinge_at
 	add_child(hinge)
 	var lower: float = DOOR_H * 0.45
