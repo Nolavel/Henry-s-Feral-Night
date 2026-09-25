@@ -23,6 +23,9 @@ const CROUCH_FWD_ALIASES: Array[StringName] = [&"Crouch_Fwd_Loop", &"Crouch_Fwd"
 const JUMP_START_ALIASES: Array[StringName] = [&"Jump_Start"]
 const JUMP_LOOP_ALIASES: Array[StringName] = [&"Jump_Loop"]
 const JUMP_LAND_ALIASES: Array[StringName] = [&"Jump_Land"]
+const SIT_ENTER_ALIASES: Array[StringName] = [&"Sitting_Enter"]
+const SIT_LOOP_ALIASES: Array[StringName] = [&"Sitting_Idle", &"Sitting_Idle_Loop"]
+const SIT_EXIT_ALIASES: Array[StringName] = [&"Sitting_Exit"]
 const TORCH_ALIASES: Array[StringName] = [&"Idle_Torch", &"Idle_Torch_Loop"]
 const CARRY_WALK_ALIASES: Array[StringName] = [&"UAL2/Walk_Carry", &"Walk_Carry_Loop"]  # Godot drops _Loop on import
 ## Bones the carry pose leaves to the idle clip; the rest hold the load.
@@ -156,6 +159,10 @@ var _held_prop: Node3D
 var _hold_pose: float = 0.0
 var _current_action: StringName = &""
 var _carried: ItemResource = null
+var _sitting: bool = false
+var _resolved_sit_enter: StringName = &""
+var _resolved_sit_loop: StringName = &""
+var _resolved_sit_exit: StringName = &""
 ## Props shown in Henry's arms while carried, by ItemResource.attached_mesh_node_name.
 var _carry_props: Dictionary = {}
 
@@ -224,6 +231,15 @@ func update_animation_state(jump_started: bool, landed: bool) -> void:
 	if _state_playback == null or player == null:
 		return
 	var current: StringName = _state_playback.get_current_node()
+	if _has_sit_state():
+		if _sitting:
+			_state_playback.travel(&"SitLoop")
+			return
+		if current == &"SitEnter" or current == &"SitLoop":
+			_state_playback.travel(&"SitExit")
+			return
+		if current == &"SitExit":
+			return
 	if landed:
 		_state_playback.travel(&"Land")
 		return
@@ -242,6 +258,19 @@ func update_animation_state(jump_started: bool, landed: bool) -> void:
 		_state_playback.travel(&"Crouch")
 	else:
 		_state_playback.travel(&"Carry" if _carried != null and _has_carry_state() else &"Grounded")
+
+
+## Sits down (enter, then the idle loop) or stands up (exit). RestComponent decides.
+func set_sitting(sitting: bool) -> void:
+	_sitting = sitting
+
+
+func is_sitting() -> bool:
+	return _sitting
+
+
+func _has_sit_state() -> bool:
+	return _resolved_sit_loop != &""
 
 
 ## Shows the carried item's prop and switches locomotion to the carry cycle;
@@ -650,6 +679,9 @@ func _setup_animation_tree() -> void:
 	_resolved_jump_land = _resolve_clip(JUMP_LAND_ALIASES)
 	_resolved_carry_walk = _resolve_clip(CARRY_WALK_ALIASES)
 	_resolved_torch = _resolve_clip(TORCH_ALIASES)
+	_resolved_sit_enter = _resolve_clip(SIT_ENTER_ALIASES)
+	_resolved_sit_loop = _resolve_clip(SIT_LOOP_ALIASES)
+	_resolved_sit_exit = _resolve_clip(SIT_EXIT_ALIASES)
 	if _resolved_carry_walk == &"":
 		push_warning("HenryUALAnimation: no Walk_Carry_Loop clip; carrying keeps normal locomotion.")
 
@@ -719,6 +751,21 @@ func _setup_animation_tree() -> void:
 		_add_state_transition(base, &"Carry", &"JumpStart", 0.06)
 		_add_state_transition(base, &"Carry", &"AirLoop", 0.08)
 		_add_state_transition(base, &"Land", &"Carry", 0.10)
+
+	if _has_sit_state() and _resolved_sit_enter != &"" and _resolved_sit_exit != &"":
+		_force_locomotion_loop(_resolved_sit_loop)
+		_force_clip_once(_resolved_sit_enter)
+		_force_clip_once(_resolved_sit_exit)
+		base.add_node(&"SitEnter", _clip(_resolved_sit_enter), Vector2(-260.0, 120.0))
+		base.add_node(&"SitLoop", _clip(_resolved_sit_loop), Vector2(-520.0, 120.0))
+		base.add_node(&"SitExit", _clip(_resolved_sit_exit), Vector2(-260.0, 240.0))
+		_add_state_transition(base, &"Grounded", &"SitEnter", 0.15)
+		_add_state_transition(base, &"SitEnter", &"SitLoop", 0.12, true)
+		_add_state_transition(base, &"SitLoop", &"SitExit", 0.12)
+		_add_state_transition(base, &"SitEnter", &"SitExit", 0.12)
+		_add_state_transition(base, &"SitExit", &"Grounded", 0.15, true)
+	else:
+		_resolved_sit_loop = &""
 
 	var default_action: StringName = _resolve_action_clip(&"interact")
 	_action_node = _clip(default_action if default_action != &"" else _resolved_idle)

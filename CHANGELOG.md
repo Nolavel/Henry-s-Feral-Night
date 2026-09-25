@@ -5,6 +5,21 @@ Maintained per branch; entries are added by whoever makes the change.
 
 ## [Unreleased] — `codex`
 
+### 2026-09-25 — Recovery by the stove: sitting, trend marks, drying steam (#42) (claudeflow)
+
+Added
+- `RestSpot` (F — Sit down) and `RestComponent`: Henry sits on the seat facing
+  its -Z; F, Esc or any move input stands him up. Sitting gives no bonus (author
+  decision): the stove warms and dries, sitting only holds him still.
+- `HenryUALAnimation` sit states: `Sitting_Enter` → `Sitting_Idle` loop → `Sitting_Exit`.
+- First Exit shelter: a crate to sit on by the stove (`RestCrate`, via the builder).
+- Vital HUD: a trend mark on the warmth cell and a wetness water-fill on the
+  figure with its own mark (green when it helps Henry, red when it hurts).
+- `DryingSteamComponent`: soft steam off wet clothes near a burning HeatSource,
+  thinning with wetness.
+- `tests/systems/test_shelter_recovery.gd`; sit states in `test_henry_animation`;
+  `tools/runtime/capture_shelter_recovery.gd`, frame `docs/art/issue42/`.
+
 ### 2026-09-25 — Quick access from pockets; L key removed (#68, #73/#74) (claudeflow)
 
 Added
