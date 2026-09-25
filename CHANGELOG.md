@@ -5,6 +5,19 @@ Maintained per branch; entries are added by whoever makes the change.
 
 ## [Unreleased] — `codex`
 
+### 2026-09-25 — Controls audit (#76) (claudeflow)
+
+Removed
+- Input actions nothing consumed: `open inventory` (I), `open map` (M),
+  `open health_panel` (H), `open craft_panel` (K), `select item slot 5–8`,
+  `reload` (R), `secondary action` (RMB), `drop item` (G), `toggle camera view` (V),
+  `use_ability_gizmo_2` (X), `orbit_left`/`orbit_right` (, .), `DEBUG` (Enter).
+
+Added
+- `docs/technical/CONTROLS.md`: every key, and the context rules for F (one verb,
+  resolved by what is in front of Henry) and Esc (always one step back), with the
+  rules new features follow. `test_quick_access` guards against the dead actions returning.
+
 ### 2026-09-25 — Full pack inspection (#75) (claudeflow)
 
 Added

@@ -69,6 +69,8 @@ unless `tools/ci/input_overlap_allowlist.txt` says why that is safe.
 | `Tab` | Player Hub: the pack opens on Henry's back; move items between the pack and pockets, Use (bedroll: preview, `F` lays it). `Tab`/`Esc` closes |
 | hold `F` | on a pickup: open the pack and drag the item into a pocket with LMB |
 
+Full key list and the context rules for F and Esc: [`docs/technical/CONTROLS.md`](docs/technical/CONTROLS.md).
+
 ## Layout
 
 | Path | Purpose |
