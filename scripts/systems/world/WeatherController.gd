@@ -53,6 +53,10 @@ var _wetness_rate: float = 0.0
 var _snow_cover: float = 0.0
 
 
+## Profile an authored beat asked to follow the current one; empty lets the scheduler pick.
+var _then_id: StringName = &""
+
+
 func _ready() -> void:
 	initialize()
 
@@ -138,6 +142,7 @@ func get_save_data() -> Dictionary:
 	return {
 		"profile_id": String(_current.id) if _current != null else "",
 		"remaining_h": _remaining_h,
+		"then_id": String(_then_id),
 	}
 
 
@@ -148,16 +153,21 @@ func load_save_data(data: Dictionary) -> void:
 	if profile != null:
 		_activate(profile, true)
 	_remaining_h = float(data.get("remaining_h", _remaining_h))
+	_then_id = StringName(String(data.get("then_id", "")))
 	_hours.reset()
 
 
-## Forces a profile by id, blending in over its own blend time.
-func set_weather(id: StringName, instant: bool = false) -> void:
+## Forces a profile by id, blending in over its own blend time. An authored beat
+## may pin how long it lasts (game hours) and which profile follows it.
+func set_weather(id: StringName, instant: bool = false, duration_h: float = -1.0, then_id: StringName = &"") -> void:
 	var profile: WeatherProfile = _find_profile(id)
 	if profile == null:
 		push_warning("WeatherController: unknown profile '%s'" % id)
 		return
 	_activate(profile, instant)
+	if duration_h > 0.0:
+		_remaining_h = duration_h
+	_then_id = then_id
 
 
 func get_current_profile() -> WeatherProfile:
@@ -247,9 +257,12 @@ func _on_time_update(current_hour: float) -> void:
 	_remaining_h -= hours
 	if _remaining_h > 0.0:
 		return
-	var next: WeatherProfile = _pick_weighted()
-	if next == _current and profiles.size() > 1:
+	var next: WeatherProfile = _find_profile(_then_id)
+	_then_id = &""
+	if next == null:
 		next = _pick_weighted()
+		if next == _current and profiles.size() > 1:
+			next = _pick_weighted()
 	_activate(next, false)
 
 

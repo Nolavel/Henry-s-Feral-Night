@@ -5,6 +5,22 @@ Maintained per branch; entries are added by whoever makes the change.
 
 ## [Unreleased] — `codex`
 
+### 2026-09-25 — Authored weather turn on the First Exit route (#78) (claudeflow)
+
+Added
+- `WeatherBeat` (placed by the First Exit builder, saveable): holds `calm` on the
+  way out; once per run, when Henry is 200 m from his start (or after 300 s real
+  as a fallback so the door cannot be waited out), and never while he is
+  sheltered, it drives the one WeatherController into `blizzard` for 180 real
+  seconds, then `windy` (never straight back to calm), then the scheduler.
+  Beat length is in real seconds because the game clock runs a day in 144 s.
+- `WeatherController.set_weather(id, instant, duration_h, then_id)`: an authored
+  beat can pin a duration and the profile that follows; `then_id` is saved.
+- The beat finds the populated WeatherController itself: the environment scene
+  carries an empty leftover controller, and this scene gets no on_world_ready.
+- `test_weather_beat`, `tools/runtime/capture_weather_beat.gd`, frame
+  `docs/art/issue78/calm_then_storm.png`.
+
 ### 2026-09-25 — Consumed world pickups stay consumed (#79) (claudeflow)
 
 Added

@@ -25,6 +25,7 @@ const STOVE_WARMER_SCRIPT: String = "res://scripts/environment/stove/stove_warme
 const STOVE_VISUAL_SCRIPT: String = "res://scripts/environment/stove/stove_visual.gd"
 const MEAL_TABLE_SCRIPT: String = "res://scripts/environment/interactive/meal_table.gd"
 const REST_SPOT_SCRIPT: String = "res://scripts/environment/interactive/rest_spot.gd"
+const WEATHER_BEAT_SCRIPT: String = "res://scripts/world/weather_beat.gd"
 const PICKUP_LEDGER_SCRIPT: String = "res://scripts/environment/interactive/pickup_ledger.gd"
 const PICKUP_SCRIPT: String = "res://scripts/environment/interactive/item_pickup.gd"
 ## House openings shared by the walls and the breaches: [x, width, is_door].
@@ -584,10 +585,15 @@ func _build_pickup(spec: Dictionary) -> void:
 		"x": snappedf(world.x, 0.1), "z": snappedf(world.z, 0.1)})
 
 
-## One PickupLedger per built world, beside the pickups it tracks.
+## One PickupLedger per built world, beside the pickups it tracks; the
+## authored weather turn sits beside it.
 func _ensure_ledger() -> void:
 	if _root.get_node_or_null(^"PickupLedger") != null:
 		return
+	var beat := Node.new()
+	beat.name = "WeatherBeat"
+	beat.set_script(load(WEATHER_BEAT_SCRIPT))
+	_add(_root, beat)
 	var ledger := Node.new()
 	ledger.name = "PickupLedger"
 	ledger.set_script(load(PICKUP_LEDGER_SCRIPT))
