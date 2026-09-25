@@ -54,6 +54,7 @@ func _build() -> void:
 	column.add_child(_zone_list)
 	var buttons := HBoxContainer.new()
 	column.add_child(buttons)
+	buttons.add_child(_button(tr("HUB_USE"), _on_use))
 	buttons.add_child(_button(tr("HUB_TO_POCKET"), _on_to_pocket))
 	buttons.add_child(_button(tr("HUB_TO_PACK"), _on_to_pack))
 	_status = _label("")
@@ -164,6 +165,14 @@ func _on_to_pocket() -> void:
 			if refusal == EquipmentComponent.Refusal.NONE:
 				break
 	_status.text = "" if refusal == EquipmentComponent.Refusal.NONE else tr(REFUSAL_KEYS.get(refusal, "HUB_REFUSED_NO_ZONE"))
+
+
+func _on_use() -> void:
+	var picked: PackedInt32Array = _pack_list.get_selected_items()
+	if picked.is_empty():
+		return
+	if not hub.use_item(_pack_ids[picked[0]]):
+		_status.text = tr("HUB_CANNOT_USE")
 
 
 func _on_to_pack() -> void:

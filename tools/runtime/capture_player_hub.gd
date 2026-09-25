@@ -14,6 +14,7 @@ const STEPS: Array = [
 	[1.7, "stow", ""], [1.9, "", "04_stow_lift"], [2.2, "", "05_stow_drop"], [3.2, "", "06_stow_closed"],
 	[3.3, "hub", ""], [4.6, "", "03_hub_full"],
 	[4.7, "place", ""], [6.0, "", "07_hold_placement"],
+	[6.1, "use", ""], [6.8, "", "08_bedroll_preview"], [6.9, "confirm", ""], [8.0, "", "09_bedroll_laid"],
 ]
 
 var _player: Player
@@ -43,7 +44,13 @@ func _process(delta: float) -> bool:
 	_time += delta
 	if _time < WARMUP:
 		return false
-	_camera.global_transform = _hub.get_camera_target()
+	if _step >= 8:
+		## Bedroll frames: high behind Henry, looking at the ground in front of him.
+		var basis: Basis = _player.global_transform.basis.orthonormalized()
+		_camera.global_position = _player.global_position + basis.z * 2.6 + Vector3(0.0, 2.6, 0.0)
+		_camera.look_at(_player.global_position - basis.z * 1.3, Vector3.UP)
+	else:
+		_camera.global_transform = _hub.get_camera_target()
 	while _step < STEPS.size() and _time - WARMUP >= float(STEPS[_step][0]):
 		var step: Array = STEPS[_step]
 		_step += 1
@@ -52,6 +59,13 @@ func _process(delta: float) -> bool:
 				_player.animation_component.get_pack_rig().set_openness(PackRig.Openness.TOP_ONLY)
 			"stow":
 				_spawn_and_pick()
+			"use":
+				_hub.close()
+				InventoryComponent.find_in(_player).try_add(load("res://data/items/bedroll.tres") as ItemResource)
+				_hub.open()
+				print("[hub] use=", _hub.use_item(&"bedroll"))
+			"confirm":
+				print("[hub] laid=", (_player.get_node(^"BedrollComponent") as BedrollComponent).confirm_placement())
 			"place":
 				_hub.close()
 				print("[hub] placement=", _hub.open_placement(&"road_flare"))

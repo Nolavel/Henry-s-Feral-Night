@@ -54,3 +54,6 @@ HUB_REFUSED_OCCUPIED,That pocket is taken,Этот карман занят
 HUB_REFUSED_NO_ZONE,No free pocket fits it,Нет свободного подходящего кармана
 HUB_REFUSED_OVERWEIGHT,Too heavy for the pack,Слишком тяжело для рюкзака
 HUB_PLACE_HINT,Drag with LMB into a lit pocket; release to close,Перетащите ЛКМ в подсвеченный карман; отпустите — закрыть
+HUB_USE,Use,Использовать
+HUB_CANNOT_USE,Cannot use this here,Здесь это не использовать
+BEDROLL_PLACE_HINT,F — lay here · Esc — cancel,F — разложить · Esc — отмена
