@@ -5,6 +5,15 @@ Maintained per branch; entries are added by whoever makes the change.
 
 ## [Unreleased] — `codex`
 
+### 2026-09-25 — Snow lifted by gusts (claudeflow)
+
+Added
+- `scripts/vfx/snow_lift.gd`: a one-shot puff of grains lifted off the surface.
+  They leave about 10 degrees above flat along the wind, curve steeper under an
+  upward pull and fade out. The grains are tinted a shade off the snow so they
+  read against it.
+- WindGusts lifts snow on the ground under each streak, found with a raycast.
+
 ### 2026-09-25 — Wind gusts in First Exit (claudeflow)
 
 Added
