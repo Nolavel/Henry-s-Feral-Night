@@ -1,116 +1,54 @@
-[gd_scene load_steps=6 format=3 uid="uid://dx7ctf36hw7md"]
+[gd_scene load_steps=2 format=3 uid="uid://dx7ctf36hw7md"]
 
-[ext_resource type="FontFile" uid="uid://c3ns1xlotoc62" path="res://assets/fonts/Special Elite/SpecialElite-Regular.ttf" id="1_5csv6"]
-[ext_resource type="Texture2D" uid="uid://c3jbs57h476nv" path="res://assets/textures/ui/game/biomonitor/menu_bar.png" id="1_ljgr8"]
+[ext_resource type="Script" path="res://scripts/ui/splash/startup_title_card.gd" id="1_startup"]
 
-[sub_resource type="LabelSettings" id="LabelSettings_ljgr8"]
-font = ExtResource("1_5csv6")
-font_size = 60
-font_color = Color(18.892157, 18.892157, 18.892157, 0)
-outline_size = 7
-outline_color = Color(18.892157, 18.892157, 18.892157, 1)
-shadow_size = 3
+[node name="StartupTitleCard" type="CanvasLayer"]
+layer = 100
+script = ExtResource("1_startup")
 
-[sub_resource type="LabelSettings" id="LabelSettings_ti5e2"]
-font = ExtResource("1_5csv6")
-font_size = 66
-font_color = Color(11.709839, 0, 0, 0)
-outline_size = 3
-outline_color = Color(11.708, 0, 0, 1)
-stacked_outline_count = 1
-
-[sub_resource type="LabelSettings" id="LabelSettings_m0agw"]
-font = ExtResource("1_5csv6")
-font_size = 66
-font_color = Color(11.706441, 0, 0, 0)
-outline_size = 3
-outline_color = Color(11.708, 0, 0, 1)
-
-[node name="SplashScene" type="Control"]
-modulate = Color(0.08, 0.08, 0.08, 1)
+[node name="Cover" type="Control" parent="."]
 layout_mode = 3
 anchors_preset = 15
 anchor_right = 1.0
 anchor_bottom = 1.0
 grow_horizontal = 2
 grow_vertical = 2
+mouse_filter = 2
 
-[node name="bg_img" type="ColorRect" parent="."]
+[node name="Background" type="ColorRect" parent="Cover"]
 layout_mode = 1
 anchors_preset = 15
 anchor_right = 1.0
 anchor_bottom = 1.0
 grow_horizontal = 2
 grow_vertical = 2
-color = Color(0, 0, 0, 1)
+mouse_filter = 2
+color = Color(0.0627451, 0.0627451, 0.0627451, 1)
 
-[node name="left_decor_img" type="TextureRect" parent="."]
-modulate = Color(2.454227, 2.454227, 2.454227, 1)
+[node name="Center" type="CenterContainer" parent="Cover"]
 layout_mode = 1
-anchors_preset = 8
-anchor_left = 0.5
-anchor_top = 0.5
-anchor_right = 0.5
-anchor_bottom = 0.5
-offset_left = -300.0
-offset_top = -137.0
-offset_right = 36.0
-offset_bottom = 123.0
+anchors_preset = 15
+anchor_right = 1.0
+anchor_bottom = 1.0
 grow_horizontal = 2
 grow_vertical = 2
-texture = ExtResource("1_ljgr8")
+mouse_filter = 2
 
-[node name="right_decor_img" type="TextureRect" parent="."]
-modulate = Color(2.454227, 2.454227, 2.454227, 1)
-layout_mode = 1
-anchors_preset = 8
-anchor_left = 0.5
-anchor_top = 0.5
-anchor_right = 0.5
-anchor_bottom = 0.5
-offset_left = -36.0
-offset_top = -137.0
-offset_right = 300.0
-offset_bottom = 123.0
-grow_horizontal = 2
-grow_vertical = 2
-texture = ExtResource("1_ljgr8")
-flip_h = true
-
-[node name="HBoxContainer" type="HBoxContainer" parent="."]
-layout_mode = 1
-anchors_preset = 8
-anchor_left = 0.5
-anchor_top = 0.5
-anchor_right = 0.5
-anchor_bottom = 0.5
-offset_left = -122.0
-offset_top = -45.0
-offset_right = 122.0
-offset_bottom = 45.0
-grow_horizontal = 2
-grow_vertical = 2
-theme_override_constants/separation = 20
-
-[node name="lbl_Henry`s" type="Label" parent="HBoxContainer"]
+[node name="Titles" type="VBoxContainer" parent="Cover/Center"]
 layout_mode = 2
-text = "Henry`s"
-label_settings = SubResource("LabelSettings_ljgr8")
-horizontal_alignment = 1
-vertical_alignment = 1
-
-[node name="VBoxContainer" type="VBoxContainer" parent="HBoxContainer"]
-layout_mode = 2
+theme_override_constants/separation = 18
 alignment = 1
 
-[node name="lbl_Feral" type="Label" parent="HBoxContainer/VBoxContainer"]
+[node name="Title" type="Label" parent="Cover/Center/Titles"]
 layout_mode = 2
-text = "Feral"
-label_settings = SubResource("LabelSettings_ti5e2")
-vertical_alignment = 1
+theme_override_colors/font_color = Color(0.921569, 0.921569, 0.921569, 1)
+theme_override_font_sizes/font_size = 64
+text = "Henry's Feral Night"
+horizontal_alignment = 1
 
-[node name="lbl_Night" type="Label" parent="HBoxContainer/VBoxContainer"]
+[node name="Version" type="Label" parent="Cover/Center/Titles"]
 layout_mode = 2
-text = "Night"
-label_settings = SubResource("LabelSettings_m0agw")
-horizontal_alignment = 2
+theme_override_colors/font_color = Color(0.65098, 0.65098, 0.65098, 1)
+theme_override_font_sizes/font_size = 18
+text = "ALPHA 0.1"
+horizontal_alignment = 1

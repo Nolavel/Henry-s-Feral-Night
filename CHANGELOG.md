@@ -5,6 +5,22 @@ Maintained per branch; entries are added by whoever makes the change.
 
 ## [Unreleased] — `codex`
 
+### 2026-09-25 — Restrained startup title (codex)
+
+Changed
+- The engine boot is now a plain `#101010` field instead of the old illustrated
+  splash.
+- The playable island opens under a centered `Henry's Feral Night` / `ALPHA 0.1`
+  title card in soft white, then reveals the scene with a short fade. Capture
+  tools that instantiate the island directly skip the card.
+
+Removed
+- The obsolete `Splash_testing.png` asset and its import metadata.
+
+Tested
+- Added `test_startup_presentation.gd` to lock the boot colour, wording,
+  version label, main-scene wiring and removal of the legacy image.
+
 ### 2026-09-25 — Drifting snow made readable (claudeflow)
 
 Changed
