@@ -33,6 +33,11 @@ var _is_boarded: bool = false
 func _ready() -> void:
 	_is_boarded = starts_boarded
 	_announce()
+	if not Engine.is_editor_hint() and get_node_or_null(^"Draft") == null:
+		var draft := BreachDraft.new()  # snow blowing in: which side the wind comes from
+		draft.name = "Draft"
+		draft.breach = self
+		add_child(draft)
 
 
 ## Whether this hole is currently closed off.

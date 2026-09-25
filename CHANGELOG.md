@@ -5,6 +5,20 @@ Maintained per branch; entries are added by whoever makes the change.
 
 ## [Unreleased] — `codex`
 
+### 2026-09-25 — Breach drafts; one weather controller (#80) (claudeflow)
+
+Added
+- `BreachDraft` on every `ShelterBreach`: snow blows in through an open breach,
+  as dense as `get_exposure_against(wind)` times the wind speed, so the player
+  sees which side to board first; a lee-side hole stays quiet and a boarded one
+  stops. `test_breach_draft`, `tools/runtime/capture_breach_draft.gd`, frame
+  `docs/art/issue80/01_snow_through_windward_breach.png`.
+
+Removed
+- The empty `WeatherController` node in `WorldEnvironmentSystem.tscn` and the
+  unread `WorldEnvironmentController.weather_controller` export: the world's
+  system controller is the only one.
+
 ### 2026-09-25 — Game time: 60 real minutes a day, start at noon (#42) (claudeflow)
 
 Changed
