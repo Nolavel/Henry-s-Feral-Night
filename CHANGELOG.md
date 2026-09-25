@@ -5,6 +5,15 @@ Maintained per branch; entries are added by whoever makes the change.
 
 ## [Unreleased] — `codex`
 
+### 2026-09-25 — Tap-F quick stow through the top flap (#68) (claudeflow)
+
+Added
+- `ItemPickup` hands its mesh to `PlayerHubComponent.stow_visual()`: the item
+  lifts, drops into the pack's top flap (`TOP_ONLY`) and the pack shuts once it
+  lands. The inventory gets the item at once; the flight is presentation only.
+  Armfuls (`carried_in_hands`) still go to the hands.
+- `test_player_hub` covers the stow; frames `docs/art/issue68/04–06`.
+
 ### 2026-09-24 — Player Hub foundation: four-flap pack and Quick Access (#68) (claudeflow)
 
 Added

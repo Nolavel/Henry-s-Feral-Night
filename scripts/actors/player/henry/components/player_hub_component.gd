@@ -8,11 +8,16 @@ signal hub_opened
 signal hub_closed
 ## Emitted after an item moved between the pack and a Quick Access zone.
 signal contents_changed
+## Emitted when a quick-stowed item has dropped into the pack.
+signal stow_landed
 
 const ACTION: StringName = &"open hub"
 const CLOSE_ACTION: StringName = &"pause"
 const OVERWEIGHT: StringName = &"overweight"
 ## Pockets the pack contents already stand for; not offered as Quick Access.
+## Seconds the stowed item rises, then drops into the open top flap.
+const STOW_LIFT_TIME: float = 0.28
+const STOW_DROP_TIME: float = 0.32
 const EXCLUDED_ZONES: Array[StringName] = [&"pack/pack_main"]
 
 @export var inventory: InventoryComponent
@@ -24,7 +29,10 @@ const EXCLUDED_ZONES: Array[StringName] = [&"pack/pack_main"]
 @export var camera_height: float = 0.3
 @export var camera_blend_time: float = 0.45
 
+## The pack on Henry; resolved from his visual when left empty.
+var pack: PackRig
 var _open: bool = false
+var _stows_in_flight: int = 0
 var _camera: Camera3D
 var _previous_camera: Camera3D
 var _panel: PlayerHubPanel
@@ -157,6 +165,38 @@ func move_to_pack(zone_path: StringName) -> StringName:
 	return &""
 
 
+## Tap-F stow: the item's visual lifts, flies into the top flap and is freed.
+## The item is already in the inventory; this is presentation only.
+func stow_visual(visual: Node3D) -> void:
+	var rig: PackRig = _pack()
+	if visual == null:
+		return
+	if rig == null or not rig.is_inside_tree() or not visual.is_inside_tree():
+		visual.queue_free()
+		stow_landed.emit()
+		return
+	_stows_in_flight += 1
+	if not _open:
+		rig.set_openness(PackRig.Openness.TOP_ONLY)
+	var start: Vector3 = visual.global_position
+	var mouth: Vector3 = rig.global_transform * Vector3(0.0, rig.size.y * 0.5 + 0.08, 0.0)
+	var peak: Vector3 = start.lerp(mouth, 0.35) + Vector3(0.0, 0.45, 0.0)
+	var tween: Tween = visual.create_tween().set_trans(Tween.TRANS_SINE)
+	tween.tween_property(visual, ^"global_position", peak, STOW_LIFT_TIME).set_ease(Tween.EASE_OUT)
+	tween.tween_property(visual, ^"global_position", mouth, STOW_DROP_TIME).set_ease(Tween.EASE_IN)
+	tween.parallel().tween_property(visual, ^"scale", visual.scale * 0.35, STOW_DROP_TIME)
+	tween.tween_callback(_on_stow_landed.bind(visual))
+
+
+func _on_stow_landed(visual: Node3D) -> void:
+	visual.queue_free()
+	_stows_in_flight = maxi(0, _stows_in_flight - 1)
+	stow_landed.emit()
+	var rig: PackRig = _pack()
+	if rig != null and not _open and _stows_in_flight == 0:
+		rig.set_openness(PackRig.Openness.CLOSED)
+
+
 ## Where the Hub camera settles: out from the pack's face, looking at it.
 func get_camera_target() -> Transform3D:
 	var body := get_parent() as Node3D
@@ -199,8 +239,10 @@ func _visual() -> HenryUALAnimation:
 
 
 func _pack() -> PackRig:
-	var visual: HenryUALAnimation = _visual()
-	return visual.get_pack_rig() if visual != null else null
+	if pack == null:
+		var visual: HenryUALAnimation = _visual()
+		pack = visual.get_pack_rig() if visual != null else null
+	return pack
 
 
 ## Blends from the game camera to one over Henry's shoulder, facing his pack.
