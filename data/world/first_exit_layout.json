@@ -934,6 +934,58 @@
    "route": "shelter"
   },
   {
+   "id": "firewood_shelter_yard",
+   "item_id": "firewood",
+   "count": 1,
+   "anchor": "shelter_house",
+   "local": [
+    3.5,
+    0,
+    -6.0
+   ],
+   "route": "shelter",
+   "note": "Yard pile by outbuilding; densifies the light-stove beat."
+  },
+  {
+   "id": "firewood_shelter_outbuilding",
+   "item_id": "firewood",
+   "count": 1,
+   "anchor": "shelter_house",
+   "local": [
+    -4.0,
+    0,
+    4.5
+   ],
+   "route": "shelter",
+   "note": "Lean-to side of the shelter lot."
+  },
+  {
+   "id": "boards_shelter_yard",
+   "item_id": "boards",
+   "count": 1,
+   "anchor": "shelter_house",
+   "local": [
+    2.8,
+    0,
+    5.5
+   ],
+   "route": "shelter",
+   "note": "Loose boards against the house for window boarding."
+  },
+  {
+   "id": "boards_shelter_outbuilding",
+   "item_id": "boards",
+   "count": 1,
+   "anchor": "shelter_house",
+   "local": [
+    -3.2,
+    0,
+    -5.0
+   ],
+   "route": "shelter",
+   "note": "Second board stack near the tank/outbuilding."
+  },
+  {
    "id": "stew_beach_wreck",
    "item_id": "tinned_stew",
    "count": 1,
@@ -962,5 +1014,5 @@
    "route": "start"
   }
  ],
- "_scarcity": "Shelter has 5 openings, the route holds 3 boards. Tinder only in the fort store or the collapsed house n3: no tinder, no fire."
+ "_scarcity": "Shelter has 5 openings; route + yard hold 5 boards (was 3). Firewood denser at the house so the stove beat is reachable. Tinder only fort store or collapsed n3: no tinder, no fire."
 }
