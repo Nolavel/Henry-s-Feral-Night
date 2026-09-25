@@ -39,3 +39,5 @@ extends Resource
 @export_group("Survival")
 ## Edible facet. Null means this item cannot be consumed.
 @export var consumable: ConsumableData = null
+## What this becomes after warming on a stove top; empty means it does not warm.
+@export var warms_into: StringName = &""

@@ -65,3 +65,5 @@ TABLE_EAT,Eat,Съесть
 TABLE_DRINK,Drink,Выпить
 WAIT_ENDED_RECOVERED,Warm and dry,Согрелся и высох
 WAIT_ENDED_FIRE_OUT,The stove went out,Печь погасла
+WARM_PUT,Warm up,Разогреть
+WARM_WARMING,Warming…,Греется…
