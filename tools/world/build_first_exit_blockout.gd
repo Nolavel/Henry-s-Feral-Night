@@ -21,6 +21,7 @@ const HEAT_SCRIPT: String = "res://scripts/systems/survival/heat_source.gd"
 const FEED_SCRIPT: String = "res://scripts/environment/interactive/heat_source_feed.gd"
 const CABINET_SCRIPT: String = "res://scripts/environment/interactive/cabinet.gd"
 const SLEEP_SPOT_SCRIPT: String = "res://scripts/environment/interactive/sleep_spot.gd"
+const STOVE_WARMER_SCRIPT: String = "res://scripts/environment/stove/stove_warmer.gd"
 const STOVE_VISUAL_SCRIPT: String = "res://scripts/environment/stove/stove_visual.gd"
 const MEAL_TABLE_SCRIPT: String = "res://scripts/environment/interactive/meal_table.gd"
 const REST_SPOT_SCRIPT: String = "res://scripts/environment/interactive/rest_spot.gd"
@@ -431,6 +432,11 @@ func _shelter_gameplay(house: Node3D, w: float, d: float, h: float) -> void:
 	iron.set_script(load(STOVE_VISUAL_SCRIPT))
 	iron.position.y = -0.1  # the HeatSource sits 0.1 m up; the legs stand on the floor
 	_add(stove, iron)
+	var warmer := Node3D.new()  # the cooking ring: warm a tin or snow, then eat it off the stove
+	warmer.name = "Warmer"
+	warmer.set_script(load(STOVE_WARMER_SCRIPT))
+	warmer.position = Vector3(0.05, 0.69, -0.14)
+	_add(stove, warmer)
 	var body := StaticBody3D.new()  # the stove still blocks Henry
 	body.name = "Body"
 	_add(stove, body)

@@ -51,6 +51,19 @@ func _process(delta: float) -> bool:
 			_next()
 		3:
 			_shot("03_burnt_down")
+			_stove.ignite()
+			var warmer := _stove.find_child("Warmer", true, false) as StoveWarmer
+			var bag := InventoryComponent.new()
+			root.add_child(bag)
+			bag.try_add(load("res://data/items/tinned_stew.tres") as ItemResource)
+			warmer.put(bag, &"tinned_stew")
+			_next()
+		4:
+			_shot("04_tin_warming")
+			_stove.advance_fuel(0.6)
+			_next()
+		5:
+			_shot("05_hot_stew_ready")
 			quit()
 	return false
 

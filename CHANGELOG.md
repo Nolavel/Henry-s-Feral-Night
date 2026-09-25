@@ -5,6 +5,20 @@ Maintained per branch; entries are added by whoever makes the change.
 
 ## [Unreleased] — `codex`
 
+### 2026-09-25 — Warming on the stove top (#42) (claudeflow)
+
+Added
+- `StoveWarmer` on the shelter stove's cooking ring. F with a warmable item
+  carried puts one on the ring ("Warm up: Tinned stew"); it warms over 0.5 game
+  hours, only while the stove burns (also through a seated wait); then F eats or
+  drinks it straight off the stove ("Eat: Hot stew"), with steam while ready.
+  Saved with the world.
+- Items `tinned_stew_hot` (warms Henry, −0.8 °C cost) and `warm_water` (−0.3 °C,
+  versus +0.35 °C for raw snow); `ItemResource.warms_into` names the warmed form.
+- `HeatSource.heat_elapsed(hours)` for things warming on a fire;
+  `ConsumptionController.consume_from_world()` for food that is not carried.
+- `test_stove_warmer`; frames in `tools/runtime/capture_stove.gd`.
+
 ### 2026-09-25 — Stove ritual UX pass (#42) (claudeflow)
 
 Changed

@@ -18,4 +18,5 @@ display_name = "Tinned stew"
 weight = 0.45
 max_stack = 4
 size_class = 0
+warms_into = &"tinned_stew_hot"
 consumable = SubResource("C_tinned_stew")

@@ -8,6 +8,9 @@ extends Node3D
 signal burning_changed(is_burning: bool)
 ## Emitted as fuel burns down, 1.0 full to 0.0 spent, for the HUD.
 signal fuel_changed(fraction: float)
+## Emitted for every stretch of game time the source burns through, for things
+## warming on it; also for sources that never run out.
+signal heat_elapsed(hours: float)
 
 static var _registry: Array[HeatSource] = []
 
@@ -163,6 +166,8 @@ func extinguish() -> void:
 
 ## Burns fuel for the given number of in-game hours.
 func advance_fuel(delta_hours: float) -> void:
+	if _is_burning and delta_hours > 0.0:
+		heat_elapsed.emit(delta_hours)
 	if not _is_burning or burn_duration_h <= 0.0:
 		return
 	_remaining_h = maxf(0.0, _remaining_h - delta_hours)

@@ -3,20 +3,19 @@
 [ext_resource type="Script" path="res://core/items/item_resource.gd" id="item"]
 [ext_resource type="Script" path="res://core/items/consumable_data.gd" id="consumable"]
 
-[sub_resource type="Resource" id="C_snow_handful"]
+[sub_resource type="Resource" id="C_warm_water"]
 script = ExtResource("consumable")
 calories = 0.0
 hydration = 12.0
 energy = 0.0
-body_heat_cost_c = 0.35
+body_heat_cost_c = -0.3
 leaves_behind_id = &""
 
 [resource]
 script = ExtResource("item")
-id = &"snow_handful"
-display_name = "Handful of snow"
+id = &"warm_water"
+display_name = "Warm water"
 weight = 0.2
 max_stack = 2
 size_class = 0
-warms_into = &"warm_water"
-consumable = SubResource("C_snow_handful")
+consumable = SubResource("C_warm_water")
