@@ -17,6 +17,7 @@ const KENNY_SPOT: Vector3 = Vector3(0.62, 0.0, 0.05)
 
 var _spot: Node3D
 var _hint: Label
+var _table: MealTable
 
 
 func is_sitting() -> bool:
@@ -43,6 +44,9 @@ func sit(spot: Node3D) -> bool:
 		visual.set_pack_down(spot.global_transform * Transform3D(Basis(Vector3.UP, 0.4), PACK_SPOT),
 			spot.global_transform * Transform3D(Basis(Vector3.UP, PI * 0.5), KENNY_SPOT))  # faces the pack
 	_show_hint(true)
+	_table = MealTable.near(get_tree(), spot.global_position) if is_inside_tree() else null
+	if _table != null:
+		_table.lay_out(InventoryComponent.find_in(body), body.get_node_or_null(^"EquipmentComponent") as EquipmentComponent)
 	sat_down.emit(spot)
 	return true
 
@@ -56,6 +60,9 @@ func stand() -> bool:
 		visual.set_sitting(false)
 		visual.pick_pack_up()
 	_show_hint(false)
+	if is_instance_valid(_table):
+		_table.clear()
+	_table = null
 	stood_up.emit()
 	return true
 

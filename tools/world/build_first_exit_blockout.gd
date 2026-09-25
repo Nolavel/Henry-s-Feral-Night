@@ -22,6 +22,7 @@ const FEED_SCRIPT: String = "res://scripts/environment/interactive/heat_source_f
 const CABINET_SCRIPT: String = "res://scripts/environment/interactive/cabinet.gd"
 const SLEEP_SPOT_SCRIPT: String = "res://scripts/environment/interactive/sleep_spot.gd"
 const STOVE_VISUAL_SCRIPT: String = "res://scripts/environment/stove/stove_visual.gd"
+const MEAL_TABLE_SCRIPT: String = "res://scripts/environment/interactive/meal_table.gd"
 const REST_SPOT_SCRIPT: String = "res://scripts/environment/interactive/rest_spot.gd"
 const PICKUP_SCRIPT: String = "res://scripts/environment/interactive/item_pickup.gd"
 ## House openings shared by the walls and the breaches: [x, width, is_door].
@@ -476,6 +477,11 @@ func _rest_crate(parent: Node3D, pos: Vector3, facing: Vector3) -> void:
 	prompt.set(&"interactive_mesh", crate)
 	_add(seat, prompt)
 	_prompt_shape(prompt, Vector3(1.2, 1.4, 1.2))
+	var table := Node3D.new()  # the cloth-covered table the food is laid on
+	table.name = "MealTable"
+	table.set_script(load(MEAL_TABLE_SCRIPT))
+	table.position = Vector3(0.32, 0.0, -0.55)
+	_add(seat, table)
 
 
 ## A mattress on the floor by the west wall: the shelter's place to sleep.
