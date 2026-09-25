@@ -8,15 +8,62 @@ const LAYOUT: String = "res://data/equipment/player_layout.tres"
 
 var _failures: int = 0
 var _frame: int = 0
+var _time: float = 0.0
+var _stow_hub: PlayerHubComponent
+var _stow_pickup: ItemPickup
+var _stow_visual: Node3D
+var _stow_inventory: InventoryComponent
+var _saw_top_only: bool = false
 
 
-func _process(_delta: float) -> bool:
+func _process(delta: float) -> bool:
 	_frame += 1
+	_time += delta
 	if _frame == 1:
 		_test_pack_rig()
 		_test_hub_flow()
-		_finish()
+		_start_quick_stow()
+	elif _stow_hub != null:
+		if _stow_hub.pack.get_openness() == PackRig.Openness.TOP_ONLY:
+			_saw_top_only = true
+		if _time > 1.5:
+			_check_quick_stow()
+			_finish()
 	return false
+
+
+## Tap F: the pickup lands in the inventory at once; its mesh flies into the
+## top flap, which opens alone and shuts once it lands.
+func _start_quick_stow() -> void:
+	var body := CharacterBody3D.new()
+	body.add_to_group(&"player")
+	_stow_inventory = InventoryComponent.new()
+	body.add_child(_stow_inventory)
+	_stow_hub = PlayerHubComponent.new()
+	_stow_hub.name = "PlayerHubComponent"
+	body.add_child(_stow_hub)
+	root.add_child(body)
+	var pack := PackRig.new()
+	pack.position = Vector3(0.0, 1.2, 0.2)
+	body.add_child(pack)
+	_stow_hub.pack = pack
+	var area: Node = (load("res://scenes/environment/interactive/InteractiveArea.tscn") as PackedScene).instantiate()
+	area.set_script(load("res://scripts/environment/interactive/item_pickup.gd"))
+	area.set(&"interactable_scene", null)
+	_stow_pickup = area as ItemPickup
+	_stow_pickup.item_id = &"road_flare"
+	_stow_pickup.position = Vector3(1.0, 0.0, 0.0)
+	root.add_child(_stow_pickup)
+	_stow_visual = _stow_pickup.interactive_mesh
+	_check(_stow_pickup.pick_up(), "the flare was not picked up")
+	_check(_stow_inventory.has_item(&"road_flare"), "the picked flare is not in the inventory at once")
+
+
+func _check_quick_stow() -> void:
+	_check(_saw_top_only, "the top flap alone did not open for the stow")
+	_check(not is_instance_valid(_stow_visual), "the stowed mesh was not freed after landing")
+	_check(_stow_hub.pack.get_openness() == PackRig.Openness.CLOSED, "the pack stayed open after the stow")
+	_check(_stow_inventory.get_count(&"road_flare") == 1, "the stow duplicated or lost the flare")
 
 
 func _test_pack_rig() -> void:

@@ -1,8 +1,8 @@
 class_name ItemPickup
 extends InteractiveArea
 
-## An item lying in the world. Interacting puts it in the pack and removes it;
-## too heavy to carry, and it stays where it is.
+## An item lying in the world. F puts it in the pack and flies its mesh into the
+## top flap; too heavy to carry, and it stays where it is.
 
 ## Emitted after the item went into the pack.
 signal picked_up(item_id: StringName, count: int)
@@ -55,12 +55,25 @@ func pick_up() -> bool:
 	for i: int in range(count):
 		inventory.try_add(item)
 	picked_up.emit(item_id, count)
+	if not item.carried_in_hands:  # armfuls go to the hands, not the pack
+		_hand_visual_to_pack()
 	queue_free()
 	return true
 
 
 func _on_interaction_performed() -> void:
 	pick_up()
+
+
+## Passes the item's mesh to the player's Hub, which flies it into the pack.
+func _hand_visual_to_pack() -> void:
+	var visual := interactive_mesh as Node3D
+	var player: Node = get_tree().get_first_node_in_group(&"player") if is_inside_tree() else null
+	var hub: PlayerHubComponent = player.get_node_or_null(^"PlayerHubComponent") as PlayerHubComponent if player != null else null
+	if hub == null or visual == null or not is_ancestor_of(visual):
+		return
+	visual.reparent(get_tree().current_scene if get_tree().current_scene != null else get_tree().root)
+	hub.stow_visual(visual)
 
 
 ## A small crate until items have their own meshes.
