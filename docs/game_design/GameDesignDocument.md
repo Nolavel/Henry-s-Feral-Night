@@ -1,5 +1,26 @@
 # Vision Document — Henry's Feral Night
 
+> **Статус документа / Scope lock для Act I**
+>
+> Это долгосрочный vision document, а не список обязательных механик текущего
+> vertical slice. Для **First Exit / Act I** каноничны
+> `docs/game_design/VERTICAL_SLICE.md` и `docs/world/FIRST_EXIT.md`.
+>
+> В First Exit **не входят**: combat, radiation gameplay, active companion
+> abilities, большие craft trees и coastal thin ice. В первом акте рядом с
+> Генри находится **Kenny** — робот-медведь без батареи, закреплённый на рюкзаке
+> и пока являющийся переносимым грузом, а не ability companion. Упоминания
+> Gizmo, combat и radiation ниже относятся к историческому/дальнему видению и
+> не должны использоваться агентами как разрешение добавлять эти системы в
+> First Exit.
+>
+> **EN:** This is a long-range vision document. First Exit / Act I scope is
+> governed by `VERTICAL_SLICE.md` and `FIRST_EXIT.md`. Combat, radiation
+> gameplay, active companion abilities, large crafting trees and coastal thin
+> ice are out of scope for First Exit. Kenny is the Act I carried companion:
+> unpowered, attached to the backpack and mechanically a burden rather than an
+> ability dispenser.
+
 ## 1. Название и жанр
 
 **RU:**
@@ -125,13 +146,13 @@ In the year 2159, in a world plunged into nuclear winter, young Henry Moss is ca
 ## 8. Техническое видение
 
 **RU:**
-- **Движок:** Godot 4.3
+- **Движок:** Godot 4.8-dev6
 - **Игровые референсы:** Fallout, S.T.A.L.K.E.R., The Long Dark, Frostpunk
 - **Управление:** Resident Evil 4 (remake), Dead Space, The Last of Us
 - **Литературные референсы:** «Дорога» (Cormac McCarthy)
 
 **EN:**
-- **Engine:** Godot 4.3
+- **Engine:** Godot 4.8-dev6
 - **Game references:** Fallout, S.T.A.L.K.E.R., The Long Dark, Frostpunk
 - **Controls:** Resident Evil 4 (remake), Dead Space, The Last of Us
 - **Literary references:** The Road (Cormac McCarthy)

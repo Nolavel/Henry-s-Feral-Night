@@ -20,8 +20,9 @@ the bunker to the shelter on Graciosa.
   houses, the shelter, bunkers, frozen palms, wrecks. Routes and distances in
   `docs/world/FIRST_EXIT.md`.
 - **Survival:** thermal model (body heat, wetness, wind, shelter zones, heat
-  sources), hunger/thirst/energy, sleep with time skip, sea ice that breaks
-  under load and cold-water immersion.
+  sources), hunger/thirst/energy and sleep with time skip. Thin-ice and
+  cold-water systems exist in code but are intentionally not instantiated in
+  First Exit A; coastal ice content belongs to the later Coast / Thin Ice slice.
 - **Shelter loop:** pick up boards, firewood and tinder; board breaches; light
   and feed the stove; sleep; save.
 - **Henry:** UAL animation set on a runtime AnimationTree (locomotion, crouch,
@@ -30,8 +31,11 @@ the bunker to the shelter on Graciosa.
 - **Tech:** world composition root, streaming, SoundSystem autoload, weather,
   snow cover and footprints, atomic save slots, 29 headless test suites.
 
-Not in yet: coastal ice route content, weather turn on the route, route audio,
-held light sources in hand (#57), enemies.
+Not in yet for First Exit A: the authored weather-turn beat, route audio,
+persistent removal of spent world pickups, and a continuous stranger-playtest
+pass. Coastal thin-ice geography is deliberately deferred to Coast / Thin Ice.
+The held road flare, Player Hub foundation, field bedroll and Quick Access
+pocket transfer are already in.
 
 ## Run
 
@@ -59,7 +63,6 @@ unless `tools/ci/input_overlap_allowlist.txt` says why that is safe.
 | `Q` / `E` | lean left / right |
 | `Z` | switch camera shoulder |
 | `,` / `.` | orbit the camera |
-| `L` | flashlight |
 | `Esc` | pause |
 | `F` on a bed or mattress | sleep: wheel or `←` `→` hours, `F`/`Enter` sleep, `Esc` cancel |
 | `L` | light a road flare / drop it |
