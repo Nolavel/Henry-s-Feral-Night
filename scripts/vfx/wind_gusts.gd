@@ -13,12 +13,15 @@ const SLOW_INTERVAL: float = 2.6
 const FAST_INTERVAL: float = 0.6
 const BURST_COUNT: int = 5
 const BURST_SPACING: float = 0.3
+const LIFT_POOL_SIZE: int = 4
 
 var weather: WeatherController
 var thermal: ThermalManager
 var player: Node3D
 
 var _pool: Array[WindStreak] = []
+var _lifts: Array[SnowLift] = []
+var _lift_index: int = 0
 var _next: float = 0.0
 var _burst_left: int = 0
 var _search_left: float = 0.0
@@ -35,6 +38,10 @@ func _ready() -> void:
 		streak.finished.connect(streak.hide)
 		add_child(streak)
 		_pool.append(streak)
+	for i: int in range(LIFT_POOL_SIZE):
+		var lift := SnowLift.new()
+		add_child(lift)
+		_lifts.append(lift)
 
 
 ## Several streaks in quick succession: the moment the weather turns.
@@ -97,6 +104,19 @@ func _spawn(wind: float) -> void:
 	streak.global_basis = Basis(along, Vector3.UP, side)
 	streak.global_position = centre - along * streak.length * 0.5
 	streak.play()
+	_lift_snow(centre - along * streak.length * 0.3, along, side)
+
+
+## The gust touches the ground ahead of its streak and lifts loose snow there.
+func _lift_snow(above: Vector3, along: Vector3, side: Vector3) -> void:
+	var query := PhysicsRayQueryParameters3D.create(above + Vector3.UP * 2.0, above + Vector3.DOWN * 6.0)
+	var hit: Dictionary = get_world_3d().direct_space_state.intersect_ray(query)
+	if hit.is_empty():
+		return
+	var lift: SnowLift = _lifts[_lift_index]
+	_lift_index = (_lift_index + 1) % _lifts.size()
+	lift.global_transform = Transform3D(Basis(along, Vector3.UP, side), hit["position"])
+	lift.lift()
 
 
 func _find_systems() -> void:
