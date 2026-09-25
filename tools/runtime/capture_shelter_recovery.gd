@@ -46,12 +46,17 @@ func _process(delta: float) -> bool:
 		_camera.fov = 55.0
 		scene_root().add_child(_camera)
 		var basis: Basis = crate.global_transform.basis
-		_camera.global_position = crate.global_position + basis.x * 2.0 - basis.z * 0.6 + Vector3(0.0, 1.5, 0.0)
-		_camera.look_at(crate.global_position + Vector3(0.0, 0.7, 0.0) - basis.z * 0.5, Vector3.UP)
+		## From the stove side, so Henry faces the camera with the pack left, Kenny right.
+		_camera.global_position = crate.global_position - basis.z * 2.3 + basis.x * 0.4 + Vector3(0.0, 1.6, 0.0)
+		_camera.look_at(crate.global_position + Vector3(0.0, 0.5, 0.0), Vector3.UP)
 		_camera.make_current()
 	elif _time > WARMUP + 5.0 and _step == 1:
 		_step = 2
 		root.get_texture().get_image().save_png("%s/01_sitting_by_stove.png" % OUT_DIR)
+		(_player.get_node(^"RestComponent") as RestComponent).open_wait()
+	elif _time > WARMUP + 5.6 and _step == 2:
+		_step = 3
+		root.get_texture().get_image().save_png("%s/02_wait_prompt.png" % OUT_DIR)
 		print("[recovery] shot wetness=%.2f steaming=%s" % [_thermal.get_wetness(),
 			(_player.get_node(^"DryingSteamComponent") as DryingSteamComponent).is_steaming()])
 		quit()

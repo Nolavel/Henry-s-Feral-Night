@@ -264,6 +264,14 @@ func add_energy(amount: float):
 
 ## Restores energy over a night and charges the night's own metabolism.
 ## Sleep is not a free reset: a starving or parched body rests badly.
+## Bills whole hours spent awake while the clock jumps (waiting by the stove).
+func pass_awake_hours(hours: int) -> void:
+	for i: int in range(maxi(hours, 0)):
+		process_hourly_consumption()
+	update_ui_signals()
+	check_critical_states()
+
+
 func rest_sleep(hours: float) -> void:
 	if hours <= 0.0:
 		return

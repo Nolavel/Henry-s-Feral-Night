@@ -10,11 +10,16 @@ signal sleep_refused(reason: Refusal)
 signal sleep_started(hours: float)
 ## Emitted after the world has been advanced and the autosave written.
 signal sleep_completed(hours: float, saved: bool)
+## Emitted after a seated wait, with the hours that actually passed.
+signal wait_completed(hours: float)
 
 ## Why a sleep attempt was turned down.
 enum Refusal { NONE, NOT_SHELTERED, TOO_COLD, TOO_ALERT, ALREADY_SLEEPING }
 
 const HOURS_PER_DAY: float = 24.0
+## A seated wait ends early once Henry is this dry and this warm.
+const WAIT_DRY_WETNESS: float = 0.02
+const WAIT_WARM_BODY: float = 0.97
 
 ## Scripts looked up through the world context, never by node path.
 const THERMAL_SCRIPT: GDScript = preload("res://scripts/systems/survival/thermal_manager.gd")
@@ -90,6 +95,42 @@ func try_sleep(hours: float = -1.0) -> bool:
 	_is_sleeping = false
 	sleep_completed.emit(duration, saved)
 	return true
+
+
+## Waits awake, seated by the stove: no rest, no save. Stops early once Henry is
+## dry and warm, or when no fire warms him any more. Returns the hours waited.
+func try_wait(hours: float) -> float:
+	if _is_sleeping or hours <= 0.0:
+		return 0.0
+	var step: float = 0.25
+	var elapsed: float = 0.0
+	var start_hour: float = _current_hour()
+	while elapsed < hours:
+		elapsed += step
+		if thermal_manager != null:
+			thermal_manager._on_time_update(fmod(start_hour + elapsed, HOURS_PER_DAY))
+			if _recovered() or not _fire_warms_henry():
+				break
+	if day_night_manager != null:
+		day_night_manager.total_game_time_hours += elapsed
+	if bio_monitor != null:
+		bio_monitor.pass_awake_hours(roundi(elapsed))
+	if thermal_manager != null:
+		thermal_manager.reset_clock()
+	wait_completed.emit(elapsed)
+	return elapsed
+
+
+func _recovered() -> bool:
+	return thermal_manager.get_wetness() <= WAIT_DRY_WETNESS \
+		and thermal_manager.get_body_temperature_normalised() >= WAIT_WARM_BODY
+
+
+func _fire_warms_henry() -> bool:
+	for source: HeatSource in HeatSource.get_all():
+		if source.is_burning() and source.get_offset_at(thermal_manager.global_position) > 0.0:
+			return true
+	return false
 
 
 ## Explains a refusal as a localisation key, never as a hardcoded sentence.

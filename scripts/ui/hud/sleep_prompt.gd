@@ -22,6 +22,10 @@ const INPUT_SYSTEMS_PATH: NodePath = ^"/root/InputSystems"
 
 ## Group SleepSpots use to find the dialog; there is one per world.
 const GROUP: StringName = &"sleep_prompt"
+const SLEEP_TITLE_KEY: String = "REST UNTIL"
+const WAIT_TITLE_KEY: String = "WAIT_TITLE"
+const SLEEP_KEYS_KEY: String = "SLEEP_DIALOG_KEYS"
+const WAIT_KEYS_KEY: String = "WAIT_DIALOG_KEYS"
 const CONFIRM_ACTIONS: Array[StringName] = [&"interact", &"ui_accept"]
 const CANCEL_ACTIONS: Array[StringName] = [&"sleep_cancel", &"ui_cancel"]
 
@@ -40,6 +44,8 @@ const CANCEL_ACTIONS: Array[StringName] = [&"sleep_cancel", &"ui_cancel"]
 @export var warning_label: Control
 
 var _is_open: bool = false
+## Waiting seated by the stove reuses this dialog: same hours, no sleep, no save.
+var _waiting: bool = false
 var _hours: int = 8
 
 
@@ -129,6 +135,29 @@ func request_open() -> bool:
 	return true
 
 
+## Opens the dialog to wait seated (RestComponent). Waiting is never refused.
+func request_wait() -> bool:
+	if sleep_controller == null or _is_open:
+		return false
+	_waiting = true
+	_set_title(WAIT_TITLE_KEY)
+	open()
+	return true
+
+
+func is_waiting() -> bool:
+	return _is_open and _waiting
+
+
+func _set_title(key: String) -> void:
+	var title := get_node_or_null(^"Dialog/Rows/Title") as Label
+	if title != null:
+		title.text = key
+	var keys := get_node_or_null(^"Dialog/Rows/Keys") as Label
+	if keys != null:
+		keys.text = WAIT_KEYS_KEY if key == WAIT_TITLE_KEY else SLEEP_KEYS_KEY
+
+
 ## Opens the dialog and pauses the world behind it.
 func open() -> void:
 	if _is_open:
@@ -146,6 +175,9 @@ func close() -> void:
 	if not _is_open:
 		return
 	_is_open = false
+	if _waiting:
+		_waiting = false
+		_set_title(SLEEP_TITLE_KEY)
 	_set_dialog_visible(false)
 	_player_state_call(&"close_menu")
 
@@ -154,6 +186,10 @@ func close() -> void:
 func confirm() -> bool:
 	if sleep_controller == null:
 		return false
+	if _waiting:
+		var hours: int = _hours
+		close()
+		return sleep_controller.try_wait(float(hours)) > 0.0
 	var refusal: SleepController.Refusal = sleep_controller.can_sleep()
 	if refusal != SleepController.Refusal.NONE:
 		refused.emit(SleepController.describe_refusal(refusal))
@@ -211,7 +247,7 @@ func _get_relevant_sources() -> Array[HeatSource]:
 func _update_fuel_warning() -> void:
 	var outlasts: bool = fire_outlasts_sleep()
 	if warning_label != null:
-		warning_label.visible = not outlasts
+		warning_label.visible = not outlasts and not _waiting  # a wait ends when the fire does
 	fuel_warning_changed.emit(outlasts)
 
 

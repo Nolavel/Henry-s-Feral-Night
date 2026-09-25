@@ -14,7 +14,7 @@ var _steam: GPUParticles3D
 func _ready() -> void:
 	_steam = GPUParticles3D.new()
 	_steam.name = "Steam"
-	_steam.amount = 40
+	_steam.amount = 28
 	_steam.lifetime = 1.8
 	_steam.emitting = false
 	_steam.visibility_aabb = AABB(Vector3(-2.0, -1.0, -2.0), Vector3(4.0, 4.0, 4.0))
@@ -31,7 +31,7 @@ func _ready() -> void:
 	process.scale_max = 1.4
 	var fade := Gradient.new()
 	fade.set_color(0, Color(1.0, 1.0, 1.0, 0.0))
-	fade.add_point(0.25, Color(1.0, 1.0, 1.0, 0.28))
+	fade.add_point(0.25, Color(1.0, 1.0, 1.0, 0.18))
 	fade.set_color(fade.get_point_count() - 1, Color(1.0, 1.0, 1.0, 0.0))
 	var ramp := GradientTexture1D.new()
 	ramp.gradient = fade

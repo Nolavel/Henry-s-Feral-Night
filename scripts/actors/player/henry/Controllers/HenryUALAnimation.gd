@@ -35,6 +35,8 @@ const LOWER_BODY_BONES: Array[StringName] = [&"root", &"pelvis", &"spine_01", &"
 const LOCKING_ACTIONS: Array[StringName] = [&"interact", &"pickup", &"fix", &"chest_open"]
 ## Walking speed of the authored carry cycle, m/s.
 const CARRY_WALK_SPEED: float = 1.5
+## Kenny's feet sit this far below his origin; he is lifted by it when set down.
+const KENNY_SEAT_HEIGHT: float = 0.19
 
 const ACTION_ALIASES: Dictionary = {
 	&"interact": [&"Interact"],
@@ -132,6 +134,9 @@ var _action_node: AnimationNodeAnimation
 ## Meshes a garment names in GarmentData.mesh_node_name.
 var _garment_meshes: Dictionary = {}
 var _pack: PackRig
+## Where the pack and Kenny hang while set down: [parent, local transform].
+var _pack_home: Array = []
+var _kenny_home: Array = []
 ## Garment name to the skin mesh it covers.
 var _skin_parts: Dictionary = {}
 ## Garment name to its material, darkened by wetness.
@@ -500,6 +505,39 @@ func _attach_backpack() -> void:
 	_pack = pack
 	_garment_meshes[StringName(pack.name)] = pack
 	_attach_kenny(pack)
+
+
+## Takes the pack off and stands it on the floor at `pack_xf`; Kenny is unstrapped
+## and set at `kenny_xf`. Both transforms are floor points; pick_pack_up() undoes it.
+func set_pack_down(pack_xf: Transform3D, kenny_xf: Transform3D) -> void:
+	if _pack == null or not _pack.is_visible_in_tree() or not _pack_home.is_empty():
+		return
+	var world: Node = get_tree().current_scene if get_tree().current_scene != null else get_tree().root
+	_pack.set_openness(PackRig.Openness.CLOSED, true)
+	_pack_home = [_pack.get_parent(), _pack.transform]
+	_pack.reparent(world, false)
+	_pack.global_transform = pack_xf * Transform3D(Basis.IDENTITY, Vector3(0.0, backpack_size.y * 0.5, 0.0))
+	var kenny := _garment_meshes.get(&"Kenny") as Node3D
+	if kenny != null and kenny.visible:
+		_kenny_home = [kenny.get_parent(), kenny.transform]
+		kenny.reparent(world, false)
+		kenny.global_transform = kenny_xf * Transform3D(Basis.IDENTITY, Vector3(0.0, KENNY_SEAT_HEIGHT, 0.0))
+
+
+func pick_pack_up() -> void:
+	if not _pack_home.is_empty():
+		_pack.reparent(_pack_home[0], false)
+		_pack.transform = _pack_home[1]
+		_pack_home = []
+	var kenny := _garment_meshes.get(&"Kenny") as Node3D
+	if kenny != null and not _kenny_home.is_empty():
+		kenny.reparent(_kenny_home[0], false)
+		kenny.transform = _kenny_home[1]
+		_kenny_home = []
+
+
+func is_pack_down() -> bool:
+	return not _pack_home.is_empty()
 
 
 ## The pack on Henry's back, or null before the model is set up.
