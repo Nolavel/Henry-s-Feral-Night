@@ -50,40 +50,31 @@ mesh = SubResource("PlaneMesh_cqilh")
 [node name="StatsDisplay" parent="." instance=ExtResource("5_h70bg")]
 
 [node name="debug_label_loc_pos_player" type="RichTextLabel" parent="Perfomance&Debugging"]
-anchors_preset = 5
-anchor_left = 0.5
-anchor_right = 0.5
-offset_left = -460.0
-offset_top = 200.0
-offset_right = -110.0
-offset_bottom = 245.0
-grow_horizontal = 2
+anchors_preset = 0
+offset_left = 18.0
+offset_top = 16.0
+offset_right = 368.0
+offset_bottom = 61.0
 bbcode_enabled = true
 text = "Location"
 scroll_active = false
 
 [node name="debug_label_loc_info" type="RichTextLabel" parent="Perfomance&Debugging"]
-anchors_preset = 5
-anchor_left = 0.5
-anchor_right = 0.5
-offset_left = -460.0
-offset_top = 250.0
-offset_right = -110.0
-offset_bottom = 335.0
-grow_horizontal = 2
+anchors_preset = 0
+offset_left = 18.0
+offset_top = 64.0
+offset_right = 368.0
+offset_bottom = 149.0
 bbcode_enabled = true
 text = "Info Location
 "
 
 [node name="debug_label_chunk_info" type="RichTextLabel" parent="Perfomance&Debugging"]
-anchors_preset = 5
-anchor_left = 0.5
-anchor_right = 0.5
-offset_left = -460.0
-offset_top = 325.0
-offset_right = -110.0
-offset_bottom = 370.0002
-grow_horizontal = 2
+anchors_preset = 0
+offset_left = 18.0
+offset_top = 154.0
+offset_right = 368.0
+offset_bottom = 199.0
 bbcode_enabled = true
 text = "Сhunk info"
 scroll_active = false
