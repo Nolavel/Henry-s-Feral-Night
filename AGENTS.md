@@ -24,6 +24,7 @@ If an agent cannot create or write its own branch, it must stop instead of falli
 | **Author (human)** | any | Design, narrative, art direction, final say on scope. |
 | **Claude** | `claudeflow` | Technical direction: architecture, engine baseline, build/CI, headless render pipeline, code review. See `CLAUDE.md`. |
 | **Codex** | `codex` | Implementation passes: rendering/shader work, tooling, refactors it opens. |
+| **Grok** | `grok` | Commercial readiness, scope control, vertical-slice readiness audits, risk matrix, and related technical docs. Proposes only; does not auto-implement gameplay. |
 
 Handover rules:
 
