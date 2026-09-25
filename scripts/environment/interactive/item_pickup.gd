@@ -13,12 +13,16 @@ signal pickup_refused(item_id: StringName)
 const PLACEHOLDER_SIZE: Vector3 = Vector3(0.32, 0.16, 0.22)
 const PLACEHOLDER_COLOR: Color = Color(0.42, 0.3, 0.2)
 const TOO_HEAVY_KEY: String = "PICKUP_REFUSED_TOO_HEAVY"
+const WORLD_GROUP: StringName = &"world_pickup"
 
 @export_group("Item")
 ## Catalog id of what lies here.
 @export var item_id: StringName = &""
 ## How many of it, picked up together.
 @export_range(1, 99) var count: int = 1
+## Stable id of an authored pickup (from the world layout); a taken one is saved
+## in the PickupLedger and does not come back on reload. Empty for dropped items.
+@export var world_id: StringName = &""
 
 var _inventory: InventoryComponent
 
@@ -29,6 +33,8 @@ func _ready() -> void:
 	if interactive_mesh == null:
 		interactive_mesh = _make_placeholder()
 	interaction_type = InteractionType.PICKUP
+	if world_id != &"":
+		add_to_group(WORLD_GROUP)
 	super()
 	var item: ItemResource = ItemCatalog.get_item(item_id)
 	if item != null:
@@ -54,6 +60,9 @@ func pick_up() -> bool:
 		return false
 	for i: int in range(count):
 		inventory.try_add(item)
+	var ledger: PickupLedger = PickupLedger.find(get_tree()) if is_inside_tree() else null
+	if ledger != null:
+		ledger.record(world_id)
 	picked_up.emit(item_id, count)
 	if not item.carried_in_hands:  # armfuls go to the hands, not the pack
 		_hand_visual_to_pack()
