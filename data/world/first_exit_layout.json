@@ -1,675 +1,1018 @@
 {
-  "_doc": "First Exit greybox layout on Graciosa's east peninsula. World metres, +X east, -Z north. Y is sampled from the terrain by tools/world/build_first_exit_blockout.gd, which also resolves lots along roads and writes every final footprint to docs/world/first_exit_resolved.json. Spawn yaw 132 faces the water tower (Godot forward is -Z). See docs/world/FIRST_EXIT.md.",
-  "spawn": {
-    "x": 1420,
-    "z": -943,
-    "yaw_deg": 132
+ "_doc": "First Exit greybox layout on Graciosa's east peninsula. World metres, +X east, -Z north. Y is sampled from the terrain by tools/world/build_first_exit_blockout.gd, which also resolves lots along roads and writes every final footprint to docs/world/first_exit_resolved.json. Spawn yaw 132 faces the water tower (Godot forward is -Z). See docs/world/FIRST_EXIT.md.",
+ "spawn": {
+  "x": 1420,
+  "z": -943,
+  "yaw_deg": 132
+ },
+ "structures": [
+  {
+   "id": "bunker_portal",
+   "kind": "bunker_portal",
+   "x": 1427,
+   "z": -952,
+   "yaw_deg": 323,
+   "size": [
+    9,
+    7,
+    5
+   ],
+   "note": "Locked blast door; Henry wakes 8 m in front of it."
   },
-  "structures": [
-    {
-      "id": "bunker_portal",
-      "kind": "bunker_portal",
-      "x": 1427,
-      "z": -952,
-      "yaw_deg": 323,
-      "size": [9, 7, 5],
-      "note": "Locked blast door; Henry wakes 8 m in front of it."
-    },
-    {
-      "id": "bunker_vent",
-      "kind": "vent_stack",
-      "x": 1436,
-      "z": -962,
-      "yaw_deg": 0,
-      "size": [1.2, 1.2, 4]
-    },
-    {
-      "id": "redoubt",
-      "kind": "fort_ring",
-      "x": 1400,
-      "z": -905,
-      "yaw_deg": 0,
-      "size": [28, 28, 2.2],
-      "note": "East Point Redoubt: low colonial stone ring, wind break, no roof."
-    },
-    {
-      "id": "alata_battery",
-      "kind": "battery",
-      "x": 1345,
-      "z": -741,
-      "yaw_deg": 120,
-      "size": [14, 10, 2.5],
-      "note": "Gun pit on the highest flat ground (7.8 m); ruins route loot."
-    },
-    {
-      "id": "fort_store",
-      "kind": "shed",
-      "x": 1297,
-      "z": -745,
-      "yaw_deg": 30,
-      "size": [6, 4, 3],
-      "note": "Powder store, boards + tinder."
-    },
-    {
-      "id": "patrol_hut",
-      "kind": "shed",
-      "x": 1315,
-      "z": -847,
-      "yaw_deg": 35,
-      "size": [4, 4, 2.8],
-      "note": "Sentry hut, food tin."
-    },
-    {
-      "id": "water_tower",
-      "kind": "water_tower",
-      "road": "main_street",
-      "s": 301,
-      "side": "north",
-      "offset": 22,
-      "size": [5, 5, 16],
-      "note": "Suburb landmark at the junction; visible from the bunker door."
-    },
-    {
-      "id": "bus_stop",
-      "kind": "bus_shelter",
-      "road": "main_street",
-      "s": 239,
-      "side": "north",
-      "offset": 6.5,
-      "size": [4, 1.6, 2.6],
-      "note": "On the road verge facing the carriageway: proof of the old bus line."
-    },
-    {
-      "id": "chapel",
-      "kind": "chapel",
-      "road": "main_street",
-      "s": 514,
-      "side": "south",
-      "offset": 14,
-      "size": [8, 14, 7],
-      "note": "Closes the street view; bell gable."
-    },
-    {
-      "id": "jetty",
-      "kind": "pier",
-      "road": "jetty_lane",
-      "s": -1,
-      "side": "end",
-      "offset": 0,
-      "size": [3, 30, 1.2],
-      "note": "Continues the lane into the frozen sea."
-    }
-  ],
-  "palm_rows": [
-    {
-      "id": "north_beach",
-      "from": [1395, -985],
-      "to": [1250, -905],
-      "spacing": 13,
-      "lean_to_deg": 330
-    },
-    {
-      "id": "gateway_cove",
-      "from": [1230, -870],
-      "to": [1140, -790],
-      "spacing": 12,
-      "lean_to_deg": 320
-    },
-    {
-      "id": "south_shore",
-      "from": [1410, -830],
-      "to": [1370, -750],
-      "spacing": 14,
-      "lean_to_deg": 120
-    }
-  ],
-  "routes": [
-    {
-      "id": "shore",
-      "label": "North beach: exposed, predictable",
-      "points": [
-        [1420, -943],
-        [1385, -962],
-        [1320, -915],
-        [1260, -892],
-        [1195, -850],
-        [1140, -790],
-        [1100, -745],
-        [1108, -700],
-        [1120, -668]
-      ]
-    },
-    {
-      "id": "road",
-      "label": "Old road past the fort: readable, open",
-      "points": [
-        [1420, -943],
-        [1405, -915],
-        [1390, -875],
-        [1335, -805],
-        [1290, -770],
-        [1236, -738],
-        [1180, -705],
-        [1120, -668]
-      ]
-    },
-    {
-      "id": "ruins",
-      "label": "Fort ruins: loot, detours, more time",
-      "points": [
-        [1420, -943],
-        [1400, -905],
-        [1315, -847],
-        [1345, -741],
-        [1297, -745],
-        [1236, -738],
-        [1180, -705],
-        [1120, -668]
-      ]
-    }
-  ],
-  "roads": [
-    {
-      "id": "main_street",
-      "width": 6.0,
-      "points": [
-        [1390, -875],
-        [1335, -805],
-        [1290, -770],
-        [1236, -738],
-        [1180, -705],
-        [1120, -668],
-        [1060, -628],
-        [1005, -590],
-        [965, -560]
-      ],
-      "note": "Old coast road from the fort into Santa Cruz; asphalt broken in patches, gravel shoulders, drainage ditches."
-    },
-    {
-      "id": "jetty_lane",
-      "width": 4.0,
-      "points": [
-        [1120, -668],
-        [1108, -700],
-        [1094, -736]
-      ],
-      "note": "Branch to the jetty; forms the one junction."
-    }
-  ],
-  "street_lamps": [
-    {
-      "road": "main_street",
-      "side": "north",
-      "from_s": 59,
-      "to_s": 529,
-      "spacing": 32
-    },
-    {
-      "road": "jetty_lane",
-      "side": "west",
-      "from_s": 10,
-      "to_s": 60,
-      "spacing": 28
-    }
-  ],
-  "lots": [
-    {
-      "id": "shelter_house",
-      "road": "main_street",
-      "side": "south",
-      "s": 339,
-      "width": 18,
-      "depth": 24,
-      "setback": 6,
-      "house": [8, 10, 3.2],
-      "retrofits": ["stovepipe"],
-      "state": "kept",
-      "outbuilding": true,
-      "tank": true,
-      "is_shelter": true,
-      "note": "Destination on the near edge of the suburb. Original tropical openings still open: the player boards them."
-    },
-    {
-      "id": "lot_s2",
-      "road": "main_street",
-      "side": "south",
-      "s": 364,
-      "width": 18,
-      "depth": 24,
-      "setback": 6,
-      "house": [7, 9, 3.0],
-      "retrofits": ["boarded", "stovepipe", "snow_fence"],
-      "state": "kept",
-      "outbuilding": false,
-      "tank": true,
-      "is_shelter": false,
-      "note": ""
-    },
-    {
-      "id": "lot_s3",
-      "road": "main_street",
-      "side": "south",
-      "s": 389,
-      "width": 18,
-      "depth": 24,
-      "setback": 6,
-      "house": [8, 9, 3.0],
-      "retrofits": ["vestibule", "insulation"],
-      "state": "kept",
-      "outbuilding": true,
-      "tank": true,
-      "is_shelter": false,
-      "note": ""
-    },
-    {
-      "id": "lot_s4",
-      "road": "main_street",
-      "side": "south",
-      "s": 414,
-      "width": 18,
-      "depth": 24,
-      "setback": 6,
-      "house": [7, 8, 3.0],
-      "retrofits": [],
-      "state": "roofless",
-      "outbuilding": false,
-      "tank": false,
-      "is_shelter": false,
-      "note": ""
-    },
-    {
-      "id": "lot_s5",
-      "road": "main_street",
-      "side": "south",
-      "s": 441,
-      "width": 18,
-      "depth": 24,
-      "setback": 6,
-      "house": [8, 10, 3.0],
-      "retrofits": ["boarded"],
-      "state": "kept",
-      "outbuilding": true,
-      "tank": true,
-      "is_shelter": false,
-      "note": ""
-    },
-    {
-      "id": "lot_s6",
-      "road": "main_street",
-      "side": "south",
-      "s": 467,
-      "width": 18,
-      "depth": 24,
-      "setback": 6,
-      "house": [7, 9, 3.0],
-      "retrofits": ["snow_fence"],
-      "state": "kept",
-      "outbuilding": false,
-      "tank": false,
-      "is_shelter": false,
-      "note": ""
-    },
-    {
-      "id": "lot_n1",
-      "road": "main_street",
-      "side": "north",
-      "s": 367,
-      "width": 18,
-      "depth": 24,
-      "setback": 6,
-      "house": [8, 9, 3.0],
-      "retrofits": ["vestibule", "stovepipe", "snow_fence"],
-      "state": "kept",
-      "outbuilding": true,
-      "tank": true,
-      "is_shelter": false,
-      "note": ""
-    },
-    {
-      "id": "lot_n2",
-      "road": "main_street",
-      "side": "north",
-      "s": 392,
-      "width": 18,
-      "depth": 24,
-      "setback": 6,
-      "house": [7, 8, 3.0],
-      "retrofits": ["boarded"],
-      "state": "kept",
-      "outbuilding": false,
-      "tank": true,
-      "is_shelter": false,
-      "note": ""
-    },
-    {
-      "id": "lot_n3",
-      "road": "main_street",
-      "side": "north",
-      "s": 419,
-      "width": 18,
-      "depth": 24,
-      "setback": 6,
-      "house": [8, 10, 3.0],
-      "retrofits": [],
-      "state": "collapsed",
-      "outbuilding": true,
-      "tank": false,
-      "is_shelter": false,
-      "note": ""
-    },
-    {
-      "id": "lot_n4",
-      "road": "main_street",
-      "side": "north",
-      "s": 445,
-      "width": 18,
-      "depth": 24,
-      "setback": 6,
-      "house": [7, 9, 3.0],
-      "retrofits": ["insulation", "stovepipe"],
-      "state": "kept",
-      "outbuilding": false,
-      "tank": true,
-      "is_shelter": false,
-      "note": ""
-    },
-    {
-      "id": "lot_n5",
-      "road": "main_street",
-      "side": "north",
-      "s": 471,
-      "width": 18,
-      "depth": 24,
-      "setback": 6,
-      "house": [8, 9, 3.0],
-      "retrofits": [],
-      "state": "kept",
-      "outbuilding": true,
-      "tank": true,
-      "is_shelter": false,
-      "note": ""
-    }
-  ],
-  "verge_palms": {
-    "road": "main_street",
-    "from_s": 319,
-    "to_s": 489,
-    "every_lot_gap": true
+  {
+   "id": "bunker_vent",
+   "kind": "vent_stack",
+   "x": 1436,
+   "z": -962,
+   "yaw_deg": 0,
+   "size": [
+    1.2,
+    1.2,
+    4
+   ]
   },
-  "pending": {
-    "ice": "Rejected: inland lagoon (author, PR #43). Ice moves to the real coast: islets, frozen straits, shoals, shore-fast ice edge and ice-locked ships. Route unconfirmed until that zone exists."
+  {
+   "id": "redoubt",
+   "kind": "fort_ring",
+   "x": 1400,
+   "z": -905,
+   "yaw_deg": 0,
+   "size": [
+    28,
+    28,
+    2.2
+   ],
+   "note": "East Point Redoubt: low colonial stone ring, wind break, no roof."
   },
-  "clutter": [
-    {
-      "id": "bus_drifted",
-      "kind": "bus",
-      "road": "main_street",
-      "s": 55,
-      "side": "north",
-      "size": [2.5, 11, 3],
-      "yaw_add": 112,
-      "lateral": 1.8,
-      "sink": 0.7,
-      "note": "Half-sunk across the north lane: the road narrows here."
-    },
-    {
-      "id": "car_shoulder",
-      "kind": "car",
-      "road": "main_street",
-      "s": 172,
-      "side": "south",
-      "size": [2, 5, 2],
-      "yaw_add": 97,
-      "lateral": 4.4,
-      "door_open": true,
-      "note": "Left on the shoulder by the bus stop, door open."
-    },
-    {
-      "id": "bin_stop_1",
-      "kind": "bin",
-      "road": "main_street",
-      "s": 182,
-      "side": "north",
-      "size": [0.7, 0.7, 1.0],
-      "yaw_add": 0,
-      "offset": 0.8
-    },
-    {
-      "id": "bin_stop_2",
-      "kind": "bin",
-      "road": "main_street",
-      "s": 184,
-      "side": "north",
-      "size": [0.7, 0.7, 1.0],
-      "yaw_add": 0,
-      "offset": 1.6
-    },
-    {
-      "id": "bin_stop_3",
-      "kind": "bin",
-      "road": "main_street",
-      "s": 186,
-      "side": "north",
-      "size": [0.7, 0.7, 1.0],
-      "yaw_add": 0,
-      "offset": 0.6,
-      "roll": "side"
-    },
-    {
-      "id": "van_ditch",
-      "kind": "van",
-      "road": "main_street",
-      "s": 300,
-      "side": "north",
-      "size": [2, 5, 2.2],
-      "yaw_add": 80,
-      "lateral": 6.2,
-      "roll": "side",
-      "note": "On its side in the north ditch before the junction."
-    },
-    {
-      "id": "car_street",
-      "kind": "car",
-      "road": "main_street",
-      "s": 428,
-      "side": "south",
-      "size": [2, 5, 2],
-      "yaw_add": 84,
-      "lateral": 2.2,
-      "door_open": true,
-      "note": "Abandoned in the street among the houses."
-    },
-    {
-      "id": "dumpster_chapel",
-      "kind": "dumpster",
-      "road": "main_street",
-      "s": 515,
-      "side": "south",
-      "size": [2.0, 1.2, 1.3],
-      "yaw_add": 0,
-      "offset": 1.5
-    },
-    {
-      "id": "pickup_beach_1",
-      "kind": "pickup",
-      "x": 1300,
-      "z": -925,
-      "yaw_deg": 40,
-      "size": [1.9, 5.3, 1.9],
-      "roll": "roof",
-      "note": "Overturned on the north sand, shore route."
-    },
-    {
-      "id": "pickup_beach_2",
-      "kind": "pickup",
-      "x": 1212,
-      "z": -866,
-      "yaw_deg": 125,
-      "size": [1.9, 5.3, 1.9],
-      "roll": "side",
-      "note": "On its side further along the beach."
-    },
-    {
-      "id": "dumpster_fort",
-      "kind": "dumpster",
-      "x": 1288,
-      "z": -756,
-      "yaw_deg": 30,
-      "size": [2.0, 1.2, 1.3],
-      "note": "By the powder store: ruins route loot spot."
-    },
-    {
-      "id": "bin_fort",
-      "kind": "bin",
-      "x": 1291,
-      "z": -752,
-      "yaw_deg": 0,
-      "size": [0.7, 0.7, 1.0]
-    },
-    {
-      "id": "pickup_fort",
-      "kind": "pickup",
-      "x": 1362,
-      "z": -858,
-      "yaw_deg": 200,
-      "size": [1.9, 5.3, 1.9],
-      "sink": 0.3,
-      "note": "Old garrison pickup nosed into the redoubt slope."
-    }
-  ],
-  "pickups": [
-    {
-      "id": "boards_fort_1",
-      "item_id": "boards",
-      "count": 1,
-      "anchor": "fort_store",
-      "local": [-1.2, 0, 0.5],
-      "route": "ruins"
-    },
-    {
-      "id": "boards_fort_2",
-      "item_id": "boards",
-      "count": 1,
-      "anchor": "fort_store",
-      "local": [1.2, 0, -0.8],
-      "route": "ruins"
-    },
-    {
-      "id": "tinder_fort",
-      "item_id": "tinder",
-      "count": 1,
-      "anchor": "fort_store",
-      "local": [0.5, 0, -1.2],
-      "route": "ruins"
-    },
-    {
-      "id": "stew_patrol_hut",
-      "item_id": "tinned_stew",
-      "count": 1,
-      "anchor": "patrol_hut",
-      "local": [0.6, 0, -0.8],
-      "route": "ruins"
-    },
-    {
-      "id": "firewood_bus_stop",
-      "item_id": "firewood",
-      "count": 1,
-      "anchor": "bus_stop",
-      "local": [0.8, 0, 0.1],
-      "route": "road"
-    },
-    {
-      "id": "boards_next_door",
-      "item_id": "boards",
-      "count": 1,
-      "anchor": "lot_s2",
-      "local": [2.0, 0, 5.0],
-      "route": "suburb"
-    },
-    {
-      "id": "firewood_shed_n1",
-      "item_id": "firewood",
-      "count": 2,
-      "anchor": "lot_n1",
-      "local": [-6.5, 0, -9.5],
-      "route": "suburb"
-    },
-    {
-      "id": "tinder_collapsed_n3",
-      "item_id": "tinder",
-      "count": 1,
-      "anchor": "lot_n3/House",
-      "local": [-1.5, 0, -2.0],
-      "route": "suburb"
-    },
-    {
-      "id": "firewood_shelter",
-      "item_id": "firewood",
-      "count": 1,
-      "anchor": "shelter_house/House",
-      "local": [-2.2, 0, -3.0],
-      "route": "shelter"
-    },
-    {
-      "id": "firewood_shelter_yard",
-      "item_id": "firewood",
-      "count": 1,
-      "anchor": "shelter_house",
-      "local": [3.5, 0, -6.0],
-      "route": "shelter",
-      "note": "Yard pile by outbuilding; densifies the light-stove beat."
-    },
-    {
-      "id": "firewood_shelter_outbuilding",
-      "item_id": "firewood",
-      "count": 1,
-      "anchor": "shelter_house",
-      "local": [-4.0, 0, 4.5],
-      "route": "shelter",
-      "note": "Lean-to side of the shelter lot."
-    },
-    {
-      "id": "boards_shelter_yard",
-      "item_id": "boards",
-      "count": 1,
-      "anchor": "shelter_house",
-      "local": [2.8, 0, 5.5],
-      "route": "shelter",
-      "note": "Loose boards against the house for window boarding."
-    },
-    {
-      "id": "boards_shelter_outbuilding",
-      "item_id": "boards",
-      "count": 1,
-      "anchor": "shelter_house",
-      "local": [-3.2, 0, -5.0],
-      "route": "shelter",
-      "note": "Second board stack near the tank/outbuilding."
-    },
-    {
-      "id": "stew_beach_wreck",
-      "item_id": "tinned_stew",
-      "count": 1,
-      "anchor": "pickup_beach_2",
-      "local": [2.4, 0, 0.5],
-      "route": "shore"
-    },
-    {
-      "id": "bedroll_bunker",
-      "item_id": "bedroll",
-      "count": 1,
-      "x": 1418.5,
-      "z": -947.0,
-      "route": "start"
-    },
-    {
-      "id": "road_flare_bunker",
-      "item_id": "road_flare",
-      "count": 1,
-      "x": 1419.3,
-      "z": -946.8,
-      "route": "start"
-    }
-  ],
-  "_scarcity": "Shelter has 5 openings; route + yard now hold 5 boards (was 3). Firewood denser at the house so the stove beat is reachable. Tinder still only fort store or collapsed n3: no tinder, no fire."
+  {
+   "id": "alata_battery",
+   "kind": "battery",
+   "x": 1345,
+   "z": -741,
+   "yaw_deg": 120,
+   "size": [
+    14,
+    10,
+    2.5
+   ],
+   "note": "Gun pit on the highest flat ground (7.8 m); ruins route loot."
+  },
+  {
+   "id": "fort_store",
+   "kind": "shed",
+   "x": 1297,
+   "z": -745,
+   "yaw_deg": 30,
+   "size": [
+    6,
+    4,
+    3
+   ],
+   "note": "Powder store, boards + tinder."
+  },
+  {
+   "id": "patrol_hut",
+   "kind": "shed",
+   "x": 1315,
+   "z": -847,
+   "yaw_deg": 35,
+   "size": [
+    4,
+    4,
+    2.8
+   ],
+   "note": "Sentry hut, food tin."
+  },
+  {
+   "id": "water_tower",
+   "kind": "water_tower",
+   "road": "main_street",
+   "s": 301,
+   "side": "north",
+   "offset": 22,
+   "size": [
+    5,
+    5,
+    16
+   ],
+   "note": "Suburb landmark at the junction; visible from the bunker door."
+  },
+  {
+   "id": "bus_stop",
+   "kind": "bus_shelter",
+   "road": "main_street",
+   "s": 239,
+   "side": "north",
+   "offset": 6.5,
+   "size": [
+    4,
+    1.6,
+    2.6
+   ],
+   "note": "On the road verge facing the carriageway: proof of the old bus line."
+  },
+  {
+   "id": "chapel",
+   "kind": "chapel",
+   "road": "main_street",
+   "s": 514,
+   "side": "south",
+   "offset": 14,
+   "size": [
+    8,
+    14,
+    7
+   ],
+   "note": "Closes the street view; bell gable."
+  },
+  {
+   "id": "jetty",
+   "kind": "pier",
+   "road": "jetty_lane",
+   "s": -1,
+   "side": "end",
+   "offset": 0,
+   "size": [
+    3,
+    30,
+    1.2
+   ],
+   "note": "Continues the lane into the frozen sea."
+  }
+ ],
+ "palm_rows": [
+  {
+   "id": "north_beach",
+   "from": [
+    1395,
+    -985
+   ],
+   "to": [
+    1250,
+    -905
+   ],
+   "spacing": 13,
+   "lean_to_deg": 330
+  },
+  {
+   "id": "gateway_cove",
+   "from": [
+    1230,
+    -870
+   ],
+   "to": [
+    1140,
+    -790
+   ],
+   "spacing": 12,
+   "lean_to_deg": 320
+  },
+  {
+   "id": "south_shore",
+   "from": [
+    1410,
+    -830
+   ],
+   "to": [
+    1370,
+    -750
+   ],
+   "spacing": 14,
+   "lean_to_deg": 120
+  }
+ ],
+ "routes": [
+  {
+   "id": "shore",
+   "label": "North beach: exposed, predictable",
+   "points": [
+    [
+     1420,
+     -943
+    ],
+    [
+     1385,
+     -962
+    ],
+    [
+     1320,
+     -915
+    ],
+    [
+     1260,
+     -892
+    ],
+    [
+     1195,
+     -850
+    ],
+    [
+     1140,
+     -790
+    ],
+    [
+     1100,
+     -745
+    ],
+    [
+     1108,
+     -700
+    ],
+    [
+     1120,
+     -668
+    ]
+   ]
+  },
+  {
+   "id": "road",
+   "label": "Old road past the fort: readable, open",
+   "points": [
+    [
+     1420,
+     -943
+    ],
+    [
+     1405,
+     -915
+    ],
+    [
+     1390,
+     -875
+    ],
+    [
+     1335,
+     -805
+    ],
+    [
+     1290,
+     -770
+    ],
+    [
+     1236,
+     -738
+    ],
+    [
+     1180,
+     -705
+    ],
+    [
+     1120,
+     -668
+    ]
+   ]
+  },
+  {
+   "id": "ruins",
+   "label": "Fort ruins: loot, detours, more time",
+   "points": [
+    [
+     1420,
+     -943
+    ],
+    [
+     1400,
+     -905
+    ],
+    [
+     1315,
+     -847
+    ],
+    [
+     1345,
+     -741
+    ],
+    [
+     1297,
+     -745
+    ],
+    [
+     1236,
+     -738
+    ],
+    [
+     1180,
+     -705
+    ],
+    [
+     1120,
+     -668
+    ]
+   ]
+  }
+ ],
+ "roads": [
+  {
+   "id": "main_street",
+   "width": 6.0,
+   "points": [
+    [
+     1390,
+     -875
+    ],
+    [
+     1335,
+     -805
+    ],
+    [
+     1290,
+     -770
+    ],
+    [
+     1236,
+     -738
+    ],
+    [
+     1180,
+     -705
+    ],
+    [
+     1120,
+     -668
+    ],
+    [
+     1060,
+     -628
+    ],
+    [
+     1005,
+     -590
+    ],
+    [
+     965,
+     -560
+    ]
+   ],
+   "note": "Old coast road from the fort into Santa Cruz; asphalt broken in patches, gravel shoulders, drainage ditches."
+  },
+  {
+   "id": "jetty_lane",
+   "width": 4.0,
+   "points": [
+    [
+     1120,
+     -668
+    ],
+    [
+     1108,
+     -700
+    ],
+    [
+     1094,
+     -736
+    ]
+   ],
+   "note": "Branch to the jetty; forms the one junction."
+  }
+ ],
+ "street_lamps": [
+  {
+   "road": "main_street",
+   "side": "north",
+   "from_s": 59,
+   "to_s": 529,
+   "spacing": 32
+  },
+  {
+   "road": "jetty_lane",
+   "side": "west",
+   "from_s": 10,
+   "to_s": 60,
+   "spacing": 28
+  }
+ ],
+ "lots": [
+  {
+   "id": "shelter_house",
+   "road": "main_street",
+   "side": "south",
+   "s": 339,
+   "width": 18,
+   "depth": 24,
+   "setback": 6,
+   "house": [
+    8,
+    10,
+    3.2
+   ],
+   "retrofits": [
+    "stovepipe"
+   ],
+   "state": "kept",
+   "outbuilding": true,
+   "tank": true,
+   "is_shelter": true,
+   "note": "Destination on the near edge of the suburb. Original tropical openings still open: the player boards them."
+  },
+  {
+   "id": "lot_s2",
+   "road": "main_street",
+   "side": "south",
+   "s": 364,
+   "width": 18,
+   "depth": 24,
+   "setback": 6,
+   "house": [
+    7,
+    9,
+    3.0
+   ],
+   "retrofits": [
+    "boarded",
+    "stovepipe",
+    "snow_fence"
+   ],
+   "state": "kept",
+   "outbuilding": false,
+   "tank": true,
+   "is_shelter": false,
+   "note": ""
+  },
+  {
+   "id": "lot_s3",
+   "road": "main_street",
+   "side": "south",
+   "s": 389,
+   "width": 18,
+   "depth": 24,
+   "setback": 6,
+   "house": [
+    8,
+    9,
+    3.0
+   ],
+   "retrofits": [
+    "vestibule",
+    "insulation"
+   ],
+   "state": "kept",
+   "outbuilding": true,
+   "tank": true,
+   "is_shelter": false,
+   "note": ""
+  },
+  {
+   "id": "lot_s4",
+   "road": "main_street",
+   "side": "south",
+   "s": 414,
+   "width": 18,
+   "depth": 24,
+   "setback": 6,
+   "house": [
+    7,
+    8,
+    3.0
+   ],
+   "retrofits": [],
+   "state": "roofless",
+   "outbuilding": false,
+   "tank": false,
+   "is_shelter": false,
+   "note": ""
+  },
+  {
+   "id": "lot_s5",
+   "road": "main_street",
+   "side": "south",
+   "s": 441,
+   "width": 18,
+   "depth": 24,
+   "setback": 6,
+   "house": [
+    8,
+    10,
+    3.0
+   ],
+   "retrofits": [
+    "boarded"
+   ],
+   "state": "kept",
+   "outbuilding": true,
+   "tank": true,
+   "is_shelter": false,
+   "note": ""
+  },
+  {
+   "id": "lot_s6",
+   "road": "main_street",
+   "side": "south",
+   "s": 467,
+   "width": 18,
+   "depth": 24,
+   "setback": 6,
+   "house": [
+    7,
+    9,
+    3.0
+   ],
+   "retrofits": [
+    "snow_fence"
+   ],
+   "state": "kept",
+   "outbuilding": false,
+   "tank": false,
+   "is_shelter": false,
+   "note": ""
+  },
+  {
+   "id": "lot_n1",
+   "road": "main_street",
+   "side": "north",
+   "s": 367,
+   "width": 18,
+   "depth": 24,
+   "setback": 6,
+   "house": [
+    8,
+    9,
+    3.0
+   ],
+   "retrofits": [
+    "vestibule",
+    "stovepipe",
+    "snow_fence"
+   ],
+   "state": "kept",
+   "outbuilding": true,
+   "tank": true,
+   "is_shelter": false,
+   "note": ""
+  },
+  {
+   "id": "lot_n2",
+   "road": "main_street",
+   "side": "north",
+   "s": 392,
+   "width": 18,
+   "depth": 24,
+   "setback": 6,
+   "house": [
+    7,
+    8,
+    3.0
+   ],
+   "retrofits": [
+    "boarded"
+   ],
+   "state": "kept",
+   "outbuilding": false,
+   "tank": true,
+   "is_shelter": false,
+   "note": ""
+  },
+  {
+   "id": "lot_n3",
+   "road": "main_street",
+   "side": "north",
+   "s": 419,
+   "width": 18,
+   "depth": 24,
+   "setback": 6,
+   "house": [
+    8,
+    10,
+    3.0
+   ],
+   "retrofits": [],
+   "state": "collapsed",
+   "outbuilding": true,
+   "tank": false,
+   "is_shelter": false,
+   "note": ""
+  },
+  {
+   "id": "lot_n4",
+   "road": "main_street",
+   "side": "north",
+   "s": 445,
+   "width": 18,
+   "depth": 24,
+   "setback": 6,
+   "house": [
+    7,
+    9,
+    3.0
+   ],
+   "retrofits": [
+    "insulation",
+    "stovepipe"
+   ],
+   "state": "kept",
+   "outbuilding": false,
+   "tank": true,
+   "is_shelter": false,
+   "note": ""
+  },
+  {
+   "id": "lot_n5",
+   "road": "main_street",
+   "side": "north",
+   "s": 471,
+   "width": 18,
+   "depth": 24,
+   "setback": 6,
+   "house": [
+    8,
+    9,
+    3.0
+   ],
+   "retrofits": [],
+   "state": "kept",
+   "outbuilding": true,
+   "tank": true,
+   "is_shelter": false,
+   "note": ""
+  }
+ ],
+ "verge_palms": {
+  "road": "main_street",
+  "from_s": 319,
+  "to_s": 489,
+  "every_lot_gap": true
+ },
+ "pending": {
+  "ice": "Rejected: inland lagoon (author, PR #43). Ice moves to the real coast: islets, frozen straits, shoals, shore-fast ice edge and ice-locked ships. Route unconfirmed until that zone exists."
+ },
+ "clutter": [
+  {
+   "id": "bus_drifted",
+   "kind": "bus",
+   "road": "main_street",
+   "s": 55,
+   "side": "north",
+   "size": [
+    2.5,
+    11,
+    3
+   ],
+   "yaw_add": 112,
+   "lateral": 1.8,
+   "sink": 0.7,
+   "note": "Half-sunk across the north lane: the road narrows here."
+  },
+  {
+   "id": "car_shoulder",
+   "kind": "car",
+   "road": "main_street",
+   "s": 172,
+   "side": "south",
+   "size": [
+    2,
+    5,
+    2
+   ],
+   "yaw_add": 97,
+   "lateral": 4.4,
+   "door_open": true,
+   "note": "Left on the shoulder by the bus stop, door open."
+  },
+  {
+   "id": "bin_stop_1",
+   "kind": "bin",
+   "road": "main_street",
+   "s": 182,
+   "side": "north",
+   "size": [
+    0.7,
+    0.7,
+    1.0
+   ],
+   "yaw_add": 0,
+   "offset": 0.8
+  },
+  {
+   "id": "bin_stop_2",
+   "kind": "bin",
+   "road": "main_street",
+   "s": 184,
+   "side": "north",
+   "size": [
+    0.7,
+    0.7,
+    1.0
+   ],
+   "yaw_add": 0,
+   "offset": 1.6
+  },
+  {
+   "id": "bin_stop_3",
+   "kind": "bin",
+   "road": "main_street",
+   "s": 186,
+   "side": "north",
+   "size": [
+    0.7,
+    0.7,
+    1.0
+   ],
+   "yaw_add": 0,
+   "offset": 0.6,
+   "roll": "side"
+  },
+  {
+   "id": "van_ditch",
+   "kind": "van",
+   "road": "main_street",
+   "s": 300,
+   "side": "north",
+   "size": [
+    2,
+    5,
+    2.2
+   ],
+   "yaw_add": 80,
+   "lateral": 6.2,
+   "roll": "side",
+   "note": "On its side in the north ditch before the junction."
+  },
+  {
+   "id": "car_street",
+   "kind": "car",
+   "road": "main_street",
+   "s": 428,
+   "side": "south",
+   "size": [
+    2,
+    5,
+    2
+   ],
+   "yaw_add": 84,
+   "lateral": 2.2,
+   "door_open": true,
+   "note": "Abandoned in the street among the houses."
+  },
+  {
+   "id": "dumpster_chapel",
+   "kind": "dumpster",
+   "road": "main_street",
+   "s": 515,
+   "side": "south",
+   "size": [
+    2.0,
+    1.2,
+    1.3
+   ],
+   "yaw_add": 0,
+   "offset": 1.5
+  },
+  {
+   "id": "pickup_beach_1",
+   "kind": "pickup",
+   "x": 1300,
+   "z": -925,
+   "yaw_deg": 40,
+   "size": [
+    1.9,
+    5.3,
+    1.9
+   ],
+   "roll": "roof",
+   "note": "Overturned on the north sand, shore route."
+  },
+  {
+   "id": "pickup_beach_2",
+   "kind": "pickup",
+   "x": 1212,
+   "z": -866,
+   "yaw_deg": 125,
+   "size": [
+    1.9,
+    5.3,
+    1.9
+   ],
+   "roll": "side",
+   "note": "On its side further along the beach."
+  },
+  {
+   "id": "dumpster_fort",
+   "kind": "dumpster",
+   "x": 1288,
+   "z": -756,
+   "yaw_deg": 30,
+   "size": [
+    2.0,
+    1.2,
+    1.3
+   ],
+   "note": "By the powder store: ruins route loot spot."
+  },
+  {
+   "id": "bin_fort",
+   "kind": "bin",
+   "x": 1291,
+   "z": -752,
+   "yaw_deg": 0,
+   "size": [
+    0.7,
+    0.7,
+    1.0
+   ]
+  },
+  {
+   "id": "pickup_fort",
+   "kind": "pickup",
+   "x": 1362,
+   "z": -858,
+   "yaw_deg": 200,
+   "size": [
+    1.9,
+    5.3,
+    1.9
+   ],
+   "sink": 0.3,
+   "note": "Old garrison pickup nosed into the redoubt slope."
+  }
+ ],
+ "pickups": [
+  {
+   "id": "boards_fort_1",
+   "item_id": "boards",
+   "count": 1,
+   "anchor": "fort_store",
+   "local": [
+    -1.2,
+    0,
+    0.5
+   ],
+   "route": "ruins"
+  },
+  {
+   "id": "boards_fort_2",
+   "item_id": "boards",
+   "count": 1,
+   "anchor": "fort_store",
+   "local": [
+    1.2,
+    0,
+    -0.8
+   ],
+   "route": "ruins"
+  },
+  {
+   "id": "tinder_fort",
+   "item_id": "tinder",
+   "count": 1,
+   "anchor": "fort_store",
+   "local": [
+    0.5,
+    0,
+    -1.2
+   ],
+   "route": "ruins"
+  },
+  {
+   "id": "stew_patrol_hut",
+   "item_id": "tinned_stew",
+   "count": 1,
+   "anchor": "patrol_hut",
+   "local": [
+    0.6,
+    0,
+    -0.8
+   ],
+   "route": "ruins"
+  },
+  {
+   "id": "firewood_bus_stop",
+   "item_id": "firewood",
+   "count": 1,
+   "anchor": "bus_stop",
+   "local": [
+    0.8,
+    0,
+    0.1
+   ],
+   "route": "road"
+  },
+  {
+   "id": "boards_next_door",
+   "item_id": "boards",
+   "count": 1,
+   "anchor": "lot_s2",
+   "local": [
+    2.0,
+    0,
+    5.0
+   ],
+   "route": "suburb"
+  },
+  {
+   "id": "firewood_shed_n1",
+   "item_id": "firewood",
+   "count": 2,
+   "anchor": "lot_n1",
+   "local": [
+    -6.5,
+    0,
+    -9.5
+   ],
+   "route": "suburb"
+  },
+  {
+   "id": "tinder_collapsed_n3",
+   "item_id": "tinder",
+   "count": 1,
+   "anchor": "lot_n3/House",
+   "local": [
+    -1.5,
+    0,
+    -2.0
+   ],
+   "route": "suburb"
+  },
+  {
+   "id": "firewood_shelter",
+   "item_id": "firewood",
+   "count": 1,
+   "anchor": "shelter_house/House",
+   "local": [
+    -2.2,
+    0,
+    -3.0
+   ],
+   "route": "shelter"
+  },
+  {
+   "id": "firewood_shelter_yard",
+   "item_id": "firewood",
+   "count": 1,
+   "anchor": "shelter_house",
+   "local": [
+    3.5,
+    0,
+    -6.0
+   ],
+   "route": "shelter",
+   "note": "Yard pile by outbuilding; densifies the light-stove beat."
+  },
+  {
+   "id": "firewood_shelter_outbuilding",
+   "item_id": "firewood",
+   "count": 1,
+   "anchor": "shelter_house",
+   "local": [
+    -4.0,
+    0,
+    4.5
+   ],
+   "route": "shelter",
+   "note": "Lean-to side of the shelter lot."
+  },
+  {
+   "id": "boards_shelter_yard",
+   "item_id": "boards",
+   "count": 1,
+   "anchor": "shelter_house",
+   "local": [
+    2.8,
+    0,
+    5.5
+   ],
+   "route": "shelter",
+   "note": "Loose boards against the house for window boarding."
+  },
+  {
+   "id": "boards_shelter_outbuilding",
+   "item_id": "boards",
+   "count": 1,
+   "anchor": "shelter_house",
+   "local": [
+    -3.2,
+    0,
+    -5.0
+   ],
+   "route": "shelter",
+   "note": "Second board stack near the tank/outbuilding."
+  },
+  {
+   "id": "stew_beach_wreck",
+   "item_id": "tinned_stew",
+   "count": 1,
+   "anchor": "pickup_beach_2",
+   "local": [
+    2.4,
+    0,
+    0.5
+   ],
+   "route": "shore"
+  },
+  {
+   "id": "bedroll_bunker",
+   "item_id": "bedroll",
+   "count": 1,
+   "x": 1418.5,
+   "z": -947.0,
+   "route": "start"
+  },
+  {
+   "id": "road_flare_bunker",
+   "item_id": "road_flare",
+   "count": 1,
+   "x": 1419.3,
+   "z": -946.8,
+   "route": "start"
+  }
+ ],
+ "_scarcity": "Shelter has 5 openings; route + yard hold 5 boards (was 3). Firewood denser at the house so the stove beat is reachable. Tinder only fort store or collapsed n3: no tinder, no fire."
 }
