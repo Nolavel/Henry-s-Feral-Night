@@ -5,6 +5,16 @@ Maintained per branch; entries are added by whoever makes the change.
 
 ## [Unreleased] — `codex`
 
+### 2026-09-25 — First Exit A playtest kit (#80) (claudeflow)
+
+Added
+- `docs/playtest/FIRST_EXIT_A_RUN.md`: what the observer says (and must not),
+  the beat timeline with what to watch and what to ask, the retelling that
+  decides pass, and the failure pass.
+- `tools/runtime/capture_first_exit_frames.gd`: the six publisher frames of the
+  #80 table from the real scene (exile, route clutter, weather turn, boarding,
+  lit stove, seated with Kenny) into `docs/art/issue80/`.
+
 ### 2026-09-25 — Breach drafts; one weather controller (#80) (claudeflow)
 
 Added
