@@ -5,6 +5,17 @@ Maintained per branch; entries are added by whoever makes the change.
 
 ## [Unreleased] — `codex`
 
+### 2026-09-25 — Drifting snow made readable (claudeflow)
+
+Changed
+- `SnowLift` (Codex's surface-transport rework): grains are now soft round-edged
+  streaks instead of hard quads, in a muted off-white. They are larger, and the
+  layers sit 5 cm above the surface so they no longer sink into it.
+
+Added
+- A thin ground haze layer that the streamer drags along, so the drift reads
+  from eye height.
+
 ### 2026-09-25 — Snow lifted by gusts (claudeflow)
 
 Added

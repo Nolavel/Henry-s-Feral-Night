@@ -17,12 +17,14 @@ const SUSPENSION_START_MPS: float = 11.0
 var _creep: GPUParticles3D
 var _saltation: GPUParticles3D
 var _suspension: GPUParticles3D
+var _haze: GPUParticles3D
 
 
 func _ready() -> void:
 	_creep = _build_creep()
 	_saltation = _build_saltation()
 	_suspension = _build_suspension()
+	_haze = _build_haze()
 
 
 ## Plays one irregular ground-drift streamer at the current transform.
@@ -55,6 +57,8 @@ func lift(wind_speed_mps: float = 8.0, snow_cover: float = 1.0) -> void:
 	_restart_if_visible(_creep)
 	_restart_if_visible(_saltation)
 	_restart_if_visible(_suspension)
+	_haze.amount_ratio = cover * lerpf(0.5, 1.0, wind_t)
+	_restart_if_visible(_haze)
 
 
 func _build_creep() -> GPUParticles3D:
@@ -80,7 +84,7 @@ func _build_creep() -> GPUParticles3D:
 	process.scale_max = 1.0
 	process.color_ramp = _make_ramp(0.70, 0.52)
 	particles.process_material = process
-	particles.draw_pass_1 = _make_quad(Vector2(0.012, 0.11))
+	particles.draw_pass_1 = _make_quad(Vector2(0.05, 0.32))
 	return particles
 
 
@@ -108,7 +112,7 @@ func _build_saltation() -> GPUParticles3D:
 	process.scale_max = 1.0
 	process.color_ramp = _make_ramp(0.82, 0.58)
 	particles.process_material = process
-	particles.draw_pass_1 = _make_quad(Vector2(0.018, 0.035))
+	particles.draw_pass_1 = _make_quad(Vector2(0.05, 0.09))
 	return particles
 
 
@@ -135,7 +139,27 @@ func _build_suspension() -> GPUParticles3D:
 	process.scale_max = 0.75
 	process.color_ramp = _make_ramp(0.32, 0.48)
 	particles.process_material = process
-	particles.draw_pass_1 = _make_quad(Vector2(0.012, 0.024))
+	particles.draw_pass_1 = _make_quad(Vector2(0.03, 0.05))
+	return particles
+
+
+## A thin veil the streamer drags along the ground, so the drift reads from eye height.
+func _build_haze() -> GPUParticles3D:
+	var particles := _new_layer("GroundHaze", 26, 1.2, 0.3, 0.5)
+	particles.transform_align = GPUParticles3D.TRANSFORM_ALIGN_Z_BILLBOARD_Y_TO_VELOCITY
+	var process := ParticleProcessMaterial.new()
+	process.emission_shape = ParticleProcessMaterial.EMISSION_SHAPE_BOX
+	process.emission_box_extents = Vector3(streamer_length * 0.45, 0.05, streamer_width * 0.5)
+	process.direction = Vector3(1.0, 0.01, 0.0)
+	process.spread = 3.0
+	process.initial_velocity_min = 3.5
+	process.initial_velocity_max = 5.5
+	process.scale_min = 0.7
+	process.scale_max = 1.2
+	process.color_ramp = _make_ramp(0.28, 0.5)
+	particles.process_material = process
+	particles.position.y = 0.12
+	particles.draw_pass_1 = _make_quad(Vector2(0.35, 1.2))
 	return particles
 
 
@@ -148,6 +172,7 @@ func _new_layer(
 ) -> GPUParticles3D:
 	var particles := GPUParticles3D.new()
 	particles.name = layer_name
+	particles.position.y = 0.05  # clear of the surface so grains are not buried in it
 	particles.one_shot = true
 	particles.emitting = false
 	particles.amount = particle_count
@@ -167,15 +192,15 @@ func _new_layer(
 
 func _make_ramp(peak_alpha: float, fade_from: float) -> GradientTexture1D:
 	var gradient := Gradient.new()
-	gradient.set_color(0, Color(0.84, 0.89, 0.96, 0.0))
-	gradient.add_point(0.08, Color(0.84, 0.89, 0.96, peak_alpha))
+	gradient.set_color(0, Color(0.8, 0.81, 0.83, 0.0))
+	gradient.add_point(0.08, Color(0.8, 0.81, 0.83, peak_alpha))
 	gradient.add_point(
 		fade_from,
-		Color(0.84, 0.89, 0.96, peak_alpha * 0.72)
+		Color(0.8, 0.81, 0.83, peak_alpha * 0.72)
 	)
 	gradient.set_color(
 		gradient.get_point_count() - 1,
-		Color(0.84, 0.89, 0.96, 0.0)
+		Color(0.8, 0.81, 0.83, 0.0)
 	)
 	var ramp := GradientTexture1D.new()
 	ramp.gradient = gradient
@@ -192,8 +217,9 @@ shader_type spatial;
 render_mode unshaded, cull_disabled;
 
 void fragment() {
+	float edge = length((UV - vec2(0.5)) * 2.0);
 	ALBEDO = COLOR.rgb;
-	ALPHA = COLOR.a;
+	ALPHA = COLOR.a * smoothstep(1.0, 0.2, edge);
 }
 """
 	material.shader = shader
