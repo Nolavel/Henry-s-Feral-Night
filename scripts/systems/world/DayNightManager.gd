@@ -51,6 +51,9 @@ const DUSK_END_HOUR: float = 22.0
 @export var perfomance_visible_display: bool = true
 @export var sky_shader: Shader = DEFAULT_SKY_SHADER
 @export var settings: DayNightSettings
+## Clock time a new game starts at (a save overrides it). First Exit A starts at
+## noon so a 10–15 minute run reaches late afternoon and dusk (author, #42).
+@export_range(0.0, 24.0, 0.25) var start_hour: float = 12.0
 @export var directional_light: DirectionalLight3D
 @export var world_environment_node: WorldEnvironment
 @export var time_accelerator: TimeAccelerator
@@ -61,7 +64,8 @@ const DUSK_END_HOUR: float = 22.0
 @export var day_and_night_duration_label: Label
 @export var current_day_label: Label
 
-var total_game_time_hours: float = 6.0
+var total_game_time_hours: float = 12.0
+var _clock_loaded: bool = false
 var current_day: int = 1
 var is_day: bool = true
 var last_game_minute: int = -1
@@ -72,6 +76,8 @@ var _noise_texture: NoiseTexture2D
 
 
 func _ready() -> void:
+	if not _clock_loaded:
+		total_game_time_hours = start_hour
 	_setup_default_settings()
 	_initialize_sky()
 
@@ -489,7 +495,8 @@ func get_save_data() -> Dictionary:
 
 
 func load_save_data(data: Dictionary) -> void:
-	total_game_time_hours = float(data.get("total_game_time_hours", 6.0))
+	total_game_time_hours = float(data.get("total_game_time_hours", start_hour))
+	_clock_loaded = true
 	current_day = int(data.get("current_day", 1))
 	is_day = bool(data.get("is_day", true))
 	call_deferred("_force_update_visuals")

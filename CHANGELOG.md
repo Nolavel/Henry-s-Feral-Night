@@ -5,6 +5,17 @@ Maintained per branch; entries are added by whoever makes the change.
 
 ## [Unreleased] — `codex`
 
+### 2026-09-25 — Game time: 60 real minutes a day, start at noon (#42) (claudeflow)
+
+Changed
+- Author decision for First Exit A: a full game day is a stable 60 real minutes
+  (`day_duration` + `night_duration` = 1800 + 1800 s, was 72 + 72), with no
+  dynamic coefficients. One game hour = 2.5 real minutes.
+- `DayNightManager.start_hour` (default 12.0): a new game starts at noon so a
+  10–15 minute run reaches late afternoon and dusk; a save overrides it.
+- Knock-on: one log (2 h) now burns 5 real minutes, warming on the stove
+  (0.5 h) 75 s; the weather beat's 180 s storm is about 1.2 game hours.
+
 ### 2026-09-25 — Authored weather turn on the First Exit route (#78) (claudeflow)
 
 Added

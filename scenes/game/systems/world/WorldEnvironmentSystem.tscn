@@ -129,8 +129,8 @@ current_day_label = NodePath("DebugTime/VBoxContainer/CurrentDayLabel")
 
 [node name="DayNightSettings" type="Node" parent="DayNightManager"]
 script = ExtResource("5_prwu1")
-day_duration = 72.0
-night_duration = 72.0
+day_duration = 1800.0
+night_duration = 1800.0
 cloud_depth = 2.35
 cloud_coverage = 0.34
 cloud_opacity = 0.92
