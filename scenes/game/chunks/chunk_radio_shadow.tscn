@@ -1,13 +1,3 @@
-[gd_scene load_steps=3 format=3 uid="uid://wqto7h7wy3rk"]
-
-[sub_resource type="StandardMaterial3D" id="StandardMaterial3D_8qxwa"]
-albedo_color = Color(1, 0.100000024, 0, 1)
-
-[sub_resource type="BoxMesh" id="BoxMesh_ufl5g"]
-material = SubResource("StandardMaterial3D_8qxwa")
-size = Vector3(1, 40, 1)
+[gd_scene format=3 uid="uid://wqto7h7wy3rk"]
 
 [node name="ChunkRadioShadow" type="Node3D"]
-
-[node name="MeshInstance3D" type="MeshInstance3D" parent="."]
-mesh = SubResource("BoxMesh_ufl5g")
