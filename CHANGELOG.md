@@ -5,6 +5,15 @@ Maintained per branch; entries are added by whoever makes the change.
 
 ## [Unreleased] — `codex`
 
+### 2026-09-25 — Wind gusts in First Exit (claudeflow)
+
+Added
+- `scripts/vfx/wind_gusts.gd`: WindStreak loops in front of the camera, running
+  with the wind. None below 6 m/s, one every ~2.6 s in `windy`, and one every
+  ~0.6 s in `blizzard`. Never shown while sheltered. A five-streak burst plays
+  when the weather turns.
+- WeatherBeat owns one WindGusts and fires the burst on `beat_started`.
+
 ### 2026-09-25 — WindStreak VFX (claudeflow)
 
 Added
