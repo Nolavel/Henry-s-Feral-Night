@@ -12,6 +12,7 @@ signal pickup_refused(item_id: StringName)
 ## Stand-in shape and colour for items that have no mesh of their own yet.
 const PLACEHOLDER_SIZE: Vector3 = Vector3(0.32, 0.16, 0.22)
 const PLACEHOLDER_COLOR: Color = Color(0.42, 0.3, 0.2)
+const ROAD_FLARE_ID: StringName = &"road_flare"
 const TOO_HEAVY_KEY: String = "PICKUP_REFUSED_TOO_HEAVY"
 const WORLD_GROUP: StringName = &"world_pickup"
 
@@ -87,6 +88,8 @@ func _hand_visual_to_pack() -> void:
 
 ## A small crate until items have their own meshes.
 func _make_placeholder() -> MeshInstance3D:
+	if item_id == ROAD_FLARE_ID:
+		return _make_road_flare()
 	var crate := MeshInstance3D.new()
 	crate.name = "Placeholder"
 	var box := BoxMesh.new()
@@ -98,6 +101,43 @@ func _make_placeholder() -> MeshInstance3D:
 	crate.position.y = PLACEHOLDER_SIZE.y * 0.5
 	add_child(crate)
 	return crate
+
+
+## The starting light must read as a flare, not as the generic brown loot box.
+## It matches the unlit tube dimensions used by HeldFlare and lies in the snow.
+func _make_road_flare() -> MeshInstance3D:
+	var tube := MeshInstance3D.new()
+	tube.name = "RoadFlareVisual"
+	var tube_mesh := CylinderMesh.new()
+	tube_mesh.top_radius = 0.014
+	tube_mesh.bottom_radius = 0.016
+	tube_mesh.height = 0.22
+	tube_mesh.radial_segments = 12
+	tube.mesh = tube_mesh
+	var body_material := StandardMaterial3D.new()
+	body_material.albedo_color = Color(0.19, 0.035, 0.026, 1.0)
+	body_material.metallic = 0.18
+	body_material.roughness = 0.58
+	tube.material_override = body_material
+	tube.rotation.z = PI * 0.5
+	tube.position.y = -0.13
+	add_child(tube)
+
+	var cap := MeshInstance3D.new()
+	cap.name = "StrikerCap"
+	var cap_mesh := CylinderMesh.new()
+	cap_mesh.top_radius = 0.018
+	cap_mesh.bottom_radius = 0.018
+	cap_mesh.height = 0.025
+	cap_mesh.radial_segments = 12
+	cap.mesh = cap_mesh
+	var cap_material := StandardMaterial3D.new()
+	cap_material.albedo_color = Color(0.055, 0.045, 0.04, 1.0)
+	cap_material.roughness = 0.9
+	cap.material_override = cap_material
+	cap.position.y = 0.122
+	tube.add_child(cap)
+	return tube
 
 
 func _get_inventory() -> InventoryComponent:

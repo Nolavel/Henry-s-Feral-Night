@@ -97,6 +97,15 @@ func _check_pickups() -> void:
 	_check(int(totals.get(&"boards", 0)) >= 2, "too few boards to matter (%d)" % int(totals.get(&"boards", 0)))
 	_check(int(totals.get(&"tinder", 0)) >= 1, "no tinder anywhere: the stove can never be lit")
 	_check(int(totals.get(&"firewood", 0)) >= 2, "not enough firewood for a night")
+	_check(int(totals.get(&"road_flare", 0)) == 1, "the bunker start needs exactly one road flare")
+	var bedroll := _scene.get_node_or_null(^"BedrollBunker") as ItemPickup
+	var flare := _scene.get_node_or_null(^"RoadFlareBunker") as ItemPickup
+	_check(bedroll != null and flare != null, "bedroll or road flare is missing from the bunker start")
+	if bedroll != null and flare != null:
+		_check(bedroll.global_position.distance_to(flare.global_position) <= 1.0,
+			"the road flare is not beside the bedroll")
+		_check(flare.interactive_mesh != null and flare.interactive_mesh.name == &"RoadFlareVisual",
+			"the road flare still looks like a generic loot box")
 
 
 func _finish() -> void:

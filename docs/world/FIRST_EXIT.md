@@ -152,12 +152,15 @@ in `first_exit_resolved.json`.
 | Collapsed house n3 | tinder | suburb |
 | Inside the shelter | firewood | — |
 | Wrecked pickup on the beach | tinned stew | shore |
+| Bunker exit, beside the bedroll | road flare | start |
 
 **Scarcity is deliberate.**
 - There are 5 openings but only 3 boards, so the player chooses which side of
   the house to seal against the wind.
 - Tinder lies only in the fort store or the collapsed house: no detour, no
   fire.
+- The bunker offers one road flare: 30 game minutes of emergency light, not a
+  renewable electric torch.
 - `test_first_exit_route.gd` checks these rules, so a later layout edit cannot
   make the shelter free.
 

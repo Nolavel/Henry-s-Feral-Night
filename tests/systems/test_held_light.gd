@@ -1,7 +1,7 @@
 extends SceneTree
 
-## Held flare: L spends a flare from the inventory into the shared hand
-## socket, the arm eases into the held pose, a second press drops it burning.
+## Held flare: quick-use spends a pocketed flare into the shared hand socket,
+## the arm eases into the held pose, and a second quick-use drops it burning.
 ## Run: godot --headless --script tests/systems/test_held_light.gd
 
 const VISUAL: String = "res://scenes/actors/player/HenryUALVisual.tscn"

@@ -952,6 +952,14 @@
    "x": 1418.5,
    "z": -947.0,
    "route": "start"
+  },
+  {
+   "id": "road_flare_bunker",
+   "item_id": "road_flare",
+   "count": 1,
+   "x": 1419.3,
+   "z": -946.8,
+   "route": "start"
   }
  ],
  "_scarcity": "Shelter has 5 openings, the route holds 3 boards. Tinder only in the fort store or the collapsed house n3: no tinder, no fire."

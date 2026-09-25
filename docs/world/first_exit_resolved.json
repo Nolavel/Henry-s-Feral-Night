@@ -740,6 +740,14 @@
 			"kind": "pickup",
 			"x": 1418.5,
 			"z": -947.0
+		},
+		{
+			"count": 1,
+			"id": "road_flare_bunker",
+			"item_id": "road_flare",
+			"kind": "pickup",
+			"x": 1419.3,
+			"z": -946.8
 		}
 	],
 	"spawn": {

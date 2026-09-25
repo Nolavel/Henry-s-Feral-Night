@@ -23,6 +23,18 @@ fails the build when two actions share a key without an entry in
 | Esc | `pause` | Context back-out, see below |
 | LMB | `fire` | In the Hub: drag an item during hold-F placement |
 
+### Lighting the road flare
+
+1. Tap `F` by the flare to pick it up. Holding `F` during that pickup opens
+   placement; put it in a coat or trouser pocket. It can also be moved from the
+   pack to a pocket through `Tab`.
+2. Use the wheel to select that pocket, then press the wheel to strike it.
+3. Press the wheel again to drop it while it is still burning.
+
+It is a single-use pyrotechnic light, not an on/off electric torch. At the
+First Exit clock rate (a 24-hour day in 3600 real seconds), its 75 real seconds
+of burn time equal **30 game minutes**.
+
 ## F: one verb, resolved by context
 
 F always acts on the thing in front of Henry. The first matching row wins.
