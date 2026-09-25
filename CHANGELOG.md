@@ -5,6 +5,15 @@ Maintained per branch; entries are added by whoever makes the change.
 
 ## [Unreleased] — `codex`
 
+### 2026-09-25 — Seated reach: warm and eat from the seat (#42) (claudeflow)
+
+Changed
+- Seated, `InteractComponent` picks the F target by where the camera looks
+  (within 35° of the view) and reaches 2 m instead of 0.9 m: Henry leans to the
+  stove's cooking ring and to the table, and never walks off to a target. Warming
+  and eating off the stove now work from the seat.
+- `test_seated_aim`.
+
 ### 2026-09-25 — Warming on the stove top (#42) (claudeflow)
 
 Added

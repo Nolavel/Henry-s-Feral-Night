@@ -25,6 +25,10 @@ signal interaction_performed(target: InteractiveArea)
 @export var pickup_distance: float = 0.9
 ## Inside this distance the object shows its F prompt instead of a marker.
 @export var prompt_distance: float = 2.0
+## Seated, Henry leans: this far, picked by where the camera looks (stove ring, table).
+@export var seated_reach: float = 2.0
+## Seated, a target must lie within this angle of the view direction.
+@export var seated_aim_deg: float = 35.0
 ## Gives up a walk that stops making progress, seconds.
 @export var approach_timeout: float = 4.0
 
@@ -61,11 +65,12 @@ func _physics_process(delta: float) -> void:
 func detect_target() -> void:
 	if not is_instance_valid(current_target):
 		current_target = null
-	var found: InteractiveArea = _find_focus_target()
-	if found == null:
+	var seated: bool = _is_seated()
+	var found: InteractiveArea = _find_seated_target() if seated else _find_focus_target()
+	if found == null and not seated:
 		found = _find_intent_target()
 	var distance: float = _flat_distance_to(found) if found != null else INF
-	var in_reach: bool = distance <= pickup_distance
+	var in_reach: bool = distance <= _reach()
 	var in_prompt: bool = distance <= prompt_distance
 	var changed: bool = found != current_target
 	if changed:
@@ -90,11 +95,12 @@ func is_target_in_reach() -> bool:
 func try_interact() -> void:
 	if _is_blocked() or current_target == null:
 		return
-	if _flat_distance_to(current_target) <= pickup_distance:
+	if _flat_distance_to(current_target) <= _reach():
 		_cancel_approach()
 		_perform(current_target)
 		return
-	_begin_approach(current_target)
+	if not _is_seated():
+		_begin_approach(current_target)
 
 
 func _perform(target: InteractiveArea) -> void:
@@ -157,6 +163,44 @@ func _find_intent_target() -> InteractiveArea:
 			continue
 		best = area
 		best_distance = distance
+	return best
+
+
+func _is_seated() -> bool:
+	var rest := _player.get_node_or_null(^"RestComponent") as RestComponent if _player != null else null
+	return rest != null and rest.is_sitting()
+
+
+func _reach() -> float:
+	return seated_reach if _is_seated() else pickup_distance
+
+
+## Seated: the area within seated_reach closest to where the camera looks.
+func _find_seated_target() -> InteractiveArea:
+	var shape := SphereShape3D.new()
+	shape.radius = seated_reach
+	var query := PhysicsShapeQueryParameters3D.new()
+	query.shape = shape
+	query.transform = Transform3D(Basis.IDENTITY, _player.global_position)
+	query.collide_with_areas = true
+	query.collide_with_bodies = false
+	var view: Vector3 = _player.call(&"get_view_direction") if _player.has_method(&"get_view_direction") else get_facing_direction()
+	view.y = 0.0
+	view = view.normalized() if view.length() > 0.001 else get_facing_direction()
+	var best: InteractiveArea = null
+	var best_angle: float = deg_to_rad(seated_aim_deg)
+	for hit: Dictionary in get_world_3d().direct_space_state.intersect_shape(query, 32):
+		var area := _area_from(hit.get("collider"))
+		if area == null:
+			continue
+		var to_area: Vector3 = area.global_position - _player.global_position
+		to_area.y = 0.0
+		if to_area.length() > seated_reach or to_area.length() < 0.01:
+			continue
+		var angle: float = view.angle_to(to_area.normalized())
+		if angle < best_angle:
+			best = area
+			best_angle = angle
 	return best
 
 
