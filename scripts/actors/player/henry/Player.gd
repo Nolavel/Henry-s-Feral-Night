@@ -10,6 +10,7 @@ const THERMAL_SCRIPT: GDScript = preload("res://scripts/systems/survival/thermal
 # === КОМПОНЕНТЫ ===
 @onready var movement: MovementController = $MovementController
 @onready var animation_component: HenryUALAnimation = $HenryUALVisual
+var _hold_until_ms: int = 0
 @onready var hub: PlayerHubComponent = get_node_or_null(^"PlayerHubComponent") as PlayerHubComponent
 @onready var rest: RestComponent = get_node_or_null(^"RestComponent") as RestComponent
 @onready var main_collision: CollisionShape3D = $Main_Collision
@@ -100,7 +101,8 @@ func _physics_process(delta: float) -> void:
 			world_dir = _walk_direction()
 			sprint_is_pressed = false
 	## Working actions (pickup, repair, opening), the Hub and sitting root Henry.
-	var in_hub: bool = (is_instance_valid(hub) and hub.is_open()) or (is_instance_valid(rest) and rest.is_sitting())
+	var in_hub: bool = (is_instance_valid(hub) and hub.is_open()) or (is_instance_valid(rest) and rest.is_sitting()) \
+		or Time.get_ticks_msec() < _hold_until_ms
 	if in_hub or (is_instance_valid(animation_component) and animation_component.is_action_locking()):
 		world_dir = Vector3.ZERO
 		jump_just_pressed = false
@@ -201,6 +203,15 @@ func is_crouching() -> bool:
 
 func get_crouch_speed_ratio() -> float:
 	return movement.get_crouch_speed_ratio(velocity) if movement != null else 0.0
+
+
+## Roots Henry for a staged act (lighting the stove) that outlasts its clip.
+func hold_still(seconds: float) -> void:
+	_hold_until_ms = maxi(_hold_until_ms, Time.get_ticks_msec() + int(seconds * 1000.0))
+
+
+func is_holding_still() -> bool:
+	return Time.get_ticks_msec() < _hold_until_ms
 
 
 func play_action_animation(action: StringName) -> bool:

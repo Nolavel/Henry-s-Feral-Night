@@ -4,6 +4,8 @@ extends InteractiveArea
 ## Lights and feeds one HeatSource. Firewood buys hours; a dead fire also
 ## needs tinder. Without this, a fire could only ever burn down.
 
+## Emitted when a staged act starts: lighting (true) or adding a log (false).
+signal act_started(lighting: bool)
 ## Emitted after fuel went in, carrying the hours the fire now has.
 signal fuel_added(source: HeatSource, remaining_hours: float)
 ## Emitted when the player has nothing to feed it with, or it is already full.
@@ -14,6 +16,11 @@ enum Refusal { NONE, NO_SOURCE, ALREADY_FULL, NO_FUEL, NO_TINDER, NO_INVENTORY }
 
 ## Label shown over the fire, resolved through localisation.
 const PROMPT_KEY: String = "FEED_PROMPT"
+const LIGHT_KEY: String = "LIGHT_PROMPT"
+## Real seconds of the staged acts: kneel, door, tinder, log, strike, catch.
+const LIGHT_SECONDS: float = 5.0
+## Door, log, door on a fire that already burns.
+const ADD_SECONDS: float = 2.0
 
 @export_group("Fire")
 ## The fire this prompt feeds. Defaults to a HeatSource sibling or parent.
@@ -28,6 +35,8 @@ const PROMPT_KEY: String = "FEED_PROMPT"
 @export var units_per_item: float = 1.0
 
 var _inventory: InventoryComponent
+var _act_left: float = 0.0
+var _act_lighting: bool = false
 
 
 func _ready() -> void:
@@ -36,14 +45,77 @@ func _ready() -> void:
 		heat_source = _find_source()
 	if interactive_mesh == null and heat_source != null:
 		interactive_mesh = _first_mesh(heat_source)
+	if player_animation_action == &"":
+		player_animation_action = &"none"  # the staged act plays its own clip
 	super()
-	set_item_name(tr(PROMPT_KEY))
+	_update_label()
 	set_description("")
+	if heat_source != null:
+		heat_source.burning_changed.connect(func(_b: bool) -> void: _update_label())
 
 
 ## Offers itself while the fire can take fuel; a missing item is said on F.
 func can_interact() -> bool:
-	return super() and heat_source != null and heat_source.can_refuel()
+	return super() and heat_source != null and heat_source.can_refuel() and not is_acting()
+
+
+func is_acting() -> bool:
+	return _act_left > 0.0
+
+
+## The staged act, as the player does it: items go in at once, the fire takes
+## after LIGHT_SECONDS (lighting) or ADD_SECONDS (a log on a live fire).
+func begin_act() -> Refusal:
+	var refusal: Refusal = can_feed()
+	if refusal != Refusal.NONE:
+		feed_refused.emit(refusal)
+		return refusal
+	_act_lighting = not heat_source.is_burning()
+	_act_left = LIGHT_SECONDS if _act_lighting else ADD_SECONDS
+	var inventory: InventoryComponent = _get_inventory()
+	if _act_lighting and tinder_item_id != &"":
+		inventory.try_remove(tinder_item_id)
+	if fuel_item_id != &"":
+		inventory.try_remove(fuel_item_id)
+	var visual: StoveVisual = _visual()
+	if visual != null:
+		visual.begin_act(_act_lighting, _act_left)
+	var player: Node = get_tree().get_first_node_in_group(&"player") if is_inside_tree() else null
+	if player != null:
+		if player.has_method(&"hold_still"):
+			player.call(&"hold_still", _act_left)
+		if player.has_method(&"play_action_animation"):
+			player.call(&"play_action_animation", &"fix" if _act_lighting else &"interact")
+	act_started.emit(_act_lighting)
+	return Refusal.NONE
+
+
+func _process(delta: float) -> void:
+	if _act_left <= 0.0:
+		return
+	_act_left -= delta
+	if _act_left <= 0.0:
+		_finish_act()
+
+
+## The fire catches (or takes the log): only now does it burn and give heat.
+func _finish_act() -> void:
+	_act_left = 0.0
+	heat_source.refuel(units_per_item)
+	var visual: StoveVisual = _visual()
+	if visual != null:
+		visual.end_act()
+	fuel_added.emit(heat_source, heat_source.get_remaining_hours())
+	_update_label()
+
+
+func _update_label() -> void:
+	var lighting: bool = heat_source != null and not heat_source.is_burning()
+	set_item_name(tr(LIGHT_KEY if lighting else PROMPT_KEY))
+
+
+func _visual() -> StoveVisual:
+	return heat_source.find_child("StoveVisual", true, false) as StoveVisual if heat_source != null else null
 
 
 ## Whether the fire can be fed right now, without feeding it.
@@ -86,7 +158,7 @@ func feed() -> Refusal:
 
 
 func _on_interaction_performed() -> void:
-	var refusal: Refusal = feed()
+	var refusal: Refusal = begin_act()
 	if refusal != Refusal.NONE:
 		show_message(tr(describe_refusal(refusal)))
 

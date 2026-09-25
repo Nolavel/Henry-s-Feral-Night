@@ -28,11 +28,12 @@ func _process(delta: float) -> bool:
 	match _step:
 		0:
 			for node: Node in root.find_children("*", "", true, false):
-				if node is Label3D or (node is CanvasLayer):
+				if node is Label3D:
 					node.set(&"visible", false)
 			_stove = root.find_child("ShelterZone", true, false).find_child("Stove", true, false) as HeatSource
 			_visual = _stove.find_child("StoveVisual", true, false) as StoveVisual
 			var camera := Camera3D.new()
+			camera.name = "Camera3D"
 			camera.fov = 50.0
 			_stove.add_child(camera)
 			camera.position = Vector3(1.5, 0.95, 0.55)
@@ -64,6 +65,26 @@ func _process(delta: float) -> bool:
 			_next()
 		5:
 			_shot("05_hot_stew_ready")
+			var warmer2 := _stove.find_child("Warmer", true, false) as StoveWarmer
+			warmer2.load_save_data({})
+			_stove.restore_fuel(0.0, false)
+			var player := root.find_child("Player", true, false) as Player
+			var bag: InventoryComponent = InventoryComponent.find_in(player)
+			for id: String in ["tinder", "firewood"]:
+				bag.try_add(load("res://data/items/%s.tres" % id) as ItemResource)
+			player.global_position = _stove.global_position + Vector3(1.05, 0.9, 0.0)
+			player.rotation.y = PI * 0.5  # face the stove door (-X)
+			var cam := _stove.get_node(^"Camera3D") as Camera3D
+			cam.position = Vector3(1.3, 1.2, 1.9)
+			cam.look_at(_stove.global_position + Vector3(0.5, 0.4, 0.0), Vector3.UP)
+			print("[stove] act=", (_stove.find_child("Feed", true, false) as HeatSourceFeed).begin_act())
+			_next()
+		6:
+			_shot("06_lighting_kindling")
+			_wait = _time + 4.5
+			_step += 1
+		7:
+			_shot("07_lit_after_act")
 			quit()
 	return false
 
