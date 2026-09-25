@@ -47,9 +47,12 @@ those names: a colonial fort on a former tropical island.
 ## Greybox: a suburb on the old road
 
 `scenes/world/first_exit/first_exit_blockout.tscn` is instanced in the main
-scene and generated from the layout. Every piece has collision. Houses and
-sheds have door and window gaps, so they can be entered and later carry
-`ShelterBreach` points. **The spatial logic comes first, prop count second**
+scene and generated from the layout. Every piece has collision. Standing houses
+and sheds have 1.5 m door openings with physical leaves toggled by `F`.
+Visible veranda steps sit over a shallow ramp collider, so entering never
+depends on jumping or on engine-side step-up. Roof and lintel clearance is
+validated against Henry's 2 m body. They can later carry `ShelterBreach`
+points. **The spatial logic comes first, prop count second**
 (author, PR #43): in a frame with no labels a player should read that a road
 ran here, that a suburb lined it, that the bungalow belongs to that suburb,
 and that the cold came after the settlement was built.

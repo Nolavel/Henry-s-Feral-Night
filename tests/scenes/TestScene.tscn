@@ -9,6 +9,7 @@
 [ext_resource type="PackedScene" uid="uid://ciy301x7wh6ie" path="res://scenes/actors/player/player.tscn" id="4_vhdnb"]
 [ext_resource type="PackedScene" uid="uid://btnxy5t02bhtw" path="res://scenes/environment/interactive/InteractiveArea.tscn" id="8_loucq"]
 [ext_resource type="PackedScene" uid="uid://dj0m3h8m8d6wh" path="res://scenes/environment/props/Masks/AFM/Airlock_Filter_Mask.tscn" id="9_inqvh"]
+[ext_resource type="PackedScene" uid="uid://otm5ic4xbx0g" path="res://scenes/environment/props/Flashlight/Flashlight.tscn" id="9_flashlight"]
 [ext_resource type="PackedScene" path="res://scenes/environment/visual_fx/FadeVolume.tscn" id="10_fade"]
 [ext_resource type="Material" path="res://scenes/environment/visual_fx/StylizedShadowMaterial.tres" id="11_shadow"]
 
@@ -146,6 +147,7 @@ shape = SubResource("ConvexPolygonShape3D_swxfl")
 transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, -3.295, 0.1, -1.239)
 interaction_type = 1
 pickup_subtype = 5
+interactable_scene = ExtResource("9_flashlight")
 item_name = "Фонарик нагрудный"
 description = "Светит долго, почти сутки без перерыва."
 highlight_color = Color(1, 1, 0, 0.0470588)

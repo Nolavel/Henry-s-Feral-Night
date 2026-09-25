@@ -18,6 +18,7 @@ func _process(_delta: float) -> bool:
 		root.add_child(_scene)
 	elif _frame == 3:
 		_check_shelter()
+		_check_building_access()
 		_check_pickups()
 		_finish()
 	return false
@@ -42,6 +43,43 @@ func _check_shelter() -> void:
 	if stove != null:
 		_check(stove.heats_zone == zone, "the stove does not heat the shelter zone")
 		_check(stove.find_child("Feed", false, false) is HeatSourceFeed, "the stove has no feed prompt")
+
+
+## The route is not playable if its buildings only look enterable. Every
+## veranda gets a smooth physical ramp under visible steps; every standing
+## house gets a full-size F door and enough headroom for Henry's 2 m collider.
+func _check_building_access() -> void:
+	var houses: Array[Node] = _scene.find_children("House", "Node3D", true, false)
+	_check(houses.size() == 11, "expected 11 suburb houses, found %d" % houses.size())
+	for house_node: Node in houses:
+		var house := house_node as Node3D
+		var lot_name: String = house.get_parent().name
+		var ramp := house.get_node_or_null(^"EntrySteps/EntryRamp") as MeshInstance3D
+		_check(ramp != null, "%s has no walkable veranda ramp" % lot_name)
+		if ramp != null:
+			_check(not ramp.visible, "%s exposes the collision ramp instead of timber steps" % lot_name)
+			_check(absf(rad_to_deg(ramp.rotation.x)) < 30.0, "%s entry ramp is too steep" % lot_name)
+			_check(ramp.get_node_or_null(^"StaticBody3D/CollisionShape3D") != null,
+				"%s entry ramp has no collision" % lot_name)
+		_check(float(house.get_meta(&"entry_rise_m", 99.0)) <= 0.45,
+			"%s veranda is too high above its approach" % lot_name)
+		if lot_name == "LotN3":  # deliberately collapsed: no wall, no leaf
+			continue
+		var door := house.get_node_or_null(^"HouseDoor") as InteractiveArea
+		_check(door != null and door.has_method(&"is_open"), "%s has no F-operated exterior door" % lot_name)
+		_check(float(house.get_meta(&"door_width_m", 0.0)) >= 1.4,
+			"%s doorway is narrower than Henry plus clearance" % lot_name)
+		_check(float(house.get_meta(&"door_headroom_m", 0.0)) >= 2.2,
+			"%s doorway has no standing headroom" % lot_name)
+		if door != null:
+			var leaf := door.get_node_or_null(^"Hinge/DoorLeaf") as MeshInstance3D
+			_check(leaf != null and leaf.get_node_or_null(^"StaticBody3D/CollisionShape3D") != null,
+				"%s door leaf has no matching physical collision" % lot_name)
+
+	for shed_node: Node in _scene.find_children("Outbuilding", "Node3D", true, false):
+		var shed_door := shed_node.get_node_or_null(^"HouseDoor") as InteractiveArea
+		_check(shed_door != null and shed_door.has_method(&"is_open"),
+			"%s outbuilding has an empty doorway" % shed_node.get_parent().name)
 
 
 ## Every pickup is a real item, and the route stays short of an easy answer.
