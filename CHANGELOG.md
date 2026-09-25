@@ -5,6 +5,22 @@ Maintained per branch; entries are added by whoever makes the change.
 
 ## [Unreleased] — `codex`
 
+### 2026-09-25 — Stove ritual UX pass (#42) (claudeflow)
+
+Changed
+- Food on the meal table is real: one `TableFood` target per kind ("Eat: Tinned
+  stew ×2", "Drink: …"); F eats one through ConsumptionController. Seated, F goes
+  to whatever is at arm's length and only waits when nothing is; the seat is not
+  a target while Henry sits on it.
+- `1`–`4` only select a pocket; the wheel click uses it (no accidental eating).
+- A wait starts at 1 hour (sleep keeps its own last choice) and says why it
+  ended early: "Warm and dry" / "The stove went out".
+- Waited time bills hunger and thirst including part-hours
+  (`BioMonitorManager.pass_awake_hours(float)`); a 15-minute wait was free before.
+- Drying steam: thin wisps from the chest and shoulders, lower while seated.
+- The pack set down by the stove stands ajar (`PackRig.Openness.AJAR`): top and
+  side flaps lifted a little.
+
 ### 2026-09-25 — Meal table by the stove (#42) (claudeflow)
 
 Added

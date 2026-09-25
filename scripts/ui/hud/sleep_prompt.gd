@@ -22,6 +22,7 @@ const INPUT_SYSTEMS_PATH: NodePath = ^"/root/InputSystems"
 
 ## Group SleepSpots use to find the dialog; there is one per world.
 const GROUP: StringName = &"sleep_prompt"
+const WAIT_DEFAULT_HOURS: int = 1
 const SLEEP_TITLE_KEY: String = "REST UNTIL"
 const WAIT_TITLE_KEY: String = "WAIT_TITLE"
 const SLEEP_KEYS_KEY: String = "SLEEP_DIALOG_KEYS"
@@ -46,6 +47,7 @@ const CANCEL_ACTIONS: Array[StringName] = [&"sleep_cancel", &"ui_cancel"]
 var _is_open: bool = false
 ## Waiting seated by the stove reuses this dialog: same hours, no sleep, no save.
 var _waiting: bool = false
+var _sleep_hours: int = 8
 var _hours: int = 8
 
 
@@ -140,6 +142,8 @@ func request_wait() -> bool:
 	if sleep_controller == null or _is_open:
 		return false
 	_waiting = true
+	_sleep_hours = _hours
+	_hours = WAIT_DEFAULT_HOURS  # a first wait is short; it may also end early
 	_set_title(WAIT_TITLE_KEY)
 	open()
 	return true
@@ -177,6 +181,7 @@ func close() -> void:
 	_is_open = false
 	if _waiting:
 		_waiting = false
+		_hours = _sleep_hours
 		_set_title(SLEEP_TITLE_KEY)
 	_set_dialog_visible(false)
 	_player_state_call(&"close_menu")

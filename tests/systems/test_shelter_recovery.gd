@@ -106,6 +106,9 @@ func _test_table() -> void:
 	inventory.try_add(load("res://data/items/road_flare.tres") as ItemResource)
 	rest.sit(seat)
 	_check(table.get_laid_ids() == [&"tinned_stew", &"tinned_stew"], "the table does not show the two tins only: %s" % [table.get_laid_ids()])
+	var targets: Array[TableFood] = table.get_targets()
+	_check(targets.size() == 1 and targets[0].item_id == &"tinned_stew" and targets[0].count == 2,
+		"the table does not offer one F — Eat target for the two tins")
 	inventory.try_remove(&"tinned_stew")
 	_check(table.get_laid_ids().size() == 1, "an eaten tin stayed on the table")
 	rest.stand()
@@ -118,8 +121,11 @@ func _test_wait() -> void:
 	sleep.thermal_manager = _thermal
 	root.add_child(sleep)
 	_thermal.global_position = Vector3(50.0, 0.0, 0.0)  # far from the stove
+	var reasons: Array[String] = []
+	sleep.wait_completed.connect(func(_h: float, key: String) -> void: reasons.append(key))
 	var cold: float = sleep.try_wait(6.0)
 	_check(is_equal_approx(cold, 0.25), "a wait with no fire did not stop after the first step (%.2f)" % cold)
+	_check(reasons == ["WAIT_ENDED_FIRE_OUT"], "an early stop did not say the stove went out: %s" % [reasons])
 	_thermal.global_position = _stove.global_position + Vector3(1.0, 0.0, 0.0)
 	var warm: float = sleep.try_wait(2.0)
 	_check(warm > 0.25, "a wait by the burning stove stopped at once")

@@ -11,6 +11,7 @@ const TOP_Y: float = 0.46
 const CLOTH: Vector2 = Vector2(0.46, 0.34)
 ## Props per row on the cloth.
 const ROW: int = 3
+const INTERACTIVE_SCENE: String = "res://scenes/environment/interactive/InteractiveArea.tscn"
 
 var _inventory: InventoryComponent
 var _equipment: EquipmentComponent
@@ -91,12 +92,47 @@ func _refresh() -> void:
 			if pocketed != null and pocketed.consumable != null:
 				foods.append(pocketed.id)
 	var step := Vector2(CLOTH.x / float(ROW), CLOTH.y / 2.0)
+	var first_of: Dictionary = {}  # item id -> the prop that carries its F target
 	for i: int in range(mini(foods.size(), ROW * 2)):
 		var prop: Node3D = _food_prop(foods[i])
 		prop.set_meta(&"item_id", foods[i])
 		prop.position = Vector3(-CLOTH.x * 0.5 + step.x * (float(i % ROW) + 0.5), TOP_Y + 0.012,
 			-CLOTH.y * 0.5 + step.y * (float(i / ROW) + 0.5))
 		_props.add_child(prop)
+		if not first_of.has(foods[i]):
+			first_of[foods[i]] = prop
+	## One F target per kind of food, sitting on its first prop: "Eat: Tinned stew ×2".
+	for item_id: StringName in first_of:
+		_add_target(first_of[item_id], item_id, foods.count(item_id))
+
+
+func _add_target(prop: Node3D, item_id: StringName, amount: int) -> void:
+	var area: Node3D = (load(INTERACTIVE_SCENE) as PackedScene).instantiate()
+	area.name = "Eat"
+	area.set_script(load("res://scripts/environment/interactive/table_food.gd"))
+	area.set(&"item_id", item_id)
+	area.set(&"count", amount)
+	area.set(&"interactable_scene", null)
+	area.set(&"interactive_mesh", prop.get_child(0))
+	area.set(&"object_on_ground", false)
+	area.set(&"icon_height_offset", 0.18)  # just over the tin, not over Henry's head
+	area.set(&"info_height_offset", 0.3)
+	var col := area.get_node_or_null(^"CollisionShape3D") as CollisionShape3D
+	if col != null:
+		var shape := BoxShape3D.new()
+		shape.size = Vector3(0.16, 0.2, 0.16)
+		col.shape = shape
+		col.position = Vector3(0.0, 0.05, 0.0)
+	prop.add_child(area)
+
+
+## Food targets on the cloth, one per kind; for tests.
+func get_targets() -> Array[TableFood]:
+	var found: Array[TableFood] = []
+	for node: Node in _props.find_children("*", "", true, false):
+		if node is TableFood and not node.get_parent().is_queued_for_deletion():
+			found.append(node as TableFood)
+	return found
 
 
 ## A tin for stew, a snowball for snow, a small parcel for anything else.

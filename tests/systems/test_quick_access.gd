@@ -76,6 +76,16 @@ func _run() -> void:
 	_check(not quick.use_selected(), "a use nobody accepts reported success")
 	_check(_zone_item(hub, path) == &"road_flare", "a failed use did not put the flare back in its pocket")
 	_test_eating(body, inventory, hub)
+	var key := InputEventAction.new()
+	key.action = &"select item slot 2"
+	key.pressed = true
+	var uses_before: int = int(user.get(&"uses"))
+	if _zone_item(hub, path) == &"":
+		hub.move_to_zone(&"road_flare", path)
+	user.set(&"accept", true)
+	quick._unhandled_input(key)
+	_check(int(user.get(&"uses")) == uses_before, "a number key used the pocket instead of only selecting it")
+	_check(quick.get_selected_index() == 1, "a number key did not select its pocket")
 	_check(not InputMap.has_action(&"toggle_flashlight"), "the temporary L action is still mapped")
 	print("test_quick_access: %s" % ("PASS" if _failures == 0 else "%d FAILED" % _failures))
 	quit(1 if _failures > 0 else 0)

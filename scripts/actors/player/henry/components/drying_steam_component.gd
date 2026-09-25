@@ -6,6 +6,9 @@ extends Node3D
 
 ## Wetness below this shows no steam.
 const MIN_WETNESS: float = 0.04
+## Emitter height over the body origin (the capsule centre): chest standing, lap-to-chest seated.
+const STANDING_Y: float = 0.25
+const SEATED_Y: float = -0.3
 
 var _thermal: ThermalManager
 var _steam: GPUParticles3D
@@ -14,31 +17,37 @@ var _steam: GPUParticles3D
 func _ready() -> void:
 	_steam = GPUParticles3D.new()
 	_steam.name = "Steam"
-	_steam.amount = 28
-	_steam.lifetime = 1.8
+	_steam.amount = 64
+	_steam.lifetime = 1.6
 	_steam.emitting = false
 	_steam.visibility_aabb = AABB(Vector3(-2.0, -1.0, -2.0), Vector3(4.0, 4.0, 4.0))
-	_steam.position = Vector3(0.0, -0.05, 0.0)  # the body origin is the capsule centre
+	_steam.position = Vector3(0.0, STANDING_Y, 0.0)
 	var process := ParticleProcessMaterial.new()
 	process.emission_shape = ParticleProcessMaterial.EMISSION_SHAPE_BOX
-	process.emission_box_extents = Vector3(0.22, 0.3, 0.16)
+	process.emission_box_extents = Vector3(0.2, 0.08, 0.12)
 	process.direction = Vector3.UP
-	process.spread = 12.0
-	process.initial_velocity_min = 0.06
-	process.initial_velocity_max = 0.18
+	process.spread = 4.0  # thin wisps, not a cloud
+	process.initial_velocity_min = 0.12
+	process.initial_velocity_max = 0.24
 	process.gravity = Vector3(0.0, 0.05, 0.0)
-	process.scale_min = 0.6
-	process.scale_max = 1.4
+	process.scale_min = 0.5
+	process.scale_max = 0.9
+	var grow := Curve.new()
+	grow.add_point(Vector2(0.0, 0.35))
+	grow.add_point(Vector2(1.0, 1.0))
+	var grow_tex := CurveTexture.new()
+	grow_tex.curve = grow
+	process.scale_curve = grow_tex
 	var fade := Gradient.new()
 	fade.set_color(0, Color(1.0, 1.0, 1.0, 0.0))
-	fade.add_point(0.25, Color(1.0, 1.0, 1.0, 0.18))
+	fade.add_point(0.25, Color(1.0, 1.0, 1.0, 0.2))
 	fade.set_color(fade.get_point_count() - 1, Color(1.0, 1.0, 1.0, 0.0))
 	var ramp := GradientTexture1D.new()
 	ramp.gradient = fade
 	process.color_ramp = ramp
 	_steam.process_material = process
 	var puff := QuadMesh.new()
-	puff.size = Vector2(0.24, 0.24)
+	puff.size = Vector2(0.12, 0.12)
 	var look := StandardMaterial3D.new()
 	look.shading_mode = BaseMaterial3D.SHADING_MODE_UNSHADED
 	look.transparency = BaseMaterial3D.TRANSPARENCY_ALPHA
@@ -72,6 +81,8 @@ func is_steaming() -> bool:
 func _process(_delta: float) -> void:
 	var wetness: float = _thermal.get_wetness() if _thermal != null else 0.0
 	var steaming: bool = wetness > MIN_WETNESS and _near_fire()
+	var rest := get_parent().get_node_or_null(^"RestComponent") as RestComponent if get_parent() != null else null
+	_steam.position.y = SEATED_Y if rest != null and rest.is_sitting() else STANDING_Y
 	if _steam.emitting != steaming:
 		_steam.emitting = steaming
 	var ratio: float = snappedf(clampf(wetness * 1.5, 0.15, 1.0), 0.05)
