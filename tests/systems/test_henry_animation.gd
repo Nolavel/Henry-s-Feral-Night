@@ -94,6 +94,14 @@ func _check_carry() -> void:
 	_check(prop != null and prop.visible and _visual.is_carrying(), "carried firewood is not in Henry's arms")
 	_visual.set_carried_item(null)
 	_check(prop != null and not prop.visible and not _visual.is_carrying(), "the armful stays after the carry ends")
+	var pack: PackRig = _visual.get_pack_rig()
+	pack.visible = true
+	var home: Node = pack.get_parent()
+	_visual.set_pack_down(Transform3D(Basis.IDENTITY, Vector3(-1.0, 0.0, 0.0)), Transform3D(Basis.IDENTITY, Vector3(1.0, 0.0, 0.0)))
+	_check(_visual.is_pack_down() and pack.get_parent() != home, "the pack was not set down")
+	_check(absf(pack.global_position.x + 1.0) < 0.01, "the pack was not set at its spot")
+	_visual.pick_pack_up()
+	_check(not _visual.is_pack_down() and pack.get_parent() == home, "the pack did not go back on Henry's back")
 
 
 func _check_transition_modes() -> void:

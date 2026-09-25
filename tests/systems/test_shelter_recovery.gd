@@ -1,6 +1,6 @@
 extends SceneTree
 
-## Recovery by the stove (#42): a RestSpot sits Henry down and F stands him up;
+## Recovery by the stove (#42): a RestSpot sits Henry down, F waits, moving stands him up;
 ## vitals show rising/falling trend marks; wet clothes steam only near a burning stove.
 ## Run: godot --headless --script tests/systems/test_shelter_recovery.gd
 
@@ -36,6 +36,7 @@ func _process(delta: float) -> bool:
 		_check(_cluster.get_trend(&"warmth") == 1, "rising warmth shows no up mark")
 		_check(_cluster.get_trend(&"wetness") == -1, "drying clothes show no down mark")
 		_check(_cluster.get_trend(&"hunger") == 0, "a steady vital shows a trend")
+		_test_wait()
 		print("test_shelter_recovery: %s" % ("PASS" if _failures == 0 else "%d FAILED" % _failures))
 		quit(1 if _failures > 0 else 0)
 	return false
@@ -61,7 +62,12 @@ func _test_rest() -> void:
 	press.action = &"interact"
 	press.pressed = true
 	rest._input(press)
-	_check(not rest.is_sitting(), "F did not stand Henry up")
+	_check(rest.is_sitting(), "F stood Henry up instead of offering to wait")
+	var move := InputEventAction.new()
+	move.action = &"move_forward"
+	move.pressed = true
+	rest._input(move)
+	_check(not rest.is_sitting(), "moving did not stand Henry up")
 
 
 func _start_trend_and_steam() -> void:
@@ -78,6 +84,19 @@ func _start_trend_and_steam() -> void:
 	_steam.position = Vector3(1.0, 0.0, 0.0)
 	root.add_child(_steam)
 	_steam.set_thermal(_thermal)
+
+
+## Waiting advances the clock without sleep; it stops at once when no fire warms Henry.
+func _test_wait() -> void:
+	var sleep := SleepController.new()
+	sleep.thermal_manager = _thermal
+	root.add_child(sleep)
+	_thermal.global_position = Vector3(50.0, 0.0, 0.0)  # far from the stove
+	var cold: float = sleep.try_wait(6.0)
+	_check(is_equal_approx(cold, 0.25), "a wait with no fire did not stop after the first step (%.2f)" % cold)
+	_thermal.global_position = _stove.global_position + Vector3(1.0, 0.0, 0.0)
+	var warm: float = sleep.try_wait(2.0)
+	_check(warm > 0.25, "a wait by the burning stove stopped at once")
 
 
 func _check(condition: bool, message: String) -> void:

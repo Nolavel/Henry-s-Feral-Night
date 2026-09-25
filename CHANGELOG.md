@@ -5,6 +5,22 @@ Maintained per branch; entries are added by whoever makes the change.
 
 ## [Unreleased] — `codex`
 
+### 2026-09-25 — Waiting seated; pack and Kenny set down by the stove (#42) (claudeflow)
+
+Added
+- Seated, `F` opens the sleep dialog in wait mode ("WAIT BY THE FIRE"): the same
+  hour picker, no sleep, no save. `SleepController.try_wait()` advances the world
+  and stops early once Henry is dry and warm or no fire warms him;
+  `BioMonitorManager.pass_awake_hours()` bills the waited hours.
+- On sitting Henry takes the pack off and stands it on his left; Kenny is set on
+  his right, facing the pack. Both go back on when he stands
+  (`HenryUALAnimation.set_pack_down()` / `pick_pack_up()`).
+- A seated hint: "F — wait · move — stand up".
+
+Changed
+- Seated, `F` waits instead of standing up; Esc or any move input stands.
+- Drying steam is thinner.
+
 ### 2026-09-25 — Recovery by the stove: sitting, trend marks, drying steam (#42) (claudeflow)
 
 Added

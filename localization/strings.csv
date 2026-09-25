@@ -58,3 +58,6 @@ HUB_USE,Use,Использовать
 HUB_CANNOT_USE,Cannot use this here,Здесь это не использовать
 BEDROLL_PLACE_HINT,F — lay here · Esc — cancel,F — разложить · Esc — отмена
 REST_PROMPT,Sit down,Сесть
+WAIT_TITLE,WAIT BY THE FIRE,ЖДАТЬ У ОГНЯ
+REST_SEATED_HINT,F — wait · move — stand up,F — ждать · движение — встать
+WAIT_DIALOG_KEYS,"Wheel or ← →  hours      [ F ]  wait      [ Esc ]  cancel","Колесо или ← →  часы      [ F ]  ждать      [ Esc ]  отмена"
