@@ -40,6 +40,10 @@ var _search_left: float = 0.0
 
 func _ready() -> void:
 	add_to_group(&"saveable")
+	var gusts := WindGusts.new()
+	gusts.name = "WindGusts"
+	add_child(gusts)
+	beat_started.connect(gusts.burst)  # the turn itself reads as a burst of streaks
 
 
 ## Scenes not built by world.gd never call on_world_ready; the beat finds the
