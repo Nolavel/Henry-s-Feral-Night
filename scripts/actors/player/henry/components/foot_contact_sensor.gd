@@ -27,9 +27,14 @@ const BONES: Dictionary = {
 @export_group("Contact")
 ## Ball of the foot this close to the ground counts as planted, in metres.
 @export var contact_height_m: float = 0.06
-## The foot must rise this far before it can plant again, so a shuffle on the
-## spot does not stamp the same print twice.
+## Absolute ground clearance that definitely rearms a foot. This remains a
+## conservative fallback for tests and unusual poses.
 @export var lift_height_m: float = 0.09
+## A blended UAL step may never reach 9 cm of world-space clearance. Rearm from
+## the animated ball bone rising relative to its own last planted pose instead.
+## This observation is independent of the ground ray, so a one-frame probe miss
+## at a terrain seam cannot silently lose the next step.
+@export var animated_rearm_rise_m: float = 0.045
 ## Slower than this and Henry is standing, not stepping.
 @export var min_speed_mps: float = 0.35
 ## How far below the ball of the foot the ground is searched for.
@@ -37,6 +42,10 @@ const BONES: Dictionary = {
 
 var _lifted: Dictionary = {Side.LEFT: true, Side.RIGHT: true}
 var _bone_index: Dictionary = {}
+## Latest animated ball height in Player-local space, and the height at the
+## previous accepted plant. Local space removes terrain/body elevation changes.
+var _sampled_local_y: Dictionary = {}
+var _last_planted_local_y: Dictionary = {}
 
 
 func _physics_process(_delta: float) -> void:
@@ -48,14 +57,50 @@ func _physics_process(_delta: float) -> void:
 		var feet: Dictionary = _sample(skeleton, side)
 		if feet.is_empty():
 			continue
-		var hit: Dictionary = _ground_below(feet["ball"])
+		var ball: Vector3 = feet["ball"]
+		## Observe the animation before the ground ray. A raycast can briefly
+		## miss at a terrain/collider seam; foot phase must survive that miss.
+		observe_foot_motion(side, body.to_local(ball).y)
+
+		var hit: Dictionary = _ground_below(ball)
 		if hit.is_empty():
 			continue
-		var height: float = feet["ball"].y - hit["position"].y
+
+		var normal: Vector3 = hit["normal"]
+		if normal.length_squared() <= 0.0001:
+			normal = Vector3.UP
+		else:
+			normal = normal.normalized()
+
+		var height: float = surface_clearance(ball, hit["position"], normal)
 		var centre: Vector3 = (feet["heel"] + feet["toe"]) * 0.5
-		centre.y = hit["position"].y
+		## Put the heel/toe centre on the local surface plane rather than only
+		## copying world Y; this keeps slope contacts and decals coherent.
+		centre -= normal * (centre - hit["position"]).dot(normal)
 		var forward: Vector3 = feet["toe"] - feet["heel"]
-		update_foot(side, height, centre, forward, body.is_on_floor(), speed, hit["normal"])
+		update_foot(side, height, centre, forward, body.is_on_floor(), speed, normal)
+
+
+## Records animated foot phase even when there is no valid ground hit this tick.
+## Relative Player-local rise is deliberately separate from absolute clearance:
+## blend transitions can compress the gait while still producing a real step.
+func observe_foot_motion(side: int, animated_local_y: float) -> void:
+	_sampled_local_y[side] = animated_local_y
+	if _lifted[side] or not _last_planted_local_y.has(side):
+		return
+	if animated_local_y - float(_last_planted_local_y[side]) >= animated_rearm_rise_m:
+		_lifted[side] = true
+
+
+## Distance from the animated ball to the sampled surface measured along that
+## surface's normal, not world Y. This is the contact quantity used on slopes.
+func surface_clearance(point: Vector3, ground_point: Vector3, ground_normal: Vector3) -> float:
+	var normal: Vector3 = (
+		ground_normal.normalized()
+		if ground_normal.length_squared() > 0.0001
+		else Vector3.UP
+	)
+	return maxf((point - ground_point).dot(normal), 0.0)
 
 
 ## The contact rule, kept free of scene access so it can be tested directly.
@@ -72,6 +117,8 @@ func update_foot(
 	if not on_floor or speed_mps < min_speed_mps:
 		return false
 	_lifted[side] = false
+	if _sampled_local_y.has(side):
+		_last_planted_local_y[side] = float(_sampled_local_y[side])
 	var normal: Vector3 = ground_normal.normalized() if ground_normal.length_squared() > 0.0001 else Vector3.UP
 	## Heel to toe, laid along the ground rather than the horizontal.
 	var along: Vector3 = forward - normal * forward.dot(normal)
