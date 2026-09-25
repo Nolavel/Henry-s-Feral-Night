@@ -86,6 +86,10 @@ func _run() -> void:
 	quick._unhandled_input(key)
 	_check(int(user.get(&"uses")) == uses_before, "a number key used the pocket instead of only selecting it")
 	_check(quick.get_selected_index() == 1, "a number key did not select its pocket")
+	for dead: StringName in [&"open inventory", &"open map", &"open health_panel", &"open craft_panel",
+			&"select item slot 5", &"reload", &"secondary action", &"drop item", &"toggle camera view",
+			&"use_ability_gizmo_2", &"orbit_left", &"orbit_right", &"DEBUG"]:
+		_check(not InputMap.has_action(dead), "the dead input action %s is back (#76)" % dead)
 	_check(not InputMap.has_action(&"toggle_flashlight"), "the temporary L action is still mapped")
 	print("test_quick_access: %s" % ("PASS" if _failures == 0 else "%d FAILED" % _failures))
 	quit(1 if _failures > 0 else 0)
