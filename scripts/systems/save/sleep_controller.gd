@@ -11,7 +11,7 @@ signal sleep_started(hours: float)
 ## Emitted after the world has been advanced and the autosave written.
 signal sleep_completed(hours: float, saved: bool)
 ## Emitted after a seated wait, with the hours that actually passed.
-signal wait_completed(hours: float)
+signal wait_completed(hours: float, ended_early_key: String)
 
 ## Why a sleep attempt was turned down.
 enum Refusal { NONE, NOT_SHELTERED, TOO_COLD, TOO_ALERT, ALREADY_SLEEPING }
@@ -20,6 +20,8 @@ const HOURS_PER_DAY: float = 24.0
 ## A seated wait ends early once Henry is this dry and this warm.
 const WAIT_DRY_WETNESS: float = 0.02
 const WAIT_WARM_BODY: float = 0.97
+const WAIT_ENDED_RECOVERED_KEY: String = "WAIT_ENDED_RECOVERED"
+const WAIT_ENDED_FIRE_OUT_KEY: String = "WAIT_ENDED_FIRE_OUT"
 
 ## Scripts looked up through the world context, never by node path.
 const THERMAL_SCRIPT: GDScript = preload("res://scripts/systems/survival/thermal_manager.gd")
@@ -105,19 +107,24 @@ func try_wait(hours: float) -> float:
 	var step: float = 0.25
 	var elapsed: float = 0.0
 	var start_hour: float = _current_hour()
+	var reason: String = ""
 	while elapsed < hours:
 		elapsed += step
 		if thermal_manager != null:
 			thermal_manager._on_time_update(fmod(start_hour + elapsed, HOURS_PER_DAY))
-			if _recovered() or not _fire_warms_henry():
+			if _recovered():
+				reason = WAIT_ENDED_RECOVERED_KEY
+			elif not _fire_warms_henry():
+				reason = WAIT_ENDED_FIRE_OUT_KEY
+			if reason != "":
 				break
 	if day_night_manager != null:
 		day_night_manager.total_game_time_hours += elapsed
 	if bio_monitor != null:
-		bio_monitor.pass_awake_hours(roundi(elapsed))
+		bio_monitor.pass_awake_hours(elapsed)
 	if thermal_manager != null:
 		thermal_manager.reset_clock()
-	wait_completed.emit(elapsed)
+	wait_completed.emit(elapsed, reason if elapsed < hours else "")
 	return elapsed
 
 

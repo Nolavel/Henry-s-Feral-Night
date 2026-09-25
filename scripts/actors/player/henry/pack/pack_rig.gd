@@ -6,7 +6,7 @@ extends Node3D
 
 signal openness_changed(state: Openness)
 
-enum Openness { CLOSED, TOP_ONLY, FULL }
+enum Openness { CLOSED, TOP_ONLY, FULL, AJAR }
 
 ## Hinge angles when open, in degrees; flaps swing out (-Z) first.
 const TOP_OPEN_DEG: float = 150.0
@@ -16,6 +16,9 @@ const SIDE_OPEN_DEG: float = 150.0
 const TOP_SHARE: float = 0.27
 const BOTTOM_SHARE: float = 0.2
 const FLAP_THICKNESS: float = 0.02
+## Set down by the stove: in use, not spilled — top and sides lifted a little.
+const AJAR_TOP_DEG: float = 40.0
+const AJAR_SIDE_DEG: float = 28.0
 
 @export var size: Vector3 = Vector3(0.34, 0.44, 0.2)
 @export var color: Color = Color(0.36, 0.33, 0.28)
@@ -92,12 +95,14 @@ func set_openness(state: Openness, instant: bool = false) -> void:
 	build()
 	_state = state
 	var full: bool = state == Openness.FULL
-	var top_open: bool = state != Openness.CLOSED
+	var ajar: bool = state == Openness.AJAR
+	var top_deg: float = AJAR_TOP_DEG if ajar else (TOP_OPEN_DEG if state != Openness.CLOSED else 0.0)
+	var side_deg: float = AJAR_SIDE_DEG if ajar else (SIDE_OPEN_DEG if full else 0.0)
 	var targets: Dictionary = {
-		_top: Vector3(deg_to_rad(TOP_OPEN_DEG) if top_open else 0.0, 0.0, 0.0),
+		_top: Vector3(deg_to_rad(top_deg), 0.0, 0.0),
 		_bottom: Vector3(deg_to_rad(BOTTOM_OPEN_DEG) if full else 0.0, 0.0, 0.0),
-		_left: Vector3(0.0, deg_to_rad(SIDE_OPEN_DEG) if full else 0.0, 0.0),
-		_right: Vector3(0.0, -deg_to_rad(SIDE_OPEN_DEG) if full else 0.0, 0.0),
+		_left: Vector3(0.0, deg_to_rad(side_deg), 0.0),
+		_right: Vector3(0.0, -deg_to_rad(side_deg), 0.0),
 	}
 	if _tween != null:
 		_tween.kill()

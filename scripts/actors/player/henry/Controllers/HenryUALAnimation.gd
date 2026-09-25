@@ -513,7 +513,7 @@ func set_pack_down(pack_xf: Transform3D, kenny_xf: Transform3D) -> void:
 	if _pack == null or not _pack.is_visible_in_tree() or not _pack_home.is_empty():
 		return
 	var world: Node = get_tree().current_scene if get_tree().current_scene != null else get_tree().root
-	_pack.set_openness(PackRig.Openness.CLOSED, true)
+	_pack.set_openness(PackRig.Openness.AJAR, true)
 	_pack_home = [_pack.get_parent(), _pack.transform]
 	_pack.reparent(world, false)
 	_pack.global_transform = pack_xf * Transform3D(Basis.IDENTITY, Vector3(0.0, backpack_size.y * 0.5, 0.0))
@@ -526,6 +526,7 @@ func set_pack_down(pack_xf: Transform3D, kenny_xf: Transform3D) -> void:
 
 func pick_pack_up() -> void:
 	if not _pack_home.is_empty():
+		_pack.set_openness(PackRig.Openness.CLOSED, true)
 		_pack.reparent(_pack_home[0], false)
 		_pack.transform = _pack_home[1]
 		_pack_home = []

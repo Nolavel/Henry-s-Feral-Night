@@ -2,7 +2,7 @@ class_name QuickAccessComponent
 extends Node
 
 ## Reaching into a pocket without the Hub: the wheel picks a pocket, a wheel click
-## uses what is in it (a flare lights in hand; a second click drops it). 1–4 pick and use directly.
+## uses what is in it (a flare lights in hand; a second click drops it). 1–4 only pick a pocket.
 
 signal selection_changed(index: int, zone: Dictionary)
 
@@ -38,8 +38,7 @@ func _unhandled_input(event: InputEvent) -> void:
 	else:
 		for slot: int in range(DIRECT_ACTIONS.size()):
 			if _pressed(event, DIRECT_ACTIONS[slot]):
-				select(slot)
-				use_selected()
+				select(slot)  # selecting never spends; the wheel click uses
 				break
 
 

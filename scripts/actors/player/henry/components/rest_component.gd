@@ -2,12 +2,15 @@ class_name RestComponent
 extends Node
 
 ## Henry sitting on a RestSpot. Sitting gives no bonus: the stove warms and dries.
-## Seated, F waits (hours prompt); Esc or any move stands him up. Pack left, Kenny right.
+## Seated, F uses what is at arm's length (food on the table), else waits; Esc or
+## any move stands him up. Pack left, Kenny right.
 
 signal sat_down(spot: Node3D)
 signal stood_up
 
 const HINT_KEY: String = "REST_SEATED_HINT"
+## Seconds the reason a wait ended early stays up.
+const RESULT_SECONDS: float = 3.0
 const WAIT_ACTION: StringName = &"interact"
 const STAND_ACTIONS: Array[StringName] = [&"pause", &"move_forward", &"move_backward",
 	&"move_left", &"move_right", &"jump"]
@@ -73,6 +76,8 @@ func _input(event: InputEvent) -> void:
 	if not is_sitting() or event.is_echo() or _prompt_open():
 		return
 	if InputMap.has_action(WAIT_ACTION) and event.is_action_pressed(WAIT_ACTION):
+		if _reachable_target() != null:
+			return  # F belongs to the thing in front of Henry (food on the table)
 		open_wait()
 		get_viewport().set_input_as_handled()
 		return
@@ -84,10 +89,36 @@ func _input(event: InputEvent) -> void:
 			return
 
 
+## What InteractComponent has at arm's length, other than the seat itself.
+func _reachable_target() -> InteractiveArea:
+	var body: Node = get_parent()
+	var interact := body.get_node_or_null(^"InteractComponent") as InteractComponent if body != null else null
+	if interact == null or interact.current_target == null or not interact.is_target_in_reach():
+		return null
+	if interact.current_target is RestSpot:
+		return null
+	return interact.current_target
+
+
 ## Opens the hours prompt in wait mode; false when there is none (headless).
 func open_wait() -> bool:
 	var prompt := _prompt()
-	return prompt != null and prompt.request_wait()
+	if prompt == null or not prompt.request_wait():
+		return false
+	var sleep: SleepController = prompt.sleep_controller
+	if sleep != null and not sleep.wait_completed.is_connected(_on_wait_completed):
+		sleep.wait_completed.connect(_on_wait_completed)
+	return true
+
+
+## Says why a wait ended before the chosen hours, then returns to the seated hint.
+func _on_wait_completed(_hours: float, ended_early_key: String) -> void:
+	if ended_early_key == "" or _hint == null:
+		return
+	_hint.text = tr(ended_early_key)
+	get_tree().create_timer(RESULT_SECONDS).timeout.connect(func() -> void:
+		if is_instance_valid(_hint):
+			_hint.text = tr(HINT_KEY))
 
 
 func _prompt() -> SleepPrompt:

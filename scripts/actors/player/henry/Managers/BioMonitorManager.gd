@@ -142,22 +142,22 @@ func _on_time_changed(_formatted_time: String, _is_day: bool, _day_number: int, 
 		check_critical_states()
 		
 
-## Applies the hourly drain of every vital.
-func process_hourly_consumption():
+## Applies the hourly drain of every vital; `fraction` bills part of an hour.
+func process_hourly_consumption(fraction: float = 1.0):
 	# Голод
 	var hourly_calorie_loss = base_metabolism_rate
 	hourly_calorie_loss = apply_hunger_modifiers(hourly_calorie_loss) # TODO: Будущие модификаторы
-	current_calories = max(0.0, current_calories - hourly_calorie_loss)
+	current_calories = max(0.0, current_calories - hourly_calorie_loss * fraction)
 	
 	# Жажда  
 	var hourly_thirst_loss = base_thirst_rate
 	hourly_thirst_loss = apply_thirst_modifiers(hourly_thirst_loss) # TODO: Жара, активность
-	current_hydration = max(0.0, current_hydration - hourly_thirst_loss)
+	current_hydration = max(0.0, current_hydration - hourly_thirst_loss * fraction)
 	
 	# Энергия
 	var hourly_energy_loss = base_energy_rate
 	hourly_energy_loss = apply_energy_modifiers(hourly_energy_loss) # TODO: Влияние голода
-	current_energy = max(0.0, current_energy - hourly_energy_loss)
+	current_energy = max(0.0, current_energy - hourly_energy_loss * fraction)
 
 ## Emits UI update signals for every vital.
 func update_ui_signals():
@@ -264,10 +264,14 @@ func add_energy(amount: float):
 
 ## Restores energy over a night and charges the night's own metabolism.
 ## Sleep is not a free reset: a starving or parched body rests badly.
-## Bills whole hours spent awake while the clock jumps (waiting by the stove).
-func pass_awake_hours(hours: int) -> void:
-	for i: int in range(maxi(hours, 0)):
+## Bills hours spent awake while the clock jumps (waiting by the stove), fractions included.
+func pass_awake_hours(hours: float) -> void:
+	var whole: int = floori(maxf(hours, 0.0))
+	for i: int in range(whole):
 		process_hourly_consumption()
+	var part: float = maxf(hours, 0.0) - float(whole)
+	if part > 0.0:
+		process_hourly_consumption(part)
 	update_ui_signals()
 	check_critical_states()
 

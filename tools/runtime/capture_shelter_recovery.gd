@@ -33,8 +33,6 @@ func _process(delta: float) -> bool:
 				_thermal = node
 			elif node is WeatherController:
 				(node as WeatherController).set_weather(&"clear", true)
-			elif node is Label3D:
-				(node as Label3D).visible = false
 		var zone: Node = root.find_child("ShelterZone", true, false)
 		var crate := zone.find_child("RestCrate", true, false) as Node3D
 		var stove := zone.find_child("Stove", true, false) as HeatSource

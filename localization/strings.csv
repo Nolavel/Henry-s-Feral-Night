@@ -61,3 +61,7 @@ REST_PROMPT,Sit down,Сесть
 WAIT_TITLE,WAIT BY THE FIRE,ЖДАТЬ У ОГНЯ
 REST_SEATED_HINT,F — wait · move — stand up,F — ждать · движение — встать
 WAIT_DIALOG_KEYS,"Wheel or ← →  hours      [ F ]  wait      [ Esc ]  cancel","Колесо или ← →  часы      [ F ]  ждать      [ Esc ]  отмена"
+TABLE_EAT,Eat,Съесть
+TABLE_DRINK,Drink,Выпить
+WAIT_ENDED_RECOVERED,Warm and dry,Согрелся и высох
+WAIT_ENDED_FIRE_OUT,The stove went out,Печь погасла
