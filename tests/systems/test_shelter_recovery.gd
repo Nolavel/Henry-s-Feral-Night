@@ -37,6 +37,7 @@ func _process(delta: float) -> bool:
 		_check(_cluster.get_trend(&"wetness") == -1, "drying clothes show no down mark")
 		_check(_cluster.get_trend(&"hunger") == 0, "a steady vital shows a trend")
 		_test_wait()
+		_test_table()
 		print("test_shelter_recovery: %s" % ("PASS" if _failures == 0 else "%d FAILED" % _failures))
 		quit(1 if _failures > 0 else 0)
 	return false
@@ -84,6 +85,31 @@ func _start_trend_and_steam() -> void:
 	_steam.position = Vector3(1.0, 0.0, 0.0)
 	root.add_child(_steam)
 	_steam.set_thermal(_thermal)
+
+
+## Sitting by a MealTable lays out the carried food; eating takes it off; standing clears it.
+func _test_table() -> void:
+	var body := CharacterBody3D.new()
+	var inventory := InventoryComponent.new()
+	body.add_child(inventory)
+	var rest := RestComponent.new()
+	body.add_child(rest)
+	root.add_child(body)
+	var table := MealTable.new()
+	table.position = Vector3(20.3, 0.0, 0.5)
+	root.add_child(table)
+	var seat := Node3D.new()
+	seat.position = Vector3(20.0, 0.0, 0.0)
+	root.add_child(seat)
+	inventory.try_add(load("res://data/items/tinned_stew.tres") as ItemResource)
+	inventory.try_add(load("res://data/items/tinned_stew.tres") as ItemResource)
+	inventory.try_add(load("res://data/items/road_flare.tres") as ItemResource)
+	rest.sit(seat)
+	_check(table.get_laid_ids() == [&"tinned_stew", &"tinned_stew"], "the table does not show the two tins only: %s" % [table.get_laid_ids()])
+	inventory.try_remove(&"tinned_stew")
+	_check(table.get_laid_ids().size() == 1, "an eaten tin stayed on the table")
+	rest.stand()
+	_check(table.get_laid_ids().is_empty(), "the table kept the food after Henry stood up")
 
 
 ## Waiting advances the clock without sleep; it stops at once when no fire warms Henry.

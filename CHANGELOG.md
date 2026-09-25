@@ -5,6 +5,16 @@ Maintained per branch; entries are added by whoever makes the change.
 
 ## [Unreleased] — `codex`
 
+### 2026-09-25 — Meal table by the stove (#42) (claudeflow)
+
+Added
+- `MealTable`: a small table with a cloth beside the rest crate. While Henry sits
+  by it, the food and drink he carries (pack and pockets) is laid out on the
+  cloth — a tin per stew, a snowball per handful of snow — and it follows what
+  is eaten or moved; standing up clears it. Eating stays Hub/pocket Use (the
+  seated clip is chair-sitting, so the cloth is on a table, not the floor).
+- `test_shelter_recovery` covers the layout; frame `docs/art/issue42/04_meal_table.png`.
+
 ### 2026-09-25 — A real stove in the shelter (#42) (claudeflow)
 
 Added

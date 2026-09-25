@@ -41,6 +41,9 @@ func _process(delta: float) -> bool:
 		stove.ignite()
 		_player.global_position = crate.global_position + Vector3(0.0, 0.2, 0.0)
 		_thermal.add_wetness(0.7)
+		var carried: InventoryComponent = InventoryComponent.find_in(_player)
+		for id: String in ["tinned_stew", "tinned_stew", "snow_handful"]:
+			carried.try_add(load("res://data/items/%s.tres" % id) as ItemResource)
 		print("[recovery] sat=", (_player.get_node(^"RestComponent") as RestComponent).sit(crate.find_child("Rest") as Node3D))
 		_camera = Camera3D.new()
 		_camera.fov = 55.0
