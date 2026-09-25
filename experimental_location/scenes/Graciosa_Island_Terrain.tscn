@@ -7,6 +7,7 @@
 [ext_resource type="PackedScene" uid="uid://cvv8y27vmgjfi" path="res://scenes/game/systems/world/WorldEnvironmentSystem.tscn" id="6_pbfqm"]
 [ext_resource type="PackedScene" path="res://scenes/world/first_exit/first_exit_blockout.tscn" id="7_fexit"]
 [ext_resource type="Script" path="res://scripts/systems/world/terrain/island_terrain.gd" id="8_island"]
+[ext_resource type="PackedScene" path="res://scenes/splash/splash_scene.tscn" id="9_startup"]
 
 [sub_resource type="StandardMaterial3D" id="StandardMaterial3D_gciob"]
 albedo_color = Color(0.29803923, 0.5803922, 1, 1)
@@ -24,6 +25,8 @@ player = NodePath("Player")
 camera = NodePath("PlayerCamera")
 first_spawner_marker = NodePath("FirstSpawner")
 metadata/_edit_group_ = true
+
+[node name="StartupTitleCard" parent="." instance=ExtResource("9_startup")]
 
 [node name="StreamContainer" type="Node3D" parent="."]
 
