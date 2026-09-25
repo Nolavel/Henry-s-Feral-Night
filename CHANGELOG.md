@@ -5,6 +5,17 @@ Maintained per branch; entries are added by whoever makes the change.
 
 ## [Unreleased] — `codex`
 
+### 2026-09-25 — A real stove in the shelter (#42) (claudeflow)
+
+Added
+- `StoveVisual` around the shelter's HeatSource: legs, an ash pan with a draught
+  vent and pull, a firebox with floor, walls and a front frame, a slotted door on
+  a hinge with a knob, a cooktop with a cooking ring, and a flue. One log shows
+  per fuel unit left (up to 4); the ember bed and an inner light glow through the
+  door slots only while it burns, with a gentle flicker.
+- The builder places it and keeps a collision hull; `test_stove_visual`,
+  `tools/runtime/capture_stove.gd`, frame `docs/art/issue42/03_stove_states.png`.
+
 ### 2026-09-25 — Waiting seated; pack and Kenny set down by the stove (#42) (claudeflow)
 
 Added
