@@ -5,6 +5,18 @@ Maintained per branch; entries are added by whoever makes the change.
 
 ## [Unreleased] — `codex`
 
+### 2026-09-25 — Consumed world pickups stay consumed (#79) (claudeflow)
+
+Added
+- `ItemPickup.world_id`: a stable id for authored pickups; the First Exit
+  builder sets it from the layout id (all 11 route pickups).
+- `PickupLedger` (one per built world, saveable, key `pickup_ledger`): records
+  taken world ids and, on load, removes those pickups from the rebuilt world.
+  Stores ids only; the items themselves stay in the inventory save. Stack pickups
+  stay atomic; dropped items (no world id) are untouched.
+- `test_pickup_ledger`: pick up boards/tinder/firewood/food → save → rebuild →
+  load; items stay in the inventory, the pickups are gone, others remain.
+
 ### 2026-09-25 — Lighting the stove as an act (#42) (claudeflow)
 
 Changed

@@ -25,6 +25,7 @@ const STOVE_WARMER_SCRIPT: String = "res://scripts/environment/stove/stove_warme
 const STOVE_VISUAL_SCRIPT: String = "res://scripts/environment/stove/stove_visual.gd"
 const MEAL_TABLE_SCRIPT: String = "res://scripts/environment/interactive/meal_table.gd"
 const REST_SPOT_SCRIPT: String = "res://scripts/environment/interactive/rest_spot.gd"
+const PICKUP_LEDGER_SCRIPT: String = "res://scripts/environment/interactive/pickup_ledger.gd"
 const PICKUP_SCRIPT: String = "res://scripts/environment/interactive/item_pickup.gd"
 ## House openings shared by the walls and the breaches: [x, width, is_door].
 const WINDOW_GAPS: Array = [[-0.25, 2.0], [0.3, 1.6]]
@@ -570,6 +571,8 @@ func _build_pickup(spec: Dictionary) -> void:
 	pickup.set(&"interactable_scene", null)
 	pickup.set(&"item_id", StringName(spec["item_id"]))
 	pickup.set(&"count", int(spec.get("count", 1)))
+	pickup.set(&"world_id", StringName(spec["id"]))
+	_ensure_ledger()
 	pickup.position = world
 	_add(_root, pickup)
 	var sphere := SphereShape3D.new()
@@ -579,6 +582,16 @@ func _build_pickup(spec: Dictionary) -> void:
 		col.shape = sphere
 	_resolved.append({"id": spec["id"], "kind": "pickup", "item_id": spec["item_id"], "count": int(spec.get("count", 1)),
 		"x": snappedf(world.x, 0.1), "z": snappedf(world.z, 0.1)})
+
+
+## One PickupLedger per built world, beside the pickups it tracks.
+func _ensure_ledger() -> void:
+	if _root.get_node_or_null(^"PickupLedger") != null:
+		return
+	var ledger := Node.new()
+	ledger.name = "PickupLedger"
+	ledger.set_script(load(PICKUP_LEDGER_SCRIPT))
+	_add(_root, ledger)
 
 
 # --- Structures -------------------------------------------------------------
