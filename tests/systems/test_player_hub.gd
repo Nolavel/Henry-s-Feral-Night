@@ -14,6 +14,7 @@ var _stow_pickup: ItemPickup
 var _stow_visual: Node3D
 var _stow_inventory: InventoryComponent
 var _saw_top_only: bool = false
+var _hold_started: bool = false
 
 
 func _process(delta: float) -> bool:
@@ -26,8 +27,11 @@ func _process(delta: float) -> bool:
 	elif _stow_hub != null:
 		if _stow_hub.pack.get_openness() == PackRig.Openness.TOP_ONLY:
 			_saw_top_only = true
-		if _time > 1.5:
+		if _time > 1.5 and not _hold_started:
 			_check_quick_stow()
+			_start_hold()
+		elif _hold_started and _time > 2.3:
+			_check_hold()
 			_finish()
 	return false
 
@@ -37,7 +41,13 @@ func _process(delta: float) -> bool:
 func _start_quick_stow() -> void:
 	var body := CharacterBody3D.new()
 	body.add_to_group(&"player")
+	var equipment := EquipmentComponent.new()
+	equipment.name = "EquipmentComponent"
+	equipment.layout = load(LAYOUT) as EquipmentLayout
+	equipment.starter_garment_ids = [&"worn_coat"]
+	body.add_child(equipment)
 	_stow_inventory = InventoryComponent.new()
+	_stow_inventory.equipment = equipment
 	body.add_child(_stow_inventory)
 	_stow_hub = PlayerHubComponent.new()
 	_stow_hub.name = "PlayerHubComponent"
@@ -142,3 +152,38 @@ func _check(condition: bool, message: String) -> void:
 func _finish() -> void:
 	print("test_player_hub: %s" % ("PASS" if _failures == 0 else "%d FAILED" % _failures))
 	quit(1 if _failures > 0 else 0)
+
+
+## Hold F: a pickup during a held press opens placement once the hold passes 0.35 s.
+func _start_hold() -> void:
+	_hold_started = true
+	var press := InputEventAction.new()
+	press.action = &"interact"
+	press.pressed = true
+	Input.action_press(&"interact")
+	_stow_hub._input(press)
+	_stow_inventory.try_add(load("res://data/items/road_flare.tres") as ItemResource)
+	var ghost := Node3D.new()
+	root.add_child(ghost)
+	_stow_hub.stow_visual(ghost, &"road_flare")
+
+
+func _check_hold() -> void:
+	Input.action_release(&"interact")
+	_check(_stow_hub.is_open(), "holding F after a pickup did not open placement")
+	var panel: PlayerHubPanel = null
+	for child: Node in _stow_hub.get_children():
+		if child is PlayerHubPanel:
+			panel = child
+	_check(panel != null and panel.is_placing(), "the Hub opened without placing the picked item")
+	if panel == null:
+		return
+	var pocket: StringName = &""
+	for zone: Dictionary in _stow_hub.get_quick_access_zones():
+		pocket = zone["path"]
+	panel.drop_on(pocket)
+	_check(not _stow_hub.is_open(), "dropping did not close the Hub")
+	_check(pocket != &"", "no pocket to drop into")
+	if pocket != &"":
+		_check(_zone_item(_stow_hub, pocket) == &"road_flare", "the dropped flare is not in the chosen pocket")
+		_check(_stow_inventory.get_count(&"road_flare") == 1, "placement duplicated or lost a flare")

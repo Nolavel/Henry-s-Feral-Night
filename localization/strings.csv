@@ -53,3 +53,4 @@ HUB_REFUSED_TOO_LARGE,Too big for this pocket,Слишком большой дл
 HUB_REFUSED_OCCUPIED,That pocket is taken,Этот карман занят
 HUB_REFUSED_NO_ZONE,No free pocket fits it,Нет свободного подходящего кармана
 HUB_REFUSED_OVERWEIGHT,Too heavy for the pack,Слишком тяжело для рюкзака
+HUB_PLACE_HINT,Drag with LMB into a lit pocket; release to close,Перетащите ЛКМ в подсвеченный карман; отпустите — закрыть

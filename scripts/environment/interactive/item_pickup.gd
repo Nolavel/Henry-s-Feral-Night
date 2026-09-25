@@ -73,7 +73,7 @@ func _hand_visual_to_pack() -> void:
 	if hub == null or visual == null or not is_ancestor_of(visual):
 		return
 	visual.reparent(get_tree().current_scene if get_tree().current_scene != null else get_tree().root)
-	hub.stow_visual(visual)
+	hub.stow_visual(visual, item_id)
 
 
 ## A small crate until items have their own meshes.

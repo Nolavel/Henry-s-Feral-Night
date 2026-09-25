@@ -13,6 +13,7 @@ const STEPS: Array = [
 	[0.7, "top", ""], [1.6, "", "02_pack_top_only"],
 	[1.7, "stow", ""], [1.9, "", "04_stow_lift"], [2.2, "", "05_stow_drop"], [3.2, "", "06_stow_closed"],
 	[3.3, "hub", ""], [4.6, "", "03_hub_full"],
+	[4.7, "place", ""], [6.0, "", "07_hold_placement"],
 ]
 
 var _player: Player
@@ -51,10 +52,16 @@ func _process(delta: float) -> bool:
 				_player.animation_component.get_pack_rig().set_openness(PackRig.Openness.TOP_ONLY)
 			"stow":
 				_spawn_and_pick()
+			"place":
+				_hub.close()
+				print("[hub] placement=", _hub.open_placement(&"road_flare"))
 			"hub":
 				_player.animation_component.get_pack_rig().set_openness(PackRig.Openness.CLOSED, true)
 				print("[hub] open=", _hub.open())
-		if step[2] != "":
+		if step[2] == "07_hold_placement":
+			## The placement UI lives on the root viewport, so this frame is the game view.
+			root.get_texture().get_image().save_png("%s/%s.png" % [OUT_DIR, step[2]])
+		elif step[2] != "":
 			_view.get_texture().get_image().save_png("%s/%s.png" % [OUT_DIR, step[2]])
 			print("[hub] shot ", step[2])
 	if _step >= STEPS.size():

@@ -17,6 +17,11 @@ var _zone_list: ItemList
 var _weight: Label
 var _status: Label
 var _pack_ids: Array[StringName] = []
+## Hold-F placement: the item being dragged, its ghost and the drop targets.
+var _placing: StringName = &""
+var _dragging: bool = false
+var _ghost: Label
+var _targets: Dictionary = {}  # Control -> zone path; empty path means the pack
 var _zone_paths: Array[StringName] = []
 
 
@@ -55,6 +60,75 @@ func _build() -> void:
 	_status.autowrap_mode = TextServer.AUTOWRAP_WORD
 	column.add_child(_status)
 	column.add_child(_label(tr("HUB_CLOSE_HINT")))
+
+
+## Starts hold-F placement: pockets that fit light up, the item sits under the
+## cursor, LMB drags it and releasing drops it there and closes the Hub.
+func begin_placement(item_id: StringName) -> void:
+	_placing = item_id
+	var item: ItemResource = ItemCatalog.get_item(item_id)
+	var strip := VBoxContainer.new()
+	strip.anchor_left = 0.03
+	strip.anchor_top = 0.2
+	strip.offset_right = 300.0
+	strip.add_theme_constant_override(&"separation", 6)
+	add_child(strip)
+	strip.add_child(_label(tr("HUB_PLACE_HINT")))
+	strip.add_child(_target(tr("HUB_PACK"), &"", true))
+	for zone: Dictionary in hub.get_quick_access_zones():
+		var fits: bool = hub.can_place(item_id, zone["path"]) == EquipmentComponent.Refusal.NONE
+		strip.add_child(_target(tr(zone["name"]), zone["path"], fits))
+	_ghost = _label(tr(item.display_name) if item != null else String(item_id))
+	_ghost.add_theme_color_override(&"font_color", Color(1.0, 0.85, 0.5))
+	var centre: Vector2 = get_viewport().get_visible_rect().size * 0.5
+	_ghost.position = centre
+	add_child(_ghost)
+	Input.warp_mouse(centre)
+
+
+func is_placing() -> bool:
+	return _placing != &""
+
+
+## Drops the placed item on a target path ("" = pack); a pocket it does not fit leaves it in the pack.
+func drop_on(path: StringName) -> void:
+	if _placing == &"":
+		return
+	if path != &"":
+		hub.move_to_zone(_placing, path)
+	_placing = &""
+	hub.close()
+
+
+func _input(event: InputEvent) -> void:
+	if _placing == &"":
+		return
+	var button := event as InputEventMouseButton
+	if button != null and button.button_index == MOUSE_BUTTON_LEFT:
+		if button.pressed:
+			_dragging = true
+		elif _dragging:
+			drop_on(_target_at(button.position))
+		get_viewport().set_input_as_handled()
+	elif event is InputEventMouseMotion and _dragging:
+		_ghost.position = (event as InputEventMouseMotion).position + Vector2(12.0, -8.0)
+
+
+func _target_at(point: Vector2) -> StringName:
+	for control: Control in _targets:
+		if control.get_global_rect().has_point(point):
+			return _targets[control]
+	return &""
+
+
+func _target(text: String, path: StringName, fits: bool) -> PanelContainer:
+	var box := PanelContainer.new()
+	box.custom_minimum_size = Vector2(0.0, 36.0)
+	box.modulate = Color(0.6, 1.0, 0.6) if fits else Color(0.5, 0.5, 0.5, 0.6)
+	box.add_child(_label(text))
+	if fits:
+		_targets[box] = path
+	return box
 
 
 func _refresh() -> void:
