@@ -65,7 +65,7 @@ unless `tools/ci/input_overlap_allowlist.txt` says why that is safe.
 | `,` / `.` | orbit the camera |
 | `Esc` | pause |
 | `F` on a bed or mattress | sleep: wheel or `←` `→` hours, `F`/`Enter` sleep, `Esc` cancel |
-| `L` | light a road flare / drop it |
+| wheel / wheel click / `1`–`4` | quick access: pick a pocket / use what is in it (a pocketed flare lights in hand; click again drops it) |
 | `Tab` | Player Hub: the pack opens on Henry's back; move items between the pack and pockets, Use (bedroll: preview, `F` lays it). `Tab`/`Esc` closes |
 | hold `F` | on a pickup: open the pack and drag the item into a pocket with LMB |
 

@@ -1,13 +1,12 @@
 class_name HeldLightComponent
 extends Node
 
-## Lights a road flare from the inventory into Henry's raised hand (L). A second
-## press drops it where he stands; either way it burns out and is gone.
+## Lights a road flare into Henry's raised hand through Use (Hub or a pocket);
+## the next quick-access click drops it. Either way it burns out and is gone.
 
 signal flare_lit(flare: HeldFlare)
 signal flare_dropped(flare: HeldFlare)
 
-const ACTION: StringName = &"toggle_flashlight"
 const FLARE_SCENE: PackedScene = preload("res://scenes/actors/player/held/HeldFlare.tscn")
 ## Seconds a spent flare lingers so its last smoke can clear.
 const SPENT_LINGER_S: float = 3.0
@@ -29,11 +28,6 @@ func _ready() -> void:
 		inventory = InventoryComponent.find_in(get_parent())
 
 
-func _unhandled_input(event: InputEvent) -> void:
-	if InputMap.has_action(ACTION) and event.is_action_pressed(ACTION):
-		toggle()
-
-
 ## Item Use contract (PlayerHubComponent): Use on a flare lights it.
 func can_use(item_id: StringName) -> bool:
 	return item_id == flare_item_id and not is_holding() and inventory != null and inventory.has_item(item_id)
@@ -41,6 +35,14 @@ func can_use(item_id: StringName) -> bool:
 
 func use(item_id: StringName) -> bool:
 	return can_use(item_id) and light()
+
+
+## Quick access puts away what is in hand first: the burning flare is dropped.
+func release_held() -> bool:
+	if not is_holding():
+		return false
+	drop()
+	return true
 
 
 func toggle() -> void:

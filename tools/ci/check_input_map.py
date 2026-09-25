@@ -14,8 +14,8 @@ def bindings():
     text = (ROOT / "project.godot").read_text()
     section = text.split("\n[input]\n", 1)[1].split("\n[", 1)[0]
     out = defaultdict(set)
-    for action, body in re.findall(r"^([\w ]+)=\{(.*?)\n\}", section, re.S | re.M):
-        for event in re.findall(r"Object\((InputEvent\w+),(.*?)\)", body, re.S):
+    for action, body in re.findall(r"^\"?([\w ]+)\"?=\{(.*?)\n\}", section, re.S | re.M):
+        for event in re.findall(r'Object\((InputEvent\w+),(.*?)"script":null\)', body, re.S):
             kind, props = event
             fields = dict(re.findall(r'"(\w+)":([^,]+)', props))
             if kind == "InputEventKey":
