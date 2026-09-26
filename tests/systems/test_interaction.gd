@@ -96,6 +96,8 @@ func _check_near_first() -> void:
 	_check(_component.is_target_in_reach(), "the item at 0.6 m is not in reach")
 	_component.try_interact()
 	_check(_inventory.get_count(&"firewood") == 1, "F did not pick up the near item")
+	_check(_component.current_target == null, "picked-up item stayed as current target")
+	_check(not _near.shape_cast_detected, "picked-up item left the F prompt active")
 
 
 func _check_far_next() -> void:

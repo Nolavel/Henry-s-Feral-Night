@@ -65,8 +65,11 @@ func _physics_process(delta: float) -> void:
 
 ## Re-picks the target now; normally run every physics frame.
 func detect_target() -> void:
-	if not is_instance_valid(current_target):
-		current_target = null
+	if current_target != null:
+		if not is_instance_valid(current_target):
+			_clear_current_target(false)
+		elif current_target.is_queued_for_deletion() or not current_target.can_interact():
+			_clear_current_target()
 	var seated: bool = _is_seated()
 	var found: InteractiveArea = _find_seated_target() if seated else _find_crosshair_target()
 	var distance: float = _flat_distance_to(found) if found != null else INF
@@ -89,6 +92,20 @@ func detect_target() -> void:
 
 func is_target_in_reach() -> bool:
 	return _last_in_reach
+
+
+## Clears the authoritative focus state, not just its visuals. This is used when
+## a target is consumed, disabled, queued for deletion or disappears from the tree.
+func _clear_current_target(update_target_state: bool = true) -> void:
+	var previous: InteractiveArea = current_target
+	if update_target_state and is_instance_valid(previous):
+		previous.set_target_state(false, false)
+	current_target = null
+	_last_in_reach = false
+	_last_in_prompt = false
+	if _pending == previous:
+		_cancel_approach()
+	interact_target_changed.emit(null, false)
 
 
 ## F states an intent: act now at arm's length, or walk over and act on arrival.
@@ -118,6 +135,12 @@ func _perform(target: InteractiveArea) -> void:
 		_player.call(&"play_action_animation", action)
 	target.interact()
 	interaction_performed.emit(target)
+	# A successful pickup queues itself for deletion. Clear focus immediately so
+	# the centre prompt cannot survive until the next physics scan. The same path
+	# also covers interactables that deactivate themselves without being freed.
+	if current_target == target and is_instance_valid(target):
+		if target.is_queued_for_deletion() or not target.can_interact():
+			_clear_current_target()
 
 
 func _find_crosshair_target() -> InteractiveArea:

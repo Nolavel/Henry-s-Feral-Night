@@ -9,6 +9,7 @@ signal selection_changed(index: int, zone: Dictionary)
 const NEXT_ACTION: StringName = &"quick_next"
 const PREV_ACTION: StringName = &"quick_prev"
 const USE_ACTION: StringName = &"quick_use"
+const ROAD_FLARE_ID: StringName = &"road_flare"
 const DIRECT_ACTIONS: Array[StringName] = [&"select item slot 1", &"select item slot 2",
 	&"select item slot 3", &"select item slot 4"]
 ## Seconds the pocket readout stays up after the last change.
@@ -71,6 +72,7 @@ func use_selected() -> bool:
 		return false
 	for child: Node in get_parent().get_children():
 		if child.has_method(&"release_held") and bool(child.call(&"release_held")):
+			_hide_readout()
 			return true
 	var zones: Array[Dictionary] = hub.get_quick_access_zones()
 	if zones.is_empty():
@@ -80,7 +82,14 @@ func use_selected() -> bool:
 	if item_id == &"":
 		_show_readout(zone)
 		return false
-	return hub.use_from_zone(zone["path"])
+	var used: bool = hub.use_from_zone(zone["path"])
+	if used:
+		# A flare leaves the pocket and is now burning in hand; do not leave the
+		# stale "Use selected item" instruction on screen after the state changed.
+		_hide_readout()
+	else:
+		_show_readout(zone)
+	return used
 
 
 func _pressed(event: InputEvent, action: StringName) -> bool:
@@ -103,5 +112,24 @@ func _show_readout(zone: Dictionary) -> void:
 		layer.add_child(_readout)
 	var held: ItemResource = ItemCatalog.get_item(zone["item_id"]) if zone["item_id"] != &"" else null
 	_readout.text = "%s: %s" % [tr(zone["name"]), tr(held.display_name) if held != null else tr("HUB_EMPTY")]
+	if zone["item_id"] == ROAD_FLARE_ID and not _flare_is_burning():
+		_readout.text += "\n%s  Use selected item — light flare" % _action_label(USE_ACTION)
 	_readout.visible = true
 	_readout_left = READOUT_TIME
+
+
+func _hide_readout() -> void:
+	_readout_left = 0.0
+	if is_instance_valid(_readout):
+		_readout.visible = false
+
+
+func _flare_is_burning() -> bool:
+	var parent := get_parent()
+	var held := parent.get_node_or_null(^"HeldLightComponent") as HeldLightComponent if parent != null else null
+	return held != null and held.is_holding()
+
+
+func _action_label(action: StringName) -> String:
+	var events: Array[InputEvent] = InputMap.action_get_events(action)
+	return events[0].as_text() if not events.is_empty() else String(action)
