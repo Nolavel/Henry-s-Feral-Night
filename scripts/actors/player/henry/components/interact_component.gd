@@ -123,9 +123,11 @@ func _find_crosshair_target() -> InteractiveArea:
 	var camera: Camera3D = viewport.get_camera_3d() if viewport != null else null
 	if camera == null or _player == null:
 		return null
-	var center: Vector2 = viewport.get_visible_rect().size * 0.5
-	var from: Vector3 = camera.project_ray_origin(center)
-	var to: Vector3 = from + camera.project_ray_normal(center) * focus_length
+	# For a perspective camera the exact screen-centre ray is camera forward.
+	# This is resolution-independent and remains deterministic in headless tests.
+	var from: Vector3 = camera.global_position
+	var direction: Vector3 = -camera.global_transform.basis.z.normalized()
+	var to: Vector3 = from + direction * focus_length
 	var params := PhysicsRayQueryParameters3D.create(from, to)
 	params.collide_with_areas = true
 	params.collide_with_bodies = true
