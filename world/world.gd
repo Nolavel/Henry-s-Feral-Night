@@ -44,9 +44,7 @@ const WORLD_SYSTEM_SCRIPTS: Array[GDScript] = [
 ]
 
 ## Standalone 3D scenes — instantiate(), parented to StreamContainer.
-const WORLD_3D_ENTITY_SCENES: Array[PackedScene] = [
-	preload("res://scenes/ui/hud/action_prompt/action_prompt_3d.tscn"),
-]
+const WORLD_3D_ENTITY_SCENES: Array[PackedScene] = []
 
 ## Screen-space UI scenes — instantiate(), parented to a shared CanvasLayer.
 const WORLD_UI_SCENES: Array[PackedScene] = [

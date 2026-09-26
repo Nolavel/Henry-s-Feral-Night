@@ -293,10 +293,15 @@ func _hide_icon_sprite_with_lift_then_show_info() -> void:
 func _show_info_label() -> void:
 	if not info_label:
 		return
-	if is_inside_tree() and get_tree().get_first_node_in_group(&"action_prompt_3d") != null:
-		info_label.visible = false
-		info_label.modulate.a = 0.0
-		return
+	if is_inside_tree():
+		var tree := get_tree()
+		if (
+			tree.get_first_node_in_group(&"interaction_cursor_prompt") != null
+			or tree.get_first_node_in_group(&"action_prompt_3d") != null
+		):
+			info_label.visible = false
+			info_label.modulate.a = 0.0
+			return
 	
 	info_label.text = _get_interaction_text()
 	info_label.visible = true

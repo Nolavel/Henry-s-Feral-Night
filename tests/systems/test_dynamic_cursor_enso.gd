@@ -20,6 +20,16 @@ func _initialize() -> void:
 			"Enso centre-ring scale changed")
 		_check(cursor.texture_filter == CanvasItem.TEXTURE_FILTER_LINEAR,
 			"Enso cursor is not using linear texture filtering")
+		_check(cursor.is_in_group(&"interaction_cursor_prompt"),
+			"cursor did not register the centered interaction-prompt group")
+		_check(cursor.has_center_interaction_prompt(),
+			"cursor did not build the ink + key prompt")
+		_check(cursor.interaction_bracket_offset > cursor.prompt_content_size.x * 0.5,
+			"interaction brackets do not clear the prompt content")
+		_check(cursor.prompt_canvas_size.x > cursor.prompt_content_size.x,
+			"ink canvas lost horizontal bleed room")
+		_check(cursor.interaction_morph_duration > 0.0,
+			"interaction morph has no duration")
 		# Stamina/jump exports remain present: this change must not replace those systems.
 		_check(cursor.sprint_arc_thickness > 0.0, "sprint stamina arcs were removed")
 		_check(cursor.stamina_manager == null, "test cursor unexpectedly owns stamina state")

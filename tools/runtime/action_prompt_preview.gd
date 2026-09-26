@@ -49,13 +49,21 @@ func _stage() -> void:
 	if interact != null:
 		interact.detect_target()
 
-	var prompt := get_tree().get_first_node_in_group(&"action_prompt_3d") as ActionPrompt3D
-	if prompt == null:
-		push_warning("action prompt preview: production ActionPrompt3D missing")
-	else:
-		print("action prompt preview: staged %s -> %s" % [
-			door.get_path(), door.get_interaction_prompt_data()
-		])
+	await get_tree().physics_frame
+	if interact != null:
+		interact.detect_target()
+	var cursor := player.get_node_or_null(^"MouseCursorUI") as MouseCursorUI
+	if interact == null or interact.current_target != door:
+		push_error("action prompt preview: centre ray did not acquire shelter door")
+		get_tree().quit(1)
+		return
+	if cursor == null or not cursor.has_center_interaction_prompt():
+		push_error("action prompt preview: centered cursor prompt missing")
+		get_tree().quit(1)
+		return
+	print("action prompt preview: staged center morph %s -> %s" % [
+		door.get_path(), door.get_interaction_prompt_data()
+	])
 
 	# Remove capture-only debug labels so the interaction treatment is legible.
 	var debug := world.get_node_or_null(^"Perfomance&Debugging")

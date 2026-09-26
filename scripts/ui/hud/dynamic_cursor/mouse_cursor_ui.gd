@@ -19,6 +19,21 @@ extends Control
 ## Ray length from the camera, metres.
 @export var target_ray_length: float = 12.0
 
+@export_group("Interaction morph")
+## ADT-derived interruptible circle -> bracket morph. The brackets first tear
+## from the Enso, then travel outward to make room for the ink prompt.
+@export_range(0.12, 0.7, 0.01) var interaction_morph_duration: float = 0.34
+@export_range(1.0, 4.0, 0.1) var interaction_morph_ease_power: float = 2.4
+@export_range(0.0, 0.8, 0.01) var interaction_split_delay: float = 0.16
+@export_range(1.0, 1.35, 0.01) var interaction_morph_punch: float = 1.10
+@export_range(0.0, 0.35, 0.01) var interaction_morph_overshoot: float = 0.12
+@export_range(0.0, 1.2, 0.05) var interaction_morph_glow: float = 0.40
+@export var interaction_bracket_offset: float = 250.0
+@export var interaction_bracket_radius: float = 24.0
+@export var interaction_bracket_thickness: float = 2.6
+@export var prompt_canvas_size: Vector2 = Vector2(460.0, 210.0)
+@export var prompt_content_size: Vector2 = Vector2(360.0, 150.0)
+
 @export_group("Movement and stamina")
 @export var movement_controller: MovementController
 @export var stamina_manager: StaminaManager
@@ -33,6 +48,12 @@ extends Control
 const RING_SEGMENTS: int = 32
 const JUMP_ARC_COLOR: Color = Color(0.4, 0.8, 1.0)
 const CURSOR_ENSO_PATH := "res://assets/ui/hud/dynamic_cursor/enso_cursor_ring.svg"
+const BLOT_SHADER: Shader = preload("res://shaders/ui/key_hints_blot.gdshader")
+const GROUP_INTERACTION_PROMPT: StringName = &"interaction_cursor_prompt"
+const MORPH_CIRCLE_SEGMENTS: int = 32
+const MORPH_BRACKET_SEGMENTS: int = 10
+const MORPH_BRACKET_HALF_ANGLE: float = 0.62
+const MORPH_OPEN_PATH_THRESHOLD: float = 0.035
 
 var is_over_target: bool = false
 var _color: Color = Color.WHITE
@@ -50,9 +71,19 @@ var _jump_tween: Tween
 var _arcs_tween: Tween
 var _cursor_enso_texture: Texture2D
 var _interact_component: InteractComponent
+var _interaction_target: InteractiveArea
+var _interaction_morph_progress: float = 0.0
+var _interaction_morph_from: float = 0.0
+var _interaction_morph_target: float = 0.0
+var _interaction_morph_elapsed: float = 0.0
+var _prompt_ink: ColorRect
+var _prompt_material: ShaderMaterial
+var _prompt_face: ActionPromptFace
+var _confirm_tween: Tween
 
 
 func _ready() -> void:
+	add_to_group(GROUP_INTERACTION_PROMPT)
 	set_anchors_preset(Control.PRESET_FULL_RECT)
 	mouse_filter = Control.MOUSE_FILTER_IGNORE
 	# The Enso is rendered far below its source resolution. Linear filtering is
@@ -69,6 +100,9 @@ func _ready() -> void:
 		movement_controller = player.get_node_or_null(^"MovementController") as MovementController
 	if player != null:
 		_interact_component = player.get_node_or_null(^"InteractComponent") as InteractComponent
+	_build_interaction_prompt()
+	if _interact_component != null and not _interact_component.interaction_performed.is_connected(_on_interaction_performed):
+		_interact_component.interaction_performed.connect(_on_interaction_performed)
 	if movement_controller != null and stamina_manager == null:
 		stamina_manager = movement_controller.get_node_or_null(^"StaminaManager") as StaminaManager
 	if stamina_manager != null:
@@ -80,23 +114,24 @@ func _process(delta: float) -> void:
 	visible = not _is_paused()
 	if not visible:
 		return
-	is_over_target = (
-		_interact_component.is_crosshair_focused()
-		if _interact_component != null
-		else _ray_hits_target()
-	)
+	var focused := _focused_prompt_target()
+	is_over_target = focused != null if _interact_component != null else _ray_hits_target()
 	var wanted: Color = cursor_color_target if is_over_target else cursor_color_idle
 	_color = _color.lerp(wanted, clampf(cursor_color_speed * delta, 0.0, 1.0))
+	_update_interaction_target(focused)
+	_update_interaction_morph(delta)
+	_update_prompt_visuals()
 	_update_movement(delta)
 	queue_redraw()
 
 
 func _draw() -> void:
 	var center: Vector2 = get_viewport_rect().size * 0.5
-	_draw_cursor_enso(center, _color)
+	_draw_interaction_cursor(center, _color)
 	var inner: Color = _color
-	inner.a *= 0.3
-	draw_circle(center, cursor_radius * 0.3, inner)
+	inner.a *= 0.3 * (1.0 - _interaction_morph_progress)
+	if inner.a > 0.005:
+		draw_circle(center, cursor_radius * 0.3, inner)
 	if _dot_alpha > 0.01:
 		var dot: Color = movement_dot_color.lerp(movement_dot_bright_color, _dot_alpha)
 		dot.a *= _dot_alpha
@@ -181,6 +216,246 @@ func _draw_jump_arc(center: Vector2) -> void:
 		_draw_ring(center, radius, color, 2.0)
 	elif half > 0.0:
 		draw_arc(center, radius, PI * 1.5 - half, PI * 1.5 + half, 24, color, 2.0, true)
+
+
+func _focused_prompt_target() -> InteractiveArea:
+	if _interact_component == null or not is_instance_valid(_interact_component.current_target):
+		return null
+	var target := _interact_component.current_target
+	if not target.can_interact() or not target.shape_cast_detected:
+		return null
+	return target
+
+
+func _update_interaction_target(target: InteractiveArea) -> void:
+	if target == _interaction_target:
+		return
+	_interaction_target = target
+	_interaction_morph_from = _interaction_morph_progress
+	_interaction_morph_target = 1.0 if target != null else 0.0
+	_interaction_morph_elapsed = 0.0
+	if target != null:
+		_sync_prompt(target)
+		if _prompt_material != null:
+			_prompt_material.set_shader_parameter("entrance_seed", fmod(float(Time.get_ticks_msec()) * 0.001, 19.0))
+
+
+func _update_interaction_morph(delta: float) -> void:
+	if is_equal_approx(_interaction_morph_progress, _interaction_morph_target):
+		return
+	_interaction_morph_elapsed += maxf(delta, 0.0)
+	var raw := clampf(
+		_interaction_morph_elapsed / maxf(interaction_morph_duration, 0.001),
+		0.0, 1.0
+	)
+	var eased := _morph_ease_in_out(raw, interaction_morph_ease_power)
+	_interaction_morph_progress = lerpf(_interaction_morph_from, _interaction_morph_target, eased)
+	if raw >= 1.0:
+		_interaction_morph_progress = _interaction_morph_target
+
+
+func _build_interaction_prompt() -> void:
+	_prompt_ink = ColorRect.new()
+	_prompt_ink.name = "InteractionInk"
+	_prompt_ink.mouse_filter = Control.MOUSE_FILTER_IGNORE
+	_prompt_ink.color = Color(0, 0, 0, 0)
+	_prompt_material = ShaderMaterial.new()
+	_prompt_material.shader = BLOT_SHADER
+	_prompt_material.set_shader_parameter("progress", 0.0)
+	_prompt_material.set_shader_parameter("stagger", 0.7)
+	_prompt_material.set_shader_parameter("entrance_seed", 0.31)
+	_prompt_material.set_shader_parameter("blob_color", Color(0.015, 0.012, 0.009, 0.92))
+	_prompt_material.set_shader_parameter("radius_scale", 1.0)
+	_prompt_material.set_shader_parameter("edge_ragged", 0.052)
+	_prompt_material.set_shader_parameter("warp_scale", 4.5)
+	_prompt_material.set_shader_parameter("rect_size", prompt_canvas_size)
+	_prompt_material.set_shader_parameter("idle_drift", 0.0)
+	_prompt_material.set_shader_parameter("canvas_padding", 0.18)
+	_prompt_ink.material = _prompt_material
+	_prompt_ink.visible = false
+	add_child(_prompt_ink)
+
+	_prompt_face = ActionPromptFace.new()
+	_prompt_face.name = "InteractionPrompt"
+	_prompt_face.mouse_filter = Control.MOUSE_FILTER_IGNORE
+	_prompt_face.size = prompt_content_size
+	_prompt_face.modulate.a = 0.0
+	_prompt_face.visible = false
+	add_child(_prompt_face)
+
+
+func _sync_prompt(target: InteractiveArea) -> void:
+	if _prompt_face == null or not is_instance_valid(target):
+		return
+	var data := target.get_interaction_prompt_data()
+	_prompt_face.set_prompt(
+		tr("PROMPT_HEADER_INTERACT"),
+		String(data.get("key", "F")),
+		String(data.get("action", tr("INTERACT_USE"))),
+		String(data.get("detail", ""))
+	)
+
+
+func _update_prompt_visuals() -> void:
+	if _prompt_ink == null or _prompt_face == null or _prompt_material == null:
+		return
+	var center := get_viewport_rect().size * 0.5
+	_prompt_ink.position = center - prompt_canvas_size * 0.5
+	_prompt_ink.size = prompt_canvas_size
+	_prompt_face.position = center - prompt_content_size * 0.5
+	_prompt_face.size = prompt_content_size
+
+	var t := clampf(_interaction_morph_progress, 0.0, 1.0)
+	var ink_reveal := _smoothstep01((t - 0.42) / 0.43)
+	var content_reveal := _smoothstep01((t - 0.66) / 0.25)
+	_prompt_material.set_shader_parameter("progress", ink_reveal)
+	_prompt_ink.visible = ink_reveal > 0.001
+	_prompt_face.visible = content_reveal > 0.001
+	_prompt_face.modulate.a = content_reveal
+
+
+func _on_interaction_performed(target: InteractiveArea) -> void:
+	if _prompt_face == null or target != _interaction_target:
+		return
+	if _confirm_tween != null:
+		_confirm_tween.kill()
+	_prompt_face.set_confirm_amount(1.0)
+	_confirm_tween = create_tween()
+	_confirm_tween.tween_method(_prompt_face.set_confirm_amount, 1.0, 0.0, 0.22)
+
+
+func _draw_interaction_cursor(center: Vector2, color: Color) -> void:
+	var t := clampf(_interaction_morph_progress, 0.0, 1.0)
+	var enso_color := color
+	enso_color.a *= 1.0 - _smoothstep01(t / 0.28)
+	if enso_color.a > 0.005:
+		_draw_cursor_enso(center, enso_color)
+	if t <= 0.001:
+		return
+	_draw_interaction_morph_shape(center, t, color)
+
+
+## Ported from ADT's DynamicCursor morph, adapted so the bracket geometry is
+## born near the Enso and then the two halves travel apart around HFN's ink.
+func _draw_interaction_morph_shape(center: Vector2, t: float, color: Color) -> void:
+	var shape_t := clampf(t / 0.62, 0.0, 1.0)
+	var eased := _morph_ease_in_out(shape_t, interaction_morph_ease_power)
+	var base_radius := lerpf(cursor_radius, interaction_bracket_radius, eased)
+	var stretch_in := _morph_ease_in_out(minf(shape_t / 0.55, 1.0), 1.8)
+	var stretch_out_raw := maxf((shape_t - 0.55) / 0.45, 0.0)
+	var stretch_out := _morph_ease_in_out(minf(stretch_out_raw, 1.0), 1.8)
+	var stretch_weight := stretch_in * (1.0 - stretch_out)
+	var stretch_factor := lerpf(1.0, 1.50, stretch_weight)
+	var radius_x := base_radius * stretch_factor
+	var radius_y := base_radius / sqrt(maxf(stretch_factor, 0.001))
+	var open := (PI * 0.5 - MORPH_BRACKET_HALF_ANGLE) * _morph_gap_curve(shape_t)
+	var punch_scale := _morph_scale_curve(shape_t)
+	var paths := _build_morph_paths(center, radius_x, radius_y, open, punch_scale)
+
+	var spread_t := _smoothstep01((t - 0.50) / 0.50)
+	var spread := maxf(interaction_bracket_offset - interaction_bracket_radius, 0.0) * spread_t
+	if paths.size() == 2:
+		for i: int in range(paths[0].size()):
+			paths[0][i].x += spread
+		for i: int in range(paths[1].size()):
+			paths[1][i].x -= spread
+
+	var alpha := _smoothstep01(t / 0.18)
+	var shape_color := color
+	shape_color.a *= alpha
+	var juice := sin(shape_t * PI)
+	if juice > 0.001 and interaction_morph_glow > 0.0:
+		_draw_morph_paths(
+			paths,
+			_color_with_alpha(shape_color, 0.10 * interaction_morph_glow * juice),
+			interaction_bracket_thickness * 3.0
+		)
+	_draw_morph_paths(paths, shape_color, interaction_bracket_thickness)
+
+
+func _build_morph_paths(
+		center: Vector2, radius_x: float, radius_y: float, open: float, shape_scale: float
+	) -> Array[PackedVector2Array]:
+	var paths: Array[PackedVector2Array] = []
+	if open < MORPH_OPEN_PATH_THRESHOLD:
+		paths.append(_build_ellipse_arc(
+			center, radius_x, radius_y, 0.0, TAU, shape_scale, MORPH_CIRCLE_SEGMENTS
+		))
+		return paths
+	paths.append(_build_ellipse_arc(
+		center, radius_x, radius_y,
+		-PI * 0.5 + open, PI * 0.5 - open,
+		shape_scale, MORPH_BRACKET_SEGMENTS
+	))
+	paths.append(_build_ellipse_arc(
+		center, radius_x, radius_y,
+		PI * 0.5 + open, PI * 1.5 - open,
+		shape_scale, MORPH_BRACKET_SEGMENTS
+	))
+	return paths
+
+
+func _build_ellipse_arc(
+		center: Vector2,
+		radius_x: float,
+		radius_y: float,
+		start_angle: float,
+		end_angle: float,
+		shape_scale: float,
+		segments: int
+	) -> PackedVector2Array:
+	var points := PackedVector2Array()
+	for i: int in range(segments + 1):
+		var weight := float(i) / float(segments)
+		var angle := lerpf(start_angle, end_angle, weight)
+		var offset := Vector2(cos(angle) * radius_x, sin(angle) * radius_y) * shape_scale
+		points.append(center + offset)
+	return points
+
+
+func _draw_morph_paths(paths: Array[PackedVector2Array], color: Color, width: float) -> void:
+	for points: PackedVector2Array in paths:
+		if points.size() > 1:
+			draw_polyline(points, color, width, true)
+
+
+func _morph_gap_curve(t: float) -> float:
+	var span := maxf(1.0 - interaction_split_delay, 0.001)
+	var delayed := clampf((t - interaction_split_delay) / span, 0.0, 1.0)
+	return _morph_ease_in_out(delayed, 2.1)
+
+
+func _morph_scale_curve(t: float) -> float:
+	var pulse := sin(t * PI)
+	var settle := 1.0 if t < 0.7 else 0.4
+	var peak := interaction_morph_punch + interaction_morph_overshoot * sin(t * PI * 1.4) * settle
+	return 1.0 + (peak - 1.0) * pulse
+
+
+static func _morph_ease_in_out(t: float, power: float) -> float:
+	var clamped := clampf(t, 0.0, 1.0)
+	if clamped < 0.5:
+		return pow(2.0 * clamped, power) * 0.5
+	return 1.0 - pow(2.0 * (1.0 - clamped), power) * 0.5
+
+
+static func _smoothstep01(value: float) -> float:
+	var x := clampf(value, 0.0, 1.0)
+	return x * x * (3.0 - 2.0 * x)
+
+
+static func _color_with_alpha(color: Color, alpha_scale: float) -> Color:
+	var result := color
+	result.a *= clampf(alpha_scale, 0.0, 1.0)
+	return result
+
+
+func get_interaction_morph_progress() -> float:
+	return _interaction_morph_progress
+
+
+func has_center_interaction_prompt() -> bool:
+	return _prompt_ink != null and _prompt_face != null
 
 
 func _draw_cursor_enso(center: Vector2, color: Color) -> void:

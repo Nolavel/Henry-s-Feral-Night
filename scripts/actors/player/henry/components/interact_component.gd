@@ -125,23 +125,34 @@ func _find_crosshair_target() -> InteractiveArea:
 	var camera: Camera3D = viewport.get_camera_3d() if viewport != null else null
 	if camera == null or _player == null:
 		return null
-	var from: Vector3 = camera.global_position
-	var direction: Vector3 = -camera.global_transform.basis.z.normalized()
+	var center: Vector2 = viewport.get_visible_rect().size * 0.5
+	var from: Vector3 = camera.project_ray_origin(center)
+	var direction: Vector3 = camera.project_ray_normal(center).normalized()
 	var to: Vector3 = from + direction * focus_length
 
-	# Exact centre ray is authoritative whenever it hits real object geometry.
-	var ray := PhysicsRayQueryParameters3D.create(from, to)
-	ray.collide_with_areas = true
-	ray.collide_with_bodies = true
-	ray.exclude = [_player.get_rid()]
-	var hit: Dictionary = _player.get_world_3d().direct_space_state.intersect_ray(ray)
-	if not hit.is_empty():
-		var direct := _area_from(hit.get("collider"))
+	# The interaction volume owns selection. Query Areas first so a door leaf,
+	# handle or frame cannot steal the centre ray from its InteractiveArea.
+	# Physical bodies are checked separately below for honest occlusion.
+	var area_hit := _first_interactive_area_on_ray(from, to)
+	if not area_hit.is_empty():
+		var direct := _area_from(area_hit.get("collider"))
 		if direct != null and _flat_distance_to(direct) <= intent_radius:
-			return direct
-		# A non-interactive body in the centre blocks focus behind it.
-		if hit.get("collider") is PhysicsBody3D:
-			return null
+			var hit_position: Vector3 = area_hit.get("position", direct.global_position)
+			if _focus_hit_is_visible(from, hit_position, direct):
+				return direct
+
+	# Solid geometry still counts when it belongs to the InteractiveArea itself.
+	# This keeps small/legacy Areas usable without allowing focus through walls.
+	var body_ray := PhysicsRayQueryParameters3D.create(from, to)
+	body_ray.collide_with_areas = false
+	body_ray.collide_with_bodies = true
+	body_ray.exclude = [_player.get_rid()]
+	var body_hit: Dictionary = _player.get_world_3d().direct_space_state.intersect_ray(body_ray)
+	if not body_hit.is_empty():
+		var body_target := _area_from(body_hit.get("collider"))
+		if body_target != null and _flat_distance_to(body_target) <= intent_radius:
+			return body_target
+		return null
 
 	# Some legacy InteractiveAreas envelop the camera. Rays do not report a
 	# shape containing their origin, so recover only candidates genuinely under
@@ -176,6 +187,45 @@ func _find_crosshair_target() -> InteractiveArea:
 			best_angle = angle
 			best_distance = flat_distance
 	return best
+
+
+## Returns the first *interactive* Area on the centre ray, skipping unrelated
+## trigger Areas (thermal zones, shelter volumes, etc.) instead of letting one
+## of them hide the actual handle/door/pickup behind it.
+func _first_interactive_area_on_ray(from: Vector3, to: Vector3) -> Dictionary:
+	var excluded: Array[RID] = [_player.get_rid()]
+	for _i: int in range(12):
+		var ray := PhysicsRayQueryParameters3D.create(from, to)
+		ray.collide_with_areas = true
+		ray.collide_with_bodies = false
+		ray.exclude = excluded
+		var hit: Dictionary = _player.get_world_3d().direct_space_state.intersect_ray(ray)
+		if hit.is_empty():
+			return {}
+		if _area_from(hit.get("collider")) != null:
+			return hit
+		var collider := hit.get("collider") as CollisionObject3D
+		if collider == null:
+			return {}
+		excluded.append(collider.get_rid())
+	return {}
+
+
+## The Area hit grants focus only when no unrelated solid surface is closer.
+## A body owned by the same InteractiveArea is allowed: that is the physical
+## door/pickup itself, not an occluder.
+func _focus_hit_is_visible(from: Vector3, hit_position: Vector3, target: InteractiveArea) -> bool:
+	var offset := hit_position - from
+	if offset.length() <= 0.01:
+		return true
+	var ray := PhysicsRayQueryParameters3D.create(from, hit_position)
+	ray.collide_with_areas = false
+	ray.collide_with_bodies = true
+	ray.exclude = [_player.get_rid()]
+	var hit: Dictionary = _player.get_world_3d().direct_space_state.intersect_ray(ray)
+	if hit.is_empty():
+		return true
+	return _area_from(hit.get("collider")) == target
 
 
 func _has_focus_line(camera: Camera3D, area: InteractiveArea) -> bool:
