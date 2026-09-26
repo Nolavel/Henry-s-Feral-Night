@@ -15,6 +15,7 @@ func _initialize() -> void:
 		_check(enso.get_width() == 512 and enso.get_height() == 512,
 			"Enso texture should stay square and centered")
 	if cursor != null:
+		root.add_child(cursor)
 		_check(is_equal_approx(cursor.cursor_enso_scale, 1.10),
 			"Enso centre-ring scale changed")
 		_check(cursor.texture_filter == CanvasItem.TEXTURE_FILTER_LINEAR,
@@ -22,6 +23,7 @@ func _initialize() -> void:
 		# Stamina/jump exports remain present: this change must not replace those systems.
 		_check(cursor.sprint_arc_thickness > 0.0, "sprint stamina arcs were removed")
 		_check(cursor.stamina_manager == null, "test cursor unexpectedly owns stamina state")
+		root.remove_child(cursor)
 		cursor.free()
 	print("test_dynamic_cursor_enso: %s" % ("PASS" if failures == 0 else "%d FAILED" % failures))
 	quit(1 if failures > 0 else 0)
