@@ -11,7 +11,6 @@ const KEY_CONFIRM := Color(1.0, 0.76, 0.24, 1.0)
 const KEY_BORDER_BASE := Color(0.77, 0.56, 0.27, 1.0)
 const KEY_BORDER_CONFIRM := Color(1.0, 0.82, 0.36, 1.0)
 
-var _header: String = "INTERACT"
 var _key: String = "F"
 var _action: String = "Interact"
 var _detail: String = ""
@@ -28,10 +27,9 @@ func _ready() -> void:
 	queue_redraw()
 
 
-func set_prompt(header: String, key: String, action: String, detail: String) -> void:
-	if _header == header and _key == key and _action == action and _detail == detail:
+func set_prompt(_header: String, key: String, action: String, detail: String) -> void:
+	if _key == key and _action == action and _detail == detail:
 		return
-	_header = header
 	_key = key
 	_action = action
 	_detail = detail
@@ -99,11 +97,6 @@ func _draw() -> void:
 	)
 
 	var text_x := 124.0
-	draw_string(
-		_font, Vector2(text_x, 51.0), _header.to_upper(),
-		HORIZONTAL_ALIGNMENT_LEFT, -1, 11,
-		Color(0.86, 0.67, 0.34, 1.0)
-	)
 	draw_string(
 		_font, Vector2(text_x, 80.0), _action,
 		HORIZONTAL_ALIGNMENT_LEFT, 202.0, 25,

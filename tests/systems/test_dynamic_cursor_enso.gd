@@ -30,8 +30,8 @@ func _initialize() -> void:
 			"interaction brackets do not clear the prompt content")
 		_check(cursor.interaction_edge_fade_color.a > 0.0,
 			"interaction edge fade is invisible")
-		_check(cursor.interaction_edge_fade_size.x > 0.0 and cursor.interaction_edge_fade_size.y > 0.0,
-			"interaction edge fade has no drawable size")
+		_check(cursor.interaction_edge_fade_length > cursor.interaction_bracket_radius,
+			"interaction edge fade is too short to read as a bracket-attached fragment")
 		_check(cursor.interaction_edge_fade_start < 0.2,
 			"interaction edge fade leaves too much solid colour toward centre")
 		_check(cursor.interaction_morph_duration > 0.0,

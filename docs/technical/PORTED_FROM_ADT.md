@@ -130,9 +130,12 @@ carries `body_heat_cost_c`, because eating snow for water should cost heat.
   and no translucent fill. The existing key/action face is drawn directly
   between the brackets.
 - Warm yellow beside the two inner brackets reuses HFN's archived
-  `BG_indicatorSURV.gdshader`: one strip fades right, the mirrored strip fades
-  left, and both reach alpha=0 before the screen centre. This is the old HUD
-  fragment/fade treatment rather than a hand-drawn line or a background card.
+  `BG_indicatorSURV.gdshader`, but the shader is now carried by a curved
+  `Polygon2D` ribbon built from the **same arc points as the bracket itself**.
+  The yellow edge therefore bends under the bracket instead of ending as a
+  straight rectangle, while UV.x fades to alpha=0 toward the screen centre.
+- The generic `INTERACT` eyebrow is intentionally not rendered; the key,
+  concrete action and optional target detail carry the interaction by themselves.
 - The keycap keeps its solid key treatment but the earlier raster/grid substrate
   has been removed.
 - ActionPrompt3D remains as comparison/legacy code but is no longer part of

@@ -34,7 +34,7 @@ extends Control
 ## Archived HFN HUD fragment shader: warm colour sits against each inner
 ## bracket and fades all the way to alpha=0 toward the screen centre.
 @export var interaction_edge_fade_color: Color = Color(0.95, 0.67, 0.16, 0.82)
-@export var interaction_edge_fade_size: Vector2 = Vector2(148.0, 42.0)
+@export var interaction_edge_fade_length: float = 148.0
 @export_range(0.0, 0.8, 0.01) var interaction_edge_fade_start: float = 0.02
 @export_range(0.2, 1.0, 0.01) var interaction_edge_fade_curve: float = 0.62
 @export var interaction_edge_fade_overlap: float = 7.0
@@ -82,8 +82,8 @@ var _interaction_morph_progress: float = 0.0
 var _interaction_morph_from: float = 0.0
 var _interaction_morph_target: float = 0.0
 var _interaction_morph_elapsed: float = 0.0
-var _edge_fade_left: ColorRect
-var _edge_fade_right: ColorRect
+var _edge_fade_left: Polygon2D
+var _edge_fade_right: Polygon2D
 var _edge_fade_left_material: ShaderMaterial
 var _edge_fade_right_material: ShaderMaterial
 var _prompt_face: ActionPromptFace
@@ -261,8 +261,8 @@ func _update_interaction_morph(delta: float) -> void:
 
 
 func _build_interaction_prompt() -> void:
-	_edge_fade_left = _build_edge_fade("InteractionEdgeFadeLeft", 0)
-	_edge_fade_right = _build_edge_fade("InteractionEdgeFadeRight", 1)
+	_edge_fade_left = _build_edge_fade("InteractionEdgeFadeLeft")
+	_edge_fade_right = _build_edge_fade("InteractionEdgeFadeRight")
 	_edge_fade_left_material = _edge_fade_left.material as ShaderMaterial
 	_edge_fade_right_material = _edge_fade_right.material as ShaderMaterial
 
@@ -275,24 +275,25 @@ func _build_interaction_prompt() -> void:
 	add_child(_prompt_face)
 
 
-func _build_edge_fade(node_name: String, direction: int) -> ColorRect:
-	var strip := ColorRect.new()
-	strip.name = node_name
-	strip.mouse_filter = Control.MOUSE_FILTER_IGNORE
-	strip.color = Color.WHITE
-	strip.show_behind_parent = true
-	strip.visible = false
+func _build_edge_fade(node_name: String) -> Polygon2D:
+	var ribbon := Polygon2D.new()
+	ribbon.name = node_name
+	ribbon.show_behind_parent = true
+	ribbon.z_index = -1
+	ribbon.visible = false
 	var material := ShaderMaterial.new()
 	material.shader = INTERACTION_EDGE_FADE_SHADER
 	material.set_shader_parameter(&"base_color", interaction_edge_fade_color)
-	material.set_shader_parameter(&"fade_direction", direction)
+	# Both ribbons use UV.x = 0 at the bracket and UV.x = 1 toward centre,
+	# so the archived shader can use one fade direction for both sides.
+	material.set_shader_parameter(&"fade_direction", 0)
 	material.set_shader_parameter(&"fade_start", interaction_edge_fade_start)
 	material.set_shader_parameter(&"fade_end", 1.0)
 	material.set_shader_parameter(&"fade_curve", interaction_edge_fade_curve)
 	material.set_shader_parameter(&"corner_radius", 0.0)
-	strip.material = material
-	add_child(strip)
-	return strip
+	ribbon.material = material
+	add_child(ribbon)
+	return ribbon
 
 
 func _sync_prompt(target: InteractiveArea) -> void:
@@ -300,7 +301,7 @@ func _sync_prompt(target: InteractiveArea) -> void:
 		return
 	var data := target.get_interaction_prompt_data()
 	_prompt_face.set_prompt(
-		tr("PROMPT_HEADER_INTERACT"),
+		"",
 		String(data.get("key", "F")),
 		String(data.get("action", tr("INTERACT_USE"))),
 		String(data.get("detail", ""))
@@ -330,33 +331,68 @@ func _update_interaction_edge_fades(center: Vector2, t: float) -> void:
 	):
 		return
 	var reveal := _smoothstep01((t - 0.50) / 0.38)
-	var size := interaction_edge_fade_size
-	var bracket_inner_x := maxf(
-		interaction_bracket_offset - interaction_bracket_radius + interaction_edge_fade_overlap,
-		0.0
-	)
+	var paths := _current_interaction_paths(center, t)
+	if paths.size() != 2:
+		_edge_fade_left.visible = false
+		_edge_fade_right.visible = false
+		return
 
-	# Left: yellow touches the left bracket, then fades to transparent toward centre.
-	_edge_fade_left.position = Vector2(
-		center.x - bracket_inner_x,
-		center.y - size.y * 0.5
-	)
-	_edge_fade_left.size = size
+	var first_is_left := _average_path_x(paths[0]) < center.x
+	var left_path: PackedVector2Array = paths[0] if first_is_left else paths[1]
+	var right_path: PackedVector2Array = paths[1] if first_is_left else paths[0]
+	_set_edge_fade_ribbon(_edge_fade_left, left_path, center.x, reveal)
+	_set_edge_fade_ribbon(_edge_fade_right, right_path, center.x, reveal)
 
-	# Right: mirrored material (fade_direction=LEFT), again ending transparent inward.
-	_edge_fade_right.position = Vector2(
-		center.x + bracket_inner_x - size.x,
-		center.y - size.y * 0.5
-	)
-	_edge_fade_right.size = size
-
-	var visible_now := reveal > 0.001
-	_edge_fade_left.visible = visible_now
-	_edge_fade_right.visible = visible_now
 	var colour := interaction_edge_fade_color
 	colour.a *= reveal
 	_edge_fade_left_material.set_shader_parameter(&"base_color", colour)
 	_edge_fade_right_material.set_shader_parameter(&"base_color", colour)
+
+
+func _set_edge_fade_ribbon(
+		ribbon: Polygon2D,
+		bracket_path: PackedVector2Array,
+		center_x: float,
+		reveal: float
+	) -> void:
+	if bracket_path.size() < 2:
+		ribbon.visible = false
+		return
+
+	var avg_x := _average_path_x(bracket_path)
+	var toward_center := Vector2.LEFT if avg_x > center_x else Vector2.RIGHT
+	var outer_overlap := maxf(interaction_edge_fade_overlap, 0.0)
+	var fade_length := maxf(interaction_edge_fade_length, 1.0)
+	var count := bracket_path.size()
+	var polygon := PackedVector2Array()
+	var uv := PackedVector2Array()
+
+	# Outer contour is literally the same curved path as the bracket, extended
+	# a few pixels beneath its stroke so there is no flat rectangular seam.
+	for i: int in range(count):
+		var v := float(i) / float(count - 1)
+		polygon.append(bracket_path[i] - toward_center * outer_overlap)
+		uv.append(Vector2(0.0, v))
+
+	# The inside contour is the same arc shifted toward centre. The archived
+	# fragment shader fades along UV.x, reaching zero alpha before this contour.
+	for i: int in range(count - 1, -1, -1):
+		var v := float(i) / float(count - 1)
+		polygon.append(bracket_path[i] + toward_center * fade_length)
+		uv.append(Vector2(1.0, v))
+
+	ribbon.polygon = polygon
+	ribbon.uv = uv
+	ribbon.visible = reveal > 0.001
+
+
+static func _average_path_x(points: PackedVector2Array) -> float:
+	if points.is_empty():
+		return 0.0
+	var total := 0.0
+	for point: Vector2 in points:
+		total += point.x
+	return total / float(points.size())
 
 
 func _on_interaction_performed(target: InteractiveArea) -> void:
@@ -384,6 +420,23 @@ func _draw_interaction_cursor(center: Vector2, color: Color) -> void:
 ## born near the Enso and then the two halves travel apart around HFN's ink.
 func _draw_interaction_morph_shape(center: Vector2, t: float, color: Color) -> void:
 	var shape_t := clampf(t / 0.62, 0.0, 1.0)
+	var paths := _current_interaction_paths(center, t)
+
+	var alpha := _smoothstep01(t / 0.18)
+	var shape_color := color
+	shape_color.a *= alpha
+	var juice := sin(shape_t * PI)
+	if juice > 0.001 and interaction_morph_glow > 0.0:
+		_draw_morph_paths(
+			paths,
+			_color_with_alpha(shape_color, 0.10 * interaction_morph_glow * juice),
+			interaction_bracket_thickness * 3.0
+		)
+	_draw_morph_paths(paths, shape_color, interaction_bracket_thickness)
+
+
+func _current_interaction_paths(center: Vector2, t: float) -> Array[PackedVector2Array]:
+	var shape_t := clampf(t / 0.62, 0.0, 1.0)
 	var eased := _morph_ease_in_out(shape_t, interaction_morph_ease_power)
 	var base_radius := lerpf(cursor_radius, interaction_bracket_radius, eased)
 	var stretch_in := _morph_ease_in_out(minf(shape_t / 0.55, 1.0), 1.8)
@@ -404,18 +457,7 @@ func _draw_interaction_morph_shape(center: Vector2, t: float, color: Color) -> v
 			paths[0][i].x += spread
 		for i: int in range(paths[1].size()):
 			paths[1][i].x -= spread
-
-	var alpha := _smoothstep01(t / 0.18)
-	var shape_color := color
-	shape_color.a *= alpha
-	var juice := sin(shape_t * PI)
-	if juice > 0.001 and interaction_morph_glow > 0.0:
-		_draw_morph_paths(
-			paths,
-			_color_with_alpha(shape_color, 0.10 * interaction_morph_glow * juice),
-			interaction_bracket_thickness * 3.0
-		)
-	_draw_morph_paths(paths, shape_color, interaction_bracket_thickness)
+	return paths
 
 
 func _build_morph_paths(
