@@ -136,7 +136,11 @@ func _find_crosshair_target() -> InteractiveArea:
 	var area_hit := _first_interactive_area_on_ray(from, to)
 	if not area_hit.is_empty():
 		var direct := _area_from(area_hit.get("collider"))
-		if direct != null and _flat_distance_to(direct) <= intent_radius:
+		if (
+			direct != null
+			and _flat_distance_to(direct) <= intent_radius
+			and _is_focus_aligned(from, direction, direct)
+		):
 			var hit_position: Vector3 = area_hit.get("position", direct.global_position)
 			if _focus_hit_is_visible(from, hit_position, direct):
 				return direct
@@ -152,7 +156,9 @@ func _find_crosshair_target() -> InteractiveArea:
 		var body_target := _area_from(body_hit.get("collider"))
 		if body_target != null and _flat_distance_to(body_target) <= intent_radius:
 			return body_target
-		return null
+		# Do not abort on terrain/walls here. A pickup has no physics body of its
+		# own, so the centre ray often reaches the ground just behind it. The
+		# nearby-Area fallback below still performs its own line-of-sight test.
 
 	# Some legacy InteractiveAreas envelop the camera. Rays do not report a
 	# shape containing their origin, so recover only candidates genuinely under
@@ -231,6 +237,13 @@ func _focus_hit_is_visible(from: Vector3, hit_position: Vector3, target: Interac
 	if hit.is_empty():
 		return true
 	return _area_from(hit.get("collider")) == target
+
+
+func _is_focus_aligned(from: Vector3, direction: Vector3, area: InteractiveArea) -> bool:
+	var toward: Vector3 = _focus_point(area) - from
+	if toward.length() < 0.01:
+		return false
+	return direction.angle_to(toward.normalized()) <= deg_to_rad(focus_angle_deg * 0.5)
 
 
 func _has_focus_line(camera: Camera3D, area: InteractiveArea) -> bool:
