@@ -28,8 +28,9 @@ const OPTICAL_SCALE: Dictionary = {
 	&"sleep": 0.88,
 	&"warmth": 1.00,
 }
-## Warmth can move both ways; keep its small trend cue.
-const TREND_IDS: Array[StringName] = [&"warmth"]
+## Every survival vital exposes the same trend grammar: rising above in green,
+## falling below in red. The sampled trend logic already tracks all four.
+const TREND_IDS: Array[StringName] = [&"thirst", &"hunger", &"sleep", &"warmth"]
 
 @export var bio_monitor: BioMonitorManager
 @export var thermal_manager: ThermalManager
@@ -44,6 +45,10 @@ const TREND_IDS: Array[StringName] = [&"warmth"]
 @export var outline_width: float = 2.0
 @export var icon_size: float = 42.0
 @export var icon_gap: float = 14.0
+@export var progress_radius: float = 24.0
+@export var progress_width: float = 2.25
+@export_range(0.0, 1.0, 0.01) var warning_progress_threshold: float = 0.66
+@export_range(0.0, 1.0, 0.01) var critical_progress_threshold: float = 0.33
 ## Legacy fields kept serialized for compatibility with older scene overrides.
 ## The restored horizontal biomonitor does not draw the centre silhouette.
 ## Height of the quiet figure standing between the top cells, above the health bar.
@@ -72,13 +77,16 @@ const TREND_IDS: Array[StringName] = [&"warmth"]
 @export var trend_window: float = 1.5
 ## Smallest move within the window that counts as a trend.
 @export var trend_epsilon: float = 0.002
-@export var trend_size: float = 7.0
+@export var trend_size: float = 4.5
+@export var trend_gap: float = 1.0
 
 @export_group("Colours")
 ## Solid backing of every cell; the level shows through the glyph, not a fill.
 @export var base_color: Color = Color("#2A2E3399")
 @export var silhouette_color: Color = Color("#15181B8C")
 @export var normal_color: Color = Color("#F1F2EC")
+@export var progress_track_color: Color = Color("#7C82884D")
+@export var progress_normal_color: Color = Color("#92979CD9")
 @export var warning_color: Color = Color("#D2A943")
 @export var critical_color: Color = Color("#C34E42")
 @export var drain_flash: Color = Color("#A34A3A")
@@ -257,6 +265,7 @@ func _draw_biomonitor_icon(cell: VitalCell, centre: Vector2) -> void:
 	var texture: Texture2D = _texture_for(cell.id)
 	if texture == null:
 		return
+	_draw_progress_ring(cell, centre)
 	var source: Rect2 = _icon_regions.get(
 		cell.id,
 		Rect2(Vector2.ZERO, Vector2(float(texture.get_width()), float(texture.get_height())))
@@ -276,7 +285,50 @@ func _draw_biomonitor_icon(cell: VitalCell, centre: Vector2) -> void:
 	var rect := Rect2(centre - draw_size * 0.5 + Vector2(0.0, cell.push), draw_size)
 	draw_texture_rect_region(texture, rect, source, tint)
 	if TREND_IDS.has(cell.id):
-		_draw_trend(get_trend(cell.id), centre + Vector2(icon_size * 0.62, 0.0), get_trend(cell.id) > 0)
+		_draw_vital_trend(get_trend(cell.id), centre)
+
+
+func _draw_progress_ring(cell: VitalCell, centre: Vector2) -> void:
+	var level: float = clampf(cell.level, 0.0, 1.0)
+	var start: float = -PI * 0.5
+	draw_arc(centre, progress_radius, start, start + TAU, 48, progress_track_color, progress_width, true)
+	if level <= 0.001:
+		return
+	draw_arc(
+		centre,
+		progress_radius,
+		start,
+		start + TAU * level,
+		48,
+		_progress_color_for_level(level),
+		progress_width,
+		true
+	)
+
+
+func _progress_color_for_level(level: float) -> Color:
+	if level < critical_progress_threshold:
+		return critical_color
+	if level < warning_progress_threshold:
+		return warning_color
+	return progress_normal_color
+
+
+func _draw_vital_trend(trend: int, centre: Vector2) -> void:
+	if trend == 0:
+		return
+	var rising: bool = trend > 0
+	var at_y: float = centre.y - progress_radius - trend_gap if rising else centre.y + progress_radius + trend_gap
+	var at := Vector2(centre.x, at_y)
+	var s: float = trend_size
+	var tip := at + Vector2(0.0, -s if rising else s)
+	var base_y: float = s * 0.45 if rising else -s * 0.45
+	var points := PackedVector2Array([
+		tip,
+		at + Vector2(-s * 0.75, base_y),
+		at + Vector2(s * 0.75, base_y),
+	])
+	draw_colored_polygon(points, refill_flash if rising else drain_flash)
 
 
 func _cache_icon_regions() -> void:

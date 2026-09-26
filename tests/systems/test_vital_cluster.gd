@@ -56,6 +56,11 @@ func _process(delta: float) -> bool:
 			_check(VitalCell.severity_for_level(0.499) == VitalCell.Severity.WARNING, "below 50% must be warning")
 			_check(VitalCell.severity_for_level(0.10) == VitalCell.Severity.WARNING, "10% must remain warning")
 			_check(VitalCell.severity_for_level(0.099) == VitalCell.Severity.CRITICAL, "below 10% must be critical")
+			_check(VitalCluster.TREND_IDS.size() == 4, "all four vitals must expose trend markers")
+			_check(VitalCluster.TREND_IDS.has(&"thirst") and VitalCluster.TREND_IDS.has(&"hunger") and VitalCluster.TREND_IDS.has(&"sleep") and VitalCluster.TREND_IDS.has(&"warmth"), "trend markers are not wired to every vital")
+			_check(_cluster._progress_color_for_level(1.0).is_equal_approx(_cluster.progress_normal_color), "100% progress must be grey")
+			_check(_cluster._progress_color_for_level(0.65).is_equal_approx(_cluster.warning_color), "below 66% progress must be yellow")
+			_check(_cluster._progress_color_for_level(0.32).is_equal_approx(_cluster.critical_color), "below 33% progress must be red")
 			_check(is_equal_approx(_strip.ratio, 0.6) and _strip.trail > 0.61, "damage left no trail (ratio %.2f trail %.2f)" % [_strip.ratio, _strip.trail])
 	return false
 
