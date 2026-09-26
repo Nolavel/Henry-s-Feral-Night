@@ -1,8 +1,8 @@
 name: checks
 
 ## Cheap gate for main: import, filename hygiene, headless test suites.
-## Rendering remains opt-in: a PR title containing [startup-preview] captures
-## exactly one lightweight startup-title PNG through the existing render harness.
+## Rendering remains opt-in. [startup-preview] captures the title card;
+## [hud-preview] captures one production HFN frame with the ADT-style input hints.
 on:
   pull_request:
     branches: [main]
@@ -44,8 +44,8 @@ jobs:
       - name: Run headless test suites
         run: tools/ci/run_tests.sh
 
-      - name: Provision startup preview renderer
-        if: github.event_name == 'pull_request' && contains(github.event.pull_request.title, '[startup-preview]')
+      - name: Provision preview renderer
+        if: github.event_name == 'pull_request' && (contains(github.event.pull_request.title, '[startup-preview]') || contains(github.event.pull_request.title, '[hud-preview]'))
         run: |
           sudo apt-get update -qq
           sudo apt-get install -y -qq mesa-vulkan-drivers xvfb
@@ -60,5 +60,18 @@ jobs:
         with:
           name: startup-squiggle-preview
           path: artifacts/startup_squiggle.png
+          if-no-files-found: error
+          retention-days: 3
+
+      - name: Render ADT key-hints preview in HFN
+        if: github.event_name == 'pull_request' && contains(github.event.pull_request.title, '[hud-preview]')
+        run: tools/ci/render.sh res://experimental_location/scenes/Graciosa_Island_Terrain.tscn res://artifacts/key_hints_adt.png 180
+
+      - name: Upload ADT key-hints preview
+        if: github.event_name == 'pull_request' && contains(github.event.pull_request.title, '[hud-preview]')
+        uses: actions/upload-artifact@v4
+        with:
+          name: key-hints-adt-preview
+          path: artifacts/key_hints_adt.png
           if-no-files-found: error
           retention-days: 3

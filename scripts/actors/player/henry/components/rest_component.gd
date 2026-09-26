@@ -8,7 +8,6 @@ extends Node
 signal sat_down(spot: Node3D)
 signal stood_up
 
-const HINT_KEY: String = "REST_SEATED_HINT"
 ## Seconds the reason a wait ended early stays up.
 const RESULT_SECONDS: float = 3.0
 const WAIT_ACTION: StringName = &"interact"
@@ -19,7 +18,7 @@ const PACK_SPOT: Vector3 = Vector3(-0.62, 0.0, 0.05)
 const KENNY_SPOT: Vector3 = Vector3(0.62, 0.0, 0.05)
 
 var _spot: Node3D
-var _hint: Label
+var _status_label: Label
 var _table: MealTable
 
 
@@ -46,7 +45,6 @@ func sit(spot: Node3D) -> bool:
 		visual.set_sitting(true)
 		visual.set_pack_down(spot.global_transform * Transform3D(Basis(Vector3.UP, 0.4), PACK_SPOT),
 			spot.global_transform * Transform3D(Basis(Vector3.UP, PI * 0.5), KENNY_SPOT))  # faces the pack
-	_show_hint(true)
 	_table = MealTable.near(get_tree(), spot.global_position) if is_inside_tree() else null
 	if _table != null:
 		_table.lay_out(InventoryComponent.find_in(body), body.get_node_or_null(^"EquipmentComponent") as EquipmentComponent)
@@ -62,7 +60,6 @@ func stand() -> bool:
 	if visual != null:
 		visual.set_sitting(false)
 		visual.pick_pack_up()
-	_show_hint(false)
 	if is_instance_valid(_table):
 		_table.clear()
 	_table = null
@@ -113,12 +110,9 @@ func open_wait() -> bool:
 
 ## Says why a wait ended before the chosen hours, then returns to the seated hint.
 func _on_wait_completed(_hours: float, ended_early_key: String) -> void:
-	if ended_early_key == "" or _hint == null:
+	if ended_early_key == "":
 		return
-	_hint.text = tr(ended_early_key)
-	get_tree().create_timer(RESULT_SECONDS).timeout.connect(func() -> void:
-		if is_instance_valid(_hint):
-			_hint.text = tr(HINT_KEY))
+	_show_status(ended_early_key)
 
 
 func _prompt() -> SleepPrompt:
@@ -135,20 +129,24 @@ func _visual() -> HenryUALAnimation:
 	return body.get_node_or_null(^"HenryUALVisual") as HenryUALAnimation if body != null else null
 
 
-## "F — wait · move — stand up" at the bottom of the screen while seated.
-func _show_hint(show: bool) -> void:
+## A short result message is still allowed here; the persistent control grammar
+## is owned by KeyHintsPanel so seated controls are not duplicated.
+func _show_status(key: String) -> void:
 	if not is_inside_tree():
 		return
-	if _hint == null:
+	if _status_label == null:
 		var layer := CanvasLayer.new()
 		layer.layer = 15
 		add_child(layer)
-		_hint = Label.new()
-		_hint.text = tr(HINT_KEY)
-		_hint.anchor_left = 0.5
-		_hint.anchor_right = 0.5
-		_hint.anchor_top = 0.88
-		_hint.grow_horizontal = Control.GROW_DIRECTION_BOTH
-		_hint.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
-		layer.add_child(_hint)
-	_hint.visible = show
+		_status_label = Label.new()
+		_status_label.anchor_left = 0.5
+		_status_label.anchor_right = 0.5
+		_status_label.anchor_top = 0.88
+		_status_label.grow_horizontal = Control.GROW_DIRECTION_BOTH
+		_status_label.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
+		layer.add_child(_status_label)
+	_status_label.text = tr(key)
+	_status_label.visible = true
+	get_tree().create_timer(RESULT_SECONDS).timeout.connect(func() -> void:
+		if is_instance_valid(_status_label):
+			_status_label.visible = false)

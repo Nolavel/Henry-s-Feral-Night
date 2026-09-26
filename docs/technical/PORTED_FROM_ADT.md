@@ -105,3 +105,17 @@ carries `body_heat_cost_c`, because eating snow for water should cost heat.
   it does not slow Henry down. A limit the player can feel comes before a
   penalty they cannot see the shape of.
 - **An equipment UI.** Neither project has one.
+
+
+## ADT KeyHintsPanel → HFN production controls blot
+
+- ADT source: `ui/hud/player_hud/key_hints_panel.gd/.tscn`,
+  `key_hint_entry.gd`, `key_hints_catalog.gd`,
+  `data/key_hints.tres`, and `vfx/shaders/key_hints_blot.gdshader`.
+- HFN keeps the lower-right placement, key-cap styling, ink shader constants and
+  ink→text / text→ink choreography. The catalog is rewritten for HFN's real
+  InputMap and PlayerState plus Hub/Rest component state; no parallel player
+  state or second input manager was added.
+- ADT's BlackRock font is deliberately NOT copied: ADT marks it as a
+  project-only asset not for redistribution. HFN therefore uses its own project
+  font for prose while preserving ADT's monospace key caps.

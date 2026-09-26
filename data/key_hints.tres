@@ -1,0 +1,147 @@
+[gd_resource type="Resource" script_class="KeyHintsCatalog" format=3]
+
+[ext_resource type="Script" path="res://scripts/ui/hud/input_hints/key_hint_entry.gd" id="1_entry"]
+[ext_resource type="Script" path="res://scripts/ui/hud/input_hints/key_hints_catalog.gd" id="2_catalog"]
+
+[sub_resource type="Resource" id="move"]
+script = ExtResource("1_entry")
+action_names = Array[StringName]([&"move_forward", &"move_backward", &"move_left", &"move_right"])
+description = "Move"
+category = 0
+modes = Array[int]([0])
+contexts = Array[int]([0])
+sort_order = 10
+
+[sub_resource type="Resource" id="sprint"]
+script = ExtResource("1_entry")
+action_name = &"sprint"
+description = "Sprint"
+category = 0
+modes = Array[int]([0])
+contexts = Array[int]([0])
+sort_order = 20
+
+[sub_resource type="Resource" id="jump"]
+script = ExtResource("1_entry")
+action_name = &"jump"
+description = "Jump"
+category = 0
+modes = Array[int]([0])
+contexts = Array[int]([0])
+sort_order = 30
+
+[sub_resource type="Resource" id="crouch"]
+script = ExtResource("1_entry")
+action_name = &"crouch"
+description = "Crouch"
+category = 0
+modes = Array[int]([0])
+contexts = Array[int]([0])
+sort_order = 40
+
+[sub_resource type="Resource" id="lean"]
+script = ExtResource("1_entry")
+action_names = Array[StringName]([&"lean_left", &"lean_right"])
+description = "Lean"
+category = 0
+modes = Array[int]([0])
+contexts = Array[int]([0])
+sort_order = 50
+
+[sub_resource type="Resource" id="interact"]
+script = ExtResource("1_entry")
+action_name = &"interact"
+description = "Interact"
+modes = Array[int]([0])
+contexts = Array[int]([0])
+sort_order = 10
+
+[sub_resource type="Resource" id="hub"]
+script = ExtResource("1_entry")
+action_name = &"open hub"
+description = "Player Hub"
+modes = Array[int]([0])
+contexts = Array[int]([0])
+sort_order = 20
+
+[sub_resource type="Resource" id="quick_cycle"]
+script = ExtResource("1_entry")
+action_names = Array[StringName]([&"quick_prev", &"quick_next"])
+description = "Quick Access"
+modes = Array[int]([0])
+contexts = Array[int]([0])
+sort_order = 30
+
+[sub_resource type="Resource" id="quick_use"]
+script = ExtResource("1_entry")
+action_name = &"quick_use"
+description = "Use selected item"
+modes = Array[int]([0])
+contexts = Array[int]([0])
+sort_order = 40
+
+[sub_resource type="Resource" id="shoulder"]
+script = ExtResource("1_entry")
+action_name = &"switch_shoulder"
+description = "Switch shoulder"
+modes = Array[int]([0])
+contexts = Array[int]([0])
+sort_order = 50
+
+[sub_resource type="Resource" id="hub_drag"]
+script = ExtResource("1_entry")
+action_name = &"fire"
+description = "Select / drag"
+modes = Array[int]([0])
+contexts = Array[int]([1])
+sort_order = 10
+
+[sub_resource type="Resource" id="hub_close"]
+script = ExtResource("1_entry")
+action_names = Array[StringName]([&"open hub", &"pause"])
+description = "Close Player Hub"
+modes = Array[int]([0])
+contexts = Array[int]([1])
+sort_order = 20
+
+[sub_resource type="Resource" id="sit_move"]
+script = ExtResource("1_entry")
+action_names = Array[StringName]([&"move_forward", &"move_backward", &"move_left", &"move_right"])
+description = "Stand up"
+category = 0
+modes = Array[int]([0])
+contexts = Array[int]([2])
+sort_order = 10
+
+[sub_resource type="Resource" id="sit_interact"]
+script = ExtResource("1_entry")
+action_name = &"interact"
+description = "Wait / interact"
+modes = Array[int]([0])
+contexts = Array[int]([2])
+sort_order = 10
+
+[sub_resource type="Resource" id="sit_hub"]
+script = ExtResource("1_entry")
+action_name = &"open hub"
+description = "Player Hub"
+modes = Array[int]([0])
+contexts = Array[int]([2])
+sort_order = 20
+
+[sub_resource type="Resource" id="sit_escape"]
+script = ExtResource("1_entry")
+action_name = &"pause"
+description = "Stand up"
+modes = Array[int]([0])
+contexts = Array[int]([2])
+sort_order = 30
+
+[resource]
+script = ExtResource("2_catalog")
+entries = Array[ExtResource("1_entry")]([
+	SubResource("move"), SubResource("sprint"), SubResource("jump"), SubResource("crouch"),
+	SubResource("lean"), SubResource("interact"), SubResource("hub"), SubResource("quick_cycle"),
+	SubResource("quick_use"), SubResource("shoulder"), SubResource("hub_drag"), SubResource("hub_close"),
+	SubResource("sit_move"), SubResource("sit_interact"), SubResource("sit_hub"), SubResource("sit_escape")
+])
