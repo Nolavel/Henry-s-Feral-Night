@@ -1,6 +1,31 @@
-[gd_scene load_steps=2 format=3 uid="uid://dx7ctf36hw7md"]
+[gd_scene load_steps=6 format=3 uid="uid://dx7ctf36hw7md"]
 
 [ext_resource type="Script" path="res://scripts/ui/splash/startup_title_card.gd" id="1_startup"]
+[ext_resource type="Shader" path="res://shaders/ui/squigglevision.gdshader" id="2_squiggle"]
+
+[sub_resource type="FastNoiseLite" id="FastNoiseLite_squiggle"]
+noise_type = 3
+frequency = 0.025
+fractal_type = 1
+fractal_octaves = 3
+fractal_lacunarity = 2.0
+fractal_gain = 0.5
+
+[sub_resource type="NoiseTexture2D" id="NoiseTexture2D_squiggle"]
+width = 256
+height = 256
+seamless = true
+normalize = true
+generate_mipmaps = false
+noise = SubResource("FastNoiseLite_squiggle")
+
+[sub_resource type="ShaderMaterial" id="ShaderMaterial_squiggle"]
+resource_local_to_scene = true
+shader = ExtResource("2_squiggle")
+shader_parameter/scale = Vector2(0.75, 0.75)
+shader_parameter/strength = 0.7
+shader_parameter/fps = 6.0
+shader_parameter/noise = SubResource("NoiseTexture2D_squiggle")
 
 [node name="StartupTitleCard" type="CanvasLayer"]
 layer = 100
@@ -40,6 +65,7 @@ theme_override_constants/separation = 18
 alignment = 1
 
 [node name="Title" type="Label" parent="Cover/Center/Titles"]
+material = SubResource("ShaderMaterial_squiggle")
 layout_mode = 2
 theme_override_colors/font_color = Color(0.921569, 0.921569, 0.921569, 1)
 theme_override_font_sizes/font_size = 64
@@ -47,6 +73,7 @@ text = "Henry's Feral Night"
 horizontal_alignment = 1
 
 [node name="Version" type="Label" parent="Cover/Center/Titles"]
+material = SubResource("ShaderMaterial_squiggle")
 layout_mode = 2
 theme_override_colors/font_color = Color(0.65098, 0.65098, 0.65098, 1)
 theme_override_font_sizes/font_size = 18

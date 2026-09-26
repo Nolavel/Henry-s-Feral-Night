@@ -7,6 +7,7 @@ extends SceneTree
 const CARD_PATH: String = "res://scenes/splash/splash_scene.tscn"
 const MAIN_PATH: String = "res://experimental_location/scenes/Graciosa_Island_Terrain.tscn"
 const LEGACY_SPLASH_PATH: String = "res://assets/textures/ui/splash/Splash_testing.png"
+const SQUIGGLE_SHADER_PATH: String = "res://shaders/ui/squigglevision.gdshader"
 const PREMIUM_BLACK := Color(0.0627451, 0.0627451, 0.0627451, 1.0)
 
 var _failures: int = 0
@@ -21,7 +22,7 @@ func _initialize() -> void:
 		push_error("startup presentation: %d check(s) failed" % _failures)
 		quit(1)
 		return
-	print("startup presentation: black boot and ALPHA 0.1 title card passed")
+	print("startup presentation: black boot and ALPHA 0.1 Squigglevision title card passed")
 	quit(0)
 
 
@@ -58,11 +59,23 @@ func _test_title_card_content() -> void:
 	_check(version != null, "the title card has no version label")
 	if background != null:
 		_check(background.color.is_equal_approx(PREMIUM_BLACK), "card black is not #101010")
+		_check(background.material == null, "Squigglevision must not distort the black cover")
 	if title != null:
 		_check(title.text == "Henry's Feral Night", "the game title changed")
+		_check(_uses_squigglevision(title), "the game title does not use Squigglevision")
 	if version != null:
 		_check(version.text == "ALPHA 0.1", "the build is not labelled ALPHA 0.1")
+		_check(_uses_squigglevision(version), "the ALPHA label does not use Squigglevision")
 	card.free()
+
+
+func _uses_squigglevision(item: CanvasItem) -> bool:
+	var material := item.material as ShaderMaterial
+	return (
+		material != null
+		and material.shader != null
+		and material.shader.resource_path == SQUIGGLE_SHADER_PATH
+	)
 
 
 func _test_island_owns_the_title_card() -> void:
