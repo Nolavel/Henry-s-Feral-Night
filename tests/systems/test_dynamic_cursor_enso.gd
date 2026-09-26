@@ -28,14 +28,16 @@ func _initialize() -> void:
 			"cursor did not build the centered key/action prompt")
 		_check(cursor.interaction_bracket_offset > cursor.prompt_content_size.x * 0.5,
 			"interaction brackets do not clear the prompt content")
-		_check(cursor.interaction_edge_fade_color.is_equal_approx(Color(1.0, 0.823529, 0.0, 0.784314)),
-			"archived yellow highlight colour/alpha changed")
-		_check(is_equal_approx(cursor.interaction_edge_fade_curve, 0.55),
-			"archived highlight fade curve changed")
-		_check(is_equal_approx(cursor.interaction_edge_fade_modulate_alpha, 0.568627),
-			"archived highlight modulate alpha changed")
-		_check(cursor.interaction_edge_fade_size.x > 0.0 and cursor.interaction_edge_fade_size.y > 0.0,
-			"interaction highlight fragments have no size")
+		var gradient_node := cursor.get_node_or_null(^"InteractionGradient") as TextureRect
+		_check(gradient_node != null, "single interaction gradient node is missing")
+		_check(cursor.get_node_or_null(^"InteractionEdgeFadeLeft") == null,
+			"obsolete left gradient fragment still exists")
+		_check(cursor.get_node_or_null(^"InteractionEdgeFadeRight") == null,
+			"obsolete right gradient fragment still exists")
+		_check(cursor.interaction_gradient_center_alpha > cursor.interaction_gradient_edge_alpha,
+			"interaction gradient is not denser in the centre")
+		_check(cursor.interaction_gradient_fade_fraction < 0.5,
+			"interaction gradient has no central plateau under key/action text")
 		_check(cursor.interaction_morph_duration > 0.0,
 			"interaction morph has no duration")
 		# Stamina/jump exports remain present: this change must not replace those systems.

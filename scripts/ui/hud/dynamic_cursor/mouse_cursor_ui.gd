@@ -31,15 +31,14 @@ extends Control
 @export var interaction_bracket_offset: float = 250.0
 @export var interaction_bracket_radius: float = 24.0
 @export var interaction_bracket_thickness: float = 2.6
-## Reuses the exact old CombatHUD Active_Weapon_Highlight treatment:
-## #FFD200, soft alpha, fade_curve 0.55. Two mirrored fragments make the
-## interaction treatment strongest toward the prompt centre and softer at brackets.
-@export var interaction_edge_fade_color: Color = Color(1.0, 0.823529, 0.0, 0.784314)
-@export var interaction_edge_fade_size: Vector2 = Vector2(148.0, 42.0)
-@export_range(0.0, 0.8, 0.01) var interaction_edge_fade_start: float = 0.0
-@export_range(0.2, 1.0, 0.01) var interaction_edge_fade_curve: float = 0.55
-@export var interaction_edge_fade_overlap: float = 7.0
-@export_range(0.0, 1.0, 0.01) var interaction_edge_fade_modulate_alpha: float = 0.568627
+## One continuous yellow gradient lives under the entire key/action block.
+## Centre stays denser under F + action text; both ends soften toward brackets.
+@export var interaction_gradient_color: Color = Color(1.0, 0.823529, 0.0, 1.0)
+@export_range(0.0, 1.0, 0.01) var interaction_gradient_center_alpha: float = 0.44
+@export_range(0.0, 1.0, 0.01) var interaction_gradient_edge_alpha: float = 0.10
+@export_range(0.05, 0.45, 0.01) var interaction_gradient_fade_fraction: float = 0.22
+@export var interaction_gradient_height: float = 46.0
+@export var interaction_gradient_bracket_overlap: float = 8.0
 @export var prompt_content_size: Vector2 = Vector2(360.0, 150.0)
 
 @export_group("Movement and stamina")
@@ -56,7 +55,6 @@ extends Control
 const RING_SEGMENTS: int = 32
 const JUMP_ARC_COLOR: Color = Color(0.4, 0.8, 1.0)
 const CURSOR_ENSO_PATH := "res://assets/ui/hud/dynamic_cursor/enso_cursor_ring.svg"
-const INTERACTION_EDGE_FADE_SHADER: Shader = preload("res://assets/materials/Shaders/BG_indicatorSURV.gdshader")
 const GROUP_INTERACTION_PROMPT: StringName = &"interaction_cursor_prompt"
 const MORPH_CIRCLE_SEGMENTS: int = 32
 const MORPH_BRACKET_SEGMENTS: int = 10
@@ -84,10 +82,7 @@ var _interaction_morph_progress: float = 0.0
 var _interaction_morph_from: float = 0.0
 var _interaction_morph_target: float = 0.0
 var _interaction_morph_elapsed: float = 0.0
-var _edge_fade_left: ColorRect
-var _edge_fade_right: ColorRect
-var _edge_fade_left_material: ShaderMaterial
-var _edge_fade_right_material: ShaderMaterial
+var _interaction_gradient: TextureRect
 var _prompt_face: ActionPromptFace
 var _confirm_tween: Tween
 
@@ -263,10 +258,7 @@ func _update_interaction_morph(delta: float) -> void:
 
 
 func _build_interaction_prompt() -> void:
-	_edge_fade_left = _build_edge_fade("InteractionEdgeFadeLeft", 1)
-	_edge_fade_right = _build_edge_fade("InteractionEdgeFadeRight", 0)
-	_edge_fade_left_material = _edge_fade_left.material as ShaderMaterial
-	_edge_fade_right_material = _edge_fade_right.material as ShaderMaterial
+	_interaction_gradient = _build_interaction_gradient()
 
 	_prompt_face = ActionPromptFace.new()
 	_prompt_face.name = "InteractionPrompt"
@@ -277,23 +269,36 @@ func _build_interaction_prompt() -> void:
 	add_child(_prompt_face)
 
 
-func _build_edge_fade(node_name: String, direction: int) -> ColorRect:
-	var strip := ColorRect.new()
-	strip.name = node_name
+func _build_interaction_gradient() -> TextureRect:
+	var gradient := Gradient.new()
+	var edge_color := interaction_gradient_color
+	edge_color.a = interaction_gradient_edge_alpha
+	var center_color := interaction_gradient_color
+	center_color.a = interaction_gradient_center_alpha
+	var fade := clampf(interaction_gradient_fade_fraction, 0.05, 0.45)
+	gradient.offsets = PackedFloat32Array([0.0, fade, 1.0 - fade, 1.0])
+	gradient.colors = PackedColorArray([
+		edge_color,
+		center_color,
+		center_color,
+		edge_color,
+	])
+
+	var texture := GradientTexture2D.new()
+	texture.gradient = gradient
+	texture.width = 512
+	texture.height = 64
+	texture.fill_from = Vector2(0.0, 0.5)
+	texture.fill_to = Vector2(1.0, 0.5)
+
+	var strip := TextureRect.new()
+	strip.name = "InteractionGradient"
 	strip.mouse_filter = Control.MOUSE_FILTER_IGNORE
-	strip.color = Color.WHITE
-	strip.modulate = Color(1.0, 1.0, 1.0, interaction_edge_fade_modulate_alpha)
+	strip.texture = texture
+	strip.expand_mode = TextureRect.EXPAND_IGNORE_SIZE
+	strip.stretch_mode = TextureRect.STRETCH_SCALE
 	strip.show_behind_parent = true
 	strip.visible = false
-	var material := ShaderMaterial.new()
-	material.shader = INTERACTION_EDGE_FADE_SHADER
-	material.set_shader_parameter(&"base_color", interaction_edge_fade_color)
-	material.set_shader_parameter(&"fade_direction", direction)
-	material.set_shader_parameter(&"fade_start", interaction_edge_fade_start)
-	material.set_shader_parameter(&"fade_end", 1.0)
-	material.set_shader_parameter(&"fade_curve", interaction_edge_fade_curve)
-	material.set_shader_parameter(&"corner_radius", 0.10)
-	strip.material = material
 	add_child(strip)
 	return strip
 
@@ -325,41 +330,19 @@ func _update_prompt_visuals() -> void:
 
 
 func _update_interaction_edge_fades(center: Vector2, t: float) -> void:
-	if (
-		_edge_fade_left == null
-		or _edge_fade_right == null
-		or _edge_fade_left_material == null
-		or _edge_fade_right_material == null
-	):
+	if _interaction_gradient == null:
 		return
+
 	var reveal := _smoothstep01((t - 0.50) / 0.38)
-	var size := interaction_edge_fade_size
-	var bracket_inner_x := maxf(
-		interaction_bracket_offset - interaction_bracket_radius + interaction_edge_fade_overlap,
-		0.0
+	var half_width := maxf(
+		interaction_bracket_offset - interaction_bracket_radius + interaction_gradient_bracket_overlap,
+		prompt_content_size.x * 0.5
 	)
-
-	# Left half: solid near the prompt centre, fading outward toward the left bracket.
-	_edge_fade_left.position = Vector2(
-		center.x - bracket_inner_x,
-		center.y - size.y * 0.5
-	)
-	_edge_fade_left.size = size
-
-	# Right half: mirrored, solid near centre and fading toward the right bracket.
-	_edge_fade_right.position = Vector2(
-		center.x + bracket_inner_x - size.x,
-		center.y - size.y * 0.5
-	)
-	_edge_fade_right.size = size
-
-	var visible_now := reveal > 0.001
-	_edge_fade_left.visible = visible_now
-	_edge_fade_right.visible = visible_now
-	var colour := interaction_edge_fade_color
-	colour.a *= reveal
-	_edge_fade_left_material.set_shader_parameter(&"base_color", colour)
-	_edge_fade_right_material.set_shader_parameter(&"base_color", colour)
+	var size := Vector2(half_width * 2.0, interaction_gradient_height)
+	_interaction_gradient.position = center - size * 0.5
+	_interaction_gradient.size = size
+	_interaction_gradient.modulate.a = reveal
+	_interaction_gradient.visible = reveal > 0.001
 
 
 func _on_interaction_performed(target: InteractiveArea) -> void:
