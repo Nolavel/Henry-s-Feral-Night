@@ -1,13 +1,13 @@
 [gd_scene format=3 uid="uid://cg14lfow57cog"]
 
-[ext_resource type="Script" path="res://world/world.gd" id="1_8hwqn"]
+[ext_resource type="Script" uid="uid://c5lmffi200345" path="res://world/world.gd" id="1_8hwqn"]
 [ext_resource type="PackedScene" uid="uid://dputwp1am8vfu" path="res://scenes/game/systems/camera/tps_camera.tscn" id="1_ftega"]
 [ext_resource type="PackedScene" uid="uid://ciy301x7wh6ie" path="res://scenes/actors/player/player.tscn" id="2_8hwqn"]
 [ext_resource type="PackedScene" uid="uid://duxn5rqcau5dw" path="res://tools/StatsDisplay/StatsDisplay.tscn" id="5_h70bg"]
 [ext_resource type="PackedScene" uid="uid://cvv8y27vmgjfi" path="res://scenes/game/systems/world/WorldEnvironmentSystem.tscn" id="6_pbfqm"]
 [ext_resource type="PackedScene" path="res://scenes/world/first_exit/first_exit_blockout.tscn" id="7_fexit"]
-[ext_resource type="Script" path="res://scripts/systems/world/terrain/island_terrain.gd" id="8_island"]
-[ext_resource type="PackedScene" path="res://scenes/splash/splash_scene.tscn" id="9_startup"]
+[ext_resource type="Script" uid="uid://chuytq0w1nhq8" path="res://scripts/systems/world/terrain/island_terrain.gd" id="8_island"]
+[ext_resource type="PackedScene" uid="uid://dx7ctf36hw7md" path="res://scenes/splash/splash_scene.tscn" id="9_startup"]
 
 [sub_resource type="StandardMaterial3D" id="StandardMaterial3D_gciob"]
 albedo_color = Color(0.29803923, 0.5803922, 1, 1)
@@ -18,7 +18,7 @@ material = SubResource("StandardMaterial3D_gciob")
 add_uv2 = true
 size = Vector2(6000, 6000)
 
-[node name="World" type="Node3D" node_paths=PackedStringArray("stream_container", "player", "camera", "first_spawner_marker")]
+[node name="World" type="Node3D" unique_id=2034020850 node_paths=PackedStringArray("stream_container", "player", "camera", "first_spawner_marker")]
 script = ExtResource("1_8hwqn")
 stream_container = NodePath("StreamContainer")
 player = NodePath("Player")
@@ -26,34 +26,36 @@ camera = NodePath("PlayerCamera")
 first_spawner_marker = NodePath("FirstSpawner")
 metadata/_edit_group_ = true
 
-[node name="StartupTitleCard" parent="." instance=ExtResource("9_startup")]
+[node name="StartupTitleCard" parent="." unique_id=924374067 instance=ExtResource("9_startup")]
 
-[node name="StreamContainer" type="Node3D" parent="."]
+[node name="StreamContainer" type="Node3D" parent="." unique_id=1700979822]
 
-[node name="Player" parent="." instance=ExtResource("2_8hwqn")]
+[node name="Player" parent="." unique_id=335150464 instance=ExtResource("2_8hwqn")]
 transform = Transform3D(-4.37114e-08, 0, 1, 0, 1, 0, -1, 0, -4.37114e-08, 1420, 3, -943)
 
-[node name="BioMonitorManager" parent="Player" node_paths=PackedStringArray("dn_manager")]
+[node name="HenryUALVisual" parent="Player" index="0"]
+transform = Transform3D(-1, 0, -8.742278e-08, 0, 1, 0, 8.742278e-08, 0, -1, 0, -1, 0)
+
+[node name="BioMonitorManager" parent="Player" index="5" node_paths=PackedStringArray("dn_manager")]
 dn_manager = NodePath("../../WorldEnvironmentSystem/DayNightManager")
 
-[node name="PlayerCamera" parent="." node_paths=PackedStringArray("player") instance=ExtResource("1_ftega")]
+[node name="PlayerCamera" parent="." unique_id=817512153 node_paths=PackedStringArray("player") instance=ExtResource("1_ftega")]
 transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 1442.73, 15, -1005.2396)
 player = NodePath("../Player")
 
-[node name="IslandTerrain" type="Node3D" parent="." node_paths=PackedStringArray("focus")]
+[node name="IslandTerrain" type="Node3D" parent="." unique_id=1483390590 node_paths=PackedStringArray("focus")]
 script = ExtResource("8_island")
 focus = NodePath("../Player")
 
-[node name="MeshInstance3D" type="MeshInstance3D" parent="."]
+[node name="MeshInstance3D" type="MeshInstance3D" parent="." unique_id=1488628128]
 transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 0, 0.04, 0)
 mesh = SubResource("PlaneMesh_cqilh")
 
-[node name="Perfomance&Debugging" type="Node3D" parent="."]
+[node name="Perfomance&Debugging" type="Node3D" parent="." unique_id=2002141958]
+visible = false
 
-[node name="StatsDisplay" parent="." instance=ExtResource("5_h70bg")]
-
-[node name="debug_label_loc_pos_player" type="RichTextLabel" parent="Perfomance&Debugging"]
-anchors_preset = 0
+[node name="debug_label_loc_pos_player" type="RichTextLabel" parent="Perfomance&Debugging" unique_id=1459769904]
+visible = false
 offset_left = 18.0
 offset_top = 16.0
 offset_right = 368.0
@@ -62,8 +64,8 @@ bbcode_enabled = true
 text = "Location"
 scroll_active = false
 
-[node name="debug_label_loc_info" type="RichTextLabel" parent="Perfomance&Debugging"]
-anchors_preset = 0
+[node name="debug_label_loc_info" type="RichTextLabel" parent="Perfomance&Debugging" unique_id=1802679790]
+visible = false
 offset_left = 18.0
 offset_top = 64.0
 offset_right = 368.0
@@ -72,8 +74,8 @@ bbcode_enabled = true
 text = "Info Location
 "
 
-[node name="debug_label_chunk_info" type="RichTextLabel" parent="Perfomance&Debugging"]
-anchors_preset = 0
+[node name="debug_label_chunk_info" type="RichTextLabel" parent="Perfomance&Debugging" unique_id=659209222]
+visible = false
 offset_left = 18.0
 offset_top = 154.0
 offset_right = 368.0
@@ -82,286 +84,311 @@ bbcode_enabled = true
 text = "Сhunk info"
 scroll_active = false
 
-[node name="WorldStreamManager" type="Node3D" parent="."]
+[node name="StatsDisplay" parent="." unique_id=1919152139 instance=ExtResource("5_h70bg")]
 
-[node name="Silvan Heights" type="Node3D" parent="WorldStreamManager"]
+[node name="WorldStreamManager" type="Node3D" parent="." unique_id=20193860]
+
+[node name="Silvan Heights" type="Node3D" parent="WorldStreamManager" unique_id=2110252113]
 transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, -669.59204, 0, -547.3395)
 
-[node name="lbl_Silvan_Heights" type="Label3D" parent="WorldStreamManager/Silvan Heights"]
+[node name="lbl_Silvan_Heights" type="Label3D" parent="WorldStreamManager/Silvan Heights" unique_id=961743945]
 transform = Transform3D(1.0000002, 0, 0, 0, -4.371139e-08, 1.0000002, 0, -1, -4.37114e-08, 195.86743, 20, 232.30734)
+visible = false
 pixel_size = 2.0
 text = "Silvan Heights
 "
 
-[node name="Loc_SilvanHeights" type="Area3D" parent="WorldStreamManager/Silvan Heights"]
+[node name="Loc_SilvanHeights" type="Area3D" parent="WorldStreamManager/Silvan Heights" unique_id=568494802]
 transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 271.91412, 0, -148.73383)
 collision_layer = 0
 
-[node name="CollisionPolygon3D" type="CollisionPolygon3D" parent="WorldStreamManager/Silvan Heights/Loc_SilvanHeights"]
+[node name="CollisionPolygon3D" type="CollisionPolygon3D" parent="WorldStreamManager/Silvan Heights/Loc_SilvanHeights" unique_id=32068202]
 transform = Transform3D(0.8660253, 0.49999994, -2.1855692e-08, 0, -4.3711385e-08, -0.9999999, -0.49999997, 0.86602527, -3.785517e-08, -4.1573486, -25, -32.88037)
 depth = 200.0
 polygon = PackedVector2Array(-374.7259, -164.39508, 81.45563, -755.3223, 568.33813, -317.69977, -438, 1404, -947.22815, 657.72815)
 debug_color = Color(0, 0.654902, 0.43137255, 0.78431374)
 metadata/debug_color = Color(0, 0.654902, 0.43137255, 0.78431374)
 
-[node name="Palawan Cove" type="Node3D" parent="WorldStreamManager"]
+[node name="Palawan Cove" type="Node3D" parent="WorldStreamManager" unique_id=677144315]
 transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, -1298, 0, -615)
 
-[node name="lbl_Palawan_Cove" type="Label3D" parent="WorldStreamManager/Palawan Cove"]
+[node name="lbl_Palawan_Cove" type="Label3D" parent="WorldStreamManager/Palawan Cove" unique_id=1940311213]
 transform = Transform3D(1.0000002, 0, 0, 0, -4.371139e-08, 1.0000002, 0, -1, -4.37114e-08, -355.29358, 20, -200.422)
+visible = false
 pixel_size = 2.0
 text = "Palawan Cove
 "
 
-[node name="Loc_PalawanCove" type="Area3D" parent="WorldStreamManager/Palawan Cove"]
+[node name="Loc_PalawanCove" type="Area3D" parent="WorldStreamManager/Palawan Cove" unique_id=732399300]
 transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 271.91412, 0, -148.73383)
 collision_layer = 0
 
-[node name="CollisionPolygon3D" type="CollisionPolygon3D" parent="WorldStreamManager/Palawan Cove/Loc_PalawanCove"]
+[node name="CollisionPolygon3D" type="CollisionPolygon3D" parent="WorldStreamManager/Palawan Cove/Loc_PalawanCove" unique_id=1058893023]
 transform = Transform3D(0.8660253, 0.49999994, -2.1855692e-08, 0, -4.3711385e-08, -0.9999999, -0.49999997, 0.86602527, -3.785517e-08, -4.1573486, -25, -32.88037)
 depth = 200.0
 polygon = PackedVector2Array(-1537, -339, -1205.3646, -880.76843, -324.0383, -881.40247, 595.786, -377.7683, -435.52786, 1026.2742)
 debug_color = Color(0, 0, 0, 1)
 metadata/debug_color = Color(0, 0, 0, 1)
 
-[node name="Fort Meridian" type="Node3D" parent="WorldStreamManager"]
+[node name="Fort Meridian" type="Node3D" parent="WorldStreamManager" unique_id=1794841213]
 transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 1243.5278, 0, -769.80304)
 
-[node name="lbl_Fort_Meridian" type="Label3D" parent="WorldStreamManager/Fort Meridian"]
+[node name="lbl_Fort_Meridian" type="Label3D" parent="WorldStreamManager/Fort Meridian" unique_id=1046067210]
 transform = Transform3D(1.0000002, 0, 0, 0, -4.371139e-08, 1.0000002, 0, -1, -4.37114e-08, 0, 20, 0)
+visible = false
 pixel_size = 2.0
 text = "FortMeridian
 "
 
-[node name="Marker_Location_FortMeridian" type="Marker3D" parent="WorldStreamManager/Fort Meridian"]
+[node name="Marker_Location_FortMeridian" type="Marker3D" parent="WorldStreamManager/Fort Meridian" unique_id=492172897]
 transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 0, 25, 0)
 gizmo_extents = 10.0
 
-[node name="Loc_FortMeridian" type="Area3D" parent="WorldStreamManager/Fort Meridian"]
+[node name="Loc_FortMeridian" type="Area3D" parent="WorldStreamManager/Fort Meridian" unique_id=480476568]
 collision_layer = 0
 
-[node name="CollisionPolygon3D" type="CollisionPolygon3D" parent="WorldStreamManager/Fort Meridian/Loc_FortMeridian"]
+[node name="CollisionPolygon3D" type="CollisionPolygon3D" parent="WorldStreamManager/Fort Meridian/Loc_FortMeridian" unique_id=1532027043]
 transform = Transform3D(0.8660253, 0.49999994, -2.1855692e-08, 0, -4.3711385e-08, -0.9999999, -0.49999997, 0.86602527, -3.785517e-08, -4.1573486, -25, -32.88037)
 depth = 200.0
 polygon = PackedVector2Array(-523.37866, -494.65765, 450.05286, -629.2069, 811.0657, -214.60834, 454.51758, 324.74567, -573.42096, 591.5918)
 debug_color = Color(0.96862745, 0, 0.45882353, 0.78431374)
 metadata/debug_color = Color(0.96862745, 0, 0.45882353, 0.78431374)
 
-[node name="FM_Chunks" type="Node3D" parent="WorldStreamManager/Fort Meridian"]
+[node name="FM_Chunks" type="Node3D" parent="WorldStreamManager/Fort Meridian" unique_id=140687793]
 
-[node name="Chunk_EastPointRedoubt" type="Area3D" parent="WorldStreamManager/Fort Meridian/FM_Chunks"]
+[node name="Chunk_EastPointRedoubt" type="Area3D" parent="WorldStreamManager/Fort Meridian/FM_Chunks" unique_id=773702968]
 transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 185.58545, 0, -160.6582)
 collision_layer = 0
 
-[node name="CollisionPolygon3D" type="CollisionPolygon3D" parent="WorldStreamManager/Fort Meridian/FM_Chunks/Chunk_EastPointRedoubt"]
+[node name="CollisionPolygon3D" type="CollisionPolygon3D" parent="WorldStreamManager/Fort Meridian/FM_Chunks/Chunk_EastPointRedoubt" unique_id=746093223]
 transform = Transform3D(0.8660253, 0.49999994, -2.1855692e-08, 0, -4.3711385e-08, -0.9999999, -0.49999997, 0.86602527, -3.785517e-08, -148.17615, -25, 92.110535)
 depth = 200.0
 polygon = PackedVector2Array(103, -85, 176, -97, 239, -21, 229, 53, 156, 84)
 debug_color = Color(0, 0.99514896, 0.45895782, 0.78400004)
 metadata/debug_color = Color(0.96862745, 0, 0.45882353, 0.78431374)
 
-[node name="lbl_Chunk_EastPointRedoubt" type="Label3D" parent="WorldStreamManager/Fort Meridian/FM_Chunks/Chunk_EastPointRedoubt"]
+[node name="lbl_Chunk_EastPointRedoubt" type="Label3D" parent="WorldStreamManager/Fort Meridian/FM_Chunks/Chunk_EastPointRedoubt" unique_id=1097830237]
 transform = Transform3D(1.0000002, 0, 0, 0, -4.371139e-08, 1.0000002, 0, -1, -4.37114e-08, 0, 20, 0)
+visible = false
 pixel_size = 0.5
 text = "East Point Redoubt
 "
 outline_size = 1
 
-[node name="Chunk_AlataBattery" type="Area3D" parent="WorldStreamManager/Fort Meridian/FM_Chunks"]
+[node name="Chunk_AlataBattery" type="Area3D" parent="WorldStreamManager/Fort Meridian/FM_Chunks" unique_id=766828575]
 transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 164.13904, 0, -132.68512)
 collision_layer = 0
 
-[node name="CollisionPolygon3D" type="CollisionPolygon3D" parent="WorldStreamManager/Fort Meridian/FM_Chunks/Chunk_AlataBattery"]
+[node name="CollisionPolygon3D" type="CollisionPolygon3D" parent="WorldStreamManager/Fort Meridian/FM_Chunks/Chunk_AlataBattery" unique_id=1412709851]
 transform = Transform3D(0.8660253, 0.49999994, -2.1855692e-08, 0, -4.3711385e-08, -0.9999999, -0.49999997, 0.86602527, -3.785517e-08, -148.17615, -25, 92.110535)
 depth = 200.0
 polygon = PackedVector2Array(73, 5, 70, -43, 172, -52, 189, 19, 103, 43)
 debug_color = Color(0, 0.99514896, 0.45895782, 0.78400004)
 metadata/debug_color = Color(0.96862745, 0, 0.45882353, 0.78431374)
 
-[node name="lbl_Chunk_Alata Battery" type="Label3D" parent="WorldStreamManager/Fort Meridian/FM_Chunks/Chunk_AlataBattery"]
+[node name="lbl_Chunk_Alata Battery" type="Label3D" parent="WorldStreamManager/Fort Meridian/FM_Chunks/Chunk_AlataBattery" unique_id=922557719]
 transform = Transform3D(1.0000002, 0, 0, 0, -4.371139e-08, 1.0000002, 0, -1, -4.37114e-08, -43, 20, 25)
+visible = false
 pixel_size = 0.5
 text = "Alata Battery
 "
 outline_size = 1
 
-[node name="Chunk_GuardsBeach" type="Area3D" parent="WorldStreamManager/Fort Meridian/FM_Chunks"]
+[node name="Chunk_GuardsBeach" type="Area3D" parent="WorldStreamManager/Fort Meridian/FM_Chunks" unique_id=1134480146]
 transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 315.9574, 0, -318.53485)
 collision_layer = 0
 
-[node name="CollisionPolygon3D" type="CollisionPolygon3D" parent="WorldStreamManager/Fort Meridian/FM_Chunks/Chunk_GuardsBeach"]
+[node name="CollisionPolygon3D" type="CollisionPolygon3D" parent="WorldStreamManager/Fort Meridian/FM_Chunks/Chunk_GuardsBeach" unique_id=115496406]
 transform = Transform3D(0.8660253, 0.49999994, -2.1855692e-08, 0, -4.3711385e-08, -0.9999999, -0.49999997, 0.86602527, -3.785517e-08, -148.17615, -25, 92.110535)
 depth = 200.0
 polygon = PackedVector2Array(78, -42, 193, -83, 241, -49, 160, 84, 93, 96)
 debug_color = Color(0, 0.99514896, 0.45895782, 0.78400004)
 metadata/debug_color = Color(0.96862745, 0, 0.45882353, 0.78431374)
 
-[node name="lbl_Chunk_Guards\' Beach" type="Label3D" parent="WorldStreamManager/Fort Meridian/FM_Chunks/Chunk_GuardsBeach"]
+[node name="lbl_Chunk_Guards\' Beach" type="Label3D" parent="WorldStreamManager/Fort Meridian/FM_Chunks/Chunk_GuardsBeach" unique_id=974709314]
 transform = Transform3D(1.0000002, 0, 0, 0, -4.371139e-08, 1.0000002, 0, -1, -4.37114e-08, 0, 20, 0)
+visible = false
 pixel_size = 0.5
 text = "Guards Beach
 "
 outline_size = 1
 
-[node name="Chunk_GatewayCove" type="Area3D" parent="WorldStreamManager/Fort Meridian/FM_Chunks"]
+[node name="Chunk_GatewayCove" type="Area3D" parent="WorldStreamManager/Fort Meridian/FM_Chunks" unique_id=908796590]
 transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 56.100464, 0, -139.88043)
 collision_layer = 0
 
-[node name="CollisionPolygon3D" type="CollisionPolygon3D" parent="WorldStreamManager/Fort Meridian/FM_Chunks/Chunk_GatewayCove"]
+[node name="CollisionPolygon3D" type="CollisionPolygon3D" parent="WorldStreamManager/Fort Meridian/FM_Chunks/Chunk_GatewayCove" unique_id=1976533728]
 transform = Transform3D(0.8660253, 0.49999994, -2.1855692e-08, 0, -4.3711385e-08, -0.9999999, -0.49999997, 0.86602527, -3.785517e-08, -148.17615, -25, 92.110535)
 depth = 200.0
 polygon = PackedVector2Array(97, -66, 250, -40, 261, 13, 20, 33, -2, -26)
 debug_color = Color(0, 0.99514896, 0.45895782, 0.78400004)
 metadata/debug_color = Color(0.96862745, 0, 0.45882353, 0.78431374)
 
-[node name="lbl_Chunk_Gateway Cove" type="Label3D" parent="WorldStreamManager/Fort Meridian/FM_Chunks/Chunk_GatewayCove"]
+[node name="lbl_Chunk_Gateway Cove" type="Label3D" parent="WorldStreamManager/Fort Meridian/FM_Chunks/Chunk_GatewayCove" unique_id=1736309260]
 transform = Transform3D(1.0000002, 0, 0, 0, -4.371139e-08, 1.0000002, 0, -1, -4.37114e-08, -53, 20, 29)
+visible = false
 pixel_size = 0.5
 text = "Gateway Cove
 "
 outline_size = 1
 
-[node name="Chunk_EchoGlade" type="Area3D" parent="WorldStreamManager/Fort Meridian/FM_Chunks"]
+[node name="Chunk_EchoGlade" type="Area3D" parent="WorldStreamManager/Fort Meridian/FM_Chunks" unique_id=217599849]
 transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, -136.89954, 0, 55.392212)
 collision_layer = 0
 
-[node name="CollisionPolygon3D" type="CollisionPolygon3D" parent="WorldStreamManager/Fort Meridian/FM_Chunks/Chunk_EchoGlade"]
+[node name="CollisionPolygon3D" type="CollisionPolygon3D" parent="WorldStreamManager/Fort Meridian/FM_Chunks/Chunk_EchoGlade" unique_id=53804238]
 transform = Transform3D(0.8660253, 0.49999994, -2.1855692e-08, 0, -4.3711385e-08, -0.9999999, -0.49999997, 0.86602527, -3.785517e-08, -148.17615, -25, 92.110535)
 depth = 200.0
 polygon = PackedVector2Array(-1, -70, 274, -104, 294, -38, 243, 56, 173, 176)
 debug_color = Color(0, 0.99514896, 0.45895782, 0.78400004)
 metadata/debug_color = Color(0.96862745, 0, 0.45882353, 0.78431374)
 
-[node name="lbl_Chunk_Echo Glade" type="Label3D" parent="WorldStreamManager/Fort Meridian/FM_Chunks/Chunk_EchoGlade"]
+[node name="lbl_Chunk_Echo Glade" type="Label3D" parent="WorldStreamManager/Fort Meridian/FM_Chunks/Chunk_EchoGlade" unique_id=1801808794]
 transform = Transform3D(1.0000002, 0, 0, 0, -4.371139e-08, 1.0000002, 0, -1, -4.37114e-08, 0, 20, 0)
+visible = false
 pixel_size = 0.5
 text = "Echo Glade
 "
 outline_size = 1
 
-[node name="Chunk_TheWaitingHill" type="Area3D" parent="WorldStreamManager/Fort Meridian/FM_Chunks"]
+[node name="Chunk_TheWaitingHill" type="Area3D" parent="WorldStreamManager/Fort Meridian/FM_Chunks" unique_id=2118112986]
 transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 205.71631, 0, -231.95892)
 collision_layer = 0
 
-[node name="CollisionPolygon3D" type="CollisionPolygon3D" parent="WorldStreamManager/Fort Meridian/FM_Chunks/Chunk_TheWaitingHill"]
+[node name="CollisionPolygon3D" type="CollisionPolygon3D" parent="WorldStreamManager/Fort Meridian/FM_Chunks/Chunk_TheWaitingHill" unique_id=307540860]
 transform = Transform3D(0.8660253, 0.49999994, -2.1855692e-08, 0, -4.3711385e-08, -0.9999999, -0.49999997, 0.86602527, -3.785517e-08, -148.17615, -25, 92.110535)
 depth = 200.0
 polygon = PackedVector2Array(117, -45, 228, -65, 238, 73, 166, 108, 178, 30)
 debug_color = Color(0, 0.99514896, 0.45895782, 0.78400004)
 metadata/debug_color = Color(0.96862745, 0, 0.45882353, 0.78431374)
 
-[node name="lbl_Chunk_The Waiting Hill" type="Label3D" parent="WorldStreamManager/Fort Meridian/FM_Chunks/Chunk_TheWaitingHill"]
+[node name="lbl_Chunk_The Waiting Hill" type="Label3D" parent="WorldStreamManager/Fort Meridian/FM_Chunks/Chunk_TheWaitingHill" unique_id=210740851]
 transform = Transform3D(1.0000002, 0, 0, 0, -4.371139e-08, 1.0000002, 0, -1, -4.37114e-08, 0, 20, 0)
+visible = false
 pixel_size = 0.5
 text = "The Waiting Hill
 "
 outline_size = 1
 
-[node name="Chunk_ThePatrolTrail" type="Area3D" parent="WorldStreamManager/Fort Meridian/FM_Chunks"]
+[node name="Chunk_ThePatrolTrail" type="Area3D" parent="WorldStreamManager/Fort Meridian/FM_Chunks" unique_id=909074518]
 transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, -11.244019, 0, -35.03662)
 collision_layer = 0
 
-[node name="CollisionPolygon3D" type="CollisionPolygon3D" parent="WorldStreamManager/Fort Meridian/FM_Chunks/Chunk_ThePatrolTrail"]
+[node name="CollisionPolygon3D" type="CollisionPolygon3D" parent="WorldStreamManager/Fort Meridian/FM_Chunks/Chunk_ThePatrolTrail" unique_id=1577142191]
 transform = Transform3D(0.8660253, 0.49999994, -2.1855692e-08, 0, -4.3711385e-08, -0.9999999, -0.49999997, 0.86602527, -3.785517e-08, -148.17615, -25, 92.110535)
 depth = 200.0
 polygon = PackedVector2Array(128, -31, 275, -40, 309, 46, 180, 89, 75, 71)
 debug_color = Color(0, 0.99514896, 0.45895782, 0.78400004)
 metadata/debug_color = Color(0.96862745, 0, 0.45882353, 0.78431374)
 
-[node name="lbl_Chunk_The Patrol Trail" type="Label3D" parent="WorldStreamManager/Fort Meridian/FM_Chunks/Chunk_ThePatrolTrail"]
+[node name="lbl_Chunk_The Patrol Trail" type="Label3D" parent="WorldStreamManager/Fort Meridian/FM_Chunks/Chunk_ThePatrolTrail" unique_id=2042440022]
 transform = Transform3D(1.0000002, 0, 0, 0, -4.371139e-08, 1.0000002, 0, -1, -4.37114e-08, 47, 20, 0)
+visible = false
 pixel_size = 0.5
 text = "The Patrol Trail
 "
 outline_size = 1
 
-[node name="Chunk_RadioShadow" type="Area3D" parent="WorldStreamManager/Fort Meridian/FM_Chunks"]
+[node name="Chunk_RadioShadow" type="Area3D" parent="WorldStreamManager/Fort Meridian/FM_Chunks" unique_id=388203980]
 transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 178.5935, 0, -49.315308)
 collision_layer = 0
 
-[node name="CollisionPolygon3D" type="CollisionPolygon3D" parent="WorldStreamManager/Fort Meridian/FM_Chunks/Chunk_RadioShadow"]
+[node name="CollisionPolygon3D" type="CollisionPolygon3D" parent="WorldStreamManager/Fort Meridian/FM_Chunks/Chunk_RadioShadow" unique_id=1676746884]
 transform = Transform3D(0.8660253, 0.49999994, -2.1855692e-08, 0, -4.3711385e-08, -0.9999999, -0.49999997, 0.86602527, -3.785517e-08, -148.17615, -25, 92.110535)
 depth = 200.0
 polygon = PackedVector2Array(2, -3, 213, -70, 233, -13, 96, 67, 42, 71)
 debug_color = Color(0, 0.99514896, 0.45895782, 0.78400004)
 metadata/debug_color = Color(0.96862745, 0, 0.45882353, 0.78431374)
 
-[node name="lbl_Chunk_Radio Shadow" type="Label3D" parent="WorldStreamManager/Fort Meridian/FM_Chunks/Chunk_RadioShadow"]
+[node name="lbl_Chunk_Radio Shadow" type="Label3D" parent="WorldStreamManager/Fort Meridian/FM_Chunks/Chunk_RadioShadow" unique_id=189489953]
 transform = Transform3D(1.0000002, 0, 0, 0, -4.371139e-08, 1.0000002, 0, -1, -4.37114e-08, 0, 20, 0)
+visible = false
 pixel_size = 0.5
 text = "Radio Shadow
 "
 outline_size = 1
 
-[node name="Chunk_ThePitDescent" type="Area3D" parent="WorldStreamManager/Fort Meridian/FM_Chunks"]
+[node name="Chunk_ThePitDescent" type="Area3D" parent="WorldStreamManager/Fort Meridian/FM_Chunks" unique_id=1498868583]
 transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 21.150879, 0, 114.01715)
 collision_layer = 0
 
-[node name="CollisionPolygon3D" type="CollisionPolygon3D" parent="WorldStreamManager/Fort Meridian/FM_Chunks/Chunk_ThePitDescent"]
+[node name="CollisionPolygon3D" type="CollisionPolygon3D" parent="WorldStreamManager/Fort Meridian/FM_Chunks/Chunk_ThePitDescent" unique_id=436940294]
 transform = Transform3D(0.8660253, 0.49999994, -2.1855692e-08, 0, -4.3711385e-08, -0.9999999, -0.49999997, 0.86602527, -3.785517e-08, -148.17615, -25, 92.110535)
 depth = 200.0
 polygon = PackedVector2Array(129, -87, 235, -70, 275, 7, 132, 100, 51, 38)
 debug_color = Color(0, 0.99514896, 0.45895782, 0.78400004)
 metadata/debug_color = Color(0.96862745, 0, 0.45882353, 0.78431374)
 
-[node name="lbl_Chunk_The Pit Descent" type="Label3D" parent="WorldStreamManager/Fort Meridian/FM_Chunks/Chunk_ThePitDescent"]
+[node name="lbl_Chunk_The Pit Descent" type="Label3D" parent="WorldStreamManager/Fort Meridian/FM_Chunks/Chunk_ThePitDescent" unique_id=284888002]
 transform = Transform3D(1.0000002, 0, 0, 0, -4.371139e-08, 1.0000002, 0, -1, -4.37114e-08, 0, 20, 0)
+visible = false
 pixel_size = 0.5
 text = "The Pit Descent
 "
 outline_size = 1
 
-[node name="Verdant Ruins" type="Node3D" parent="WorldStreamManager"]
+[node name="Verdant Ruins" type="Node3D" parent="WorldStreamManager" unique_id=1137516401]
 transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 423.6194, 0, -277.8579)
 
-[node name="lbl_Verdant_Ruins" type="Label3D" parent="WorldStreamManager/Verdant Ruins"]
+[node name="lbl_Verdant_Ruins" type="Label3D" parent="WorldStreamManager/Verdant Ruins" unique_id=133775526]
 transform = Transform3D(1.0000002, 0, 0, 0, -4.371139e-08, 1.0000002, 0, -1, -4.37114e-08, 0, 20, 192.98184)
+visible = false
 pixel_size = 2.0
 text = "Verdant Ruins
 "
 
-[node name="Marker_Location_VerdantRuins" type="Marker3D" parent="WorldStreamManager/Verdant Ruins"]
+[node name="Marker_Location_VerdantRuins" type="Marker3D" parent="WorldStreamManager/Verdant Ruins" unique_id=784210108]
 transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 0, 20, 0)
 gizmo_extents = 10.0
 
-[node name="Loc_VerdantRuins" type="Area3D" parent="WorldStreamManager/Verdant Ruins"]
+[node name="Loc_VerdantRuins" type="Area3D" parent="WorldStreamManager/Verdant Ruins" unique_id=1999631334]
 collision_layer = 0
 
-[node name="CollisionPolygon3D" type="CollisionPolygon3D" parent="WorldStreamManager/Verdant Ruins/Loc_VerdantRuins"]
+[node name="CollisionPolygon3D" type="CollisionPolygon3D" parent="WorldStreamManager/Verdant Ruins/Loc_VerdantRuins" unique_id=555087739]
 transform = Transform3D(0.8660253, 0.49999994, -2.1855692e-08, 0, -4.3711385e-08, -0.9999999, -0.49999997, 0.86602527, -3.785517e-08, -4.1573486, -25, -32.88037)
 depth = 200.0
 polygon = PackedVector2Array(61.384827, -1100.1819, 464.08893, -516.6648, 394.90656, 724.3206, -201, 753, -1051, 785)
 debug_color = Color(0.96862745, 0.92156863, 0.45882353, 0.78431374)
 metadata/debug_color = Color(0.96862745, 0.92156863, 0.45882353, 0.78431374)
 
-[node name="Harborlight District" type="Node3D" parent="WorldStreamManager"]
+[node name="Harborlight District" type="Node3D" parent="WorldStreamManager" unique_id=885766407]
 
-[node name="lbl_Harborlight_District" type="Label3D" parent="WorldStreamManager/Harborlight District"]
+[node name="lbl_Harborlight_District" type="Label3D" parent="WorldStreamManager/Harborlight District" unique_id=78868574]
 transform = Transform3D(1.0000002, 0, 0, 0, -4.371139e-08, 1.0000002, 0, -1, -4.37114e-08, 716.71014, 20, 770.9487)
+visible = false
 pixel_size = 2.0
 text = "Harborlight District
 "
 
-[node name="Loc_HarborlightDistrict" type="Area3D" parent="WorldStreamManager/Harborlight District"]
+[node name="Loc_HarborlightDistrict" type="Area3D" parent="WorldStreamManager/Harborlight District" unique_id=1493588082]
 transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 654.53815, 0, 666.6196)
 collision_layer = 0
 
-[node name="CollisionPolygon3D" type="CollisionPolygon3D" parent="WorldStreamManager/Harborlight District/Loc_HarborlightDistrict"]
+[node name="CollisionPolygon3D" type="CollisionPolygon3D" parent="WorldStreamManager/Harborlight District/Loc_HarborlightDistrict" unique_id=1691573363]
 transform = Transform3D(0.8660253, 0.49999994, -2.1855692e-08, 0, -4.3711385e-08, -0.9999999, -0.49999997, 0.86602527, -3.785517e-08, -4.1573486, -25, -32.88037)
 depth = 200.0
 polygon = PackedVector2Array(-951, 169, -753, -174, 679, -228, 599, 790, -320, 907)
 debug_color = Color(0.45590004, 0.4901733, 0.97, 0.78431374)
 metadata/debug_color = Color(0.45490196, 0.49019608, 0.96862745, 0.78431374)
 
-[node name="WorldEnvironmentSystem" parent="." instance=ExtResource("6_pbfqm")]
+[node name="WorldEnvironmentSystem" parent="." unique_id=1706181335 instance=ExtResource("6_pbfqm")]
 
 [node name="SunLight" parent="WorldEnvironmentSystem/Lighting" index="0"]
 light_energy = 11.797
 light_volumetric_fog_energy = 0.0
 
-[node name="FirstExitBlockout" parent="." instance=ExtResource("7_fexit")]
+[node name="DebugAccelerator" parent="WorldEnvironmentSystem/TimeAccelerator" index="0"]
+visible = false
 
-[node name="FirstSpawner" type="Marker3D" parent="."]
+[node name="DayNightManager" parent="WorldEnvironmentSystem" index="4"]
+perfomance_visible_display = false
+
+[node name="DebugTime" parent="WorldEnvironmentSystem/DayNightManager" index="1"]
+visible = false
+
+[node name="FirstExitBlockout" parent="." unique_id=2023151356 instance=ExtResource("7_fexit")]
+
+[node name="FirstSpawner" type="Marker3D" parent="." unique_id=1448004314]
 transform = Transform3D(-0.669131, 0, -0.743145, 0, 1, 0, 0.743145, 0, -0.669131, 1420, 3, -943)
 
 [connection signal="body_entered" from="WorldStreamManager/Silvan Heights/Loc_SilvanHeights" to="WorldStreamManager" method="_on_loc_silvan_heights_body_entered"]
