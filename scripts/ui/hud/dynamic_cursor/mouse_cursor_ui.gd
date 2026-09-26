@@ -31,11 +31,13 @@ extends Control
 @export var interaction_bracket_offset: float = 250.0
 @export var interaction_bracket_radius: float = 24.0
 @export var interaction_bracket_thickness: float = 2.6
-## The centre stays completely clear. Yellow exists only on the inner tips of
-## the two brackets and fades back into the normal bracket colour.
-@export var interaction_bracket_edge_color: Color = Color(1.0, 0.72, 0.18, 0.95)
-@export_range(0.10, 0.48, 0.01) var interaction_bracket_edge_fraction: float = 0.34
-@export_range(0.5, 2.0, 0.05) var interaction_bracket_edge_width_scale: float = 1.15
+## Archived HFN HUD fragment shader: warm colour sits against each inner
+## bracket and fades all the way to alpha=0 toward the screen centre.
+@export var interaction_edge_fade_color: Color = Color(0.95, 0.67, 0.16, 0.82)
+@export var interaction_edge_fade_size: Vector2 = Vector2(148.0, 42.0)
+@export_range(0.0, 0.8, 0.01) var interaction_edge_fade_start: float = 0.02
+@export_range(0.2, 1.0, 0.01) var interaction_edge_fade_curve: float = 0.62
+@export var interaction_edge_fade_overlap: float = 7.0
 @export var prompt_content_size: Vector2 = Vector2(360.0, 150.0)
 
 @export_group("Movement and stamina")
@@ -52,6 +54,7 @@ extends Control
 const RING_SEGMENTS: int = 32
 const JUMP_ARC_COLOR: Color = Color(0.4, 0.8, 1.0)
 const CURSOR_ENSO_PATH := "res://assets/ui/hud/dynamic_cursor/enso_cursor_ring.svg"
+const INTERACTION_EDGE_FADE_SHADER: Shader = preload("res://assets/materials/Shaders/BG_indicatorSURV.gdshader")
 const GROUP_INTERACTION_PROMPT: StringName = &"interaction_cursor_prompt"
 const MORPH_CIRCLE_SEGMENTS: int = 32
 const MORPH_BRACKET_SEGMENTS: int = 10
@@ -79,6 +82,10 @@ var _interaction_morph_progress: float = 0.0
 var _interaction_morph_from: float = 0.0
 var _interaction_morph_target: float = 0.0
 var _interaction_morph_elapsed: float = 0.0
+var _edge_fade_left: ColorRect
+var _edge_fade_right: ColorRect
+var _edge_fade_left_material: ShaderMaterial
+var _edge_fade_right_material: ShaderMaterial
 var _prompt_face: ActionPromptFace
 var _confirm_tween: Tween
 
@@ -254,6 +261,11 @@ func _update_interaction_morph(delta: float) -> void:
 
 
 func _build_interaction_prompt() -> void:
+	_edge_fade_left = _build_edge_fade("InteractionEdgeFadeLeft", 0)
+	_edge_fade_right = _build_edge_fade("InteractionEdgeFadeRight", 1)
+	_edge_fade_left_material = _edge_fade_left.material as ShaderMaterial
+	_edge_fade_right_material = _edge_fade_right.material as ShaderMaterial
+
 	_prompt_face = ActionPromptFace.new()
 	_prompt_face.name = "InteractionPrompt"
 	_prompt_face.mouse_filter = Control.MOUSE_FILTER_IGNORE
@@ -261,6 +273,26 @@ func _build_interaction_prompt() -> void:
 	_prompt_face.modulate.a = 0.0
 	_prompt_face.visible = false
 	add_child(_prompt_face)
+
+
+func _build_edge_fade(node_name: String, direction: int) -> ColorRect:
+	var strip := ColorRect.new()
+	strip.name = node_name
+	strip.mouse_filter = Control.MOUSE_FILTER_IGNORE
+	strip.color = Color.WHITE
+	strip.show_behind_parent = true
+	strip.visible = false
+	var material := ShaderMaterial.new()
+	material.shader = INTERACTION_EDGE_FADE_SHADER
+	material.set_shader_parameter(&"base_color", interaction_edge_fade_color)
+	material.set_shader_parameter(&"fade_direction", direction)
+	material.set_shader_parameter(&"fade_start", interaction_edge_fade_start)
+	material.set_shader_parameter(&"fade_end", 1.0)
+	material.set_shader_parameter(&"fade_curve", interaction_edge_fade_curve)
+	material.set_shader_parameter(&"corner_radius", 0.0)
+	strip.material = material
+	add_child(strip)
+	return strip
 
 
 func _sync_prompt(target: InteractiveArea) -> void:
@@ -286,6 +318,45 @@ func _update_prompt_visuals() -> void:
 	var content_reveal := _smoothstep01((t - 0.66) / 0.25)
 	_prompt_face.visible = content_reveal > 0.001
 	_prompt_face.modulate.a = content_reveal
+	_update_interaction_edge_fades(center, t)
+
+
+func _update_interaction_edge_fades(center: Vector2, t: float) -> void:
+	if (
+		_edge_fade_left == null
+		or _edge_fade_right == null
+		or _edge_fade_left_material == null
+		or _edge_fade_right_material == null
+	):
+		return
+	var reveal := _smoothstep01((t - 0.50) / 0.38)
+	var size := interaction_edge_fade_size
+	var bracket_inner_x := maxf(
+		interaction_bracket_offset - interaction_bracket_radius + interaction_edge_fade_overlap,
+		0.0
+	)
+
+	# Left: yellow touches the left bracket, then fades to transparent toward centre.
+	_edge_fade_left.position = Vector2(
+		center.x - bracket_inner_x,
+		center.y - size.y * 0.5
+	)
+	_edge_fade_left.size = size
+
+	# Right: mirrored material (fade_direction=LEFT), again ending transparent inward.
+	_edge_fade_right.position = Vector2(
+		center.x + bracket_inner_x - size.x,
+		center.y - size.y * 0.5
+	)
+	_edge_fade_right.size = size
+
+	var visible_now := reveal > 0.001
+	_edge_fade_left.visible = visible_now
+	_edge_fade_right.visible = visible_now
+	var colour := interaction_edge_fade_color
+	colour.a *= reveal
+	_edge_fade_left_material.set_shader_parameter(&"base_color", colour)
+	_edge_fade_right_material.set_shader_parameter(&"base_color", colour)
 
 
 func _on_interaction_performed(target: InteractiveArea) -> void:
@@ -345,29 +416,6 @@ func _draw_interaction_morph_shape(center: Vector2, t: float, color: Color) -> v
 			interaction_bracket_thickness * 3.0
 		)
 	_draw_morph_paths(paths, shape_color, interaction_bracket_thickness)
-	_draw_bracket_edge_accents(paths, alpha)
-
-
-## Only the inner-facing tips get the warm colour. Nothing is drawn in the
-## space between the brackets: no rectangle, no translucent field, no blot.
-func _draw_bracket_edge_accents(paths: Array[PackedVector2Array], alpha: float) -> void:
-	for points: PackedVector2Array in paths:
-		var segment_count: int = points.size() - 1
-		if segment_count <= 0:
-			continue
-		var accent_count: int = maxi(
-			1,
-			ceili(float(segment_count) * clampf(interaction_bracket_edge_fraction, 0.10, 0.48))
-		)
-		for i: int in range(accent_count):
-			var fade: float = 1.0 - float(i) / float(accent_count)
-			var accent := interaction_bracket_edge_color
-			accent.a *= alpha * fade
-			var width := interaction_bracket_thickness * interaction_bracket_edge_width_scale
-			draw_line(points[i], points[i + 1], accent, width, true)
-			var j: int = segment_count - 1 - i
-			if j >= 0:
-				draw_line(points[j], points[j + 1], accent, width, true)
 
 
 func _build_morph_paths(

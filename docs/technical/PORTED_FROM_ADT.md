@@ -129,9 +129,10 @@ carries `body_heat_cost_c`, because eating snow for water should cost heat.
 - The centre is intentionally **fully clear**: no world-space card, no ink blot
   and no translucent fill. The existing key/action face is drawn directly
   between the brackets.
-- Warm yellow is confined to the two inner bracket tips and fades along each
-  bracket back into its normal cursor colour. This is an edge accent, not a
-  background field.
+- Warm yellow beside the two inner brackets reuses HFN's archived
+  `BG_indicatorSURV.gdshader`: one strip fades right, the mirrored strip fades
+  left, and both reach alpha=0 before the screen centre. This is the old HUD
+  fragment/fade treatment rather than a hand-drawn line or a background card.
 - The keycap keeps its solid key treatment but the earlier raster/grid substrate
   has been removed.
 - ActionPrompt3D remains as comparison/legacy code but is no longer part of

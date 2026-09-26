@@ -28,10 +28,12 @@ func _initialize() -> void:
 			"cursor did not build the centered key/action prompt")
 		_check(cursor.interaction_bracket_offset > cursor.prompt_content_size.x * 0.5,
 			"interaction brackets do not clear the prompt content")
-		_check(cursor.interaction_bracket_edge_color.a > 0.0,
-			"interaction bracket edge accent is invisible")
-		_check(cursor.interaction_bracket_edge_fraction < 0.5,
-			"yellow accent covers too much of the bracket")
+		_check(cursor.interaction_edge_fade_color.a > 0.0,
+			"interaction edge fade is invisible")
+		_check(cursor.interaction_edge_fade_size.x > 0.0 and cursor.interaction_edge_fade_size.y > 0.0,
+			"interaction edge fade has no drawable size")
+		_check(cursor.interaction_edge_fade_start < 0.2,
+			"interaction edge fade leaves too much solid colour toward centre")
 		_check(cursor.interaction_morph_duration > 0.0,
 			"interaction morph has no duration")
 		# Stamina/jump exports remain present: this change must not replace those systems.
