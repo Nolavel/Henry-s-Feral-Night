@@ -85,7 +85,9 @@ func _ready() -> void:
 	_build_columns()
 	resized.connect(_reposition)
 	get_viewport().size_changed.connect(_reposition)
-	PlayerState.mode_changed.connect(_on_mode_changed)
+	var state := _player_state()
+	if state != null and state.has_signal(&"mode_changed"):
+		state.connect(&"mode_changed", _on_mode_changed)
 	visible = false
 	_set_blot_progress(0.0)
 	_content.modulate.a = 0.0
@@ -127,7 +129,7 @@ func _refresh_context() -> void:
 	_rebuild()
 
 
-func _on_mode_changed(_old_mode: PlayerState.Mode, _new_mode: PlayerState.Mode) -> void:
+func _on_mode_changed(_old_mode: int, _new_mode: int) -> void:
 	_rebuild()
 
 
@@ -166,7 +168,9 @@ func _rebuild(delay: float = 0.0) -> void:
 	if catalog == null:
 		push_warning("[KeyHintsPanel] no catalog assigned")
 		return
-	var active := catalog.get_active_entries(int(PlayerState.mode), int(_context))
+	var state := _player_state()
+	var mode: int = int(state.get("mode")) if state != null else 0
+	var active := catalog.get_active_entries(mode, int(_context))
 	var wanted := _collect_row_keys(active)
 
 	if wanted.is_empty():
@@ -430,3 +434,9 @@ func _build_mono_font() -> Font:
 	var system_font := SystemFont.new()
 	system_font.font_names = ["Consolas", "Courier New", "DejaVu Sans Mono", "monospace"]
 	return system_font
+
+
+## Tests may instantiate World without project autoload globals. Resolve the
+## singleton by path so this UI stays loadable in those isolated script runs.
+func _player_state() -> Node:
+	return get_node_or_null(^"/root/PlayerState")

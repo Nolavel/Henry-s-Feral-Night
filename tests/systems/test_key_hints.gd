@@ -23,13 +23,13 @@ func _initialize() -> void:
 		_check(material != null and material.shader != null and material.shader.resource_path == SHADER_PATH,
 			"ADT blot shader is not wired")
 
-	var normal := CATALOG.get_active_entries(PlayerState.Mode.ON_FOOT, KeyHintEntry.Context.DEFAULT)
-	var hub := CATALOG.get_active_entries(PlayerState.Mode.ON_FOOT, KeyHintEntry.Context.HUB)
-	var sitting := CATALOG.get_active_entries(PlayerState.Mode.ON_FOOT, KeyHintEntry.Context.SITTING)
+	var normal := CATALOG.get_active_entries(0, KeyHintEntry.Context.DEFAULT)
+	var hub := CATALOG.get_active_entries(0, KeyHintEntry.Context.HUB)
+	var sitting := CATALOG.get_active_entries(0, KeyHintEntry.Context.SITTING)
 	_check(normal.size() == 10, "normal gameplay catalog should have 10 concise rows")
 	_check(hub.size() == 2, "Hub should replace gameplay controls with 2 rows")
 	_check(sitting.size() == 4, "sitting should replace gameplay controls with 4 rows")
-	_check(CATALOG.get_active_entries(PlayerState.Mode.SLEEPING, KeyHintEntry.Context.DEFAULT).is_empty(),
+	_check(CATALOG.get_active_entries(3, KeyHintEntry.Context.DEFAULT).is_empty(),
 		"sleeping must hide controls")
 	_check(String(panel.call(&"_resolve_key_label", &"interact")) == "F", "interact key is not resolved live as F")
 	panel.queue_free()
