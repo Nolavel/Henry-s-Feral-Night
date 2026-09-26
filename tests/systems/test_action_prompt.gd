@@ -12,11 +12,15 @@ func _initialize() -> void:
 		return
 	root.add_child(prompt)
 	_check(prompt.is_in_group(&"action_prompt_3d"), "prompt did not register its lookup group")
-	_check(prompt.canvas_size == Vector2i(384, 160), "prompt canvas size changed")
-	_check(is_equal_approx(prompt.billboard_pixel_size, 0.0020), "prompt is no longer the smaller requested scale")
+	_check(prompt.canvas_size == Vector2i(360, 150), "prompt canvas is not the compact blob layout")
+	_check(is_equal_approx(prompt.billboard_pixel_size, 0.0019), "prompt scale changed")
+	_check(prompt.ink_appear_duration > prompt.content_fade_in_duration,
+		"blob assembly should be a distinct stage before content")
+	_check(prompt.content_fade_out_duration < prompt.ink_dissolve_duration,
+		"text should disappear before the longer ink dissolve")
+	_check(prompt.confirm_hold_duration > 0.0,
+		"pressed-key acknowledgement has no visible hold")
 
-	# This contract is what the 3D banner reads at runtime. It does not need the
-	# area to enter the tree (which avoids creating unrelated legacy visuals).
 	var area := InteractiveArea.new()
 	area.interaction_type = InteractiveArea.InteractionType.PICKUP
 	area.item_name = "Firewood"

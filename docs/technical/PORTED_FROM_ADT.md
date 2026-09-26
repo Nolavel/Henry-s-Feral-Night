@@ -131,7 +131,12 @@ carries `body_heat_cost_c`, because eating snow for water should cost heat.
   First Exit's current world interactions are press/approach actions, not a
   generic hold contract. Instead the plate gives a short press pulse after the
   real `interaction_performed` signal.
-- The requested HFN readability pass adds a compact framed key cap, current
-  action and one short factual detail over the same ADT ink-blot language.
-  Action text comes from `InteractiveArea._get_interaction_text()`, so doors,
+- HFN deliberately has no enclosing rectangular banner. The same eight-blob
+  shader as ADT KeyHints is the entire backing: blobs assemble first, then the
+  key/action/detail fade in; on target loss the content fades out first and the
+  blobs dissolve second.
+- A real interaction press briefly warms the key fill toward yellow as an
+  acknowledgement, then runs the same content-out -> ink-out sequence. The
+  prompt stays suppressed for that same target until focus is reacquired.
+- Action text comes from `InteractiveArea._get_interaction_text()`, so doors,
   pickups and other targets remain the source of truth.

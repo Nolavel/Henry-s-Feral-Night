@@ -1,41 +1,55 @@
 class_name ActionPrompt3D
 extends Node3D
 
-## ADT HoldPrompt's production shape adapted to HFN:
-## - a Control rendered into a SubViewport carried by a billboarded Sprite3D;
-## - no depth test, because the prompt is a game statement;
-## - rises from the target instead of living as a fixed screen tooltip;
-## - reflects InteractComponent/InteractiveArea and never owns interaction.
+## Contextual HFN interaction prompt, adapted from ADT's world-space HoldPrompt
+## and KeyHints ink choreography.
 ##
-## The render surface is created lazily only when a real InteractComponent is
-## present. Composition tests instantiate World with a bare player and therefore
-## pay no SubViewport/RID cost at all.
+## Visual contract:
+##   target acquired -> multiple ink blobs assemble -> key/action fade in
+##   target lost     -> key/action fade out -> blobs dissolve
+##   F performed     -> key fill warms yellow -> key/action fade out -> blobs dissolve
+##
+## There is NO rectangular banner/card. The same eight-blob shader used by
+## KeyHintsPanel is the entire backing shape.
 
 const GROUP_ACTION_PROMPT: StringName = &"action_prompt_3d"
 const BLOT_SHADER: Shader = preload("res://shaders/ui/key_hints_blot.gdshader")
 
-@export_group("World placement")
-@export var canvas_size: Vector2i = Vector2i(384, 160)
-@export var billboard_pixel_size: float = 0.0020
-@export var risen_offset: Vector3 = Vector3(0.0, 0.62, 0.0)
-@export var seated_offset: Vector3 = Vector3(0.0, 0.12, 0.0)
-@export var seated_scale: float = 0.58
+enum Phase {
+	HIDDEN,
+	APPEARING,
+	VISIBLE,
+	CONFIRMING,
+	HIDING,
+}
 
-@export_group("Motion")
-@export var appear_rate: float = 5.5
-@export var disappear_rate: float = 7.0
-@export var press_decay_rate: float = 5.5
+@export_group("World placement")
+@export var canvas_size: Vector2i = Vector2i(360, 150)
+@export var billboard_pixel_size: float = 0.0019
+@export var risen_offset: Vector3 = Vector3(0.0, 0.60, 0.0)
+
+@export_group("ADT choreography")
+@export var ink_appear_duration: float = 0.48
+@export var content_fade_in_duration: float = 0.22
+@export var ink_settle_duration: float = 0.55
+@export var content_fade_out_duration: float = 0.18
+@export var ink_dissolve_duration: float = 0.30
+@export var confirm_in_duration: float = 0.07
+@export var confirm_hold_duration: float = 0.11
 
 var _viewport: SubViewport
+var _ink: ColorRect
+var _ink_material: ShaderMaterial
 var _face: ActionPromptFace
 var _billboard: Sprite3D
 
 var _interact: InteractComponent
 var _target: InteractiveArea
 var _follow_target: InteractiveArea
-var _appear: float = 0.0
-var _press: float = 0.0
+var _suppressed_after_press: InteractiveArea
 var _refresh_left: float = 0.0
+var _phase: Phase = Phase.HIDDEN
+var _transition: Tween
 
 
 func _ready() -> void:
@@ -64,29 +78,30 @@ func _activate_render_surface() -> void:
 	_viewport.render_target_update_mode = SubViewport.UPDATE_DISABLED
 	add_child(_viewport)
 
-	var ink := ColorRect.new()
-	ink.name = "Ink"
-	ink.position = Vector2.ZERO
-	ink.size = Vector2(canvas_size)
-	ink.mouse_filter = Control.MOUSE_FILTER_IGNORE
-	var material := ShaderMaterial.new()
-	material.shader = BLOT_SHADER
-	material.set_shader_parameter("progress", 1.0)
-	material.set_shader_parameter("stagger", 0.7)
-	material.set_shader_parameter("entrance_seed", 0.31)
-	material.set_shader_parameter("blob_color", Color(0.015, 0.012, 0.009, 0.91))
-	material.set_shader_parameter("radius_scale", 0.92)
-	material.set_shader_parameter("edge_ragged", 0.052)
-	material.set_shader_parameter("warp_scale", 4.5)
-	material.set_shader_parameter("rect_size", Vector2(canvas_size))
-	material.set_shader_parameter("idle_drift", 0.0)
-	ink.material = material
-	_viewport.add_child(ink)
+	_ink = ColorRect.new()
+	_ink.name = "Ink"
+	_ink.position = Vector2.ZERO
+	_ink.size = Vector2(canvas_size)
+	_ink.mouse_filter = Control.MOUSE_FILTER_IGNORE
+	_ink_material = ShaderMaterial.new()
+	_ink_material.shader = BLOT_SHADER
+	_ink_material.set_shader_parameter("progress", 0.0)
+	_ink_material.set_shader_parameter("stagger", 0.7)
+	_ink_material.set_shader_parameter("entrance_seed", 0.31)
+	_ink_material.set_shader_parameter("blob_color", Color(0.015, 0.012, 0.009, 0.92))
+	_ink_material.set_shader_parameter("radius_scale", 0.0)
+	_ink_material.set_shader_parameter("edge_ragged", 0.052)
+	_ink_material.set_shader_parameter("warp_scale", 4.5)
+	_ink_material.set_shader_parameter("rect_size", Vector2(canvas_size))
+	_ink_material.set_shader_parameter("idle_drift", 0.0)
+	_ink.material = _ink_material
+	_viewport.add_child(_ink)
 
 	_face = ActionPromptFace.new()
 	_face.name = "Prompt"
 	_face.position = Vector2.ZERO
 	_face.size = Vector2(canvas_size)
+	_face.modulate.a = 0.0
 	_viewport.add_child(_face)
 
 	_billboard = Sprite3D.new()
@@ -106,51 +121,54 @@ func _process(delta: float) -> void:
 	if _interact == null or _viewport == null or _face == null or _billboard == null:
 		return
 
-	var candidate: InteractiveArea = null
+	var raw_candidate: InteractiveArea = null
 	if is_instance_valid(_interact.current_target):
-		candidate = _interact.current_target
+		raw_candidate = _interact.current_target
 
-	var should_show := (
-		candidate != null
-		and candidate.shape_cast_detected
-		and candidate.can_interact()
-	)
+	if _suppressed_after_press != null:
+		if raw_candidate != _suppressed_after_press:
+			_suppressed_after_press = null
+		else:
+			raw_candidate = null
 
-	if should_show:
+	# Let the confirmation sequence finish without a new target interrupting it.
+	if _phase == Phase.CONFIRMING:
+		_update_world_position()
+		return
+
+	var candidate: InteractiveArea = null
+	if (
+		raw_candidate != null
+		and raw_candidate.shape_cast_detected
+		and raw_candidate.can_interact()
+	):
+		candidate = raw_candidate
+
+	if candidate != null:
 		if candidate != _target:
 			_target = candidate
 			_follow_target = candidate
 			_sync_prompt()
-		_refresh_left = maxf(_refresh_left - delta, 0.0)
-		if _refresh_left <= 0.0:
-			_refresh_left = 0.12
-			_sync_prompt()
-	else:
+			_begin_appear()
+		else:
+			_refresh_left = maxf(_refresh_left - delta, 0.0)
+			if _refresh_left <= 0.0:
+				_refresh_left = 0.12
+				_sync_prompt()
+	elif _target != null:
 		_target = null
+		if _phase != Phase.HIDDEN and _phase != Phase.HIDING:
+			_begin_hide()
 
-	var target_value := 1.0 if should_show else 0.0
-	var rate := appear_rate if target_value > _appear else disappear_rate
-	_appear = move_toward(_appear, target_value, rate * delta)
-	_press = move_toward(_press, 0.0, press_decay_rate * delta)
-	_face.set_press_amount(_press)
+	_update_world_position()
 
-	if _appear <= 0.001:
-		_billboard_visible(false)
-		if not should_show:
-			_follow_target = null
+
+func _update_world_position() -> void:
+	if _billboard == null or not _billboard.visible:
 		return
 	if not is_instance_valid(_follow_target):
-		_billboard_visible(false)
 		return
-
-	var t := 1.0 - (1.0 - _appear) * (1.0 - _appear)
-	_billboard.global_position = (
-		_follow_target.global_position + seated_offset.lerp(risen_offset, t)
-	)
-	var s := lerpf(seated_scale, 1.0, t)
-	_billboard.scale = Vector3(s, s, s)
-	_billboard.modulate.a = t
-	_billboard_visible(true)
+	_billboard.global_position = _follow_target.global_position + risen_offset
 
 
 func _sync_prompt() -> void:
@@ -165,17 +183,127 @@ func _sync_prompt() -> void:
 	)
 
 
-func _on_interaction_performed(target: InteractiveArea) -> void:
-	if target != _follow_target:
+func _begin_appear() -> void:
+	if _ink_material == null or _face == null:
 		return
-	_press = 1.0
-	call_deferred("_sync_prompt")
+	_kill_transition()
+	_phase = Phase.APPEARING
+	_billboard_visible(true)
+	_face.modulate.a = 0.0
+	_face.set_confirm_amount(0.0)
+	_set_blot_progress(0.0)
+	_set_blot_radius_scale(0.0)
+	_set_blot_entrance_seed(randf())
+
+	_transition = create_tween()
+	_transition.tween_method(
+		_set_blot_progress, 0.0, 1.0, ink_appear_duration
+	).set_ease(Tween.EASE_OUT).set_trans(Tween.TRANS_CUBIC)
+	_transition.parallel().tween_method(
+		_set_blot_radius_scale, 0.0, 0.82, ink_appear_duration
+	).set_ease(Tween.EASE_OUT).set_trans(Tween.TRANS_CUBIC)
+	# ADT order: all blobs first, content second.
+	_transition.tween_property(
+		_face, "modulate:a", 1.0, content_fade_in_duration
+	).set_ease(Tween.EASE_OUT).set_trans(Tween.TRANS_CUBIC)
+	_transition.tween_method(
+		_set_blot_radius_scale, 0.82, 1.0, ink_settle_duration
+	).set_ease(Tween.EASE_OUT).set_trans(Tween.TRANS_SINE)
+	_transition.tween_callback(func() -> void:
+		_phase = Phase.VISIBLE
+	)
+
+
+func _begin_hide() -> void:
+	if _phase == Phase.HIDDEN:
+		return
+	_kill_transition()
+	_phase = Phase.HIDING
+	_transition = create_tween()
+	# Reverse contract: content fully disappears before the ink starts dissolving.
+	_transition.tween_property(
+		_face, "modulate:a", 0.0, content_fade_out_duration
+	)
+	_transition.tween_method(
+		_set_blot_progress, _blot_progress(), 0.0, ink_dissolve_duration
+	).set_ease(Tween.EASE_IN).set_trans(Tween.TRANS_CUBIC)
+	_transition.parallel().tween_method(
+		_set_blot_radius_scale, _blot_radius_scale(), 0.72, ink_dissolve_duration
+	)
+	_transition.tween_callback(_finish_hidden)
+
+
+func _on_interaction_performed(target: InteractiveArea) -> void:
+	if target != _follow_target or _phase == Phase.HIDDEN:
+		return
+	_suppressed_after_press = target
+	_target = null
+	_kill_transition()
+	_phase = Phase.CONFIRMING
+
+	_transition = create_tween()
+	# A short warmer-yellow key fill is the acknowledgement of the actual press.
+	_transition.tween_method(
+		_set_confirm_amount, _face.get_confirm_amount(), 1.0, confirm_in_duration
+	).set_ease(Tween.EASE_OUT).set_trans(Tween.TRANS_CUBIC)
+	_transition.tween_interval(confirm_hold_duration)
+	# Then the exact same exit order: content first, blobs second.
+	_transition.tween_property(
+		_face, "modulate:a", 0.0, content_fade_out_duration
+	)
+	_transition.tween_method(
+		_set_blot_progress, _blot_progress(), 0.0, ink_dissolve_duration
+	).set_ease(Tween.EASE_IN).set_trans(Tween.TRANS_CUBIC)
+	_transition.parallel().tween_method(
+		_set_blot_radius_scale, _blot_radius_scale(), 0.72, ink_dissolve_duration
+	)
+	_transition.tween_callback(_finish_hidden)
+
+
+func _finish_hidden() -> void:
+	_phase = Phase.HIDDEN
+	_face.modulate.a = 0.0
+	_face.set_confirm_amount(0.0)
+	_set_blot_progress(0.0)
+	_set_blot_radius_scale(0.0)
+	_billboard_visible(false)
+	_follow_target = null
+
+
+func _set_confirm_amount(value: float) -> void:
+	if _face != null:
+		_face.set_confirm_amount(value)
+
+
+func _blot_progress() -> float:
+	if _ink_material == null:
+		return 0.0
+	return float(_ink_material.get_shader_parameter("progress"))
+
+
+func _set_blot_progress(value: float) -> void:
+	if _ink_material != null:
+		_ink_material.set_shader_parameter("progress", clampf(value, 0.0, 1.0))
+
+
+func _blot_radius_scale() -> float:
+	if _ink_material == null:
+		return 0.0
+	return float(_ink_material.get_shader_parameter("radius_scale"))
+
+
+func _set_blot_radius_scale(value: float) -> void:
+	if _ink_material != null:
+		_ink_material.set_shader_parameter("radius_scale", clampf(value, 0.0, 2.0))
+
+
+func _set_blot_entrance_seed(value: float) -> void:
+	if _ink_material != null:
+		_ink_material.set_shader_parameter("entrance_seed", value)
 
 
 func _billboard_visible(on: bool) -> void:
 	if _billboard == null or _viewport == null:
-		return
-	if _billboard.visible == on:
 		return
 	_billboard.visible = on
 	_viewport.render_target_update_mode = (
@@ -183,7 +311,14 @@ func _billboard_visible(on: bool) -> void:
 	)
 
 
+func _kill_transition() -> void:
+	if _transition != null and _transition.is_valid():
+		_transition.kill()
+	_transition = null
+
+
 func _exit_tree() -> void:
+	_kill_transition()
 	if _viewport != null:
 		_viewport.render_target_update_mode = SubViewport.UPDATE_DISABLED
 	if _billboard != null:
