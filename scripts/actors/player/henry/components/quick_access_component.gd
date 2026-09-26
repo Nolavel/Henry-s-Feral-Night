@@ -10,6 +10,9 @@ signal selection_changed(index: int, zone: Dictionary)
 const NEXT_ACTION: StringName = &"quick_next"
 const PREV_ACTION: StringName = &"quick_prev"
 const USE_ACTION: StringName = &"quick_use"
+## Existing LMB action. While an item is physically in hand it becomes the
+## natural held-item Use trigger; Hub still owns raw LMB for drag/drop.
+const HELD_USE_ACTION: StringName = &"fire"
 const ROAD_FLARE_ID: StringName = &"road_flare"
 const DIRECT_ACTIONS: Array[StringName] = [&"select item slot 1", &"select item slot 2",
 	&"select item slot 3", &"select item slot 4"]
@@ -37,6 +40,9 @@ func _unhandled_input(event: InputEvent) -> void:
 		select(_index - 1)
 	elif _pressed(event, USE_ACTION):
 		use_selected()
+	elif _pressed(event, HELD_USE_ACTION):
+		if _use_held_only():
+			get_viewport().set_input_as_handled()
 	else:
 		for slot: int in range(DIRECT_ACTIONS.size()):
 			if _pressed(event, DIRECT_ACTIONS[slot]):
@@ -80,13 +86,8 @@ func select(index: int) -> void:
 func use_selected() -> bool:
 	if hub == null:
 		return false
-	for child: Node in get_parent().get_children():
-		if child.has_method(&"use_held") and bool(child.call(&"use_held")):
-			if child.has_method(&"is_burning") and bool(child.call(&"is_burning")):
-				_show_burning_flare_readout()
-			else:
-				_hide_readout()
-			return true
+	if _use_held_only():
+		return true
 	var zones: Array[Dictionary] = hub.get_quick_access_zones()
 	if zones.is_empty():
 		return false
@@ -117,7 +118,24 @@ func _equip_selected() -> bool:
 		return false
 	for child: Node in get_parent().get_children():
 		if child.has_method(&"equip_from_zone") and bool(child.call(&"equip_from_zone", item_id, zone["path"])):
+			if item_id == ROAD_FLARE_ID:
+				_show_held_flare_readout(false)
 			return true
+	return false
+
+
+func _use_held_only() -> bool:
+	var parent := get_parent()
+	if parent == null:
+		return false
+	for child: Node in parent.get_children():
+		if not child.has_method(&"use_held") or not bool(child.call(&"use_held")):
+			continue
+		if child.has_method(&"is_burning") and bool(child.call(&"is_burning")):
+			_show_held_flare_readout(true)
+		else:
+			_hide_readout()
+		return true
 	return false
 
 
@@ -156,7 +174,7 @@ func _show_readout(zone: Dictionary) -> void:
 	_readout_left = READOUT_TIME
 
 
-func _show_burning_flare_readout() -> void:
+func _show_held_flare_readout(burning: bool) -> void:
 	if not is_inside_tree():
 		return
 	if not is_instance_valid(_readout):
@@ -170,7 +188,11 @@ func _show_burning_flare_readout() -> void:
 		_readout.grow_horizontal = Control.GROW_DIRECTION_BOTH
 		_readout.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
 		layer.add_child(_readout)
-	_readout.text = "Road flare — burning\n%s  Use selected item — drop flare" % _action_label(USE_ACTION)
+	var state := "burning" if burning else "unlit"
+	var verb := "drop flare" if burning else "light flare"
+	_readout.text = "Road flare — %s\n%s  Use held item — %s" % [
+		state, _action_label(HELD_USE_ACTION), verb
+	]
 	_readout.visible = true
 	_readout_left = READOUT_TIME
 
@@ -184,7 +206,7 @@ func _hide_readout() -> void:
 func _flare_is_burning() -> bool:
 	var parent := get_parent()
 	var held := parent.get_node_or_null(^"HeldLightComponent") as HeldLightComponent if parent != null else null
-	return held != null and held.is_holding()
+	return held != null and held.is_burning()
 
 
 func _action_label(action: StringName) -> String:

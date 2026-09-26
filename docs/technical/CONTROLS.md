@@ -18,10 +18,10 @@ fails the build when two actions share a key without an entry in
 | F | `interact` | Context action, see below |
 | Tab | `open hub` | Player Hub: pack on Henry, pockets, Use |
 | Wheel | `quick_next` / `quick_prev` | Pick a pocket (quick access) |
-| Wheel click | `quick_use` | Use selected/held item: ignite an unlit held flare; drop it when burning |
+| Wheel click | `quick_use` | Use the selected Quick Access item; also remains an alternate held-item Use |
 | 1–4 | `select item slot 1–4` | Direct Quick Access draw; held-capable items such as a road flare come into Henry's hand unlit |
 | Esc | `pause` | Context back-out, see below |
-| LMB | `fire` | In the Hub: drag an item during hold-F placement |
+| LMB | `fire` | In gameplay: Use the item already in Henry's hand; in the Hub: drag/drop |
 
 ### Lighting the road flare
 
@@ -30,10 +30,11 @@ fails the build when two actions share a key without an entry in
    `F` opens manual placement instead.
 2. Press the matching `1`–`4` Quick Access slot. Henry draws the **unlit**
    flare into the existing hand socket and raises the held-item arm pose.
-3. Press the wheel (existing `quick_use` / **Use selected item**) to strike it.
-4. Press the wheel again to drop the burning flare.
-5. The mouse wheel still selects pockets without drawing them; wheel-click on a
-   pocketed item still uses it through the same universal Use contract.
+3. Press **LMB**. Because the flare is already physically in Henry's hand, the
+   existing `fire` input becomes contextual **Use held item** and strikes it.
+4. Press **LMB** again to drop the burning flare.
+5. Wheel-click (`quick_use`) remains available for using the selected Quick
+   Access item directly; the mouse wheel still selects pockets without drawing them.
 
 It is a single-use pyrotechnic light, not an on/off electric torch. At the
 First Exit clock rate (a 24-hour day in 3600 real seconds), its 75 real seconds
