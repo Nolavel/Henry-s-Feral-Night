@@ -39,7 +39,6 @@ var _refresh_left: float = 0.0
 func _ready() -> void:
 	add_to_group(GROUP_ACTION_PROMPT)
 	_viewport.size = canvas_size
-	_face.size = Vector2(canvas_size)
 	_billboard.texture = _viewport.get_texture()
 	_billboard.pixel_size = billboard_pixel_size
 	_billboard.visible = false
