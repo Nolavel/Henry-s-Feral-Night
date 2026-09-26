@@ -65,7 +65,7 @@ jobs:
 
       - name: Render HFN action prompt preview
         if: github.event_name == 'pull_request' && contains(github.event.pull_request.title, '[hud-preview]')
-        run: tools/ci/render.sh res://tools/runtime/action_prompt_preview.tscn res://artifacts/action_prompt_preview.png 180
+        run: tools/ci/render.sh res://tools/runtime/action_prompt_preview.tscn res://artifacts/action_prompt_preview.png 60
 
       - name: Upload HFN action prompt preview
         if: github.event_name == 'pull_request' && contains(github.event.pull_request.title, '[hud-preview]')

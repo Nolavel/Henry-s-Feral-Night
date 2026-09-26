@@ -47,8 +47,20 @@ func _stage() -> void:
 	# door. The prompt still reads its action from the real HingedDoor.
 	var interact := player.get_node_or_null(^"InteractComponent") as InteractComponent
 	if interact != null:
+		# Freeze only target acquisition after selecting the real authored door.
+		# Otherwise its regular physics pass re-detects the staged camera/player
+		# arrangement and clears the preview target before the screenshot frame.
+		interact.set_physics_process(false)
 		interact.current_target = door
 		door.set_target_state(true, true)
+
+	var prompt := get_tree().get_first_node_in_group(&"action_prompt_3d") as ActionPrompt3D
+	if prompt == null:
+		push_warning("action prompt preview: production ActionPrompt3D missing")
+	else:
+		print("action prompt preview: staged %s -> %s" % [
+			door.get_path(), door.get_interaction_prompt_data()
+		])
 
 	# Remove capture-only debug labels so the interaction treatment is legible.
 	var debug := world.get_node_or_null(^"Perfomance&Debugging")
