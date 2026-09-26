@@ -7,6 +7,9 @@ extends Control
 @export var player: CharacterBody3D
 @export var cursor_radius: float = 8.0
 @export var cursor_thickness: float = 2.0
+## Brush Enso replaces only the centre ring. Sprint/jump stamina arcs keep
+## their existing geometry and behaviour.
+@export var cursor_enso_scale: float = 1.10
 ## Nothing under the ring.
 @export var cursor_color_idle: Color = Color(0.62, 0.64, 0.66, 0.75)
 ## An interactable under the ring.
@@ -29,6 +32,7 @@ extends Control
 
 const RING_SEGMENTS: int = 32
 const JUMP_ARC_COLOR: Color = Color(0.4, 0.8, 1.0)
+const CURSOR_ENSO_TEXTURE: Texture2D = preload("res://assets/ui/hud/dynamic_cursor/enso_cursor_ring.png")
 
 var is_over_target: bool = false
 var _color: Color = Color.WHITE
@@ -74,7 +78,7 @@ func _process(delta: float) -> void:
 
 func _draw() -> void:
 	var center: Vector2 = get_viewport_rect().size * 0.5
-	_draw_ring(center, cursor_radius, _color, cursor_thickness)
+	_draw_cursor_enso(center, _color)
 	var inner: Color = _color
 	inner.a *= 0.3
 	draw_circle(center, cursor_radius * 0.3, inner)
@@ -162,6 +166,15 @@ func _draw_jump_arc(center: Vector2) -> void:
 		_draw_ring(center, radius, color, 2.0)
 	elif half > 0.0:
 		draw_arc(center, radius, PI * 1.5 - half, PI * 1.5 + half, 24, color, 2.0, true)
+
+
+func _draw_cursor_enso(center: Vector2, color: Color) -> void:
+	# The texture is authored with the brush opening at six o'clock. Tinting
+	# preserves the old idle/target highlight behaviour without touching stamina.
+	var diameter := cursor_radius * 2.0 * cursor_enso_scale
+	var size := Vector2.ONE * diameter
+	var rect := Rect2(center - size * 0.5, size)
+	draw_texture_rect(CURSOR_ENSO_TEXTURE, rect, false, color, false)
 
 
 func _draw_ring(center: Vector2, radius: float, color: Color, thickness: float) -> void:
