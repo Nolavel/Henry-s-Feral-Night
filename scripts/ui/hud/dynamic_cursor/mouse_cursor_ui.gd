@@ -33,6 +33,9 @@ extends Control
 @export var interaction_bracket_thickness: float = 2.6
 @export var prompt_canvas_size: Vector2 = Vector2(460.0, 210.0)
 @export var prompt_content_size: Vector2 = Vector2(360.0, 150.0)
+## ADT's eight-blob field is deliberately right-heavy. Offset only the ink so
+## its visual mass sits under the centered key/action instead of beside it.
+@export var prompt_ink_offset: Vector2 = Vector2(-70.0, 0.0)
 
 @export_group("Movement and stamina")
 @export var movement_controller: MovementController
@@ -265,7 +268,7 @@ func _build_interaction_prompt() -> void:
 	_prompt_material.set_shader_parameter("stagger", 0.7)
 	_prompt_material.set_shader_parameter("entrance_seed", 0.31)
 	_prompt_material.set_shader_parameter("blob_color", Color(0.015, 0.012, 0.009, 0.92))
-	_prompt_material.set_shader_parameter("radius_scale", 1.0)
+	_prompt_material.set_shader_parameter("radius_scale", 1.08)
 	_prompt_material.set_shader_parameter("edge_ragged", 0.052)
 	_prompt_material.set_shader_parameter("warp_scale", 4.5)
 	_prompt_material.set_shader_parameter("rect_size", prompt_canvas_size)
@@ -300,7 +303,7 @@ func _update_prompt_visuals() -> void:
 	if _prompt_ink == null or _prompt_face == null or _prompt_material == null:
 		return
 	var center := get_viewport_rect().size * 0.5
-	_prompt_ink.position = center - prompt_canvas_size * 0.5
+	_prompt_ink.position = center - prompt_canvas_size * 0.5 + prompt_ink_offset
 	_prompt_ink.size = prompt_canvas_size
 	_prompt_face.position = center - prompt_content_size * 0.5
 	_prompt_face.size = prompt_content_size
