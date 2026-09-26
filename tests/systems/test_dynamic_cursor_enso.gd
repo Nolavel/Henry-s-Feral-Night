@@ -16,6 +16,8 @@ func _initialize() -> void:
 			"Enso texture should stay square and centered")
 	if cursor != null:
 		root.add_child(cursor)
+		# Runtime prompt nodes/groups are built in _ready(), not at instantiate().
+		await process_frame
 		_check(is_equal_approx(cursor.cursor_enso_scale, 1.10),
 			"Enso centre-ring scale changed")
 		_check(cursor.texture_filter == CanvasItem.TEXTURE_FILTER_LINEAR,
