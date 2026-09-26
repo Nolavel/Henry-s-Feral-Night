@@ -174,7 +174,12 @@ func _find_crosshair_target() -> InteractiveArea:
 		var flat_distance := _flat_distance_to(area)
 		if flat_distance > intent_radius:
 			continue
-		var toward: Vector3 = area.global_position - from
+		# Legacy pickup Areas are intentionally much larger than the visible item,
+		# so the camera can start inside them. Aim at the visible mesh instead of
+		# Area3D.global_position: ground-level origins were being occluded by the
+		# terrain itself, which made pickups impossible to focus.
+		var focus_point: Vector3 = _focus_point(area)
+		var toward: Vector3 = focus_point - from
 		if toward.length() < 0.01:
 			continue
 		var angle := direction.angle_to(toward.normalized())
@@ -230,7 +235,7 @@ func _focus_hit_is_visible(from: Vector3, hit_position: Vector3, target: Interac
 
 func _has_focus_line(camera: Camera3D, area: InteractiveArea) -> bool:
 	var from := camera.global_position
-	var to := area.global_position
+	var to := _focus_point(area)
 	var ray := PhysicsRayQueryParameters3D.create(from, to)
 	ray.collide_with_areas = false
 	ray.collide_with_bodies = true
@@ -239,6 +244,24 @@ func _has_focus_line(camera: Camera3D, area: InteractiveArea) -> bool:
 	if hit.is_empty():
 		return true
 	return _area_from(hit.get("collider")) == area
+
+
+## A focus anchor should represent what the player can actually see. Many old
+## pickup Areas have their origin on the floor and a 6 m trigger sphere; using
+## that origin for line-of-sight makes the terrain occlude the pickup itself.
+func _focus_point(area: InteractiveArea) -> Vector3:
+	if area == null:
+		return Vector3.ZERO
+	var mesh: MeshInstance3D = area.interactive_mesh
+	if is_instance_valid(mesh) and mesh.mesh != null:
+		var bounds: AABB = mesh.get_aabb()
+		var point: Vector3 = mesh.to_global(bounds.get_center())
+		# Keep tiny/rotated ground props (flare, cup, food) a few centimetres
+		# above the authored root so their own supporting surface cannot win LOS.
+		var safe_lift: float = clampf(bounds.size.y * 0.35, 0.08, 0.35)
+		point.y = maxf(point.y, area.global_position.y + safe_lift)
+		return point
+	return area.global_position + Vector3.UP * 0.15
 
 
 ## Legacy cone helper retained for compatibility/reference only.
