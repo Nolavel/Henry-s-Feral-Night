@@ -2,15 +2,17 @@ class_name ActionPrompt3D
 extends Node3D
 
 ## ADT HoldPrompt's production shape adapted to HFN:
-## - world-space SubViewport carried by a billboarded Sprite3D;
+## - a Control rendered into a SubViewport carried by a billboarded Sprite3D;
 ## - no depth test, because the prompt is a game statement;
-## - rises from the target instead of fading on the glass;
+## - rises from the target instead of living as a fixed screen tooltip;
 ## - reflects InteractComponent/InteractiveArea and never owns interaction.
 ##
-## HFN adds the requested readable frame: key cap + current action + one short
-## factual detail. The old per-object Label3D is suppressed while this exists.
+## The render surface is created lazily only when a real InteractComponent is
+## present. Composition tests instantiate World with a bare player and therefore
+## pay no SubViewport/RID cost at all.
 
 const GROUP_ACTION_PROMPT: StringName = &"action_prompt_3d"
+const BLOT_SHADER: Shader = preload("res://shaders/ui/key_hints_blot.gdshader")
 
 @export_group("World placement")
 @export var canvas_size: Vector2i = Vector2i(384, 160)
@@ -24,9 +26,9 @@ const GROUP_ACTION_PROMPT: StringName = &"action_prompt_3d"
 @export var disappear_rate: float = 7.0
 @export var press_decay_rate: float = 5.5
 
-@onready var _viewport: SubViewport = $Face
-@onready var _face: ActionPromptFace = $Face/Prompt
-@onready var _billboard: Sprite3D = $Billboard
+var _viewport: SubViewport
+var _face: ActionPromptFace
+var _billboard: Sprite3D
 
 var _interact: InteractComponent
 var _target: InteractiveArea
@@ -38,10 +40,6 @@ var _refresh_left: float = 0.0
 
 func _ready() -> void:
 	add_to_group(GROUP_ACTION_PROMPT)
-	_viewport.size = canvas_size
-	_billboard.pixel_size = billboard_pixel_size
-	_billboard.visible = false
-	_viewport.render_target_update_mode = SubViewport.UPDATE_DISABLED
 
 
 func on_world_ready(context: WorldContext) -> void:
@@ -55,9 +53,61 @@ func on_world_ready(context: WorldContext) -> void:
 		_interact.interaction_performed.connect(_on_interaction_performed)
 
 
+func _activate_render_surface() -> void:
+	if _viewport != null:
+		return
+
+	_viewport = SubViewport.new()
+	_viewport.name = "Face"
+	_viewport.transparent_bg = true
+	_viewport.size = canvas_size
+	_viewport.render_target_update_mode = SubViewport.UPDATE_DISABLED
+	add_child(_viewport)
+
+	var ink := ColorRect.new()
+	ink.name = "Ink"
+	ink.position = Vector2.ZERO
+	ink.size = Vector2(canvas_size)
+	ink.mouse_filter = Control.MOUSE_FILTER_IGNORE
+	var material := ShaderMaterial.new()
+	material.shader = BLOT_SHADER
+	material.set_shader_parameter("progress", 1.0)
+	material.set_shader_parameter("stagger", 0.7)
+	material.set_shader_parameter("entrance_seed", 0.31)
+	material.set_shader_parameter("blob_color", Color(0.015, 0.012, 0.009, 0.91))
+	material.set_shader_parameter("radius_scale", 0.92)
+	material.set_shader_parameter("edge_ragged", 0.052)
+	material.set_shader_parameter("warp_scale", 4.5)
+	material.set_shader_parameter("rect_size", Vector2(canvas_size))
+	material.set_shader_parameter("idle_drift", 0.0)
+	ink.material = material
+	_viewport.add_child(ink)
+
+	_face = ActionPromptFace.new()
+	_face.name = "Prompt"
+	_face.position = Vector2.ZERO
+	_face.size = Vector2(canvas_size)
+	_viewport.add_child(_face)
+
+	_billboard = Sprite3D.new()
+	_billboard.name = "Billboard"
+	_billboard.billboard = BaseMaterial3D.BILLBOARD_ENABLED
+	_billboard.no_depth_test = true
+	_billboard.shaded = false
+	_billboard.transparent = true
+	_billboard.texture_filter = BaseMaterial3D.TEXTURE_FILTER_LINEAR
+	_billboard.pixel_size = billboard_pixel_size
+	_billboard.texture = _viewport.get_texture()
+	_billboard.visible = false
+	add_child(_billboard)
+
+
 func _process(delta: float) -> void:
+	if _interact == null or _viewport == null or _face == null or _billboard == null:
+		return
+
 	var candidate: InteractiveArea = null
-	if _interact != null and is_instance_valid(_interact.current_target):
+	if is_instance_valid(_interact.current_target):
 		candidate = _interact.current_target
 
 	var should_show := (
@@ -104,7 +154,7 @@ func _process(delta: float) -> void:
 
 
 func _sync_prompt() -> void:
-	if not is_instance_valid(_target):
+	if not is_instance_valid(_target) or _face == null:
 		return
 	var data := _target.get_interaction_prompt_data()
 	_face.set_prompt(
@@ -119,11 +169,12 @@ func _on_interaction_performed(target: InteractiveArea) -> void:
 	if target != _follow_target:
 		return
 	_press = 1.0
-	# Door/cabinet state may flip inside interact(); refresh after that fact.
 	call_deferred("_sync_prompt")
 
 
 func _billboard_visible(on: bool) -> void:
+	if _billboard == null or _viewport == null:
+		return
 	if _billboard.visible == on:
 		return
 	_billboard.visible = on
@@ -132,16 +183,9 @@ func _billboard_visible(on: bool) -> void:
 	)
 
 
-func _activate_render_surface() -> void:
-	if _billboard.texture == null:
-		_billboard.texture = _viewport.get_texture()
-
-
 func _exit_tree() -> void:
-	# SubViewportTexture points back at its viewport RID. Break the sibling
-	# reference explicitly before the composed world is freed in headless tests.
-	if is_instance_valid(_viewport):
+	if _viewport != null:
 		_viewport.render_target_update_mode = SubViewport.UPDATE_DISABLED
-	if is_instance_valid(_billboard):
+	if _billboard != null:
 		_billboard.visible = false
 		_billboard.texture = null

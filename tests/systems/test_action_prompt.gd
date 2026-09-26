@@ -12,24 +12,24 @@ func _initialize() -> void:
 		return
 	root.add_child(prompt)
 	_check(prompt.is_in_group(&"action_prompt_3d"), "prompt did not register its lookup group")
-	var billboard := prompt.get_node_or_null(^"Billboard") as Sprite3D
-	var viewport := prompt.get_node_or_null(^"Face") as SubViewport
-	_check(billboard != null and billboard.no_depth_test, "3D banner is not always-on-top")
-	_check(viewport != null and viewport.size == Vector2i(384, 160), "prompt viewport size changed")
+	_check(prompt.canvas_size == Vector2i(384, 160), "prompt canvas size changed")
 	_check(is_equal_approx(prompt.billboard_pixel_size, 0.0020), "prompt is no longer the smaller requested scale")
 
+	# This contract is what the 3D banner reads at runtime. It does not need the
+	# area to enter the tree (which avoids creating unrelated legacy visuals).
 	var area := InteractiveArea.new()
 	area.interaction_type = InteractiveArea.InteractionType.PICKUP
 	area.item_name = "Firewood"
 	area.description = "Dry fuel"
-	root.add_child(area)
 	var data := area.get_interaction_prompt_data()
 	_check(String(data.get("key")) == "F", "prompt key is not resolved live from InputMap")
 	_check(String(data.get("action")) == tr("INTERACT_PICKUP"), "pickup action text is wrong")
 	_check(String(data.get("detail")) == "Dry fuel", "short description is not preserved")
 
-	area.queue_free()
-	prompt.queue_free()
+	area.free()
+	if prompt.get_parent() != null:
+		prompt.get_parent().remove_child(prompt)
+	prompt.free()
 	print("test_action_prompt: %s" % ("PASS" if failures == 0 else "%d FAILED" % failures))
 	quit(1 if failures > 0 else 0)
 
