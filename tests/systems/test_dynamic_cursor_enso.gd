@@ -12,11 +12,13 @@ func _initialize() -> void:
 	var enso := load(ENSO_PATH) as Texture2D
 	_check(enso != null, "Enso cursor texture does not load after import")
 	if enso != null:
-		_check(enso.get_width() == 128 and enso.get_height() == 128,
+		_check(enso.get_width() == 512 and enso.get_height() == 512,
 			"Enso texture should stay square and centered")
 	if cursor != null:
 		_check(is_equal_approx(cursor.cursor_enso_scale, 1.10),
 			"Enso centre-ring scale changed")
+		_check(cursor.texture_filter == CanvasItem.TEXTURE_FILTER_LINEAR,
+			"Enso cursor is not using linear texture filtering")
 		# Stamina/jump exports remain present: this change must not replace those systems.
 		_check(cursor.sprint_arc_thickness > 0.0, "sprint stamina arcs were removed")
 		_check(cursor.stamina_manager == null, "test cursor unexpectedly owns stamina state")
