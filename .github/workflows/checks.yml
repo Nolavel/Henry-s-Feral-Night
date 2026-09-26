@@ -2,7 +2,7 @@ name: checks
 
 ## Cheap gate for main: import, filename hygiene, headless test suites.
 ## Rendering remains opt-in. [startup-preview] captures the title card;
-## [hud-preview] captures one production HFN frame with the ADT-style input hints.
+## [hud-preview] captures one staged production HFN frame with contextual HUD/action UI.
 on:
   pull_request:
     branches: [main]
@@ -63,15 +63,15 @@ jobs:
           if-no-files-found: error
           retention-days: 3
 
-      - name: Render ADT key-hints preview in HFN
+      - name: Render HFN action prompt preview
         if: github.event_name == 'pull_request' && contains(github.event.pull_request.title, '[hud-preview]')
-        run: tools/ci/render.sh res://experimental_location/scenes/Graciosa_Island_Terrain.tscn res://artifacts/key_hints_adt.png 180
+        run: tools/ci/render.sh res://tools/runtime/action_prompt_preview.tscn res://artifacts/action_prompt_preview.png 180
 
-      - name: Upload ADT key-hints preview
+      - name: Upload HFN action prompt preview
         if: github.event_name == 'pull_request' && contains(github.event.pull_request.title, '[hud-preview]')
         uses: actions/upload-artifact@v4
         with:
-          name: key-hints-adt-preview
-          path: artifacts/key_hints_adt.png
+          name: action-prompt-preview
+          path: artifacts/action_prompt_preview.png
           if-no-files-found: error
           retention-days: 3

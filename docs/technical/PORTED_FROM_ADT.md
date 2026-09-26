@@ -119,3 +119,19 @@ carries `body_heat_cost_c`, because eating snow for water should cost heat.
 - ADT's BlackRock font is deliberately NOT copied: ADT marks it as a
   project-only asset not for redistribution. HFN therefore uses its own project
   font for prose while preserving ADT's monospace key caps.
+
+
+## ADT HoldPrompt → HFN ActionPrompt3D
+
+- ADT source: `ui/widgets/hold_prompt/hold_prompt.gd/.tscn`.
+- HFN keeps the load-bearing production shape: a Control rendered into a
+  SubViewport, carried by a billboarded Sprite3D in world space, always on top,
+  rising from the target rather than living as a fixed screen tooltip.
+- HFN intentionally does not copy the entire F→circle→dot hold mechanic because
+  First Exit's current world interactions are press/approach actions, not a
+  generic hold contract. Instead the plate gives a short press pulse after the
+  real `interaction_performed` signal.
+- The requested HFN readability pass adds a compact framed key cap, current
+  action and one short factual detail over the same ADT ink-blot language.
+  Action text comes from `InteractiveArea._get_interaction_text()`, so doors,
+  pickups and other targets remain the source of truth.

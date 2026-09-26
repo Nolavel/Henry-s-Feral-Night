@@ -77,3 +77,9 @@ HUB_SECTION_SIDES,Side flaps,Боковые клапаны
 PACK_INSPECT,Go through the pack,Разобрать рюкзак
 LIGHT_PROMPT,Light the stove,Разжечь печь
 LIGHT_REQUIREMENTS,Requires tinder + firewood,Нужны растопка + дрова
+
+PROMPT_HEADER_INTERACT,Interact,Взаимодействие
+PROMPT_DETAIL_ITEM,Item,Предмет
+PROMPT_DETAIL_CONTROL,Control,Управление
+PROMPT_DETAIL_DOOR,Door,Дверь
+PROMPT_DETAIL_OBJECT,Object,Объект

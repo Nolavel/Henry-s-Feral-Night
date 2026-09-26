@@ -1,0 +1,51 @@
+[gd_scene load_steps=5 format=3]
+
+[ext_resource type="Script" path="res://scripts/ui/hud/action_prompt/action_prompt_3d.gd" id="1_prompt"]
+[ext_resource type="Script" path="res://scripts/ui/hud/action_prompt/action_prompt_face.gd" id="2_face"]
+[ext_resource type="Shader" path="res://shaders/ui/key_hints_blot.gdshader" id="3_blot"]
+
+[sub_resource type="ShaderMaterial" id="ShaderMaterial_blot"]
+shader = ExtResource("3_blot")
+shader_parameter/progress = 1.0
+shader_parameter/stagger = 0.7
+shader_parameter/entrance_seed = 0.31
+shader_parameter/blob_color = Color(0.015, 0.012, 0.009, 0.91)
+shader_parameter/radius_scale = 0.92
+shader_parameter/edge_ragged = 0.052
+shader_parameter/warp_scale = 4.5
+shader_parameter/rect_size = Vector2(384, 160)
+shader_parameter/idle_drift = 0.0
+
+[node name="ActionPrompt3D" type="Node3D"]
+script = ExtResource("1_prompt")
+
+[node name="Billboard" type="Sprite3D" parent="."]
+visible = false
+billboard = 1
+no_depth_test = true
+shaded = false
+transparent = true
+texture_filter = 1
+pixel_size = 0.002
+
+[node name="Face" type="SubViewport" parent="."]
+transparent_bg = true
+size = Vector2i(384, 160)
+render_target_update_mode = 0
+
+[node name="Ink" type="ColorRect" parent="Face"]
+material = SubResource("ShaderMaterial_blot")
+offset_right = 384.0
+offset_bottom = 160.0
+mouse_filter = 2
+color = Color(1, 1, 1, 1)
+
+[node name="Prompt" type="Control" parent="Face"]
+layout_mode = 3
+anchors_preset = 15
+anchor_right = 1.0
+anchor_bottom = 1.0
+grow_horizontal = 2
+grow_vertical = 2
+mouse_filter = 2
+script = ExtResource("2_face")
