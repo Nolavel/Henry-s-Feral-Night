@@ -160,27 +160,45 @@ func _on_body_entered(body: Node) -> void:
 	if body.is_in_group("player"):
 		player_in_area = true
 		player_reference = body
+		# Proximity owns the old world marker (the check mark). Crosshair focus
+		# owns the F prompt. Keeping these separate prevents the marker from
+		# disappearing merely because Henry is not aiming at the item yet.
+		if can_interact() and not shape_cast_detected:
+			_show_icon_sprite()
+			_start_shake_cycle()
 
 func _on_body_exited(body: Node) -> void:
 	if body.is_in_group("player"):
 		player_in_area = false
 		player_reference = null
+		_stop_shake_cycle()
+		_hide_icon_sprite_with_lift()
+		_hide_info_label()
+		if object_on_ground:
+			_hide_highlight_circle()
 
 
-## Driven by InteractComponent: far target shows the marker, near one the prompt.
+## Crosshair focus owns the F prompt. Proximity owns the world marker.
 func set_target_state(targeted: bool, in_prompt_range: bool) -> void:
 	var was_prompt: bool = shape_cast_detected
 	var was_targeted: bool = _targeted
 	_targeted = targeted
 	shape_cast_detected = targeted and in_prompt_range
+
 	if not targeted:
-		_stop_shake_cycle()
-		if was_targeted:
-			_hide_icon_sprite_with_lift()
-			_hide_info_label()
-			if object_on_ground:
-				_hide_highlight_circle()
+		_hide_info_label()
+		if was_prompt and object_on_ground:
+			_hide_highlight_circle()
+		if player_in_area and can_interact():
+			if was_targeted or not icon_sprite or not icon_sprite.visible:
+				_show_icon_sprite()
+			_start_shake_cycle()
+		else:
+			_stop_shake_cycle()
+			if was_targeted:
+				_hide_icon_sprite_with_lift()
 		return
+
 	if shape_cast_detected and not was_prompt:
 		_stop_shake_cycle()
 		_hide_icon_sprite_with_lift_then_show_info()
@@ -471,7 +489,7 @@ func _on_interaction_performed() -> void:
 
 # === СИСТЕМА ТРЯСКИ СПРАЙТА ===
 func _start_shake_cycle() -> void:
-	if shake_timer and _targeted and not shape_cast_detected:
+	if shake_timer and player_in_area and not shape_cast_detected:
 		shake_timer.start()
 
 func _stop_shake_cycle() -> void:
@@ -480,8 +498,8 @@ func _stop_shake_cycle() -> void:
 	_stop_shake()
 
 func _start_shake() -> void:
-	# Проверяем что игрок все еще в области и нет взаимодействия
-	if not _targeted or shape_cast_detected:
+	# Marker animation follows proximity, not crosshair focus.
+	if not player_in_area or shape_cast_detected:
 		return
 	
 	if not icon_sprite or not icon_sprite.visible:
