@@ -39,6 +39,11 @@ uniform vec2 rect_size = vec2(300.0, 240.0);
 // Living ink: the tear crawls. OFF by default — a HUD element that never
 // settles redraws every frame forever, and the FPS target is tight.
 uniform float idle_drift : hint_range(0.0, 0.2) = 0.0;
+// Optional transparent breathing room around the authored blob field.
+// 0.0 preserves ADT KeyHints exactly. ActionPrompt uses a positive value so
+// the same blobs can extend beyond logical UV 0..1 without being cut by the
+// render target edge.
+uniform float canvas_padding : hint_range(0.0, 0.35) = 0.0;
 
 float hash(vec2 p) {
 	return fract(sin(dot(p, vec2(127.1, 311.7))) * 43758.5453);
@@ -112,12 +117,17 @@ void fragment() {
 	// Round blobs on a non-square panel: measure in a space where x carries the
 	// panel's aspect, and put the centres in the same space.
 	float aspect = max(rect_size.x, 1.0) / max(rect_size.y, 1.0);
+	vec2 logical_uv = mix(
+		vec2(-canvas_padding),
+		vec2(1.0 + canvas_padding),
+		UV
+	);
 	vec2 drift = vec2(TIME * idle_drift, TIME * idle_drift * 0.7);
 	vec2 warp = vec2(
-		fbm(UV * warp_scale + drift),
-		fbm(UV * warp_scale + vec2(17.3, 5.1) + drift)
+		fbm(logical_uv * warp_scale + drift),
+		fbm(logical_uv * warp_scale + vec2(17.3, 5.1) + drift)
 	) - 0.5;
-	vec2 p = UV + warp * edge_ragged;
+	vec2 p = logical_uv + warp * edge_ragged;
 
 	// Centres and radii converted from the HTML study's own right/bottom
 	// offsets on its 340x280 stack, so the mass hangs off the bottom-right

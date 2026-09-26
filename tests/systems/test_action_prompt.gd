@@ -12,8 +12,17 @@ func _initialize() -> void:
 		return
 	root.add_child(prompt)
 	_check(prompt.is_in_group(&"action_prompt_3d"), "prompt did not register its lookup group")
-	_check(prompt.canvas_size == Vector2i(360, 150), "prompt canvas is not the compact blob layout")
-	_check(is_equal_approx(prompt.billboard_pixel_size, 0.0019), "prompt scale changed")
+	_check(prompt.canvas_size == Vector2i(560, 260), "prompt render canvas lost its transparent bleed room")
+	_check(prompt.content_size == Vector2i(360, 150), "prompt safe-area size changed")
+	_check(prompt.content_origin == Vector2(150.0, 55.0), "prompt safe-area is no longer inset")
+	_check(prompt.content_origin.x > 0.0 and prompt.content_origin.y > 0.0,
+		"content touches the viewport edge")
+	_check(prompt.content_origin.x + prompt.content_size.x < prompt.canvas_size.x,
+		"content reaches the right viewport edge")
+	_check(prompt.content_origin.y + prompt.content_size.y < prompt.canvas_size.y,
+		"content reaches the bottom viewport edge")
+	_check(prompt.ink_canvas_padding >= 0.18, "ink UV field has insufficient anti-clipping padding")
+	_check(is_equal_approx(prompt.billboard_pixel_size, 0.00155), "prompt world scale changed")
 	_check(prompt.ink_appear_duration > prompt.content_fade_in_duration,
 		"blob assembly should be a distinct stage before content")
 	_check(prompt.content_fade_out_duration < prompt.ink_dissolve_duration,

@@ -140,3 +140,16 @@ carries `body_heat_cost_c`, because eating snow for water should cost heat.
   prompt stays suppressed for that same target until focus is reacquired.
 - Action text comes from `InteractiveArea._get_interaction_text()`, so doors,
   pickups and other targets remain the source of truth.
+
+
+### ActionPrompt clipping rule
+
+- The world prompt renders into a transparent canvas larger than its visible
+  key/action safe-area. Ink is not allowed to use the viewport edge as a visual
+  boundary.
+- The shared ADT blot shader exposes `canvas_padding` with a default of zero,
+  so production KeyHints remain visually unchanged. ActionPrompt enables the
+  padding and evaluates the blob field beyond logical UV 0..1, preserving the
+  torn outer contour instead of clipping it into a rectangle.
+- Key/action/detail stay inside an inset safe-area; only transparent canvas and
+  ink occupy the bleed region.

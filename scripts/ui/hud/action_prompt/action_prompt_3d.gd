@@ -24,15 +24,18 @@ enum Phase {
 }
 
 @export_group("World placement")
-@export var canvas_size: Vector2i = Vector2i(360, 150)
-@export var billboard_pixel_size: float = 0.0019
+## Transparent canvas is deliberately larger than the visible content.
+## The extra room is what prevents the ink from reading as a clipped card.
+@export var canvas_size: Vector2i = Vector2i(560, 260)
+@export var content_size: Vector2i = Vector2i(360, 150)
+@export var content_origin: Vector2 = Vector2(150.0, 55.0)
+@export var billboard_pixel_size: float = 0.00155
 @export var risen_offset: Vector3 = Vector3(0.0, 0.60, 0.0)
 
 @export_group("Ink shape")
-## Same placement rule as ADT KeyHints: the shader's mass lives in the
-## bottom-right of a larger layer, so grow that layer up/left behind the face.
-@export var blot_scale: Vector2 = Vector2(1.9, 1.55)
-@export var blot_bleed: float = 18.0
+## Logical UV margin around the shared ADT blob field. KeyHints keeps the
+## shader default (0); only this world prompt asks for breathing room.
+@export var ink_canvas_padding: float = 0.20
 
 @export_group("ADT choreography")
 @export var ink_appear_duration: float = 0.48
@@ -86,10 +89,8 @@ func _activate_render_surface() -> void:
 
 	_ink = ColorRect.new()
 	_ink.name = "Ink"
-	var face_size := Vector2(canvas_size)
-	var blot_size := face_size * blot_scale
-	_ink.size = blot_size
-	_ink.position = face_size - blot_size + Vector2.ONE * blot_bleed
+	_ink.position = Vector2.ZERO
+	_ink.size = Vector2(canvas_size)
 	_ink.mouse_filter = Control.MOUSE_FILTER_IGNORE
 	_ink_material = ShaderMaterial.new()
 	_ink_material.shader = BLOT_SHADER
@@ -102,13 +103,14 @@ func _activate_render_surface() -> void:
 	_ink_material.set_shader_parameter("warp_scale", 4.5)
 	_ink_material.set_shader_parameter("rect_size", _ink.size)
 	_ink_material.set_shader_parameter("idle_drift", 0.0)
+	_ink_material.set_shader_parameter("canvas_padding", ink_canvas_padding)
 	_ink.material = _ink_material
 	_viewport.add_child(_ink)
 
 	_face = ActionPromptFace.new()
 	_face.name = "Prompt"
-	_face.position = Vector2.ZERO
-	_face.size = Vector2(canvas_size)
+	_face.position = content_origin
+	_face.size = Vector2(content_size)
 	_face.modulate.a = 0.0
 	_viewport.add_child(_face)
 
