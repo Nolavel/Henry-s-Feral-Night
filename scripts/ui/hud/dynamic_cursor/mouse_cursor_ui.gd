@@ -32,7 +32,7 @@ extends Control
 
 const RING_SEGMENTS: int = 32
 const JUMP_ARC_COLOR: Color = Color(0.4, 0.8, 1.0)
-const CURSOR_ENSO_TEXTURE: Texture2D = preload("res://assets/ui/hud/dynamic_cursor/enso_cursor_ring.png")
+const CURSOR_ENSO_PATH := "res://assets/ui/hud/dynamic_cursor/enso_cursor_ring.svg"
 
 var is_over_target: bool = false
 var _color: Color = Color.WHITE
@@ -48,12 +48,16 @@ var _jump_alpha: float = 0.0
 var _jump_progress: float = 0.0
 var _jump_tween: Tween
 var _arcs_tween: Tween
+var _cursor_enso_texture: Texture2D
 
 
 func _ready() -> void:
 	set_anchors_preset(Control.PRESET_FULL_RECT)
 	mouse_filter = Control.MOUSE_FILTER_IGNORE
 	_color = cursor_color_idle
+	_cursor_enso_texture = load(CURSOR_ENSO_PATH) as Texture2D
+	if _cursor_enso_texture == null:
+		push_warning("[MouseCursorUI] Enso cursor texture failed to load")
 	if player == null:
 		player = get_parent() as CharacterBody3D
 	if player != null and movement_controller == null:
@@ -174,7 +178,10 @@ func _draw_cursor_enso(center: Vector2, color: Color) -> void:
 	var diameter := cursor_radius * 2.0 * cursor_enso_scale
 	var size := Vector2.ONE * diameter
 	var rect := Rect2(center - size * 0.5, size)
-	draw_texture_rect(CURSOR_ENSO_TEXTURE, rect, false, color, false)
+	if _cursor_enso_texture != null:
+		draw_texture_rect(_cursor_enso_texture, rect, false, color, false)
+	else:
+		_draw_ring(center, cursor_radius, color, cursor_thickness)
 
 
 func _draw_ring(center: Vector2, radius: float, color: Color, thickness: float) -> void:

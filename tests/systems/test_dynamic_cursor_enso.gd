@@ -1,16 +1,18 @@
 extends SceneTree
 
 const CURSOR_SCENE := preload("res://scenes/ui/hud/dynamic_cursor/mouse_cursor_ui.tscn")
-const ENSO := preload("res://assets/ui/hud/dynamic_cursor/enso_cursor_ring.png")
+const ENSO_PATH := "res://assets/ui/hud/dynamic_cursor/enso_cursor_ring.svg"
 var failures := 0
 
 
 func _initialize() -> void:
 	var cursor := CURSOR_SCENE.instantiate() as MouseCursorUI
 	_check(cursor != null, "cursor scene does not instantiate")
-	_check(ENSO != null, "Enso cursor texture does not load")
-	if ENSO != null:
-		_check(ENSO.get_width() == 128 and ENSO.get_height() == 128,
+	_check(FileAccess.file_exists(ENSO_PATH), "Enso cursor asset is missing")
+	var enso := load(ENSO_PATH) as Texture2D
+	_check(enso != null, "Enso cursor texture does not load after import")
+	if enso != null:
+		_check(enso.get_width() == 128 and enso.get_height() == 128,
 			"Enso texture should stay square and centered")
 	if cursor != null:
 		_check(is_equal_approx(cursor.cursor_enso_scale, 1.10),
