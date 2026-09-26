@@ -92,16 +92,6 @@ recorded in [`technical/PORTED_FROM_ADT.md`](technical/PORTED_FROM_ADT.md).
   The atmosphere receives a dedicated solar direction from DayNightManager,
   while scene LIGHT0 continues to illuminate clouds as sun or moon.
 
-## Squigglevision startup title
-
-- Source: https://godotshaders.com/shader/squigglevision/
-- Author: tentabrobpy
-- Published: October 16, 2025; updated March 10, 2026.
-- License: CC0
-- HFN changes: applied only to the startup title and ALPHA label, with a
-  generated seamless NoiseTexture2D and restrained strength. The black cover
-  remains stable and unshaded.
-
 ## Wind Driven Falling Particles
 
 - Source: https://godotshaders.com/shader/wind-driven-falling-particles-leaves-petals-feathers/

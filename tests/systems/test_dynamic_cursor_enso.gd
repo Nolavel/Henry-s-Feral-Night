@@ -25,11 +25,13 @@ func _initialize() -> void:
 		_check(cursor.is_in_group(&"interaction_cursor_prompt"),
 			"cursor did not register the centered interaction-prompt group")
 		_check(cursor.has_center_interaction_prompt(),
-			"cursor did not build the ink + key prompt")
+			"cursor did not build the centered key/action prompt")
 		_check(cursor.interaction_bracket_offset > cursor.prompt_content_size.x * 0.5,
 			"interaction brackets do not clear the prompt content")
-		_check(cursor.prompt_canvas_size.x > cursor.prompt_content_size.x,
-			"ink canvas lost horizontal bleed room")
+		_check(cursor.interaction_bracket_edge_color.a > 0.0,
+			"interaction bracket edge accent is invisible")
+		_check(cursor.interaction_bracket_edge_fraction < 0.5,
+			"yellow accent covers too much of the bracket")
 		_check(cursor.interaction_morph_duration > 0.0,
 			"interaction morph has no duration")
 		# Stamina/jump exports remain present: this change must not replace those systems.

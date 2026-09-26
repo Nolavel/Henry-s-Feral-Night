@@ -1,25 +1,15 @@
 class_name ActionPromptFace
 extends Control
 
-## Text/key face for the world-space interaction prompt.
-## There is deliberately NO card/frame here. The only backing is the same
-## multi-blob ADT ink shader used by KeyHintsPanel.
+## Text/key face for the centered interaction prompt.
+## No card, raster grid or center fill: the key/action sits directly in the
+## clear space between the morph brackets.
 
 const KEY_RECT := Rect2(44.0, 45.0, 58.0, 58.0)
 const KEY_BASE := Color(0.94, 0.84, 0.65, 1.0)
 const KEY_CONFIRM := Color(1.0, 0.76, 0.24, 1.0)
 const KEY_BORDER_BASE := Color(0.77, 0.56, 0.27, 1.0)
 const KEY_BORDER_CONFIRM := Color(1.0, 0.82, 0.36, 1.0)
-
-# Subtle raster texture beneath the glyph. It is intentionally low contrast:
-# the key keeps its previous colour treatment and the grid only appears on
-# closer inspection, like a display/panel substrate rather than lit pixels.
-const GRID_REST := Color(0.34, 0.20, 0.075, 0.13)
-const GRID_CONFIRM := Color(0.46, 0.24, 0.055, 0.20)
-const GRID_COLS := 9
-const GRID_ROWS := 9
-const GRID_CELL := Vector2(3.0, 3.0)
-const GRID_GAP := Vector2(2.0, 2.0)
 
 var _header: String = "INTERACT"
 var _key: String = "F"
@@ -88,7 +78,6 @@ func _draw() -> void:
 	draw_rect(Rect2(key_rect.position + Vector2(0.0, 4.0), key_rect.size),
 		Color(0.16, 0.10, 0.055, 0.78), true)
 	draw_style_box(_key_style, key_rect)
-	_draw_key_grid(key_rect)
 	draw_line(
 		key_rect.position + Vector2(8.0, 7.0),
 		key_rect.position + Vector2(key_rect.size.x - 8.0, 7.0),
@@ -126,23 +115,3 @@ func _draw() -> void:
 			HORIZONTAL_ALIGNMENT_LEFT, 202.0, 14,
 			Color(0.82, 0.82, 0.80, 1.0)
 		)
-
-
-
-## Fine square raster under the letter. No glow and no bright amber cells:
-## the previous key colour remains dominant, while the grid reads as material.
-func _draw_key_grid(key_rect: Rect2) -> void:
-	var grid_size := Vector2(
-		GRID_COLS * GRID_CELL.x + (GRID_COLS - 1) * GRID_GAP.x,
-		GRID_ROWS * GRID_CELL.y + (GRID_ROWS - 1) * GRID_GAP.y
-	)
-	var origin := key_rect.position + (key_rect.size - grid_size) * 0.5
-	var cell_color := GRID_REST.lerp(GRID_CONFIRM, _confirm)
-
-	for row in range(GRID_ROWS):
-		for col in range(GRID_COLS):
-			var cell_pos := origin + Vector2(
-				col * (GRID_CELL.x + GRID_GAP.x),
-				row * (GRID_CELL.y + GRID_GAP.y)
-			)
-			draw_rect(Rect2(cell_pos, GRID_CELL), cell_color, true)

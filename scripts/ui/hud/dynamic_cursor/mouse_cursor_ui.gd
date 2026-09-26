@@ -31,11 +31,12 @@ extends Control
 @export var interaction_bracket_offset: float = 250.0
 @export var interaction_bracket_radius: float = 24.0
 @export var interaction_bracket_thickness: float = 2.6
-@export var prompt_canvas_size: Vector2 = Vector2(460.0, 210.0)
+## The centre stays completely clear. Yellow exists only on the inner tips of
+## the two brackets and fades back into the normal bracket colour.
+@export var interaction_bracket_edge_color: Color = Color(1.0, 0.72, 0.18, 0.95)
+@export_range(0.10, 0.48, 0.01) var interaction_bracket_edge_fraction: float = 0.34
+@export_range(0.5, 2.0, 0.05) var interaction_bracket_edge_width_scale: float = 1.15
 @export var prompt_content_size: Vector2 = Vector2(360.0, 150.0)
-## ADT's eight-blob field is deliberately right-heavy. Offset only the ink so
-## its visual mass sits under the centered key/action instead of beside it.
-@export var prompt_ink_offset: Vector2 = Vector2(-70.0, 0.0)
 
 @export_group("Movement and stamina")
 @export var movement_controller: MovementController
@@ -51,7 +52,6 @@ extends Control
 const RING_SEGMENTS: int = 32
 const JUMP_ARC_COLOR: Color = Color(0.4, 0.8, 1.0)
 const CURSOR_ENSO_PATH := "res://assets/ui/hud/dynamic_cursor/enso_cursor_ring.svg"
-const BLOT_SHADER: Shader = preload("res://shaders/ui/key_hints_blot.gdshader")
 const GROUP_INTERACTION_PROMPT: StringName = &"interaction_cursor_prompt"
 const MORPH_CIRCLE_SEGMENTS: int = 32
 const MORPH_BRACKET_SEGMENTS: int = 10
@@ -79,8 +79,6 @@ var _interaction_morph_progress: float = 0.0
 var _interaction_morph_from: float = 0.0
 var _interaction_morph_target: float = 0.0
 var _interaction_morph_elapsed: float = 0.0
-var _prompt_ink: ColorRect
-var _prompt_material: ShaderMaterial
 var _prompt_face: ActionPromptFace
 var _confirm_tween: Tween
 
@@ -239,8 +237,6 @@ func _update_interaction_target(target: InteractiveArea) -> void:
 	_interaction_morph_elapsed = 0.0
 	if target != null:
 		_sync_prompt(target)
-		if _prompt_material != null:
-			_prompt_material.set_shader_parameter("entrance_seed", fmod(float(Time.get_ticks_msec()) * 0.001, 19.0))
 
 
 func _update_interaction_morph(delta: float) -> void:
@@ -258,26 +254,6 @@ func _update_interaction_morph(delta: float) -> void:
 
 
 func _build_interaction_prompt() -> void:
-	_prompt_ink = ColorRect.new()
-	_prompt_ink.name = "InteractionInk"
-	_prompt_ink.mouse_filter = Control.MOUSE_FILTER_IGNORE
-	_prompt_ink.color = Color(0, 0, 0, 0)
-	_prompt_material = ShaderMaterial.new()
-	_prompt_material.shader = BLOT_SHADER
-	_prompt_material.set_shader_parameter("progress", 0.0)
-	_prompt_material.set_shader_parameter("stagger", 0.7)
-	_prompt_material.set_shader_parameter("entrance_seed", 0.31)
-	_prompt_material.set_shader_parameter("blob_color", Color(0.015, 0.012, 0.009, 0.92))
-	_prompt_material.set_shader_parameter("radius_scale", 1.08)
-	_prompt_material.set_shader_parameter("edge_ragged", 0.052)
-	_prompt_material.set_shader_parameter("warp_scale", 4.5)
-	_prompt_material.set_shader_parameter("rect_size", prompt_canvas_size)
-	_prompt_material.set_shader_parameter("idle_drift", 0.0)
-	_prompt_material.set_shader_parameter("canvas_padding", 0.18)
-	_prompt_ink.material = _prompt_material
-	_prompt_ink.visible = false
-	add_child(_prompt_ink)
-
 	_prompt_face = ActionPromptFace.new()
 	_prompt_face.name = "InteractionPrompt"
 	_prompt_face.mouse_filter = Control.MOUSE_FILTER_IGNORE
@@ -300,19 +276,14 @@ func _sync_prompt(target: InteractiveArea) -> void:
 
 
 func _update_prompt_visuals() -> void:
-	if _prompt_ink == null or _prompt_face == null or _prompt_material == null:
+	if _prompt_face == null:
 		return
 	var center := get_viewport_rect().size * 0.5
-	_prompt_ink.position = center - prompt_canvas_size * 0.5 + prompt_ink_offset
-	_prompt_ink.size = prompt_canvas_size
 	_prompt_face.position = center - prompt_content_size * 0.5
 	_prompt_face.size = prompt_content_size
 
 	var t := clampf(_interaction_morph_progress, 0.0, 1.0)
-	var ink_reveal := _smoothstep01((t - 0.42) / 0.43)
 	var content_reveal := _smoothstep01((t - 0.66) / 0.25)
-	_prompt_material.set_shader_parameter("progress", ink_reveal)
-	_prompt_ink.visible = ink_reveal > 0.001
 	_prompt_face.visible = content_reveal > 0.001
 	_prompt_face.modulate.a = content_reveal
 
@@ -374,6 +345,29 @@ func _draw_interaction_morph_shape(center: Vector2, t: float, color: Color) -> v
 			interaction_bracket_thickness * 3.0
 		)
 	_draw_morph_paths(paths, shape_color, interaction_bracket_thickness)
+	_draw_bracket_edge_accents(paths, alpha)
+
+
+## Only the inner-facing tips get the warm colour. Nothing is drawn in the
+## space between the brackets: no rectangle, no translucent field, no blot.
+func _draw_bracket_edge_accents(paths: Array[PackedVector2Array], alpha: float) -> void:
+	for points: PackedVector2Array in paths:
+		var segment_count: int = points.size() - 1
+		if segment_count <= 0:
+			continue
+		var accent_count: int = maxi(
+			1,
+			ceili(float(segment_count) * clampf(interaction_bracket_edge_fraction, 0.10, 0.48))
+		)
+		for i: int in range(accent_count):
+			var fade: float = 1.0 - float(i) / float(accent_count)
+			var accent := interaction_bracket_edge_color
+			accent.a *= alpha * fade
+			var width := interaction_bracket_thickness * interaction_bracket_edge_width_scale
+			draw_line(points[i], points[i + 1], accent, width, true)
+			var j: int = segment_count - 1 - i
+			if j >= 0:
+				draw_line(points[j], points[j + 1], accent, width, true)
 
 
 func _build_morph_paths(
@@ -458,7 +452,7 @@ func get_interaction_morph_progress() -> float:
 
 
 func has_center_interaction_prompt() -> bool:
-	return _prompt_ink != null and _prompt_face != null
+	return _prompt_face != null
 
 
 func _draw_cursor_enso(center: Vector2, color: Color) -> void:

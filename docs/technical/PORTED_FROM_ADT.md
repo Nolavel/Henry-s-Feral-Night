@@ -121,35 +121,21 @@ carries `body_heat_cost_c`, because eating snow for water should cost heat.
   font for prose while preserving ADT's monospace key caps.
 
 
-## ADT HoldPrompt → HFN ActionPrompt3D
+## ADT cursor morph → HFN centered interaction prompt
 
-- ADT source: `ui/widgets/hold_prompt/hold_prompt.gd/.tscn`.
-- HFN keeps the load-bearing production shape: a Control rendered into a
-  SubViewport, carried by a billboarded Sprite3D in world space, always on top,
-  rising from the target rather than living as a fixed screen tooltip.
-- HFN intentionally does not copy the entire F→circle→dot hold mechanic because
-  First Exit's current world interactions are press/approach actions, not a
-  generic hold contract. Instead the plate gives a short press pulse after the
-  real `interaction_performed` signal.
-- HFN deliberately has no enclosing rectangular banner. The same eight-blob
-  shader as ADT KeyHints is the entire backing: blobs assemble first, then the
-  key/action/detail fade in; on target loss the content fades out first and the
-  blobs dissolve second.
-- A real interaction press briefly warms the key fill toward yellow as an
-  acknowledgement, then runs the same content-out -> ink-out sequence. The
-  prompt stays suppressed for that same target until focus is reacquired.
-- Action text comes from `InteractiveArea._get_interaction_text()`, so doors,
-  pickups and other targets remain the source of truth.
-
-
-### ActionPrompt clipping rule
-
-- The world prompt renders into a transparent canvas larger than its visible
-  key/action safe-area. Ink is not allowed to use the viewport edge as a visual
-  boundary.
-- The shared ADT blot shader exposes `canvas_padding` with a default of zero,
-  so production KeyHints remain visually unchanged. ActionPrompt enables the
-  padding and evaluates the blob field beyond logical UV 0..1, preserving the
-  torn outer contour instead of clipping it into a rectangle.
-- Key/action/detail stay inside an inset safe-area; only transparent canvas and
-  ink occupy the bleed region.
+- HFN uses the ADT dynamic-cursor circle→brackets morph as the interaction
+  transition. The Enso tears into two arcs and the arcs move apart around the
+  screen centre.
+- The centre is intentionally **fully clear**: no world-space card, no ink blot
+  and no translucent fill. The existing key/action face is drawn directly
+  between the brackets.
+- Warm yellow is confined to the two inner bracket tips and fades along each
+  bracket back into its normal cursor colour. This is an edge accent, not a
+  background field.
+- The keycap keeps its solid key treatment but the earlier raster/grid substrate
+  has been removed.
+- ActionPrompt3D remains as comparison/legacy code but is no longer part of
+  World.WORLD_3D_ENTITY_SCENES; production interaction feedback comes from
+  MouseCursorUI.
+- Action text still comes from InteractiveArea.get_interaction_prompt_data(),
+  so doors, pickups and other targets remain the source of truth.
