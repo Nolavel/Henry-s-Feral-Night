@@ -20,6 +20,14 @@ const ROW_THIRST: int = 1
 const ROW_SLEEP: int = 2
 const ROW_WARMTH: int = 3
 const DISPLAY_ORDER: Array[StringName] = [&"thirst", &"hunger", &"sleep", &"warmth"]
+## Optical correction after trimming transparent padding. The eye is naturally
+## much denser than the drop/stomach/thermometer, so it sits slightly smaller.
+const OPTICAL_SCALE: Dictionary = {
+	&"thirst": 1.00,
+	&"hunger": 1.00,
+	&"sleep": 0.88,
+	&"warmth": 1.00,
+}
 ## Warmth can move both ways; keep its small trend cue.
 const TREND_IDS: Array[StringName] = [&"warmth"]
 
@@ -34,8 +42,8 @@ const TREND_IDS: Array[StringName] = [&"warmth"]
 ## Gap between each tip and the centre.
 @export var centre_gap: float = 22.0
 @export var outline_width: float = 2.0
-@export var icon_size: float = 54.0
-@export var icon_gap: float = 18.0
+@export var icon_size: float = 42.0
+@export var icon_gap: float = 14.0
 ## Legacy fields kept serialized for compatibility with older scene overrides.
 ## The restored horizontal biomonitor does not draw the centre silhouette.
 ## Height of the quiet figure standing between the top cells, above the health bar.
@@ -85,6 +93,9 @@ var _window_start: Dictionary = {}
 var _trends: Dictionary = {}
 var _window_left: float = 0.0
 var _wetness: float = 0.0
+## Non-transparent source rectangle for each production PNG. This removes asset
+## canvas padding (especially the thermometer) without editing the source art.
+var _icon_regions: Dictionary = {}
 
 
 func _ready() -> void:
@@ -93,6 +104,7 @@ func _ready() -> void:
 	cells[&"thirst"] = VitalCell.new(&"thirst", Vector2(1.0, -1.0), ROW_THIRST)
 	cells[&"hunger"] = VitalCell.new(&"hunger", Vector2(1.0, 1.0), ROW_HUNGER)
 	cells[&"sleep"] = VitalCell.new(&"sleep", Vector2(-1.0, 1.0), ROW_SLEEP)
+	_cache_icon_regions()
 	_bind_bio_monitor()
 	_bind_thermal()
 
@@ -245,11 +257,15 @@ func _draw_biomonitor_icon(cell: VitalCell, centre: Vector2) -> void:
 	var texture: Texture2D = _texture_for(cell.id)
 	if texture == null:
 		return
-	var source_size := Vector2(float(texture.get_width()), float(texture.get_height()))
-	if source_size.x <= 0.0 or source_size.y <= 0.0:
+	var source: Rect2 = _icon_regions.get(
+		cell.id,
+		Rect2(Vector2.ZERO, Vector2(float(texture.get_width()), float(texture.get_height())))
+	)
+	if source.size.x <= 0.0 or source.size.y <= 0.0:
 		return
-	var fit: float = icon_size / maxf(source_size.x, source_size.y)
-	var draw_size: Vector2 = source_size * fit * (1.0 + cell.grow)
+	var fit: float = icon_size / maxf(source.size.x, source.size.y)
+	var optical_scale: float = float(OPTICAL_SCALE.get(cell.id, 1.0))
+	var draw_size: Vector2 = source.size * fit * optical_scale * (1.0 + cell.grow)
 	var alpha: float = lerpf(0.25, 0.90, 1.0 - cell.level)
 	if cell.severity == VitalCell.Severity.WARNING:
 		alpha = maxf(alpha, 0.72)
@@ -258,9 +274,23 @@ func _draw_biomonitor_icon(cell: VitalCell, centre: Vector2) -> void:
 	alpha = clampf(alpha + cell.flash * 0.10, 0.0, 1.0)
 	var tint := Color(1.0, 1.0, 1.0, alpha)
 	var rect := Rect2(centre - draw_size * 0.5 + Vector2(0.0, cell.push), draw_size)
-	draw_texture_rect(texture, rect, false, tint)
+	draw_texture_rect_region(texture, rect, source, tint)
 	if TREND_IDS.has(cell.id):
 		_draw_trend(get_trend(cell.id), centre + Vector2(icon_size * 0.62, 0.0), get_trend(cell.id) > 0)
+
+
+func _cache_icon_regions() -> void:
+	for id: StringName in DISPLAY_ORDER:
+		var texture: Texture2D = _texture_for(id)
+		if texture == null:
+			continue
+		var image: Image = texture.get_image()
+		var region := Rect2i(Vector2i.ZERO, Vector2i(texture.get_width(), texture.get_height()))
+		if image != null and not image.is_empty():
+			var used: Rect2i = image.get_used_rect()
+			if used.size.x > 0 and used.size.y > 0:
+				region = used
+		_icon_regions[id] = Rect2(region)
 
 
 func _texture_for(id: StringName) -> Texture2D:

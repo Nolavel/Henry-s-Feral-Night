@@ -12,6 +12,10 @@ const BAND_SHADER: Shader = preload("res://assets/materials/Shaders/BG_indicator
 @export var trail_color: Color = Color(0.91, 0.84, 0.78, 0.85)
 @export var back_color: Color = Color(0.39, 0.2418, 0.2418, 0.35)
 @export var heal_glint: Color = Color(0.88, 0.63, 0.33, 0.96)
+@export var health_mark_color: Color = Color("#C34E42")
+@export var health_mark_size: float = 9.0
+## Reserved width for the compact health cross left of the band.
+@export var health_mark_slot: float = 18.0
 @export var fade_start: float = 0.35
 @export var fade_curve: float = 0.691
 ## How long the damage trail takes to catch up, seconds.
@@ -70,13 +74,30 @@ func _process(_delta: float) -> void:
 	_layout()
 
 
+func _draw() -> void:
+	var centre := Vector2(health_mark_slot * 0.5, size.y * 0.5)
+	var half: float = health_mark_size * 0.5
+	var width: float = 2.2
+	draw_line(centre + Vector2(-half, 0.0), centre + Vector2(half, 0.0), health_mark_color, width, true)
+	draw_line(centre + Vector2(0.0, -half), centre + Vector2(0.0, half), health_mark_color, width, true)
+
+
 func _layout() -> void:
 	if _fill_clip == null:
 		return
-	_fill_clip.size = Vector2(size.x * ratio, size.y)
-	_trail_clip.size = Vector2(size.x * maxf(trail, ratio), size.y)
+	var bar_width: float = maxf(size.x - health_mark_slot, 0.0)
+	var bar_size := Vector2(bar_width, size.y)
+	_fill_clip.position = Vector2(health_mark_slot, 0.0)
+	_trail_clip.position = Vector2(health_mark_slot, 0.0)
+	_fill_clip.size = Vector2(bar_width * ratio, size.y)
+	_trail_clip.size = Vector2(bar_width * maxf(trail, ratio), size.y)
 	for clip: Control in [_fill_clip, _trail_clip]:
-		(clip.get_child(0) as Control).size = size
+		var band := clip.get_child(0) as Control
+		band.position = Vector2.ZERO
+		band.size = bar_size
+	var back := get_child(0) as Control
+	back.position = Vector2(health_mark_slot, 0.0)
+	back.size = bar_size
 	_fill_material.set_shader_parameter(&"base_color", fill_color.lerp(heal_glint, glint * 0.6))
 
 
@@ -84,6 +105,7 @@ func _add_clip() -> Control:
 	var clip := Control.new()
 	clip.clip_contents = true
 	clip.mouse_filter = Control.MOUSE_FILTER_IGNORE
+	clip.position = Vector2(health_mark_slot, 0.0)
 	add_child(clip)
 	return clip
 
@@ -93,7 +115,8 @@ func _add_band(parent: Control, colour: Color) -> ShaderMaterial:
 	var band := ColorRect.new()
 	band.mouse_filter = Control.MOUSE_FILTER_IGNORE
 	band.set_anchors_preset(Control.PRESET_TOP_LEFT)
-	band.size = size
+	band.position = Vector2(health_mark_slot, 0.0) if parent == self else Vector2.ZERO
+	band.size = Vector2(maxf(size.x - health_mark_slot, 0.0), size.y)
 	var material := ShaderMaterial.new()
 	material.shader = BAND_SHADER
 	material.set_shader_parameter(&"base_color", colour)
@@ -105,5 +128,5 @@ func _add_band(parent: Control, colour: Color) -> ShaderMaterial:
 	band.material = material
 	parent.add_child(band)
 	if parent == self:
-		resized.connect(func() -> void: band.size = size)
+		resized.connect(_layout)
 	return material
