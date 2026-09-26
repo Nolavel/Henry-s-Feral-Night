@@ -75,6 +75,10 @@ func _check_building_access() -> void:
 			var leaf := door.get_node_or_null(^"Hinge/DoorLeaf") as MeshInstance3D
 			_check(leaf != null and leaf.get_node_or_null(^"StaticBody3D/CollisionShape3D") != null,
 				"%s door leaf has no matching physical collision" % lot_name)
+			_check(door.get_node_or_null(^"Hinge/HandleOutside/Lever") is MeshInstance3D,
+				"%s door has no visible exterior handle" % lot_name)
+			_check(door.get_node_or_null(^"Hinge/HandleInside/Lever") is MeshInstance3D,
+				"%s door has no visible interior handle" % lot_name)
 
 	for shed_node: Node in _scene.find_children("Outbuilding", "Node3D", true, false):
 		var shed_door := shed_node.get_node_or_null(^"HouseDoor") as InteractiveArea

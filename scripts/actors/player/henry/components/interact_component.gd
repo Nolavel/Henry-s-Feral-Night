@@ -1,8 +1,10 @@
 class_name InteractComponent
 extends Node3D
 
-## ADT's InteractComponent on InteractiveArea targets: a focus cast, then an
-## intent cone, pick the target; F acts at arm's length or walks over first.
+## Crosshair-authoritative interaction selection.
+## Proximity only grants permission; the camera-centre ray decides which
+## InteractiveArea Henry is actually addressing. F acts at arm's length or
+## walks over first, but never on an unfocused nearby object.
 
 ## What is targeted and whether it is already within arm's reach.
 signal interact_target_changed(target: InteractiveArea, in_reach: bool)
@@ -10,14 +12,15 @@ signal interact_target_changed(target: InteractiveArea, in_reach: bool)
 signal interaction_performed(target: InteractiveArea)
 
 @export_group("Focus")
-## Length of the focus cast straight ahead, metres.
-@export var focus_length: float = 1.8
-@export var focus_radius: float = 0.4
+## Ray length through the exact screen centre. Selection is still capped by
+## intent_radius, so distant scenery cannot become actionable.
+@export var focus_length: float = 12.0
+@export var focus_radius: float = 0.0
 
 @export_group("Intent")
-## Second tier, used when the focus cast finds nothing: what Henry plausibly reaches for.
+## Maximum distance at which a crosshair-focused object can become current_target.
 @export var intent_radius: float = 2.5
-## Full width of the intent cone around facing, degrees; excludes only a rear arc.
+## Kept for scene compatibility; cone fallback is intentionally disabled.
 @export var intent_angle_deg: float = 240.0
 
 @export_group("Approach")
@@ -35,7 +38,6 @@ signal interaction_performed(target: InteractiveArea)
 var current_target: InteractiveArea = null
 
 var _player: CharacterBody3D
-var _focus_cast: ShapeCast3D
 var _last_in_reach: bool = false
 var _last_in_prompt: bool = false
 var _pending: InteractiveArea = null
@@ -45,8 +47,6 @@ var _approach_stopped: bool = false
 
 func _ready() -> void:
 	_player = get_parent() as CharacterBody3D
-	_focus_cast = _build_focus_cast()
-	add_child(_focus_cast)
 	var input_systems: Node = get_node_or_null(^"/root/InputSystems")
 	if input_systems != null:
 		input_systems.connect(&"interact_pressed", try_interact)
@@ -66,9 +66,7 @@ func detect_target() -> void:
 	if not is_instance_valid(current_target):
 		current_target = null
 	var seated: bool = _is_seated()
-	var found: InteractiveArea = _find_seated_target() if seated else _find_focus_target()
-	if found == null and not seated:
-		found = _find_intent_target()
+	var found: InteractiveArea = _find_seated_target() if seated else _find_crosshair_target()
 	var distance: float = _flat_distance_to(found) if found != null else INF
 	var in_reach: bool = distance <= _reach()
 	var in_prompt: bool = distance <= prompt_distance
@@ -120,21 +118,28 @@ func _perform(target: InteractiveArea) -> void:
 	interaction_performed.emit(target)
 
 
-func _find_focus_target() -> InteractiveArea:
-	_focus_cast.force_shapecast_update()
-	var best: InteractiveArea = null
-	var best_distance: float = INF
-	for i: int in range(_focus_cast.get_collision_count()):
-		var area := _area_from(_focus_cast.get_collider(i))
-		if area == null or not _is_ahead(area):
-			continue
-		var distance: float = _flat_distance_to(area)
-		if distance < best_distance:
-			best = area
-			best_distance = distance
-	return best
+func _find_crosshair_target() -> InteractiveArea:
+	var viewport := get_viewport()
+	var camera: Camera3D = viewport.get_camera_3d() if viewport != null else null
+	if camera == null or _player == null:
+		return null
+	var center: Vector2 = viewport.get_visible_rect().size * 0.5
+	var from: Vector3 = camera.project_ray_origin(center)
+	var to: Vector3 = from + camera.project_ray_normal(center) * focus_length
+	var params := PhysicsRayQueryParameters3D.create(from, to)
+	params.collide_with_areas = true
+	params.collide_with_bodies = true
+	params.exclude = [_player.get_rid()]
+	var hit: Dictionary = _player.get_world_3d().direct_space_state.intersect_ray(params)
+	if hit.is_empty():
+		return null
+	var area := _area_from(hit.get("collider"))
+	if area == null:
+		return null
+	return area if _flat_distance_to(area) <= intent_radius else null
 
 
+## Legacy cone helper retained for compatibility/reference only.
 ## Nearest available area inside intent_radius and the forward cone.
 func _find_intent_target() -> InteractiveArea:
 	if intent_radius <= 0.0:
@@ -294,14 +299,7 @@ func _is_blocked() -> bool:
 	return state != null and bool(state.call(&"is_movement_blocked"))
 
 
-func _build_focus_cast() -> ShapeCast3D:
-	var cast := ShapeCast3D.new()
-	cast.name = "FocusCast"
-	var sphere := SphereShape3D.new()
-	sphere.radius = focus_radius
-	cast.shape = sphere
-	cast.target_position = Vector3(0.0, 0.0, -focus_length)
-	cast.collide_with_areas = true
-	cast.collide_with_bodies = false
-	cast.max_results = 8
-	return cast
+
+
+func is_crosshair_focused() -> bool:
+	return is_instance_valid(current_target)

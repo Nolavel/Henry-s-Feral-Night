@@ -23,6 +23,7 @@ var _inventory: InventoryComponent
 var _near: ItemPickup
 var _far: ItemPickup
 var _behind: ItemPickup
+var _camera: Camera3D
 
 
 ## Stages step on physics frames: detection and the walk both run there.
@@ -32,12 +33,17 @@ func _physics_process(_delta: float) -> bool:
 		1:
 			_build()
 		4:
-			_check_near_first()
+			_check_proximity_without_focus()
+			_camera.look_at(_near.global_position, Vector3.UP)
 		7:
-			_check_far_next()
+			_check_near_first()
+			_camera.look_at(_far.global_position, Vector3.UP)
 		10:
-			_check_after_walk()
+			_check_far_next()
 		13:
+			_check_after_walk()
+			_camera.look_at(_behind.global_position, Vector3.UP)
+		16:
 			_check_behind_ignored()
 			_finish()
 	return false
@@ -59,6 +65,10 @@ func _build() -> void:
 	_component = InteractComponent.new()
 	_player.add_child(_component)
 	root.add_child(_player)
+	_camera = Camera3D.new()
+	_camera.current = true
+	root.add_child(_camera)
+	_camera.look_at(Vector3(2.0, 0.0, -1.0), Vector3.UP)
 	_near = _spawn(Vector3(0.0, 0.0, -0.6))
 	_far = _spawn(Vector3(0.3, 0.0, -2.2))
 	_behind = _spawn(Vector3(0.0, 0.0, 2.0))
@@ -72,6 +82,13 @@ func _spawn(at: Vector3) -> ItemPickup:
 	pickup.position = at
 	root.add_child(pickup)
 	return pickup
+
+
+func _check_proximity_without_focus() -> void:
+	_check(_component.current_target == null, "nearby item targeted without centre focus")
+	_check(not _near.shape_cast_detected, "nearby item showed F without centre focus")
+	_component.try_interact()
+	_check(_inventory.get_count(&"firewood") == 0, "F acted on an unfocused nearby item")
 
 
 func _check_near_first() -> void:

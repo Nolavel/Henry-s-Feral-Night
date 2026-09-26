@@ -49,6 +49,7 @@ var _jump_progress: float = 0.0
 var _jump_tween: Tween
 var _arcs_tween: Tween
 var _cursor_enso_texture: Texture2D
+var _interact_component: InteractComponent
 
 
 func _ready() -> void:
@@ -66,6 +67,8 @@ func _ready() -> void:
 		player = get_parent() as CharacterBody3D
 	if player != null and movement_controller == null:
 		movement_controller = player.get_node_or_null(^"MovementController") as MovementController
+	if player != null:
+		_interact_component = player.get_node_or_null(^"InteractComponent") as InteractComponent
 	if movement_controller != null and stamina_manager == null:
 		stamina_manager = movement_controller.get_node_or_null(^"StaminaManager") as StaminaManager
 	if stamina_manager != null:
@@ -77,7 +80,11 @@ func _process(delta: float) -> void:
 	visible = not _is_paused()
 	if not visible:
 		return
-	is_over_target = _ray_hits_target()
+	is_over_target = (
+		_interact_component.is_crosshair_focused()
+		if _interact_component != null
+		else _ray_hits_target()
+	)
 	var wanted: Color = cursor_color_target if is_over_target else cursor_color_idle
 	_color = _color.lerp(wanted, clampf(cursor_color_speed * delta, 0.0, 1.0))
 	_update_movement(delta)

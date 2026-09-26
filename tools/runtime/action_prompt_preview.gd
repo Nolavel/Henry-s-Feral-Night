@@ -43,16 +43,11 @@ func _stage() -> void:
 	camera.global_position = player.global_position + outward * 3.2 + right * 1.15 + Vector3.UP * 2.15
 	camera.look_at(door.global_position + Vector3.UP * 0.25, Vector3.UP)
 
-	# Stage the same state InteractComponent would reach after detecting the
-	# door. The prompt still reads its action from the real HingedDoor.
+	# Use the production centre-focus path. Do not force current_target.
 	var interact := player.get_node_or_null(^"InteractComponent") as InteractComponent
+	camera.look_at(door.global_position + Vector3.UP * 0.15, Vector3.UP)
 	if interact != null:
-		# Freeze only target acquisition after selecting the real authored door.
-		# Otherwise its regular physics pass re-detects the staged camera/player
-		# arrangement and clears the preview target before the screenshot frame.
-		interact.set_physics_process(false)
-		interact.current_target = door
-		door.set_target_state(true, true)
+		interact.detect_target()
 
 	var prompt := get_tree().get_first_node_in_group(&"action_prompt_3d") as ActionPrompt3D
 	if prompt == null:

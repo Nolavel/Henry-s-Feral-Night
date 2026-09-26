@@ -45,7 +45,7 @@ jobs:
         run: tools/ci/run_tests.sh
 
       - name: Provision preview renderer
-        if: github.event_name == 'pull_request' && (contains(github.event.pull_request.title, '[startup-preview]') || contains(github.event.pull_request.title, '[hud-preview]'))
+        if: github.event_name == 'pull_request' && (contains(github.event.pull_request.title, '[startup-preview]') || contains(github.event.pull_request.title, '[hud-preview]') || contains(github.event.pull_request.title, '[focus-video]'))
         run: |
           sudo apt-get update -qq
           sudo apt-get install -y -qq mesa-vulkan-drivers xvfb
@@ -73,5 +73,18 @@ jobs:
         with:
           name: action-prompt-preview
           path: artifacts/action_prompt_preview.png
+          if-no-files-found: error
+          retention-days: 3
+
+      - name: Capture focused-interaction video
+        if: github.event_name == 'pull_request' && contains(github.event.pull_request.title, '[focus-video]')
+        run: tools/ci/capture_video.sh res://tools/runtime/focus_interaction_video.tscn res://artifacts/focus_interaction.avi 30
+
+      - name: Upload focused-interaction video
+        if: github.event_name == 'pull_request' && contains(github.event.pull_request.title, '[focus-video]')
+        uses: actions/upload-artifact@v4
+        with:
+          name: focus-interaction-video
+          path: artifacts/focus_interaction.avi
           if-no-files-found: error
           retention-days: 3
