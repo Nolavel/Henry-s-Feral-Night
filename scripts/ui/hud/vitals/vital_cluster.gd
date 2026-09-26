@@ -1,18 +1,21 @@
 class_name VitalCluster
 extends Control
 
-## Four pentagons in an X with original HFN glyphs and threshold-only morphs.
-
+## The original biomonitor image indicators, restored as one horizontal row.
+## Behaviour still comes from VitalCell/BioMonitor/ThermalManager; only the
+## presentation goes back to the four production PNGs.
 const THERMAL_SCRIPT: GDScript = preload("res://scripts/systems/survival/thermal_manager.gd")
-const ICON_ATLAS: Texture2D = preload("res://assets/textures/ui/game/biomonitor/hfn_vital_morphs.svg")
-const MORPH_FRAME_COUNT: int = 8
-## The SVG renders at 4x: eight 96 px frames across four 96 px rows.
-const MORPH_CELL_PX: float = 96.0
+const THIRST_TEXTURE: Texture2D = preload("res://assets/textures/ui/game/biomonitor/thirst_icon.png")
+const HUNGER_TEXTURE: Texture2D = preload("res://assets/textures/ui/game/biomonitor/hunger_icon.png")
+const SLEEP_TEXTURE: Texture2D = preload("res://assets/textures/ui/game/biomonitor/sleep.png")
+const WARMTH_TEXTURE: Texture2D = preload("res://assets/textures/ui/game/biomonitor/temperature_icon.png")
+
 const ROW_HUNGER: int = 0
 const ROW_THIRST: int = 1
 const ROW_SLEEP: int = 2
 const ROW_WARMTH: int = 3
-## Cells that show a trend mark; hunger, thirst and sleep only ever drift down.
+const DISPLAY_ORDER: Array[StringName] = [&"thirst", &"hunger", &"sleep", &"warmth"]
+## Warmth can move both ways; keep its small trend cue.
 const TREND_IDS: Array[StringName] = [&"warmth"]
 
 @export var bio_monitor: BioMonitorManager
@@ -26,7 +29,10 @@ const TREND_IDS: Array[StringName] = [&"warmth"]
 ## Gap between each tip and the centre.
 @export var centre_gap: float = 22.0
 @export var outline_width: float = 2.0
-@export var icon_size: float = 30.0
+@export var icon_size: float = 54.0
+@export var icon_gap: float = 18.0
+## Legacy fields kept serialized for compatibility with older scene overrides.
+## The restored horizontal biomonitor does not draw the centre silhouette.
 ## Height of the quiet figure standing between the top cells, above the health bar.
 @export var silhouette_height: float = 44.0
 ## Distance from the centre down to the figure's feet, the health bar's top.
@@ -217,11 +223,53 @@ func _restart_motion(cell: VitalCell) -> void:
 
 
 func _draw() -> void:
-	var centre: Vector2 = size * 0.5
-	var shape: PackedVector2Array = VitalCell.pentagon(cell_width, cell_height, cell_tip)
-	_draw_silhouette(centre + Vector2(0.0, -silhouette_floor))
-	for cell: VitalCell in cells.values():
-		_draw_cell(cell, centre, shape)
+	var count: int = DISPLAY_ORDER.size()
+	var total_width: float = icon_size * float(count) + icon_gap * float(maxi(count - 1, 0))
+	var start_x: float = (size.x - total_width) * 0.5
+	var centre_y: float = size.y * 0.5
+	for index in range(count):
+		var id: StringName = DISPLAY_ORDER[index]
+		var cell: VitalCell = cells.get(id)
+		if cell == null:
+			continue
+		var centre := Vector2(start_x + icon_size * 0.5 + float(index) * (icon_size + icon_gap), centre_y)
+		_draw_biomonitor_icon(cell, centre)
+
+
+func _draw_biomonitor_icon(cell: VitalCell, centre: Vector2) -> void:
+	var texture: Texture2D = _texture_for(cell.id)
+	if texture == null:
+		return
+	var source_size := Vector2(float(texture.get_width()), float(texture.get_height()))
+	if source_size.x <= 0.0 or source_size.y <= 0.0:
+		return
+	var fit: float = icon_size / maxf(source_size.x, source_size.y)
+	var draw_size: Vector2 = source_size * fit * (1.0 + cell.grow)
+	var alpha: float = lerpf(0.25, 0.90, 1.0 - cell.level)
+	if cell.severity == VitalCell.Severity.WARNING:
+		alpha = maxf(alpha, 0.72)
+	elif cell.critical:
+		alpha = maxf(alpha, 0.95)
+	alpha = clampf(alpha + cell.flash * 0.10, 0.0, 1.0)
+	var tint := Color(1.0, 1.0, 1.0, alpha)
+	var rect := Rect2(centre - draw_size * 0.5 + Vector2(0.0, cell.push), draw_size)
+	draw_texture_rect(texture, rect, false, tint)
+	if TREND_IDS.has(cell.id):
+		_draw_trend(get_trend(cell.id), centre + Vector2(icon_size * 0.62, 0.0), get_trend(cell.id) > 0)
+
+
+func _texture_for(id: StringName) -> Texture2D:
+	match id:
+		&"thirst":
+			return THIRST_TEXTURE
+		&"hunger":
+			return HUNGER_TEXTURE
+		&"sleep":
+			return SLEEP_TEXTURE
+		&"warmth":
+			return WARMTH_TEXTURE
+		_:
+			return null
 
 
 func _draw_cell(cell: VitalCell, centre: Vector2, shape: PackedVector2Array) -> void:
