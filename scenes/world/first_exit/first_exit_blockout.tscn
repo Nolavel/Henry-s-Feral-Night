@@ -14958,12 +14958,6 @@ script = ExtResource("17_h1v22")
 item_id = &"boards"
 world_id = &"boards_fort_1"
 
-[node name="BoardsFort2" type="Area3D" parent="." unique_id=559431063 instance=ExtResource("5_2bj3x")]
-transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 1297.6393, 5.6956806, -746.29285)
-script = ExtResource("17_h1v22")
-item_id = &"boards"
-world_id = &"boards_fort_2"
-
 [node name="TinderFort" type="Area3D" parent="." unique_id=1726752746 instance=ExtResource("5_2bj3x")]
 transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 1296.833, 5.668086, -746.28925)
 script = ExtResource("17_h1v22")

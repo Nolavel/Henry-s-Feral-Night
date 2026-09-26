@@ -838,18 +838,6 @@
    "route": "ruins"
   },
   {
-   "id": "boards_fort_2",
-   "item_id": "boards",
-   "count": 1,
-   "anchor": "fort_store",
-   "local": [
-    1.2,
-    0,
-    -0.8
-   ],
-   "route": "ruins"
-  },
-  {
    "id": "tinder_fort",
    "item_id": "tinder",
    "count": 1,
@@ -1014,5 +1002,5 @@
    "route": "start"
   }
  ],
- "_scarcity": "Shelter has 5 openings; route + yard hold 5 boards (was 3). Firewood denser at the house so the stove beat is reachable. Tinder only fort store or collapsed n3: no tinder, no fire."
+ "_scarcity": "Shelter has 5 openings; route + yard hold 4 boards. Two are concentrated at the shelter, but one opening must still remain unsealed. Tinder only fort store or collapsed n3: no tinder, no fire."
 }
