@@ -12,6 +12,13 @@ uniform float corner_radius : hint_range(0.0, 0.5) = 0.1;  // Corner roundness
 // Optional curve adjustment
 uniform float fade_curve : hint_range(0.1, 4.0) = 1.0;  // 1.0 = linear, >1.0 = curved
 
+// Optional symmetric interaction treatment.
+// false preserves the original one-direction HUD fade used elsewhere.
+uniform bool center_fade = false;
+uniform float center_fade_edge_alpha : hint_range(0.0, 1.0) = 0.28;
+uniform float center_fade_start : hint_range(0.0, 1.0) = 0.18;
+uniform float center_fade_power : hint_range(0.1, 4.0) = 1.15;
+
 // Rounded rectangle function
 float rounded_rect(vec2 uv, vec2 size, float radius) {
     vec2 d = abs(uv - 0.5) - size * 0.5 + radius;
@@ -20,6 +27,19 @@ float rounded_rect(vec2 uv, vec2 size, float radius) {
 
 void fragment() {
     vec2 uv = UV;
+
+    if (center_fade) {
+        // Dense in the middle; progressively more transparent toward BOTH edges.
+        // Edge alpha deliberately stays above zero so the strip still meets
+        // the brackets instead of visually snapping off.
+        float edge_distance = abs(uv.x - 0.5) * 2.0; // 0 centre -> 1 edges
+        float shaped = pow(clamp(edge_distance, 0.0, 1.0), center_fade_power);
+        float fade_t = smoothstep(center_fade_start, 1.0, shaped);
+        float alpha = mix(1.0, center_fade_edge_alpha, fade_t);
+        COLOR = vec4(base_color.rgb, base_color.a * alpha);
+        return;
+    }
+
     float fade_progress = 0.0;
 
     // Calculate fade progress based on direction

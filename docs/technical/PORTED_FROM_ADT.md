@@ -129,11 +129,11 @@ carries `body_heat_cost_c`, because eating snow for water should cost heat.
 - The centre is intentionally **fully clear**: no world-space card, no ink blot
   and no translucent fill. The existing key/action face is drawn directly
   between the brackets.
-- Warm yellow beside the two inner brackets reuses HFN's archived
-  `BG_indicatorSURV.gdshader`, but the shader is now carried by a curved
-  `Polygon2D` ribbon built from the **same arc points as the bracket itself**.
-  The yellow edge therefore bends under the bracket instead of ending as a
-  straight rectangle, while UV.x fades to alpha=0 toward the screen centre.
+- Warm yellow reuses HFN's archived `BG_indicatorSURV.gdshader` on
+  a plain horizontal strip again. The shader gained an **opt-in symmetric**
+  centre-fade mode: opacity is strongest in the middle and falls toward both
+  bracket edges, but the edges remain partially visible instead of reaching
+  alpha=0. Existing users of the shader keep the original directional mode.
 - The generic `INTERACT` eyebrow is intentionally not rendered; the key,
   concrete action and optional target detail carry the interaction by themselves.
 - The keycap keeps its solid key treatment but the earlier raster/grid substrate

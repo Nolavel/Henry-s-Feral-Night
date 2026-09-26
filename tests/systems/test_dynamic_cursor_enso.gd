@@ -30,10 +30,12 @@ func _initialize() -> void:
 			"interaction brackets do not clear the prompt content")
 		_check(cursor.interaction_edge_fade_color.a > 0.0,
 			"interaction edge fade is invisible")
-		_check(cursor.interaction_edge_fade_length > cursor.interaction_bracket_radius,
-			"interaction edge fade is too short to read as a bracket-attached fragment")
-		_check(cursor.interaction_edge_fade_start < 0.2,
-			"interaction edge fade leaves too much solid colour toward centre")
+		_check(cursor.interaction_edge_fade_size.x > cursor.prompt_content_size.x,
+			"interaction shader strip does not extend beyond prompt content")
+		_check(cursor.interaction_edge_alpha > 0.0 and cursor.interaction_edge_alpha < 1.0,
+			"interaction shader edges are not semi-transparent")
+		_check(cursor.interaction_edge_fade_start < 0.5,
+			"interaction shader keeps too much of the strip fully opaque")
 		_check(cursor.interaction_morph_duration > 0.0,
 			"interaction morph has no duration")
 		# Stamina/jump exports remain present: this change must not replace those systems.

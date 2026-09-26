@@ -31,13 +31,14 @@ extends Control
 @export var interaction_bracket_offset: float = 250.0
 @export var interaction_bracket_radius: float = 24.0
 @export var interaction_bracket_thickness: float = 2.6
-## Archived HFN HUD fragment shader: warm colour sits against each inner
-## bracket and fades all the way to alpha=0 toward the screen centre.
-@export var interaction_edge_fade_color: Color = Color(0.95, 0.67, 0.16, 0.82)
-@export var interaction_edge_fade_length: float = 148.0
-@export_range(0.0, 0.8, 0.01) var interaction_edge_fade_start: float = 0.02
-@export_range(0.2, 1.0, 0.01) var interaction_edge_fade_curve: float = 0.62
-@export var interaction_edge_fade_overlap: float = 7.0
+## Archived HFN HUD fragment shader on a plain horizontal strip.
+## New mode: strongest at screen centre, increasingly transparent toward both
+## bracket edges; the edges remain faintly visible instead of fading to zero.
+@export var interaction_edge_fade_color: Color = Color(0.95, 0.67, 0.16, 0.78)
+@export var interaction_edge_fade_size: Vector2 = Vector2(500.0, 46.0)
+@export_range(0.0, 1.0, 0.01) var interaction_edge_alpha: float = 0.24
+@export_range(0.0, 0.8, 0.01) var interaction_edge_fade_start: float = 0.14
+@export_range(0.2, 2.0, 0.01) var interaction_edge_fade_curve: float = 1.10
 @export var prompt_content_size: Vector2 = Vector2(360.0, 150.0)
 
 @export_group("Movement and stamina")
@@ -82,10 +83,8 @@ var _interaction_morph_progress: float = 0.0
 var _interaction_morph_from: float = 0.0
 var _interaction_morph_target: float = 0.0
 var _interaction_morph_elapsed: float = 0.0
-var _edge_fade_left: Polygon2D
-var _edge_fade_right: Polygon2D
-var _edge_fade_left_material: ShaderMaterial
-var _edge_fade_right_material: ShaderMaterial
+var _edge_fade: ColorRect
+var _edge_fade_material: ShaderMaterial
 var _prompt_face: ActionPromptFace
 var _confirm_tween: Tween
 
@@ -261,10 +260,8 @@ func _update_interaction_morph(delta: float) -> void:
 
 
 func _build_interaction_prompt() -> void:
-	_edge_fade_left = _build_edge_fade("InteractionEdgeFadeLeft")
-	_edge_fade_right = _build_edge_fade("InteractionEdgeFadeRight")
-	_edge_fade_left_material = _edge_fade_left.material as ShaderMaterial
-	_edge_fade_right_material = _edge_fade_right.material as ShaderMaterial
+	_edge_fade = _build_edge_fade()
+	_edge_fade_material = _edge_fade.material as ShaderMaterial
 
 	_prompt_face = ActionPromptFace.new()
 	_prompt_face.name = "InteractionPrompt"
@@ -275,25 +272,25 @@ func _build_interaction_prompt() -> void:
 	add_child(_prompt_face)
 
 
-func _build_edge_fade(node_name: String) -> Polygon2D:
-	var ribbon := Polygon2D.new()
-	ribbon.name = node_name
-	ribbon.show_behind_parent = true
-	ribbon.z_index = -1
-	ribbon.visible = false
+func _build_edge_fade() -> ColorRect:
+	var strip := ColorRect.new()
+	strip.name = "InteractionEdgeFade"
+	strip.mouse_filter = Control.MOUSE_FILTER_IGNORE
+	strip.color = Color.WHITE
+	strip.show_behind_parent = true
+	strip.z_index = -1
+	strip.visible = false
 	var material := ShaderMaterial.new()
 	material.shader = INTERACTION_EDGE_FADE_SHADER
 	material.set_shader_parameter(&"base_color", interaction_edge_fade_color)
-	# Both ribbons use UV.x = 0 at the bracket and UV.x = 1 toward centre,
-	# so the archived shader can use one fade direction for both sides.
-	material.set_shader_parameter(&"fade_direction", 0)
-	material.set_shader_parameter(&"fade_start", interaction_edge_fade_start)
-	material.set_shader_parameter(&"fade_end", 1.0)
-	material.set_shader_parameter(&"fade_curve", interaction_edge_fade_curve)
+	material.set_shader_parameter(&"center_fade", true)
+	material.set_shader_parameter(&"center_fade_edge_alpha", interaction_edge_alpha)
+	material.set_shader_parameter(&"center_fade_start", interaction_edge_fade_start)
+	material.set_shader_parameter(&"center_fade_power", interaction_edge_fade_curve)
 	material.set_shader_parameter(&"corner_radius", 0.0)
-	ribbon.material = material
-	add_child(ribbon)
-	return ribbon
+	strip.material = material
+	add_child(strip)
+	return strip
 
 
 func _sync_prompt(target: InteractiveArea) -> void:
@@ -323,76 +320,20 @@ func _update_prompt_visuals() -> void:
 
 
 func _update_interaction_edge_fades(center: Vector2, t: float) -> void:
-	if (
-		_edge_fade_left == null
-		or _edge_fade_right == null
-		or _edge_fade_left_material == null
-		or _edge_fade_right_material == null
-	):
-		return
-	var reveal := _smoothstep01((t - 0.50) / 0.38)
-	var paths := _current_interaction_paths(center, t)
-	if paths.size() != 2:
-		_edge_fade_left.visible = false
-		_edge_fade_right.visible = false
+	if _edge_fade == null or _edge_fade_material == null:
 		return
 
-	var first_is_left := _average_path_x(paths[0]) < center.x
-	var left_path: PackedVector2Array = paths[0] if first_is_left else paths[1]
-	var right_path: PackedVector2Array = paths[1] if first_is_left else paths[0]
-	_set_edge_fade_ribbon(_edge_fade_left, left_path, center.x, reveal)
-	_set_edge_fade_ribbon(_edge_fade_right, right_path, center.x, reveal)
+	var reveal := _smoothstep01((t - 0.50) / 0.38)
+	_edge_fade.position = center - interaction_edge_fade_size * 0.5
+	_edge_fade.size = interaction_edge_fade_size
+	_edge_fade.visible = reveal > 0.001
 
 	var colour := interaction_edge_fade_color
 	colour.a *= reveal
-	_edge_fade_left_material.set_shader_parameter(&"base_color", colour)
-	_edge_fade_right_material.set_shader_parameter(&"base_color", colour)
-
-
-func _set_edge_fade_ribbon(
-		ribbon: Polygon2D,
-		bracket_path: PackedVector2Array,
-		center_x: float,
-		reveal: float
-	) -> void:
-	if bracket_path.size() < 2:
-		ribbon.visible = false
-		return
-
-	var avg_x := _average_path_x(bracket_path)
-	var toward_center := Vector2.LEFT if avg_x > center_x else Vector2.RIGHT
-	var outer_overlap := maxf(interaction_edge_fade_overlap, 0.0)
-	var fade_length := maxf(interaction_edge_fade_length, 1.0)
-	var count := bracket_path.size()
-	var polygon := PackedVector2Array()
-	var uv := PackedVector2Array()
-
-	# Outer contour is literally the same curved path as the bracket, extended
-	# a few pixels beneath its stroke so there is no flat rectangular seam.
-	for i: int in range(count):
-		var v := float(i) / float(count - 1)
-		polygon.append(bracket_path[i] - toward_center * outer_overlap)
-		uv.append(Vector2(0.0, v))
-
-	# The inside contour is the same arc shifted toward centre. The archived
-	# fragment shader fades along UV.x, reaching zero alpha before this contour.
-	for i: int in range(count - 1, -1, -1):
-		var v := float(i) / float(count - 1)
-		polygon.append(bracket_path[i] + toward_center * fade_length)
-		uv.append(Vector2(1.0, v))
-
-	ribbon.polygon = polygon
-	ribbon.uv = uv
-	ribbon.visible = reveal > 0.001
-
-
-static func _average_path_x(points: PackedVector2Array) -> float:
-	if points.is_empty():
-		return 0.0
-	var total := 0.0
-	for point: Vector2 in points:
-		total += point.x
-	return total / float(points.size())
+	_edge_fade_material.set_shader_parameter(&"base_color", colour)
+	_edge_fade_material.set_shader_parameter(&"center_fade_edge_alpha", interaction_edge_alpha)
+	_edge_fade_material.set_shader_parameter(&"center_fade_start", interaction_edge_fade_start)
+	_edge_fade_material.set_shader_parameter(&"center_fade_power", interaction_edge_fade_curve)
 
 
 func _on_interaction_performed(target: InteractiveArea) -> void:
