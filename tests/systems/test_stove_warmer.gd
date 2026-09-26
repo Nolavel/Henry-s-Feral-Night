@@ -45,6 +45,14 @@ func _process(_delta: float) -> bool:
 		warmer.interact_with(body)
 		_check(warmer.get_state() == StoveWarmer.State.EMPTY, "eating did not clear the ring")
 		_check(inventory.has_item(&"empty_tin"), "eating the hot stew left no empty tin")
+		inventory.try_add(load("res://data/items/mug_snow.tres") as ItemResource)
+		warmer.interact_with(body)
+		_check(warmer.get_item_id() == &"mug_snow", "the mug of snow would not go on the ring")
+		stove.advance_fuel(0.6)
+		_check(warmer.get_state() == StoveWarmer.State.READY and warmer.get_item_id() == &"warm_water_mug",
+			"the mug of snow did not become warm water")
+		warmer.interact_with(body)
+		_check(inventory.has_item(&"mug"), "drinking warm water did not return the empty mug")
 		var saved: Dictionary = warmer.get_save_data()
 		warmer.load_save_data({"state": 1, "item": "snow_handful", "progress": 0.1})
 		_check(warmer.get_state() == StoveWarmer.State.WARMING and warmer.get_item_id() == &"snow_handful",

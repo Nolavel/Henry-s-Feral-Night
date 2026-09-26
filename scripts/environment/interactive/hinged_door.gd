@@ -11,7 +11,7 @@ const CLOSE_KEY: String = "HOUSE_DOOR_CLOSE"
 
 @export_group("Door")
 @export var door_hinge: Node3D
-@export var open_angle_deg: float = -105.0
+@export var open_angle_deg: float = 105.0
 @export_range(0.0, 1.0, 0.05) var hand_delay: float = 0.2
 @export_range(0.1, 1.5, 0.05) var swing_time: float = 0.45
 @export var starts_open: bool = false

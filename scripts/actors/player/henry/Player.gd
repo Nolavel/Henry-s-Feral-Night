@@ -225,6 +225,9 @@ func on_world_ready(context: WorldContext) -> void:
 	var held_light := get_node_or_null(^"HeldLightComponent") as HeldLightComponent
 	if held_light != null:
 		held_light.on_world_ready(context)
+	var snow_scoop := get_node_or_null(^"SnowScoopComponent") as SnowScoopComponent
+	if snow_scoop != null:
+		snow_scoop.on_world_ready(context)
 	var steam := get_node_or_null(^"DryingSteamComponent") as DryingSteamComponent
 	if steam != null:
 		steam.set_thermal(context.get_system(THERMAL_SCRIPT) as ThermalManager)

@@ -52,6 +52,8 @@ var _panel: PlayerHubPanel
 var _inspecting: bool = false
 ## True when inspection took the pack off Henry's back (not already set down seated).
 var _took_pack_off: bool = false
+## Restore the gameplay mouse mode exactly when leaving the Hub.
+var _previous_mouse_mode: int = Input.MOUSE_MODE_CAPTURED
 
 
 func _ready() -> void:
@@ -103,6 +105,8 @@ func toggle() -> bool:
 func open() -> bool:
 	if _open or not _can_open():
 		return false
+	_previous_mouse_mode = Input.mouse_mode
+	Input.mouse_mode = Input.MOUSE_MODE_VISIBLE
 	_open = true
 	var pack: PackRig = _pack()
 	if pack != null:
@@ -173,6 +177,7 @@ func close() -> bool:
 	if is_instance_valid(_panel):
 		_panel.queue_free()
 	_panel = null
+	Input.mouse_mode = _previous_mouse_mode
 	hub_closed.emit()
 	return true
 
@@ -256,6 +261,7 @@ func stow_visual(visual: Node3D, item_id: StringName = &"") -> void:
 		return
 	if rig == null or not rig.is_inside_tree() or not visual.is_inside_tree():
 		visual.queue_free()
+		_auto_stow_preferred(item_id)
 		stow_landed.emit()
 		return
 	_stows_in_flight += 1
@@ -268,16 +274,35 @@ func stow_visual(visual: Node3D, item_id: StringName = &"") -> void:
 	tween.tween_property(visual, ^"global_position", peak, STOW_LIFT_TIME).set_ease(Tween.EASE_OUT)
 	tween.tween_property(visual, ^"global_position", mouth, STOW_DROP_TIME).set_ease(Tween.EASE_IN)
 	tween.parallel().tween_property(visual, ^"scale", visual.scale * 0.35, STOW_DROP_TIME)
-	tween.tween_callback(_on_stow_landed.bind(visual))
+	tween.tween_callback(_on_stow_landed.bind(visual, item_id))
 
 
-func _on_stow_landed(visual: Node3D) -> void:
+func _on_stow_landed(visual: Node3D, item_id: StringName = &"") -> void:
 	visual.queue_free()
 	_stows_in_flight = maxi(0, _stows_in_flight - 1)
+	_auto_stow_preferred(item_id)
 	stow_landed.emit()
 	var rig: PackRig = _pack()
 	if rig != null and not _open and _stows_in_flight == 0:
 		rig.set_openness(PackRig.Openness.CLOSED)
+
+
+## Tap-F auto-sort is deliberately narrow: only explicitly preferred items move,
+## and only into Quick Access pockets. The item first lands in InventoryComponent
+## so the existing hold-F placement window remains valid.
+func _auto_stow_preferred(item_id: StringName) -> void:
+	if _open or item_id == &"" or inventory == null or equipment == null or not inventory.has_item(item_id):
+		return
+	var item: ItemResource = ItemCatalog.get_item(item_id)
+	if item == null or not item.prefer_quick_access:
+		return
+	for zone: Dictionary in get_quick_access_zones():
+		if zone["item_id"] != &"":
+			continue
+		var path: StringName = zone["path"]
+		if can_place(item_id, path) == EquipmentComponent.Refusal.NONE:
+			move_to_zone(item_id, path)
+			return
 
 
 ## Item Use contract: a sibling component with can_use(id) and use(id) handles it.

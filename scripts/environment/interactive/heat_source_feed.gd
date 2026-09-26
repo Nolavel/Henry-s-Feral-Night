@@ -17,6 +17,7 @@ enum Refusal { NONE, NO_SOURCE, ALREADY_FULL, NO_FUEL, NO_TINDER, NO_INVENTORY }
 ## Label shown over the fire, resolved through localisation.
 const PROMPT_KEY: String = "FEED_PROMPT"
 const LIGHT_KEY: String = "LIGHT_PROMPT"
+const LIGHT_REQUIREMENTS_KEY: String = "LIGHT_REQUIREMENTS"
 ## Real seconds of the staged acts: kneel, door, tinder, log, strike, catch.
 const LIGHT_SECONDS: float = 5.0
 ## Door, log, door on a fire that already burns.
@@ -49,7 +50,6 @@ func _ready() -> void:
 		player_animation_action = &"none"  # the staged act plays its own clip
 	super()
 	_update_label()
-	set_description("")
 	if heat_source != null:
 		heat_source.burning_changed.connect(func(_b: bool) -> void: _update_label())
 
@@ -112,6 +112,7 @@ func _finish_act() -> void:
 func _update_label() -> void:
 	var lighting: bool = heat_source != null and not heat_source.is_burning()
 	set_item_name(tr(LIGHT_KEY if lighting else PROMPT_KEY))
+	set_description(tr(LIGHT_REQUIREMENTS_KEY) if lighting else "")
 
 
 func _visual() -> StoveVisual:

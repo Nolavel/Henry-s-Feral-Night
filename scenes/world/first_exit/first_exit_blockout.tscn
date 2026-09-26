@@ -15007,6 +15007,30 @@ script = ExtResource("17_h1v22")
 item_id = &"firewood"
 world_id = &"firewood_shelter"
 
+[node name="FirewoodShelterYard" type="Area3D" parent="ShelterHouse" instance=ExtResource("5_2bj3x")]
+position = Vector3(3.5, 0.54, -6)
+script = ExtResource("17_h1v22")
+item_id = &"firewood"
+world_id = &"firewood_shelter_yard"
+
+[node name="FirewoodShelterOutbuilding" type="Area3D" parent="ShelterHouse" instance=ExtResource("5_2bj3x")]
+position = Vector3(-4, 0.54, 4.5)
+script = ExtResource("17_h1v22")
+item_id = &"firewood"
+world_id = &"firewood_shelter_outbuilding"
+
+[node name="BoardsShelterYard" type="Area3D" parent="ShelterHouse" instance=ExtResource("5_2bj3x")]
+position = Vector3(2.8, 0.54, 5.5)
+script = ExtResource("17_h1v22")
+item_id = &"boards"
+world_id = &"boards_shelter_yard"
+
+[node name="BoardsShelterOutbuilding" type="Area3D" parent="ShelterHouse" instance=ExtResource("5_2bj3x")]
+position = Vector3(-3.2, 0.54, -5)
+script = ExtResource("17_h1v22")
+item_id = &"boards"
+world_id = &"boards_shelter_outbuilding"
+
 [node name="StewBeachWreck" type="Area3D" parent="." unique_id=309826123 instance=ExtResource("5_2bj3x")]
 transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 1211.033, 2.3859432, -868.25275)
 script = ExtResource("17_h1v22")

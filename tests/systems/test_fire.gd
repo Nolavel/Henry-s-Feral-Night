@@ -77,6 +77,8 @@ func _test_a_dead_fire_needs_tinder_and_wood() -> void:
 	var inventory := _make_inventory([&"firewood"])
 	var feeder := _make_feeder(fire, inventory)
 
+	_check(feeder.item_name == tr("LIGHT_PROMPT"), "a cold stove does not advertise the light action")
+	_check(feeder.description == tr("LIGHT_REQUIREMENTS"), "the cold-stove prompt does not explain tinder + firewood")
 	_check(
 		feeder.feed() == HeatSourceFeed.Refusal.NO_TINDER,
 		"a dead fire was lit with no tinder"
