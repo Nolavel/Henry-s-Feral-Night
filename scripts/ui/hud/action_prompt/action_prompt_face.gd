@@ -61,7 +61,9 @@ func _build_styles() -> void:
 
 func _draw() -> void:
 	if _font == null:
-		_font = get_theme_default_font()
+		var ui_font := SystemFont.new()
+		ui_font.font_names = ["DejaVu Sans", "Arial", "Liberation Sans", "sans-serif"]
+		_font = ui_font
 	if _key_font == null:
 		var system_font := SystemFont.new()
 		system_font.font_names = ["Consolas", "Courier New", "DejaVu Sans Mono", "monospace"]
@@ -105,9 +107,9 @@ func _draw() -> void:
 	var text_x := 148.0
 	var y_shift := press_offset.y * 0.25
 	draw_string(_font, Vector2(text_x, 50.0 + y_shift), _header.to_upper(),
-		HORIZONTAL_ALIGNMENT_LEFT, -1, 12, Color(0.79, 0.61, 0.31, 0.95))
+		HORIZONTAL_ALIGNMENT_LEFT, -1, 12, Color(0.86, 0.67, 0.34, 1.0))
 	draw_string(_font, Vector2(text_x, 82.0 + y_shift), _action,
-		HORIZONTAL_ALIGNMENT_LEFT, 192.0, 24, Color(0.96, 0.93, 0.86, 1.0))
+		HORIZONTAL_ALIGNMENT_LEFT, 192.0, 26, Color(0.98, 0.96, 0.91, 1.0))
 	if not _detail.is_empty():
 		draw_string(_font, Vector2(text_x, 108.0 + y_shift), _detail,
-			HORIZONTAL_ALIGNMENT_LEFT, 192.0, 13, Color(0.72, 0.72, 0.70, 0.95))
+			HORIZONTAL_ALIGNMENT_LEFT, 192.0, 14, Color(0.80, 0.80, 0.78, 1.0))
