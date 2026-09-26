@@ -10,7 +10,7 @@ func _initialize() -> void:
 	_check(cursor != null, "cursor scene does not instantiate")
 	_check(ENSO != null, "Enso cursor texture does not load")
 	if ENSO != null:
-		_check(ENSO.get_width() == 256 and ENSO.get_height() == 256,
+		_check(ENSO.get_width() == 128 and ENSO.get_height() == 128,
 			"Enso texture should stay square and centered")
 	if cursor != null:
 		_check(is_equal_approx(cursor.cursor_enso_scale, 1.10),
