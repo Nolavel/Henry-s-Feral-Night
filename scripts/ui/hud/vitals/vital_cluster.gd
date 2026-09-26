@@ -77,8 +77,11 @@ const TREND_IDS: Array[StringName] = [&"thirst", &"hunger", &"sleep", &"warmth"]
 @export var trend_window: float = 1.5
 ## Smallest move within the window that counts as a trend.
 @export var trend_epsilon: float = 0.002
-@export var trend_size: float = 4.5
-@export var trend_gap: float = 1.0
+@export var trend_size: float = 6.0
+## Keep trend markers visually detached from the circular progress ring.
+## Compared with the previous pass this pushes the top marker 10 px up and
+## the bottom marker 10 px down.
+@export var trend_gap: float = 11.0
 
 @export_group("Colours")
 ## Solid backing of every cell; the level shows through the glyph, not a fill.
