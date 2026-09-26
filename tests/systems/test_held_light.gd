@@ -41,6 +41,10 @@ func _process(_delta: float) -> bool:
 			var flare := _visual.get_held_prop() as HeldFlare
 			_check(flare != null, "drawn flare is not in Henry's hand")
 			_check(flare != null and not flare.is_burning(), "drawn flare ignited before Use")
+			var core := flare.get_node_or_null(^"Tip/HotCore") as MeshInstance3D if flare != null else null
+			var light := flare.get_node_or_null(^"Tip/FlareLight") as OmniLight3D if flare != null else null
+			_check(core != null and not core.visible, "unlit flare shows the hot core")
+			_check(light != null and not light.visible, "unlit flare already casts light")
 			_check(flare != null and flare.get_parent() == _visual.get_hand_socket(), "flare is not on the shared hand socket")
 			_check(_visual.get_hand_socket().bone_name == &"hand_l", "hand socket is not on the Idle_Torch hand")
 			_check(_equipment_item(_pocket_path) == &"", "drawn flare still exists in its pocket")
@@ -51,6 +55,10 @@ func _process(_delta: float) -> bool:
 			_check(_light.use_held(), "Use did not ignite the drawn flare")
 			var flare := _visual.get_held_prop() as HeldFlare
 			_check(flare != null and flare.is_burning(), "Use left the flare unlit")
+			var core := flare.get_node_or_null(^"Tip/HotCore") as MeshInstance3D if flare != null else null
+			var light := flare.get_node_or_null(^"Tip/FlareLight") as OmniLight3D if flare != null else null
+			_check(core != null and core.visible, "ignition did not reveal the hot core")
+			_check(light != null and light.visible and light.light_energy > 0.0, "ignition did not enable flare light")
 			_check(_light.get_source_zone() == &"", "lit flare still claims a pocket owner")
 			_check(_light.use_held(), "second Use did not drop the burning flare")
 			_check(not _light.is_holding() and _visual.get_held_prop() == null, "dropping left the flare in hand")

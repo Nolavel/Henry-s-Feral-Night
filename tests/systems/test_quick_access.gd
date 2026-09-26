@@ -90,11 +90,28 @@ func _run() -> void:
 	var draw_script := GDScript.new()
 	draw_script.source_code = """extends Node
 var draws: int = 0
+var held_uses: int = 0
+var holding: bool = false
+var burning: bool = false
 func equip_from_zone(item_id: StringName, _zone_path: StringName) -> bool:
 	if item_id != &"road_flare":
 		return false
 	draws += 1
+	holding = true
+	burning = false
 	return true
+func use_held() -> bool:
+	if not holding:
+		return false
+	held_uses += 1
+	if burning:
+		holding = false
+		burning = false
+	else:
+		burning = true
+	return true
+func is_burning() -> bool:
+	return holding and burning
 """
 	_check(draw_script.reload() == OK, "fake held-item draw script did not compile")
 	var drawer := Node.new()
@@ -104,6 +121,12 @@ func equip_from_zone(item_id: StringName, _zone_path: StringName) -> bool:
 	_check(int(user.get(&"uses")) == uses_before, "a number key used/ignited the item instead of drawing it")
 	_check(int(drawer.get(&"draws")) == 1, "a number key did not ask the held-item path to draw the pocket item")
 	_check(quick.get_selected_index() == 1, "a number key did not select its pocket")
+	var lmb := InputEventAction.new()
+	lmb.action = &"fire"
+	lmb.pressed = true
+	quick._unhandled_input(lmb)
+	_check(int(drawer.get(&"held_uses")) == 1, "LMB/fire did not Use the held flare")
+	_check(bool(drawer.get(&"burning")), "LMB/fire did not transition the held flare to burning")
 	for dead: StringName in [&"open inventory", &"open map", &"open health_panel", &"open craft_panel",
 			&"select item slot 5", &"reload", &"secondary action", &"drop item", &"toggle camera view",
 			&"use_ability_gizmo_2", &"orbit_left", &"orbit_right", &"DEBUG"]:
