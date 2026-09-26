@@ -34,10 +34,10 @@ func _initialize() -> void:
 			"obsolete left gradient fragment still exists")
 		_check(cursor.get_node_or_null(^"InteractionEdgeFadeRight") == null,
 			"obsolete right gradient fragment still exists")
-		_check(cursor.interaction_gradient_center_alpha > cursor.interaction_gradient_edge_alpha,
-			"interaction gradient is not denser in the centre")
-		_check(cursor.interaction_gradient_fade_fraction < 0.5,
-			"interaction gradient has no central plateau under key/action text")
+		_check(is_equal_approx(cursor.interaction_gradient_core_width, 20.0),
+			"interaction gradient dense core is not 20 px")
+		_check(cursor.interaction_gradient_center_alpha > 0.0,
+			"interaction gradient centre is transparent")
 		_check(cursor.interaction_gradient_width < 468.0,
 			"interaction gradient was not shortened from the previous pass")
 		_check(cursor.interaction_gradient_width > cursor.prompt_content_size.x,

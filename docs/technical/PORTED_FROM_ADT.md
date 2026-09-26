@@ -131,8 +131,10 @@ carries `body_heat_cost_c`, because eating snow for water should cost heat.
   between the brackets.
 - The interaction highlight is **one continuous GradientTexture2D** beneath
   the whole key/action block, never two mirrored fragments. It keeps the old
-  warm #FFD200 cue, stays denser across the centre under the F key and action
-  description, then fades toward semi-transparent ends near both brackets.
+  warm #FFD200 cue, keeps an approximately **20 px dense core** under the
+  screen centre, then fades continuously and symmetrically to **alpha 0** at
+  both ends near the brackets. The profile uses only the two core boundaries
+  plus the transparent ends, so there are no intentional alpha steps.
   The strip is intentionally tighter than the first pass and **stretches out
   from screen centre while the Enso morphs**. The key then fades in first,
   action copy follows, and optional detail follows last. The archived

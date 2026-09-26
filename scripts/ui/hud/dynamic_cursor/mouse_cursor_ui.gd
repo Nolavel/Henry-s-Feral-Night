@@ -35,8 +35,9 @@ extends Control
 ## Centre stays denser under F + action text; both ends soften toward brackets.
 @export var interaction_gradient_color: Color = Color(1.0, 0.823529, 0.0, 1.0)
 @export_range(0.0, 1.0, 0.01) var interaction_gradient_center_alpha: float = 0.44
-@export_range(0.0, 1.0, 0.01) var interaction_gradient_edge_alpha: float = 0.10
-@export_range(0.05, 0.45, 0.01) var interaction_gradient_fade_fraction: float = 0.22
+## Final profile: a compact fully-dense centre, then one continuous fade
+## on each side all the way to alpha=0 at the ends. No alpha "steps".
+@export var interaction_gradient_core_width: float = 20.0
 ## Slightly tighter than the first pass: enough room for F + action/detail,
 ## but no longer reaching as far toward the brackets.
 @export var interaction_gradient_width: float = 420.0
@@ -273,22 +274,38 @@ func _build_interaction_prompt() -> void:
 
 func _build_interaction_gradient() -> TextureRect:
 	var gradient := Gradient.new()
-	var edge_color := interaction_gradient_color
-	edge_color.a = interaction_gradient_edge_alpha
+	var transparent := interaction_gradient_color
+	transparent.a = 0.0
 	var center_color := interaction_gradient_color
 	center_color.a = interaction_gradient_center_alpha
-	var fade := clampf(interaction_gradient_fade_fraction, 0.05, 0.45)
-	gradient.offsets = PackedFloat32Array([0.0, fade, 1.0 - fade, 1.0])
+
+	# Keep only four control points: transparent edge -> dense core ->
+	# dense core -> transparent edge. Gradient interpolates continuously between
+	# them, so there are no discrete alpha bands to read as a staircase.
+	var final_width := maxf(interaction_gradient_width, interaction_gradient_core_width + 2.0)
+	var half_core := clampf(
+		(interaction_gradient_core_width * 0.5) / final_width,
+		0.001,
+		0.49
+	)
+	gradient.offsets = PackedFloat32Array([
+		0.0,
+		0.5 - half_core,
+		0.5 + half_core,
+		1.0,
+	])
 	gradient.colors = PackedColorArray([
-		edge_color,
+		transparent,
 		center_color,
 		center_color,
-		edge_color,
+		transparent,
 	])
 
 	var texture := GradientTexture2D.new()
 	texture.gradient = gradient
-	texture.width = 512
+	# Oversample the 420 px UI strip so the alpha ramp remains visually smooth
+	# while the TextureRect is stretching during the morph.
+	texture.width = 1024
 	texture.height = 64
 	texture.fill_from = Vector2(0.0, 0.5)
 	texture.fill_to = Vector2(1.0, 0.5)
