@@ -54,6 +54,10 @@ var _cursor_enso_texture: Texture2D
 func _ready() -> void:
 	set_anchors_preset(Control.PRESET_FULL_RECT)
 	mouse_filter = Control.MOUSE_FILTER_IGNORE
+	# The Enso is rendered far below its source resolution. Linear filtering is
+	# required here; project-default nearest filtering turns the brush edge into
+	# visible square pixels.
+	texture_filter = CanvasItem.TEXTURE_FILTER_LINEAR
 	_color = cursor_color_idle
 	_cursor_enso_texture = load(CURSOR_ENSO_PATH) as Texture2D
 	if _cursor_enso_texture == null:
