@@ -1,7 +1,7 @@
 extends SceneTree
 
-## Held flare: quick-use spends a pocketed flare into the shared hand socket,
-## the arm eases into the held pose, and a second quick-use drops it burning.
+## Held flare: Quick Access draws it unlit into the shared hand socket;
+## Use lights it, the arm uses the existing held pose, and Use again drops it.
 ## Run: godot --headless --script tests/systems/test_held_light.gd
 
 const VISUAL: String = "res://scenes/actors/player/HenryUALVisual.tscn"
@@ -24,39 +24,44 @@ var _visual: HenryUALAnimation
 var _inventory: InventoryComponent
 var _equipment: EquipmentComponent
 var _light: HeldLightComponent
+var _pocket_path: StringName
 
 
-func _process(delta: float) -> bool:
+func _process(_delta: float) -> bool:
 	_frame += 1
 	match _frame:
 		1:
 			_build()
-			_check(not _light.light(), "a flare lit with none in the inventory")
-			_inventory.try_add(load("res://data/items/road_flare.tres") as ItemResource)
-			_check(_light.light(), "a flare in the inventory did not light")
-			_check(not _inventory.has_item(&"road_flare"), "lighting did not spend the flare")
+			_check(not _light.light(), "a flare lit with none carried")
+			_check(_equipment.stow_anywhere(&"road_flare") == EquipmentComponent.Refusal.NONE,
+				"test flare would not enter a Quick Access pocket")
+			_pocket_path = _flare_pocket_path()
+			_check(_pocket_path != &"", "could not locate the flare pocket")
+			_check(_light.equip_from_zone(&"road_flare", _pocket_path), "slot key could not draw the flare")
 			var flare := _visual.get_held_prop() as HeldFlare
-			_check(flare != null and flare.is_burning(), "no burning flare in Henry's hand")
-			_check(flare != null and flare.get_parent() == _visual.get_hand_socket(), "the flare is not on the shared hand socket")
-			_check(_visual.get_hand_socket().bone_name == &"hand_l", "the hand socket is not on the Idle_Torch hand (hand_l)")
+			_check(flare != null, "drawn flare is not in Henry's hand")
+			_check(flare != null and not flare.is_burning(), "drawn flare ignited before Use")
+			_check(flare != null and flare.get_parent() == _visual.get_hand_socket(), "flare is not on the shared hand socket")
+			_check(_visual.get_hand_socket().bone_name == &"hand_l", "hand socket is not on the Idle_Torch hand")
+			_check(_equipment_item(_pocket_path) == &"", "drawn flare still exists in its pocket")
 		10:
 			_visual.update_animation_blend(0.5)
-			_check(float(_visual.animation_tree.get("parameters/hold_pose/blend_amount")) > 0.9, "the arm did not rise into the held pose")
-			_light.drop()
+			_check(float(_visual.animation_tree.get("parameters/hold_pose/blend_amount")) > 0.9,
+				"the arm did not rise into the held pose")
+			_check(_light.use_held(), "Use did not ignite the drawn flare")
+			var flare := _visual.get_held_prop() as HeldFlare
+			_check(flare != null and flare.is_burning(), "Use left the flare unlit")
+			_check(_light.get_source_zone() == &"", "lit flare still claims a pocket owner")
+			_check(_light.use_held(), "second Use did not drop the burning flare")
 			_check(not _light.is_holding() and _visual.get_held_prop() == null, "dropping left the flare in hand")
 		11:
 			_visual.update_animation_blend(0.5)
-			_check(float(_visual.animation_tree.get("parameters/hold_pose/blend_amount")) < 0.1, "the arm stayed raised after the drop")
+			_check(float(_visual.animation_tree.get("parameters/hold_pose/blend_amount")) < 0.1,
+				"the arm stayed raised after the drop")
 			var dropped: Array[Node] = root.find_children("*", "HeldFlare", true, false)
-			_check(dropped.size() == 1 and (dropped[0] as HeldFlare).is_burning(), "the dropped flare is not burning on the ground")
-			_check(_equipment.stow_anywhere(&"road_flare") == EquipmentComponent.Refusal.NONE,
-				"a second flare would not enter a Quick Access pocket")
-			_check(_light.light(), "L-style light() could not consume a pocketed flare")
-			var pocketed: int = 0
-			for pocket: Dictionary in _equipment.get_available_pockets():
-				if pocket["item_id"] == &"road_flare":
-					pocketed += 1
-			_check(pocketed == 0, "lighting left the flare in its pocket")
+			_check(dropped.size() == 1 and (dropped[0] as HeldFlare).is_burning(),
+				"the dropped flare is not burning on the ground")
+			_test_unlit_put_away()
 			_finish()
 	return false
 
@@ -82,6 +87,30 @@ func _build() -> void:
 	_light.inventory = _inventory
 	_body.add_child(_light)
 	root.add_child(_body)
+
+
+func _test_unlit_put_away() -> void:
+	_check(_equipment.stow_anywhere(&"road_flare") == EquipmentComponent.Refusal.NONE,
+		"second flare would not enter a pocket")
+	var path := _flare_pocket_path()
+	_check(_light.equip_from_zone(&"road_flare", path), "second flare would not draw unlit")
+	_check(_light.put_away_unlit(), "unlit flare would not return to storage")
+	_check(_equipment_item(path) == &"road_flare" or _inventory.has_item(&"road_flare"),
+		"put-away flare was lost instead of returning to carried storage")
+
+
+func _flare_pocket_path() -> StringName:
+	for pocket: Dictionary in _equipment.get_available_pockets():
+		if pocket["item_id"] == &"road_flare":
+			return _equipment.pocket_path(pocket["body_slot"], pocket["pocket"])
+	return &""
+
+
+func _equipment_item(path: StringName) -> StringName:
+	var parts: PackedStringArray = String(path).split(EquipmentComponent.POCKET_SEPARATOR)
+	if parts.size() != 2:
+		return &""
+	return _equipment.get_pocket_item(StringName(parts[0]), StringName(parts[1]))
 
 
 func _finish() -> void:

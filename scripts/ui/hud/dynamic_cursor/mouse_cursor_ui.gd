@@ -376,11 +376,35 @@ func _update_interaction_edge_fades(center: Vector2, t: float) -> void:
 func _on_interaction_performed(target: InteractiveArea) -> void:
 	if _prompt_face == null or target != _interaction_target:
 		return
+	# A consumed pickup is already queued for deletion here. There is no target
+	# to morph back from, so clear F/copy/gradient/spread brackets immediately.
+	if not is_instance_valid(target) or target.is_queued_for_deletion() or not target.can_interact():
+		_dismiss_interaction_prompt_immediately()
+		return
 	if _confirm_tween != null:
 		_confirm_tween.kill()
 	_prompt_face.set_confirm_amount(1.0)
 	_confirm_tween = create_tween()
 	_confirm_tween.tween_method(_prompt_face.set_confirm_amount, 1.0, 0.0, 0.22)
+
+
+func _dismiss_interaction_prompt_immediately() -> void:
+	_interaction_target = null
+	_interaction_morph_progress = 0.0
+	_interaction_morph_from = 0.0
+	_interaction_morph_target = 0.0
+	_interaction_morph_elapsed = 0.0
+	if _confirm_tween != null:
+		_confirm_tween.kill()
+		_confirm_tween = null
+	if _prompt_face != null:
+		_prompt_face.set_confirm_amount(0.0)
+		_prompt_face.set_reveal_amounts(0.0, 0.0, 0.0)
+		_prompt_face.visible = false
+	if _interaction_gradient != null:
+		_interaction_gradient.modulate.a = 0.0
+		_interaction_gradient.visible = false
+	queue_redraw()
 
 
 func _draw_interaction_cursor(center: Vector2, color: Color) -> void:
