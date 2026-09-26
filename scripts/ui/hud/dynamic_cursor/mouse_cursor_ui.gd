@@ -31,14 +31,15 @@ extends Control
 @export var interaction_bracket_offset: float = 250.0
 @export var interaction_bracket_radius: float = 24.0
 @export var interaction_bracket_thickness: float = 2.6
-## Archived HFN HUD fragment shader on a plain horizontal strip.
-## New mode: strongest at screen centre, increasingly transparent toward both
-## bracket edges; the edges remain faintly visible instead of fading to zero.
-@export var interaction_edge_fade_color: Color = Color(0.95, 0.67, 0.16, 0.78)
-@export var interaction_edge_fade_size: Vector2 = Vector2(500.0, 46.0)
-@export_range(0.0, 1.0, 0.01) var interaction_edge_alpha: float = 0.24
-@export_range(0.0, 0.8, 0.01) var interaction_edge_fade_start: float = 0.14
-@export_range(0.2, 2.0, 0.01) var interaction_edge_fade_curve: float = 1.10
+## Reuses the exact old CombatHUD Active_Weapon_Highlight treatment:
+## #FFD200, soft alpha, fade_curve 0.55. Two mirrored fragments make the
+## interaction treatment strongest toward the prompt centre and softer at brackets.
+@export var interaction_edge_fade_color: Color = Color(1.0, 0.823529, 0.0, 0.784314)
+@export var interaction_edge_fade_size: Vector2 = Vector2(148.0, 42.0)
+@export_range(0.0, 0.8, 0.01) var interaction_edge_fade_start: float = 0.0
+@export_range(0.2, 1.0, 0.01) var interaction_edge_fade_curve: float = 0.55
+@export var interaction_edge_fade_overlap: float = 7.0
+@export_range(0.0, 1.0, 0.01) var interaction_edge_fade_modulate_alpha: float = 0.568627
 @export var prompt_content_size: Vector2 = Vector2(360.0, 150.0)
 
 @export_group("Movement and stamina")
@@ -83,8 +84,10 @@ var _interaction_morph_progress: float = 0.0
 var _interaction_morph_from: float = 0.0
 var _interaction_morph_target: float = 0.0
 var _interaction_morph_elapsed: float = 0.0
-var _edge_fade: ColorRect
-var _edge_fade_material: ShaderMaterial
+var _edge_fade_left: ColorRect
+var _edge_fade_right: ColorRect
+var _edge_fade_left_material: ShaderMaterial
+var _edge_fade_right_material: ShaderMaterial
 var _prompt_face: ActionPromptFace
 var _confirm_tween: Tween
 
@@ -260,8 +263,10 @@ func _update_interaction_morph(delta: float) -> void:
 
 
 func _build_interaction_prompt() -> void:
-	_edge_fade = _build_edge_fade()
-	_edge_fade_material = _edge_fade.material as ShaderMaterial
+	_edge_fade_left = _build_edge_fade("InteractionEdgeFadeLeft", 1)
+	_edge_fade_right = _build_edge_fade("InteractionEdgeFadeRight", 0)
+	_edge_fade_left_material = _edge_fade_left.material as ShaderMaterial
+	_edge_fade_right_material = _edge_fade_right.material as ShaderMaterial
 
 	_prompt_face = ActionPromptFace.new()
 	_prompt_face.name = "InteractionPrompt"
@@ -272,22 +277,22 @@ func _build_interaction_prompt() -> void:
 	add_child(_prompt_face)
 
 
-func _build_edge_fade() -> ColorRect:
+func _build_edge_fade(node_name: String, direction: int) -> ColorRect:
 	var strip := ColorRect.new()
-	strip.name = "InteractionEdgeFade"
+	strip.name = node_name
 	strip.mouse_filter = Control.MOUSE_FILTER_IGNORE
 	strip.color = Color.WHITE
+	strip.modulate = Color(1.0, 1.0, 1.0, interaction_edge_fade_modulate_alpha)
 	strip.show_behind_parent = true
-	strip.z_index = -1
 	strip.visible = false
 	var material := ShaderMaterial.new()
 	material.shader = INTERACTION_EDGE_FADE_SHADER
 	material.set_shader_parameter(&"base_color", interaction_edge_fade_color)
-	material.set_shader_parameter(&"center_fade", true)
-	material.set_shader_parameter(&"center_fade_edge_alpha", interaction_edge_alpha)
-	material.set_shader_parameter(&"center_fade_start", interaction_edge_fade_start)
-	material.set_shader_parameter(&"center_fade_power", interaction_edge_fade_curve)
-	material.set_shader_parameter(&"corner_radius", 0.0)
+	material.set_shader_parameter(&"fade_direction", direction)
+	material.set_shader_parameter(&"fade_start", interaction_edge_fade_start)
+	material.set_shader_parameter(&"fade_end", 1.0)
+	material.set_shader_parameter(&"fade_curve", interaction_edge_fade_curve)
+	material.set_shader_parameter(&"corner_radius", 0.10)
 	strip.material = material
 	add_child(strip)
 	return strip
@@ -320,20 +325,41 @@ func _update_prompt_visuals() -> void:
 
 
 func _update_interaction_edge_fades(center: Vector2, t: float) -> void:
-	if _edge_fade == null or _edge_fade_material == null:
+	if (
+		_edge_fade_left == null
+		or _edge_fade_right == null
+		or _edge_fade_left_material == null
+		or _edge_fade_right_material == null
+	):
 		return
-
 	var reveal := _smoothstep01((t - 0.50) / 0.38)
-	_edge_fade.position = center - interaction_edge_fade_size * 0.5
-	_edge_fade.size = interaction_edge_fade_size
-	_edge_fade.visible = reveal > 0.001
+	var size := interaction_edge_fade_size
+	var bracket_inner_x := maxf(
+		interaction_bracket_offset - interaction_bracket_radius + interaction_edge_fade_overlap,
+		0.0
+	)
 
+	# Left half: solid near the prompt centre, fading outward toward the left bracket.
+	_edge_fade_left.position = Vector2(
+		center.x - bracket_inner_x,
+		center.y - size.y * 0.5
+	)
+	_edge_fade_left.size = size
+
+	# Right half: mirrored, solid near centre and fading toward the right bracket.
+	_edge_fade_right.position = Vector2(
+		center.x + bracket_inner_x - size.x,
+		center.y - size.y * 0.5
+	)
+	_edge_fade_right.size = size
+
+	var visible_now := reveal > 0.001
+	_edge_fade_left.visible = visible_now
+	_edge_fade_right.visible = visible_now
 	var colour := interaction_edge_fade_color
 	colour.a *= reveal
-	_edge_fade_material.set_shader_parameter(&"base_color", colour)
-	_edge_fade_material.set_shader_parameter(&"center_fade_edge_alpha", interaction_edge_alpha)
-	_edge_fade_material.set_shader_parameter(&"center_fade_start", interaction_edge_fade_start)
-	_edge_fade_material.set_shader_parameter(&"center_fade_power", interaction_edge_fade_curve)
+	_edge_fade_left_material.set_shader_parameter(&"base_color", colour)
+	_edge_fade_right_material.set_shader_parameter(&"base_color", colour)
 
 
 func _on_interaction_performed(target: InteractiveArea) -> void:
@@ -361,23 +387,6 @@ func _draw_interaction_cursor(center: Vector2, color: Color) -> void:
 ## born near the Enso and then the two halves travel apart around HFN's ink.
 func _draw_interaction_morph_shape(center: Vector2, t: float, color: Color) -> void:
 	var shape_t := clampf(t / 0.62, 0.0, 1.0)
-	var paths := _current_interaction_paths(center, t)
-
-	var alpha := _smoothstep01(t / 0.18)
-	var shape_color := color
-	shape_color.a *= alpha
-	var juice := sin(shape_t * PI)
-	if juice > 0.001 and interaction_morph_glow > 0.0:
-		_draw_morph_paths(
-			paths,
-			_color_with_alpha(shape_color, 0.10 * interaction_morph_glow * juice),
-			interaction_bracket_thickness * 3.0
-		)
-	_draw_morph_paths(paths, shape_color, interaction_bracket_thickness)
-
-
-func _current_interaction_paths(center: Vector2, t: float) -> Array[PackedVector2Array]:
-	var shape_t := clampf(t / 0.62, 0.0, 1.0)
 	var eased := _morph_ease_in_out(shape_t, interaction_morph_ease_power)
 	var base_radius := lerpf(cursor_radius, interaction_bracket_radius, eased)
 	var stretch_in := _morph_ease_in_out(minf(shape_t / 0.55, 1.0), 1.8)
@@ -398,7 +407,18 @@ func _current_interaction_paths(center: Vector2, t: float) -> Array[PackedVector
 			paths[0][i].x += spread
 		for i: int in range(paths[1].size()):
 			paths[1][i].x -= spread
-	return paths
+
+	var alpha := _smoothstep01(t / 0.18)
+	var shape_color := color
+	shape_color.a *= alpha
+	var juice := sin(shape_t * PI)
+	if juice > 0.001 and interaction_morph_glow > 0.0:
+		_draw_morph_paths(
+			paths,
+			_color_with_alpha(shape_color, 0.10 * interaction_morph_glow * juice),
+			interaction_bracket_thickness * 3.0
+		)
+	_draw_morph_paths(paths, shape_color, interaction_bracket_thickness)
 
 
 func _build_morph_paths(

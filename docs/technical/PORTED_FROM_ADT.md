@@ -129,11 +129,11 @@ carries `body_heat_cost_c`, because eating snow for water should cost heat.
 - The centre is intentionally **fully clear**: no world-space card, no ink blot
   and no translucent fill. The existing key/action face is drawn directly
   between the brackets.
-- Warm yellow reuses HFN's archived `BG_indicatorSURV.gdshader` on
-  a plain horizontal strip again. The shader gained an **opt-in symmetric**
-  centre-fade mode: opacity is strongest in the middle and falls toward both
-  bracket edges, but the edges remain partially visible instead of reaching
-  alpha=0. Existing users of the shader keep the original directional mode.
+- Warm yellow uses the **unchanged archived** `BG_indicatorSURV.gdshader`
+  with the old CombatHUD `Active_Weapon_Highlight` look: #FFD200,
+  base alpha ~0.78, canvas modulate ~0.57 and fade curve 0.55. Two mirrored
+  fragments are used: each is strongest toward the prompt centre and fades
+  outward toward its bracket. The shader itself is not forked or extended.
 - The generic `INTERACT` eyebrow is intentionally not rendered; the key,
   concrete action and optional target detail carry the interaction by themselves.
 - The keycap keeps its solid key treatment but the earlier raster/grid substrate
