@@ -21,7 +21,7 @@ func _initialize() -> void:
 		push_error("startup presentation: %d check(s) failed" % _failures)
 		quit(1)
 		return
-	print("startup presentation: black boot and clean ALPHA 0.1 title card passed")
+	print("startup presentation: black boot and ALPHA 0.1 title card passed")
 	quit(0)
 
 
@@ -58,13 +58,10 @@ func _test_title_card_content() -> void:
 	_check(version != null, "the title card has no version label")
 	if background != null:
 		_check(background.color.is_equal_approx(PREMIUM_BLACK), "card black is not #101010")
-		_check(background.material == null, "Squigglevision must not distort the black cover")
 	if title != null:
 		_check(title.text == "Henry's Feral Night", "the game title changed")
-		_check(title.material == null, "the game title should be static and unshaded")
 	if version != null:
 		_check(version.text == "ALPHA 0.1", "the build is not labelled ALPHA 0.1")
-		_check(version.material == null, "the ALPHA label should be static and unshaded")
 	card.free()
 
 

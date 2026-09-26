@@ -1,8 +1,8 @@
 name: checks
 
 ## Cheap gate for main: import, filename hygiene, headless test suites.
-## Rendering remains opt-in. [startup-preview] captures the title card;
-## [hud-preview] captures one staged production HFN frame with contextual HUD/action UI.
+## Rendering remains opt-in. [hud-preview] captures one staged production HFN
+## frame with contextual HUD/action UI; [focus-video] captures interaction motion.
 on:
   pull_request:
     branches: [main]
@@ -45,23 +45,10 @@ jobs:
         run: tools/ci/run_tests.sh
 
       - name: Provision preview renderer
-        if: github.event_name == 'pull_request' && (contains(github.event.pull_request.title, '[startup-preview]') || contains(github.event.pull_request.title, '[hud-preview]') || contains(github.event.pull_request.title, '[focus-video]'))
+        if: github.event_name == 'pull_request' && (contains(github.event.pull_request.title, '[hud-preview]') || contains(github.event.pull_request.title, '[focus-video]'))
         run: |
           sudo apt-get update -qq
           sudo apt-get install -y -qq mesa-vulkan-drivers xvfb
-
-      - name: Render startup title preview
-        if: github.event_name == 'pull_request' && contains(github.event.pull_request.title, '[startup-preview]')
-        run: tools/ci/render.sh res://tools/runtime/startup_title_preview.tscn res://artifacts/startup_squiggle.png 45
-
-      - name: Upload startup title preview
-        if: github.event_name == 'pull_request' && contains(github.event.pull_request.title, '[startup-preview]')
-        uses: actions/upload-artifact@v4
-        with:
-          name: startup-squiggle-preview
-          path: artifacts/startup_squiggle.png
-          if-no-files-found: error
-          retention-days: 3
 
       - name: Render HFN action prompt preview
         if: github.event_name == 'pull_request' && contains(github.event.pull_request.title, '[hud-preview]')
