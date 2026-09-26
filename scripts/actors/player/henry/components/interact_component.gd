@@ -134,13 +134,12 @@ func _perform(target: InteractiveArea) -> void:
 				action = &"interact"
 		_player.call(&"play_action_animation", action)
 	target.interact()
-	interaction_performed.emit(target)
-	# A successful pickup queues itself for deletion. Clear focus immediately so
-	# the centre prompt cannot survive until the next physics scan. The same path
-	# also covers interactables that deactivate themselves without being freed.
+	# A consumed/deactivated target stops being authoritative before UI observers
+	# receive interaction_performed. This prevents one stale process frame.
 	if current_target == target and is_instance_valid(target):
 		if target.is_queued_for_deletion() or not target.can_interact():
 			_clear_current_target()
+	interaction_performed.emit(target)
 
 
 func _find_crosshair_target() -> InteractiveArea:

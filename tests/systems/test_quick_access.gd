@@ -87,8 +87,22 @@ func _run() -> void:
 	if _zone_item(hub, path) == &"":
 		hub.move_to_zone(&"road_flare", path)
 	user.set(&"accept", true)
+	var draw_script := GDScript.new()
+	draw_script.source_code = """extends Node
+var draws: int = 0
+func equip_from_zone(item_id: StringName, _zone_path: StringName) -> bool:
+	if item_id != &"road_flare":
+		return false
+	draws += 1
+	return true
+"""
+	_check(draw_script.reload() == OK, "fake held-item draw script did not compile")
+	var drawer := Node.new()
+	drawer.set_script(draw_script)
+	body.add_child(drawer)
 	quick._unhandled_input(key)
-	_check(int(user.get(&"uses")) == uses_before, "a number key used the pocket instead of only selecting it")
+	_check(int(user.get(&"uses")) == uses_before, "a number key used/ignited the item instead of drawing it")
+	_check(int(drawer.get(&"draws")) == 1, "a number key did not ask the held-item path to draw the pocket item")
 	_check(quick.get_selected_index() == 1, "a number key did not select its pocket")
 	for dead: StringName in [&"open inventory", &"open map", &"open health_panel", &"open craft_panel",
 			&"select item slot 5", &"reload", &"secondary action", &"drop item", &"toggle camera view",

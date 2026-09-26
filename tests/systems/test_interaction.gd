@@ -24,6 +24,7 @@ var _near: ItemPickup
 var _far: ItemPickup
 var _behind: ItemPickup
 var _camera: Camera3D
+var _target_seen_during_performed: InteractiveArea
 
 
 ## Stages step on physics frames: detection and the walk both run there.
@@ -64,6 +65,8 @@ func _build() -> void:
 	_player.add_child(_inventory)
 	_component = InteractComponent.new()
 	_player.add_child(_component)
+	_component.interaction_performed.connect(func(_target: InteractiveArea) -> void:
+		_target_seen_during_performed = _component.current_target)
 	root.add_child(_player)
 	_camera = Camera3D.new()
 	_camera.current = true
@@ -97,6 +100,8 @@ func _check_near_first() -> void:
 	_component.try_interact()
 	_check(_inventory.get_count(&"firewood") == 1, "F did not pick up the near item")
 	_check(_component.current_target == null, "picked-up item stayed as current target")
+	_check(_target_seen_during_performed == null,
+		"interaction_performed fired before consumed pickup focus was cleared")
 	_check(not _near.shape_cast_detected, "picked-up item left the F prompt active")
 
 

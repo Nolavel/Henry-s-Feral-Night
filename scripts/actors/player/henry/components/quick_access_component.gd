@@ -1,8 +1,9 @@
 class_name QuickAccessComponent
 extends Node
 
-## Reaching into a pocket without the Hub: the wheel picks a pocket, a wheel click
-## uses what is in it (a flare lights in hand; a second click drops it). 1–4 only pick a pocket.
+## Reaching into a pocket without the Hub: the wheel picks a pocket and wheel click
+## uses it. 1–4 are direct physical draws: a flare appears unlit in Henry's hand,
+## then the existing Use Selected Item action lights it; Use again drops it.
 
 signal selection_changed(index: int, zone: Dictionary)
 
@@ -39,7 +40,8 @@ func _unhandled_input(event: InputEvent) -> void:
 	else:
 		for slot: int in range(DIRECT_ACTIONS.size()):
 			if _pressed(event, DIRECT_ACTIONS[slot]):
-				select(slot)  # selecting never spends; the wheel click uses
+				select(slot)
+				_equip_selected()
 				break
 
 
@@ -61,18 +63,29 @@ func select(index: int) -> void:
 	var zones: Array[Dictionary] = hub.get_quick_access_zones()
 	if zones.is_empty():
 		return
-	_index = posmod(index, zones.size())
+	var next_index: int = posmod(index, zones.size())
+	if next_index != _index:
+		_put_away_unlit_held()
+		zones = hub.get_quick_access_zones()
+		if zones.is_empty():
+			return
+		next_index = posmod(index, zones.size())
+	_index = next_index
 	_show_readout(zones[_index])
 	selection_changed.emit(_index, zones[_index])
 
 
-## A held item is put away first; otherwise the selected pocket's item is used.
+## Use has priority over storage: an unlit held flare is struck; a burning one
+## is dropped. Only when nothing is held do we use the selected pocket item.
 func use_selected() -> bool:
 	if hub == null:
 		return false
 	for child: Node in get_parent().get_children():
-		if child.has_method(&"release_held") and bool(child.call(&"release_held")):
-			_hide_readout()
+		if child.has_method(&"use_held") and bool(child.call(&"use_held")):
+			if child.has_method(&"is_burning") and bool(child.call(&"is_burning")):
+				_show_burning_flare_readout()
+			else:
+				_hide_readout()
 			return true
 	var zones: Array[Dictionary] = hub.get_quick_access_zones()
 	if zones.is_empty():
@@ -90,6 +103,31 @@ func use_selected() -> bool:
 	else:
 		_show_readout(zone)
 	return used
+
+
+func _equip_selected() -> bool:
+	if hub == null:
+		return false
+	var zones: Array[Dictionary] = hub.get_quick_access_zones()
+	if zones.is_empty():
+		return false
+	var zone: Dictionary = zones[clampi(_index, 0, zones.size() - 1)]
+	var item_id: StringName = zone["item_id"]
+	if item_id == &"":
+		return false
+	for child: Node in get_parent().get_children():
+		if child.has_method(&"equip_from_zone") and bool(child.call(&"equip_from_zone", item_id, zone["path"])):
+			return true
+	return false
+
+
+func _put_away_unlit_held() -> void:
+	var parent := get_parent()
+	if parent == null:
+		return
+	for child: Node in parent.get_children():
+		if child.has_method(&"put_away_unlit") and bool(child.call(&"put_away_unlit")):
+			return
 
 
 func _pressed(event: InputEvent, action: StringName) -> bool:
@@ -114,6 +152,25 @@ func _show_readout(zone: Dictionary) -> void:
 	_readout.text = "%s: %s" % [tr(zone["name"]), tr(held.display_name) if held != null else tr("HUB_EMPTY")]
 	if zone["item_id"] == ROAD_FLARE_ID and not _flare_is_burning():
 		_readout.text += "\n%s  Use selected item — light flare" % _action_label(USE_ACTION)
+	_readout.visible = true
+	_readout_left = READOUT_TIME
+
+
+func _show_burning_flare_readout() -> void:
+	if not is_inside_tree():
+		return
+	if not is_instance_valid(_readout):
+		var layer := CanvasLayer.new()
+		layer.layer = 15
+		add_child(layer)
+		_readout = Label.new()
+		_readout.anchor_left = 0.5
+		_readout.anchor_right = 0.5
+		_readout.anchor_top = 0.82
+		_readout.grow_horizontal = Control.GROW_DIRECTION_BOTH
+		_readout.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
+		layer.add_child(_readout)
+	_readout.text = "Road flare — burning\n%s  Use selected item — drop flare" % _action_label(USE_ACTION)
 	_readout.visible = true
 	_readout_left = READOUT_TIME
 
