@@ -28,6 +28,12 @@ enum Phase {
 @export var billboard_pixel_size: float = 0.0019
 @export var risen_offset: Vector3 = Vector3(0.0, 0.60, 0.0)
 
+@export_group("Ink shape")
+## Same placement rule as ADT KeyHints: the shader's mass lives in the
+## bottom-right of a larger layer, so grow that layer up/left behind the face.
+@export var blot_scale: Vector2 = Vector2(1.9, 1.55)
+@export var blot_bleed: float = 18.0
+
 @export_group("ADT choreography")
 @export var ink_appear_duration: float = 0.48
 @export var content_fade_in_duration: float = 0.22
@@ -80,8 +86,10 @@ func _activate_render_surface() -> void:
 
 	_ink = ColorRect.new()
 	_ink.name = "Ink"
-	_ink.position = Vector2.ZERO
-	_ink.size = Vector2(canvas_size)
+	var face_size := Vector2(canvas_size)
+	var blot_size := face_size * blot_scale
+	_ink.size = blot_size
+	_ink.position = face_size - blot_size + Vector2.ONE * blot_bleed
 	_ink.mouse_filter = Control.MOUSE_FILTER_IGNORE
 	_ink_material = ShaderMaterial.new()
 	_ink_material.shader = BLOT_SHADER
@@ -92,7 +100,7 @@ func _activate_render_surface() -> void:
 	_ink_material.set_shader_parameter("radius_scale", 0.0)
 	_ink_material.set_shader_parameter("edge_ragged", 0.052)
 	_ink_material.set_shader_parameter("warp_scale", 4.5)
-	_ink_material.set_shader_parameter("rect_size", Vector2(canvas_size))
+	_ink_material.set_shader_parameter("rect_size", _ink.size)
 	_ink_material.set_shader_parameter("idle_drift", 0.0)
 	_ink.material = _ink_material
 	_viewport.add_child(_ink)
