@@ -38,7 +38,8 @@ func _ready() -> void:
 	_add_band(_trail_clip, trail_color)
 	_fill_clip = _add_clip()
 	_fill_material = _add_band(_fill_clip, fill_color)
-	resized.connect(_layout)
+	if not resized.is_connected(_layout):
+		resized.connect(_layout)
 	_layout()
 	if health == null and owner != null and owner.get_parent() != null:
 		health = owner.get_parent().get_node_or_null(^"PlayerHealthSystem") as PlayerHealthSystem
@@ -127,6 +128,4 @@ func _add_band(parent: Control, colour: Color) -> ShaderMaterial:
 	material.set_shader_parameter(&"corner_radius", 0.0)
 	band.material = material
 	parent.add_child(band)
-	if parent == self:
-		resized.connect(_layout)
 	return material
