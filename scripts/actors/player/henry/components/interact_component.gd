@@ -16,6 +16,8 @@ signal interaction_performed(target: InteractiveArea)
 ## intent_radius, so distant scenery cannot become actionable.
 @export var focus_length: float = 12.0
 @export var focus_radius: float = 0.0
+## Fallback only for cameras already inside an interaction Area: full cone width.
+@export var focus_angle_deg: float = 16.0
 
 @export_group("Intent")
 ## Maximum distance at which a crosshair-focused object can become current_target.
@@ -123,22 +125,70 @@ func _find_crosshair_target() -> InteractiveArea:
 	var camera: Camera3D = viewport.get_camera_3d() if viewport != null else null
 	if camera == null or _player == null:
 		return null
-	# For a perspective camera the exact screen-centre ray is camera forward.
-	# This is resolution-independent and remains deterministic in headless tests.
 	var from: Vector3 = camera.global_position
 	var direction: Vector3 = -camera.global_transform.basis.z.normalized()
 	var to: Vector3 = from + direction * focus_length
-	var params := PhysicsRayQueryParameters3D.create(from, to)
-	params.collide_with_areas = true
-	params.collide_with_bodies = true
-	params.exclude = [_player.get_rid()]
-	var hit: Dictionary = _player.get_world_3d().direct_space_state.intersect_ray(params)
+
+	# Exact centre ray is authoritative whenever it hits real object geometry.
+	var ray := PhysicsRayQueryParameters3D.create(from, to)
+	ray.collide_with_areas = true
+	ray.collide_with_bodies = true
+	ray.exclude = [_player.get_rid()]
+	var hit: Dictionary = _player.get_world_3d().direct_space_state.intersect_ray(ray)
+	if not hit.is_empty():
+		var direct := _area_from(hit.get("collider"))
+		if direct != null and _flat_distance_to(direct) <= intent_radius:
+			return direct
+		# A non-interactive body in the centre blocks focus behind it.
+		if hit.get("collider") is PhysicsBody3D:
+			return null
+
+	# Some legacy InteractiveAreas envelop the camera. Rays do not report a
+	# shape containing their origin, so recover only candidates genuinely under
+	# the crosshair and with clear line of sight.
+	var shape := SphereShape3D.new()
+	shape.radius = intent_radius
+	var query := PhysicsShapeQueryParameters3D.new()
+	query.shape = shape
+	query.transform = Transform3D(Basis.IDENTITY, _player.global_position)
+	query.collide_with_areas = true
+	query.collide_with_bodies = false
+	var best: InteractiveArea = null
+	var best_angle := deg_to_rad(focus_angle_deg * 0.5)
+	var best_distance := INF
+	for result: Dictionary in get_world_3d().direct_space_state.intersect_shape(query, 32):
+		var area := _area_from(result.get("collider"))
+		if area == null:
+			continue
+		var flat_distance := _flat_distance_to(area)
+		if flat_distance > intent_radius:
+			continue
+		var toward: Vector3 = area.global_position - from
+		if toward.length() < 0.01:
+			continue
+		var angle := direction.angle_to(toward.normalized())
+		if angle > best_angle:
+			continue
+		if not _has_focus_line(camera, area):
+			continue
+		if angle < best_angle or (is_equal_approx(angle, best_angle) and flat_distance < best_distance):
+			best = area
+			best_angle = angle
+			best_distance = flat_distance
+	return best
+
+
+func _has_focus_line(camera: Camera3D, area: InteractiveArea) -> bool:
+	var from := camera.global_position
+	var to := area.global_position
+	var ray := PhysicsRayQueryParameters3D.create(from, to)
+	ray.collide_with_areas = false
+	ray.collide_with_bodies = true
+	ray.exclude = [_player.get_rid()]
+	var hit := _player.get_world_3d().direct_space_state.intersect_ray(ray)
 	if hit.is_empty():
-		return null
-	var area := _area_from(hit.get("collider"))
-	if area == null:
-		return null
-	return area if _flat_distance_to(area) <= intent_radius else null
+		return true
+	return _area_from(hit.get("collider")) == area
 
 
 ## Legacy cone helper retained for compatibility/reference only.
