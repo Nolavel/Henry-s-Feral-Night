@@ -39,7 +39,6 @@ var _refresh_left: float = 0.0
 func _ready() -> void:
 	add_to_group(GROUP_ACTION_PROMPT)
 	_viewport.size = canvas_size
-	_billboard.texture = _viewport.get_texture()
 	_billboard.pixel_size = billboard_pixel_size
 	_billboard.visible = false
 	_viewport.render_target_update_mode = SubViewport.UPDATE_DISABLED
@@ -49,7 +48,10 @@ func on_world_ready(context: WorldContext) -> void:
 	if context == null or context.player == null:
 		return
 	_interact = context.player.get_node_or_null(^"InteractComponent") as InteractComponent
-	if _interact != null and not _interact.interaction_performed.is_connected(_on_interaction_performed):
+	if _interact == null:
+		return
+	_activate_render_surface()
+	if not _interact.interaction_performed.is_connected(_on_interaction_performed):
 		_interact.interaction_performed.connect(_on_interaction_performed)
 
 
@@ -128,3 +130,18 @@ func _billboard_visible(on: bool) -> void:
 	_viewport.render_target_update_mode = (
 		SubViewport.UPDATE_ALWAYS if on else SubViewport.UPDATE_DISABLED
 	)
+
+
+func _activate_render_surface() -> void:
+	if _billboard.texture == null:
+		_billboard.texture = _viewport.get_texture()
+
+
+func _exit_tree() -> void:
+	# SubViewportTexture points back at its viewport RID. Break the sibling
+	# reference explicitly before the composed world is freed in headless tests.
+	if is_instance_valid(_viewport):
+		_viewport.render_target_update_mode = SubViewport.UPDATE_DISABLED
+	if is_instance_valid(_billboard):
+		_billboard.visible = false
+		_billboard.texture = null
