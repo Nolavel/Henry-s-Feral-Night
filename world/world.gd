@@ -48,6 +48,7 @@ const WORLD_3D_ENTITY_SCENES: Array[PackedScene] = []
 
 ## Screen-space UI scenes — instantiate(), parented to a shared CanvasLayer.
 const WORLD_UI_SCENES: Array[PackedScene] = [
+	preload("res://scenes/ui/hud/input_hints/key_hints_panel.tscn"),
 	preload("res://scenes/ui/hud/sleep_prompt.tscn"),
 	preload("res://scenes/ui/menu/pause_menu.tscn"),
 ]

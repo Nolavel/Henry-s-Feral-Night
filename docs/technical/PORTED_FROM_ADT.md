@@ -105,3 +105,47 @@ carries `body_heat_cost_c`, because eating snow for water should cost heat.
   it does not slow Henry down. A limit the player can feel comes before a
   penalty they cannot see the shape of.
 - **An equipment UI.** Neither project has one.
+
+
+## ADT KeyHintsPanel → HFN production controls blot
+
+- ADT source: `ui/hud/player_hud/key_hints_panel.gd/.tscn`,
+  `key_hint_entry.gd`, `key_hints_catalog.gd`,
+  `data/key_hints.tres`, and `vfx/shaders/key_hints_blot.gdshader`.
+- HFN keeps the lower-right placement, key-cap styling, ink shader constants and
+  ink→text / text→ink choreography. The catalog is rewritten for HFN's real
+  InputMap and PlayerState plus Hub/Rest component state; no parallel player
+  state or second input manager was added.
+- ADT's BlackRock font is deliberately NOT copied: ADT marks it as a
+  project-only asset not for redistribution. HFN therefore uses its own project
+  font for prose while preserving ADT's monospace key caps.
+
+
+## ADT cursor morph → HFN centered interaction prompt
+
+- HFN uses the ADT dynamic-cursor circle→brackets morph as the interaction
+  transition. The Enso tears into two arcs and the arcs move apart around the
+  screen centre.
+- The centre is intentionally **fully clear**: no world-space card, no ink blot
+  and no translucent fill. The existing key/action face is drawn directly
+  between the brackets.
+- The interaction highlight is **one continuous GradientTexture2D** beneath
+  the whole key/action block, never two mirrored fragments. It keeps the old
+  warm #FFD200 cue, keeps an approximately **20 px dense core** under the
+  screen centre, then fades continuously and symmetrically to **alpha 0** at
+  both ends near the brackets. The profile uses only the two core boundaries
+  plus the transparent ends, so there are no intentional alpha steps.
+  The strip is intentionally tighter than the first pass and **stretches out
+  from screen centre while the Enso morphs**. The key then fades in first,
+  action copy follows, and optional detail follows last. The archived
+  `BG_indicatorSURV.gdshader` is left untouched and is no longer repurposed
+  for this prompt.
+- The generic `INTERACT` eyebrow is intentionally not rendered; the key,
+  concrete action and optional target detail carry the interaction by themselves.
+- The keycap keeps its solid key treatment but the earlier raster/grid substrate
+  has been removed.
+- ActionPrompt3D remains as comparison/legacy code but is no longer part of
+  World.WORLD_3D_ENTITY_SCENES; production interaction feedback comes from
+  MouseCursorUI.
+- Action text still comes from InteractiveArea.get_interaction_prompt_data(),
+  so doors, pickups and other targets remain the source of truth.

@@ -28,6 +28,7 @@ func _ready() -> void:
 	_open = starts_open
 	if door_hinge != null:
 		door_hinge.rotation.y = deg_to_rad(open_angle_deg) if _open else 0.0
+		_ensure_two_sided_handles()
 	if breach != null and not breach.boarded_changed.is_connected(_on_breach_boarded_changed):
 		breach.boarded_changed.connect(_on_breach_boarded_changed)
 	super()
@@ -88,3 +89,42 @@ func _refresh_prompt() -> void:
 	set_description("")
 	if info_label != null and info_label.visible:
 		info_label.text = _get_interaction_text()
+
+
+func _ensure_two_sided_handles() -> void:
+	if door_hinge == null or door_hinge.has_node(^"HandleOutside"):
+		return
+	var leaf := door_hinge.get_node_or_null(^"DoorLeaf") as MeshInstance3D
+	if leaf == null or leaf.mesh == null:
+		return
+	var bounds := leaf.get_aabb()
+	var free_edge_x: float = leaf.position.x + bounds.position.x + bounds.size.x - 0.18
+	var face_z: float = maxf(bounds.size.z * 0.5 + 0.025, 0.065)
+	_make_handle_side(&"HandleOutside", free_edge_x, face_z)
+	_make_handle_side(&"HandleInside", free_edge_x, -face_z)
+
+
+func _make_handle_side(node_name: StringName, x: float, z: float) -> void:
+	var root := Node3D.new()
+	root.name = node_name
+	root.position = Vector3(x, 0.0, z)
+	door_hinge.add_child(root)
+	var brass := StandardMaterial3D.new()
+	brass.albedo_color = Color(0.40, 0.31, 0.16)
+	brass.metallic = 0.65
+	brass.roughness = 0.38
+	var plate := MeshInstance3D.new()
+	plate.name = "Plate"
+	var plate_mesh := BoxMesh.new()
+	plate_mesh.size = Vector3(0.16, 0.28, 0.025)
+	plate.mesh = plate_mesh
+	plate.material_override = brass
+	root.add_child(plate)
+	var lever := MeshInstance3D.new()
+	lever.name = "Lever"
+	lever.position = Vector3(-0.11, 0.0, signf(z) * 0.035)
+	var lever_mesh := BoxMesh.new()
+	lever_mesh.size = Vector3(0.28, 0.055, 0.055)
+	lever.mesh = lever_mesh
+	lever.material_override = brass
+	root.add_child(lever)

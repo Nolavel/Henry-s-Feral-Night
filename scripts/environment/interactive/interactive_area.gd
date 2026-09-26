@@ -293,6 +293,15 @@ func _hide_icon_sprite_with_lift_then_show_info() -> void:
 func _show_info_label() -> void:
 	if not info_label:
 		return
+	if is_inside_tree():
+		var tree := get_tree()
+		if (
+			tree.get_first_node_in_group(&"interaction_cursor_prompt") != null
+			or tree.get_first_node_in_group(&"action_prompt_3d") != null
+		):
+			info_label.visible = false
+			info_label.modulate.a = 0.0
+			return
 	
 	info_label.text = _get_interaction_text()
 	info_label.visible = true
@@ -343,6 +352,44 @@ static func _interact_key_label() -> String:
 			return OS.get_keycode_string(code)
 	return "?"
 
+
+
+
+## Public factual description for the shared world-space ActionPrompt3D.
+## Subclasses keep ownership of the verb by overriding _get_interaction_text();
+## this method only separates that existing text into key / action / detail.
+func get_interaction_prompt_data() -> Dictionary:
+	var key: String = _interact_key_label()
+	var rendered: String = _get_interaction_text()
+	var lines := rendered.split("\n", false)
+	var action: String = lines[0].strip_edges() if not lines.is_empty() else tr("INTERACT_USE")
+	var prefix := "[%s]" % key
+	if action.begins_with(prefix):
+		action = action.substr(prefix.length()).strip_edges()
+
+	var detail := ""
+	if description != "" and description != "Описание отсутствует":
+		detail = description.strip_edges()
+	if detail == "" and item_name != "" and item_name != "Неизвестный объект" and item_name != action:
+		detail = item_name.strip_edges()
+	if detail == "":
+		match interaction_type:
+			InteractionType.PICKUP:
+				detail = tr("PROMPT_DETAIL_ITEM")
+			InteractionType.BUTTON:
+				detail = tr("PROMPT_DETAIL_CONTROL")
+			InteractionType.DOOR:
+				detail = tr("PROMPT_DETAIL_DOOR")
+			InteractionType.PUSHABLE:
+				detail = tr("PROMPT_DETAIL_OBJECT")
+			_:
+				detail = tr("PROMPT_DETAIL_OBJECT")
+
+	return {
+		"key": key,
+		"action": action,
+		"detail": detail,
+	}
 
 func _show_highlight_circle() -> void:
 	if not highlight_circle: 

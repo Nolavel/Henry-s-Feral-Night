@@ -278,8 +278,10 @@ func _test_a_scene_with_its_own_floor_streams_nothing() -> void:
 	_check(streaming != null, "the streaming system was not built at all")
 	if streaming != null:
 		_check(not streaming._initialized, "streaming started in a scene that turned it off")
+	var composition_entities: int = World.WORLD_3D_ENTITY_SCENES.size()
 	_check(
-		world.stream_container.get_child_count() == 0,
-		"%d chunk(s) streamed into a scene with its own floor" % world.stream_container.get_child_count()
+		world.stream_container.get_child_count() == composition_entities,
+		"%d unexpected streaming child(ren) appeared in a scene with its own floor"
+		% (world.stream_container.get_child_count() - composition_entities)
 	)
 	_dispose(world)
