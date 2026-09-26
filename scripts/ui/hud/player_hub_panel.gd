@@ -23,6 +23,11 @@ var _dragging: bool = false
 var _ghost: Label
 var _targets: Dictionary = {}  # Control -> zone path; empty path means the pack
 var _zone_paths: Array[StringName] = []
+var _zone_item_ids: Array[StringName] = []
+const MANUAL_PACK: StringName = &"@pack"
+var _manual_source: StringName = &""
+var _manual_item: StringName = &""
+var _manual_ghost: Label
 var _inspect_button: Button
 var _mode: Label
 
@@ -123,17 +128,82 @@ func drop_on(path: StringName) -> void:
 
 
 func _input(event: InputEvent) -> void:
-	if _placing == &"":
+	if _placing != &"":
+		var button := event as InputEventMouseButton
+		if button != null and button.button_index == MOUSE_BUTTON_LEFT:
+			if button.pressed:
+				_dragging = true
+			elif _dragging:
+				drop_on(_target_at(button.position))
+			get_viewport().set_input_as_handled()
+		elif event is InputEventMouseMotion and _dragging:
+			_ghost.position = (event as InputEventMouseMotion).position + Vector2(12.0, -8.0)
 		return
+	_manual_drag_input(event)
+
+
+## Regular Hub drag/drop delegates to PlayerHubComponent; UI owns no item state.
+func _manual_drag_input(event: InputEvent) -> void:
 	var button := event as InputEventMouseButton
 	if button != null and button.button_index == MOUSE_BUTTON_LEFT:
 		if button.pressed:
-			_dragging = true
-		elif _dragging:
-			drop_on(_target_at(button.position))
-		get_viewport().set_input_as_handled()
-	elif event is InputEventMouseMotion and _dragging:
-		_ghost.position = (event as InputEventMouseMotion).position + Vector2(12.0, -8.0)
+			_begin_manual_drag(button.position)
+		elif _manual_source != &"":
+			_finish_manual_drag(button.position)
+		return
+	if event is InputEventMouseMotion and _manual_source != &"" and is_instance_valid(_manual_ghost):
+		_manual_ghost.position = (event as InputEventMouseMotion).position + Vector2(12.0, -8.0)
+
+
+func _begin_manual_drag(point: Vector2) -> void:
+	var pack_index: int = _item_at(_pack_list, point)
+	if pack_index >= 0 and pack_index < _pack_ids.size():
+		_start_manual_ghost(MANUAL_PACK, _pack_ids[pack_index], point)
+		return
+	var zone_index: int = _item_at(_zone_list, point)
+	if zone_index < 0 or zone_index >= _zone_paths.size() or _zone_item_ids[zone_index] == &"":
+		return
+	_start_manual_ghost(_zone_paths[zone_index], _zone_item_ids[zone_index], point)
+
+
+func _start_manual_ghost(source: StringName, item_id: StringName, point: Vector2) -> void:
+	_clear_manual_drag()
+	_manual_source = source
+	_manual_item = item_id
+	var item: ItemResource = ItemCatalog.get_item(item_id)
+	_manual_ghost = _label(tr(item.display_name) if item != null else String(item_id))
+	_manual_ghost.mouse_filter = Control.MOUSE_FILTER_IGNORE
+	_manual_ghost.add_theme_color_override(&"font_color", Color(1.0, 0.85, 0.5))
+	_manual_ghost.position = point + Vector2(12.0, -8.0)
+	add_child(_manual_ghost)
+
+
+func _finish_manual_drag(point: Vector2) -> void:
+	if _manual_source == MANUAL_PACK:
+		var zone_index: int = _item_at(_zone_list, point)
+		if zone_index >= 0 and zone_index < _zone_paths.size():
+			var refusal: EquipmentComponent.Refusal = hub.move_to_zone(_manual_item, _zone_paths[zone_index])
+			_status.text = "" if refusal == EquipmentComponent.Refusal.NONE else tr(
+				REFUSAL_KEYS.get(refusal, "HUB_REFUSED_NO_ZONE"))
+	elif _pack_list.get_global_rect().has_point(point):
+		var reason: StringName = hub.move_to_pack(_manual_source)
+		_status.text = tr("HUB_REFUSED_OVERWEIGHT") if reason == PlayerHubComponent.OVERWEIGHT else ""
+	_clear_manual_drag()
+
+
+func _clear_manual_drag() -> void:
+	if is_instance_valid(_manual_ghost):
+		_manual_ghost.queue_free()
+	_manual_ghost = null
+	_manual_source = &""
+	_manual_item = &""
+
+
+func _item_at(list: ItemList, point: Vector2) -> int:
+	var rect: Rect2 = list.get_global_rect()
+	if not rect.has_point(point):
+		return -1
+	return list.get_item_at_position(point - rect.position, true)
 
 
 func _target_at(point: Vector2) -> StringName:
@@ -162,11 +232,13 @@ func _refresh() -> void:
 		_pack_ids.append(item["id"])
 	_zone_list.clear()
 	_zone_paths.clear()
+	_zone_item_ids.clear()
 	for zone: Dictionary in hub.get_quick_access_zones():
 		var held: ItemResource = ItemCatalog.get_item(zone["item_id"]) if zone["item_id"] != &"" else null
 		var content: String = tr(held.display_name) if held != null else tr("HUB_EMPTY")
 		_zone_list.add_item("%s (%s): %s" % [tr(zone["name"]), tr(SIZE_KEYS[zone["max_size"]]), content])
 		_zone_paths.append(zone["path"])
+		_zone_item_ids.append(zone["item_id"])
 	_weight.text = tr("HUB_WEIGHT") % [hub.get_weight(), hub.get_max_weight()]
 
 

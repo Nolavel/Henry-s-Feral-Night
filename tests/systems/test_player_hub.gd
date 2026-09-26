@@ -73,7 +73,12 @@ func _check_quick_stow() -> void:
 	_check(_saw_top_only, "the top flap alone did not open for the stow")
 	_check(not is_instance_valid(_stow_visual), "the stowed mesh was not freed after landing")
 	_check(_stow_hub.pack.get_openness() == PackRig.Openness.CLOSED, "the pack stayed open after the stow")
-	_check(_stow_inventory.get_count(&"road_flare") == 1, "the stow duplicated or lost the flare")
+	_check(_stow_inventory.get_count(&"road_flare") == 0, "preferred light stayed in the pack after tap-F stow")
+	var pocketed: int = 0
+	for zone: Dictionary in _stow_hub.get_quick_access_zones():
+		if zone["item_id"] == &"road_flare":
+			pocketed += 1
+	_check(pocketed == 1, "tap-F did not auto-sort exactly one preferred light into Quick Access")
 
 
 func _test_pack_rig() -> void:
@@ -186,4 +191,9 @@ func _check_hold() -> void:
 	_check(pocket != &"", "no pocket to drop into")
 	if pocket != &"":
 		_check(_zone_item(_stow_hub, pocket) == &"road_flare", "the dropped flare is not in the chosen pocket")
-		_check(_stow_inventory.get_count(&"road_flare") == 1, "placement duplicated or lost a flare")
+		_check(_stow_inventory.get_count(&"road_flare") == 0, "manual placement left the held flare in the pack")
+		var carried_flares: int = 0
+		for zone: Dictionary in _stow_hub.get_quick_access_zones():
+			if zone["item_id"] == &"road_flare":
+				carried_flares += 1
+		_check(carried_flares == 2, "hold-F placement did not preserve the earlier auto-pocketed flare")

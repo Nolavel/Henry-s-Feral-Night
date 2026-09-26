@@ -28,6 +28,9 @@ extends Resource
 @export var size_class: ItemTraits.SizeClass = ItemTraits.SizeClass.POCKET
 ## Wearable facet. Null means this item cannot be worn.
 @export var garment: GarmentData = null
+## Tap-F pickup may move this item from the pack into the first fitting physical
+## Quick Access pocket after the stow animation. Hold-F manual placement wins.
+@export var prefer_quick_access: bool = false
 
 @export_group("Visuals")
 ## Mesh on Henry shown while this non-garment rides in a body slot, e.g. Kenny.

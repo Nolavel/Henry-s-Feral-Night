@@ -56,12 +56,13 @@ func is_holding() -> bool:
 	return is_instance_valid(_flare)
 
 
-## Spends one flare from the inventory and puts it, burning, in Henry's hand.
+## Spends one flare from the pack or a Quick Access pocket and puts it,
+## burning, in Henry's hand.
 func light() -> bool:
 	var animation: HenryUALAnimation = _animation()
 	if is_holding() or animation == null or inventory == null:
 		return false
-	if not inventory.try_remove(flare_item_id):
+	if not _take_flare():
 		return false
 	_flare = FLARE_SCENE.instantiate() as HeldFlare
 	animation.hold_in_hand(_flare)
@@ -102,6 +103,20 @@ func _on_spent(flare: HeldFlare) -> void:
 	get_tree().create_timer(SPENT_LINGER_S).timeout.connect(func() -> void:
 		if is_instance_valid(flare):
 			flare.queue_free())
+
+
+func _take_flare() -> bool:
+	if inventory.try_remove(flare_item_id):
+		return true
+	var player: Node = get_parent()
+	var equipment := player.get_node_or_null(^"EquipmentComponent") as EquipmentComponent if player != null else null
+	if equipment == null:
+		return false
+	for pocket: Dictionary in equipment.get_available_pockets():
+		if pocket["item_id"] != flare_item_id:
+			continue
+		return equipment.take_from_pocket(pocket["body_slot"], pocket["pocket"]) == flare_item_id
+	return false
 
 
 func _animation() -> HenryUALAnimation:

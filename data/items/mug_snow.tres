@@ -4,9 +4,9 @@
 
 [resource]
 script = ExtResource("item")
-id = &"road_flare"
-display_name = "Road flare"
-weight = 0.2
-max_stack = 6
+id = &"mug_snow"
+display_name = "Mug of snow"
+weight = 0.45
+max_stack = 1
 size_class = 0
-prefer_quick_access = true
+warms_into = &"warm_water_mug"

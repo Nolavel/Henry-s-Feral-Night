@@ -11,6 +11,9 @@
 [ext_resource type="Resource" path="res://data/items/snow_handful.tres" id="snow_handful"]
 [ext_resource type="Resource" path="res://data/items/tinned_stew_hot.tres" id="tinned_stew_hot"]
 [ext_resource type="Resource" path="res://data/items/warm_water.tres" id="warm_water"]
+[ext_resource type="Resource" path="res://data/items/mug.tres" id="mug"]
+[ext_resource type="Resource" path="res://data/items/mug_snow.tres" id="mug_snow"]
+[ext_resource type="Resource" path="res://data/items/warm_water_mug.tres" id="warm_water_mug"]
 [ext_resource type="Resource" path="res://data/items/boards.tres" id="boards"]
 [ext_resource type="Resource" path="res://data/items/firewood.tres" id="firewood"]
 [ext_resource type="Resource" path="res://data/items/tinder.tres" id="tinder"]
@@ -20,4 +23,4 @@
 
 [resource]
 script = ExtResource("catalog")
-items = [ExtResource("worn_coat"), ExtResource("knit_hat"), ExtResource("work_trousers"), ExtResource("worn_boots"), ExtResource("tinned_stew"), ExtResource("empty_tin"), ExtResource("snow_handful"), ExtResource("boards"), ExtResource("firewood"), ExtResource("tinder"), ExtResource("backpack"), ExtResource("kenny"), ExtResource("road_flare"), ExtResource("bedroll"), ExtResource("tinned_stew_hot"), ExtResource("warm_water")]
+items = [ExtResource("worn_coat"), ExtResource("knit_hat"), ExtResource("work_trousers"), ExtResource("worn_boots"), ExtResource("tinned_stew"), ExtResource("empty_tin"), ExtResource("snow_handful"), ExtResource("boards"), ExtResource("firewood"), ExtResource("tinder"), ExtResource("backpack"), ExtResource("kenny"), ExtResource("road_flare"), ExtResource("bedroll"), ExtResource("tinned_stew_hot"), ExtResource("warm_water"), ExtResource("mug"), ExtResource("mug_snow"), ExtResource("warm_water_mug")]

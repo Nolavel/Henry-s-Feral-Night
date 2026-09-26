@@ -13,6 +13,7 @@
 [ext_resource type="Script" path="res://scripts/actors/player/henry/components/player_hub_component.gd" id="99_hub"]
 [ext_resource type="Script" path="res://scripts/actors/player/henry/components/quick_access_component.gd" id="99_quick"]
 [ext_resource type="Script" path="res://scripts/actors/player/henry/components/rest_component.gd" id="99_rest"]
+[ext_resource type="Script" path="res://scripts/actors/player/henry/components/snow_scoop_component.gd" id="99_snow"]
 [ext_resource type="Script" path="res://scripts/actors/player/henry/components/drying_steam_component.gd" id="99_steam"]
 [ext_resource type="Script" path="res://scripts/actors/player/henry/components/carry_component.gd" id="96_carry"]
 [ext_resource type="Script" path="res://scripts/actors/player/henry/components/held_light_component.gd" id="97_light"]
@@ -66,6 +67,7 @@ starter_slot_items = Dictionary[StringName, StringName]({
 [node name="InventoryComponent" type="Node" parent="." node_paths=PackedStringArray("equipment")]
 script = ExtResource("91_inv")
 equipment = NodePath("../EquipmentComponent")
+starter_item_ids = Array[StringName]([&"tinned_stew", &"mug"])
 
 [node name="PlayerHubComponent" type="Node" parent="." node_paths=PackedStringArray("inventory", "equipment")]
 script = ExtResource("99_hub")
@@ -78,6 +80,10 @@ hub = NodePath("../PlayerHubComponent")
 
 [node name="RestComponent" type="Node" parent="."]
 script = ExtResource("99_rest")
+
+[node name="SnowScoopComponent" type="Node" parent="." node_paths=PackedStringArray("inventory")]
+script = ExtResource("99_snow")
+inventory = NodePath("../InventoryComponent")
 
 [node name="DryingSteamComponent" type="Node3D" parent="."]
 script = ExtResource("99_steam")

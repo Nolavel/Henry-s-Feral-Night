@@ -29,8 +29,18 @@ signal weight_changed(total_kg: float, maximum_kg: float)
 @export var max_carry_weight: float = 30.0
 ## Its carried non-garments (Kenny) count toward the same limit.
 @export var equipment: EquipmentComponent
+## Items Henry starts a new game carrying loose in the pack. Save loading clears
+## and replaces these entries, so they are only a new-session seed.
+@export var starter_item_ids: Array[StringName] = []
 
 var _entries: Array[Dictionary] = []
+
+
+func _ready() -> void:
+	for item_id: StringName in starter_item_ids:
+		var item: ItemResource = ItemCatalog.get_item(item_id)
+		if item != null:
+			try_add(item)
 
 
 ## Adds one item, stacking where the item allows it. Returns false and emits
