@@ -133,8 +133,11 @@ carries `body_heat_cost_c`, because eating snow for water should cost heat.
   the whole key/action block, never two mirrored fragments. It keeps the old
   warm #FFD200 cue, stays denser across the centre under the F key and action
   description, then fades toward semi-transparent ends near both brackets.
-  The archived `BG_indicatorSURV.gdshader` is left untouched and is no longer
-  repurposed for this prompt.
+  The strip is intentionally tighter than the first pass and **stretches out
+  from screen centre while the Enso morphs**. The key then fades in first,
+  action copy follows, and optional detail follows last. The archived
+  `BG_indicatorSURV.gdshader` is left untouched and is no longer repurposed
+  for this prompt.
 - The generic `INTERACT` eyebrow is intentionally not rendered; the key,
   concrete action and optional target detail carry the interaction by themselves.
 - The keycap keeps its solid key treatment but the earlier raster/grid substrate

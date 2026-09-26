@@ -38,6 +38,22 @@ func _initialize() -> void:
 			"interaction gradient is not denser in the centre")
 		_check(cursor.interaction_gradient_fade_fraction < 0.5,
 			"interaction gradient has no central plateau under key/action text")
+		_check(cursor.interaction_gradient_width < 468.0,
+			"interaction gradient was not shortened from the previous pass")
+		_check(cursor.interaction_gradient_width > cursor.prompt_content_size.x,
+			"interaction gradient no longer covers the key/action content")
+		_check(cursor.interaction_gradient_height < 46.0,
+			"interaction gradient was not reduced in height")
+		var prompt_face := cursor.get_node_or_null(^"InteractionPrompt") as ActionPromptFace
+		_check(prompt_face != null, "interaction prompt face is missing")
+		if prompt_face != null:
+			prompt_face.set_reveal_amounts(0.25, 0.5, 0.75)
+			_check(is_equal_approx(prompt_face.get_key_reveal(), 0.25),
+				"key fade amount is not independent")
+			_check(is_equal_approx(prompt_face.get_text_reveal(), 0.5),
+				"action text fade amount is not independent")
+			_check(is_equal_approx(prompt_face.get_detail_reveal(), 0.75),
+				"detail fade amount is not independent")
 		_check(cursor.interaction_morph_duration > 0.0,
 			"interaction morph has no duration")
 		# Stamina/jump exports remain present: this change must not replace those systems.

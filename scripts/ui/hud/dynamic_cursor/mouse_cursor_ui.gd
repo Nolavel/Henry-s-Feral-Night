@@ -37,8 +37,10 @@ extends Control
 @export_range(0.0, 1.0, 0.01) var interaction_gradient_center_alpha: float = 0.44
 @export_range(0.0, 1.0, 0.01) var interaction_gradient_edge_alpha: float = 0.10
 @export_range(0.05, 0.45, 0.01) var interaction_gradient_fade_fraction: float = 0.22
-@export var interaction_gradient_height: float = 46.0
-@export var interaction_gradient_bracket_overlap: float = 8.0
+## Slightly tighter than the first pass: enough room for F + action/detail,
+## but no longer reaching as far toward the brackets.
+@export var interaction_gradient_width: float = 420.0
+@export var interaction_gradient_height: float = 38.0
 @export var prompt_content_size: Vector2 = Vector2(360.0, 150.0)
 
 @export_group("Movement and stamina")
@@ -264,7 +266,7 @@ func _build_interaction_prompt() -> void:
 	_prompt_face.name = "InteractionPrompt"
 	_prompt_face.mouse_filter = Control.MOUSE_FILTER_IGNORE
 	_prompt_face.size = prompt_content_size
-	_prompt_face.modulate.a = 0.0
+	_prompt_face.modulate.a = 1.0
 	_prompt_face.visible = false
 	add_child(_prompt_face)
 
@@ -323,9 +325,17 @@ func _update_prompt_visuals() -> void:
 	_prompt_face.size = prompt_content_size
 
 	var t := clampf(_interaction_morph_progress, 0.0, 1.0)
-	var content_reveal := _smoothstep01((t - 0.66) / 0.25)
-	_prompt_face.visible = content_reveal > 0.001
-	_prompt_face.modulate.a = content_reveal
+
+	# UI juice is deliberately staged instead of fading the whole prompt at once:
+	# 1) the yellow field stretches out from screen centre while the Enso splits,
+	# 2) the physical key fades in,
+	# 3) action copy follows,
+	# 4) target detail lands last.
+	var key_reveal := _smoothstep01((t - 0.52) / 0.18)
+	var text_reveal := _smoothstep01((t - 0.66) / 0.18)
+	var detail_reveal := _smoothstep01((t - 0.76) / 0.16)
+	_prompt_face.visible = maxf(key_reveal, maxf(text_reveal, detail_reveal)) > 0.001
+	_prompt_face.set_reveal_amounts(key_reveal, text_reveal, detail_reveal)
 	_update_interaction_edge_fades(center, t)
 
 
@@ -333,16 +343,17 @@ func _update_interaction_edge_fades(center: Vector2, t: float) -> void:
 	if _interaction_gradient == null:
 		return
 
-	var reveal := _smoothstep01((t - 0.50) / 0.38)
-	var half_width := maxf(
-		interaction_bracket_offset - interaction_bracket_radius + interaction_gradient_bracket_overlap,
-		prompt_content_size.x * 0.5
-	)
-	var size := Vector2(half_width * 2.0, interaction_gradient_height)
+	# Stretch from the exact centre instead of popping in at final width.
+	# Its expansion overlaps the bracket morph so both motions read as one event.
+	var stretch := _smoothstep01((t - 0.34) / 0.44)
+	var reveal := _smoothstep01((t - 0.30) / 0.24)
+	var width := maxf(8.0, interaction_gradient_width * stretch)
+	var height_scale := lerpf(0.72, 1.0, stretch)
+	var size := Vector2(width, interaction_gradient_height * height_scale)
 	_interaction_gradient.position = center - size * 0.5
 	_interaction_gradient.size = size
 	_interaction_gradient.modulate.a = reveal
-	_interaction_gradient.visible = reveal > 0.001
+	_interaction_gradient.visible = stretch > 0.001 and reveal > 0.001
 
 
 func _on_interaction_performed(target: InteractiveArea) -> void:

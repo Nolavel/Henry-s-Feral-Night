@@ -15,6 +15,9 @@ var _key: String = "F"
 var _action: String = "Interact"
 var _detail: String = ""
 var _confirm: float = 0.0
+var _key_reveal: float = 0.0
+var _text_reveal: float = 0.0
+var _detail_reveal: float = 0.0
 
 var _font: Font
 var _key_font: Font
@@ -48,6 +51,34 @@ func get_confirm_amount() -> float:
 	return _confirm
 
 
+func set_reveal_amounts(key_amount: float, text_amount: float, detail_amount: float) -> void:
+	var next_key := clampf(key_amount, 0.0, 1.0)
+	var next_text := clampf(text_amount, 0.0, 1.0)
+	var next_detail := clampf(detail_amount, 0.0, 1.0)
+	if (
+		is_equal_approx(next_key, _key_reveal)
+		and is_equal_approx(next_text, _text_reveal)
+		and is_equal_approx(next_detail, _detail_reveal)
+	):
+		return
+	_key_reveal = next_key
+	_text_reveal = next_text
+	_detail_reveal = next_detail
+	queue_redraw()
+
+
+func get_key_reveal() -> float:
+	return _key_reveal
+
+
+func get_text_reveal() -> float:
+	return _text_reveal
+
+
+func get_detail_reveal() -> float:
+	return _detail_reveal
+
+
 func _build_style() -> void:
 	_key_style = StyleBoxFlat.new()
 	_key_style.bg_color = KEY_BASE
@@ -68,18 +99,23 @@ func _draw() -> void:
 	if _font == null or _key_font == null:
 		return
 
-	_key_style.bg_color = KEY_BASE.lerp(KEY_CONFIRM, _confirm)
-	_key_style.border_color = KEY_BORDER_BASE.lerp(KEY_BORDER_CONFIRM, _confirm)
+	var key_bg := KEY_BASE.lerp(KEY_CONFIRM, _confirm)
+	key_bg.a *= _key_reveal
+	var key_border := KEY_BORDER_BASE.lerp(KEY_BORDER_CONFIRM, _confirm)
+	key_border.a *= _key_reveal
+	_key_style.bg_color = key_bg
+	_key_style.border_color = key_border
 
 	var key_rect := KEY_RECT
 	# The only hard-edged geometry is the physical key itself. No enclosing card.
+	var key_shadow := Color(0.16, 0.10, 0.055, 0.78 * _key_reveal)
 	draw_rect(Rect2(key_rect.position + Vector2(0.0, 4.0), key_rect.size),
-		Color(0.16, 0.10, 0.055, 0.78), true)
+		key_shadow, true)
 	draw_style_box(_key_style, key_rect)
 	draw_line(
 		key_rect.position + Vector2(8.0, 7.0),
 		key_rect.position + Vector2(key_rect.size.x - 8.0, 7.0),
-		Color(1.0, 0.96, 0.86, lerpf(0.65, 0.92, _confirm)),
+		Color(1.0, 0.96, 0.86, lerpf(0.65, 0.92, _confirm) * _key_reveal),
 		2.0
 	)
 
@@ -93,18 +129,18 @@ func _draw() -> void:
 	)
 	draw_string(
 		_key_font, key_pos, _key, HORIZONTAL_ALIGNMENT_LEFT, -1, key_size,
-		Color(0.08, 0.055, 0.035, 1.0)
+		Color(0.08, 0.055, 0.035, _key_reveal)
 	)
 
 	var text_x := 124.0
 	draw_string(
 		_font, Vector2(text_x, 80.0), _action,
 		HORIZONTAL_ALIGNMENT_LEFT, 202.0, 25,
-		Color(0.98, 0.96, 0.91, 1.0)
+		Color(0.98, 0.96, 0.91, _text_reveal)
 	)
 	if not _detail.is_empty():
 		draw_string(
 			_font, Vector2(text_x, 105.0), _detail,
 			HORIZONTAL_ALIGNMENT_LEFT, 202.0, 14,
-			Color(0.82, 0.82, 0.80, 1.0)
+			Color(0.82, 0.82, 0.80, _detail_reveal)
 		)
