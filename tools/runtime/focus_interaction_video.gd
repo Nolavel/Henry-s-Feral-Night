@@ -39,6 +39,7 @@ func _stage() -> void:
 	_player.global_position.y = _door.global_position.y - 2.0
 	_player.velocity = Vector3.ZERO
 	_camera.process_mode = Node.PROCESS_MODE_DISABLED
+	_camera.current = true
 	_camera.global_position = _player.global_position + outward * 3.0 + right * 1.0 + Vector3.UP * 2.05
 	_door_point = _door.global_position + Vector3.UP * 0.10
 	_miss_point = _door_point + right * 1.65
@@ -67,8 +68,28 @@ func _process(delta: float) -> void:
 		var t3 := clampf((_elapsed - 4.65) / 0.35, 0.0, 1.0)
 		target = _miss_point.lerp(_door_point, t3)
 	_camera.look_at(target, Vector3.UP)
+	if _interact != null:
+		# Capture determinism only: use the production selector immediately after
+		# moving the staged camera instead of waiting for the next physics tick.
+		_interact.detect_target()
+
+	if _elapsed >= 0.8 and _elapsed < 0.84 and _interact != null:
+		if _interact.current_target != null:
+			push_error("focus video: proximity alone selected a target")
+			get_tree().quit(1)
+			return
+
+	if _elapsed >= 2.3 and _elapsed < 2.34 and _interact != null:
+		if _interact.current_target != _door:
+			push_error("focus video: centre crosshair did not select the shelter door")
+			get_tree().quit(1)
+			return
 
 	if not _pressed and _elapsed >= 3.15 and _interact != null:
+		if _interact.current_target != _door:
+			push_error("focus video: door focus was lost before F")
+			get_tree().quit(1)
+			return
 		_pressed = true
 		_interact.try_interact()
 
