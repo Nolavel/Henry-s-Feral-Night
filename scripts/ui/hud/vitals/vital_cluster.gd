@@ -9,6 +9,11 @@ const THIRST_TEXTURE: Texture2D = preload("res://assets/textures/ui/game/biomoni
 const HUNGER_TEXTURE: Texture2D = preload("res://assets/textures/ui/game/biomonitor/hunger_icon.png")
 const SLEEP_TEXTURE: Texture2D = preload("res://assets/textures/ui/game/biomonitor/sleep.png")
 const WARMTH_TEXTURE: Texture2D = preload("res://assets/textures/ui/game/biomonitor/temperature_icon.png")
+## Kept while the old pentagon helper methods remain below; they are no longer
+## called by _draw(), but retaining these constants keeps the script parse-safe.
+const ICON_ATLAS: Texture2D = preload("res://assets/textures/ui/game/biomonitor/hfn_vital_morphs.svg")
+const MORPH_FRAME_COUNT: int = 8
+const MORPH_CELL_PX: float = 96.0
 
 const ROW_HUNGER: int = 0
 const ROW_THIRST: int = 1
