@@ -21,7 +21,7 @@ bunker exit
   -> collect scarce boards, tinder, fuel and food
   -> weather worsens and changes the return decision
   -> reach the suburb shelter
-  -> choose which breaches to board (3 boards / 5 openings)
+  -> choose which breaches to board (15 boards / 30 nails / 5 openings; placement quality matters)
   -> light and feed the stove
   -> recover / dry
   -> sleep -> save

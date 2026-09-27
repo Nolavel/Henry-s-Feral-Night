@@ -61,12 +61,20 @@ func _run() -> void:
 		% [breach.get_exposure_against(wind), breach.severity]
 	)
 
-	## Board it up with a real item through the real prompt.
-	inventory.try_add(ItemCatalog.get_item(&"boards"))
+	## Lay a real three-board armful beside the window. This no longer performs
+	## an instant binary repair; hammer+nails place each board later.
+	for _i: int in range(3):
+		inventory.try_add(ItemCatalog.get_item(&"boards"))
 	board_up._on_interaction_performed()
-	_check(breach.is_boarded(), "the prompt did not board the window")
-	_check(breach.boarded_visual.visible, "the boards did not appear")
-	_check(not inventory.has_item(&"boards"), "boarding did not spend the boards")
+	_check(breach.get_staged_boards() == 3, "the armful was not staged beside the window")
+	_check(not inventory.has_item(&"boards"), "staging left boards in Henry's hands")
+	_check(not breach.is_boarded(), "laying boards beside the window magically sealed it")
+	_check(not breach.boarded_visual.visible, "legacy three-plank visual appeared for staged boards")
+	breach.place_board(-0.30)
+	breach.place_board(0.0)
+	breach.place_board(0.30)
+	_check(breach.get_coverage_fraction() > 0.5 and not breach.is_boarded(),
+		"three real placements did not leave the intended residual gap")
 
 	## Light it with real items through the real prompt.
 	inventory.try_add(ItemCatalog.get_item(&"tinder"))

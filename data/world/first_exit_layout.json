@@ -304,7 +304,7 @@
  "roads": [
   {
    "id": "main_street",
-   "width": 6.0,
+   "width": 6,
    "points": [
     [
      1390,
@@ -347,7 +347,7 @@
   },
   {
    "id": "jetty_lane",
-   "width": 4.0,
+   "width": 4,
    "points": [
     [
      1120,
@@ -415,7 +415,7 @@
    "house": [
     7,
     9,
-    3.0
+    3
    ],
    "retrofits": [
     "boarded",
@@ -439,7 +439,7 @@
    "house": [
     8,
     9,
-    3.0
+    3
    ],
    "retrofits": [
     "vestibule",
@@ -462,7 +462,7 @@
    "house": [
     7,
     8,
-    3.0
+    3
    ],
    "retrofits": [],
    "state": "roofless",
@@ -482,7 +482,7 @@
    "house": [
     8,
     10,
-    3.0
+    3
    ],
    "retrofits": [
     "boarded"
@@ -504,7 +504,7 @@
    "house": [
     7,
     9,
-    3.0
+    3
    ],
    "retrofits": [
     "snow_fence"
@@ -526,7 +526,7 @@
    "house": [
     8,
     9,
-    3.0
+    3
    ],
    "retrofits": [
     "vestibule",
@@ -550,7 +550,7 @@
    "house": [
     7,
     8,
-    3.0
+    3
    ],
    "retrofits": [
     "boarded"
@@ -572,7 +572,7 @@
    "house": [
     8,
     10,
-    3.0
+    3
    ],
    "retrofits": [],
    "state": "collapsed",
@@ -592,7 +592,7 @@
    "house": [
     7,
     9,
-    3.0
+    3
    ],
    "retrofits": [
     "insulation",
@@ -615,7 +615,7 @@
    "house": [
     8,
     9,
-    3.0
+    3
    ],
    "retrofits": [],
    "state": "kept",
@@ -676,7 +676,7 @@
    "size": [
     0.7,
     0.7,
-    1.0
+    1
    ],
    "yaw_add": 0,
    "offset": 0.8
@@ -690,7 +690,7 @@
    "size": [
     0.7,
     0.7,
-    1.0
+    1
    ],
    "yaw_add": 0,
    "offset": 1.6
@@ -704,7 +704,7 @@
    "size": [
     0.7,
     0.7,
-    1.0
+    1
    ],
    "yaw_add": 0,
    "offset": 0.6,
@@ -749,7 +749,7 @@
    "s": 515,
    "side": "south",
    "size": [
-    2.0,
+    2,
     1.2,
     1.3
    ],
@@ -791,7 +791,7 @@
    "z": -756,
    "yaw_deg": 30,
    "size": [
-    2.0,
+    2,
     1.2,
     1.3
    ],
@@ -806,7 +806,7 @@
    "size": [
     0.7,
     0.7,
-    1.0
+    1
    ]
   },
   {
@@ -828,7 +828,7 @@
   {
    "id": "boards_fort_1",
    "item_id": "boards",
-   "count": 1,
+   "count": 3,
    "anchor": "fort_store",
    "local": [
     -1.2,
@@ -876,12 +876,12 @@
   {
    "id": "boards_next_door",
    "item_id": "boards",
-   "count": 1,
+   "count": 3,
    "anchor": "lot_s2",
    "local": [
-    2.0,
+    2,
     0,
-    5.0
+    5
    ],
    "route": "suburb"
   },
@@ -905,7 +905,7 @@
    "local": [
     -1.5,
     0,
-    -2.0
+    -2
    ],
    "route": "suburb"
   },
@@ -917,7 +917,7 @@
    "local": [
     -2.2,
     0,
-    -3.0
+    -3
    ],
    "route": "shelter"
   },
@@ -929,7 +929,7 @@
    "local": [
     3.5,
     0,
-    -6.0
+    -6
    ],
    "route": "shelter",
    "note": "Yard pile by outbuilding; densifies the light-stove beat."
@@ -940,7 +940,7 @@
    "count": 1,
    "anchor": "shelter_house",
    "local": [
-    -4.0,
+    -4,
     0,
     4.5
    ],
@@ -950,7 +950,7 @@
   {
    "id": "boards_shelter_yard",
    "item_id": "boards",
-   "count": 1,
+   "count": 3,
    "anchor": "shelter_house",
    "local": [
     2.8,
@@ -963,12 +963,12 @@
   {
    "id": "boards_shelter_outbuilding",
    "item_id": "boards",
-   "count": 1,
+   "count": 3,
    "anchor": "shelter_house",
    "local": [
     -3.2,
     0,
-    -5.0
+    -5
    ],
    "route": "shelter",
    "note": "Second board stack near the tank/outbuilding."
@@ -990,7 +990,7 @@
    "item_id": "bedroll",
    "count": 1,
    "x": 1418.5,
-   "z": -947.0,
+   "z": -947,
    "route": "start"
   },
   {
@@ -1000,7 +1000,46 @@
    "x": 1419.3,
    "z": -946.8,
    "route": "start"
+  },
+  {
+   "id": "boards_shelter_inside",
+   "item_id": "boards",
+   "count": 3,
+   "anchor": "shelter_house/House",
+   "local": [
+    2.6,
+    0.55,
+    1.2
+   ],
+   "keep_height": true,
+   "route": "shelter"
+  },
+  {
+   "id": "hammer_shelter",
+   "item_id": "hammer",
+   "count": 1,
+   "anchor": "shelter_house/House",
+   "local": [
+    1.7,
+    0.55,
+    1.2
+   ],
+   "keep_height": true,
+   "route": "shelter"
+  },
+  {
+   "id": "nails_shelter",
+   "item_id": "nails",
+   "count": 30,
+   "anchor": "shelter_house/House",
+   "local": [
+    2.1,
+    0.55,
+    1.2
+   ],
+   "keep_height": true,
+   "route": "shelter"
   }
  ],
- "_scarcity": "Shelter has 5 openings; route + yard hold 4 boards. Two are concentrated at the shelter, but one opening must still remain unsealed. Tinder only fort store or collapsed n3: no tinder, no fire."
+ "_scarcity": "Shelter has 5 openings. There are 15 physical boards and 30 nails total (2 nails per board): enough for about three careful window seals, but overlap/wasted placement leaves real gaps. Hammer and the 30-nail box are inside the shelter."
 }

@@ -97,8 +97,9 @@ func _check_pickups() -> void:
 		_check(pickup.get_signal_connection_list(&"body_entered").size() == 1,
 			"pickup %s has %d body_entered connections, expected 1" % [pickup.name, pickup.get_signal_connection_list(&"body_entered").size()])
 		totals[pickup.item_id] = int(totals.get(pickup.item_id, 0)) + pickup.count
-	_check(int(totals.get(&"boards", 0)) < 5, "enough boards to seal every opening (%d)" % int(totals.get(&"boards", 0)))
-	_check(int(totals.get(&"boards", 0)) >= 2, "too few boards to matter (%d)" % int(totals.get(&"boards", 0)))
+	_check(int(totals.get(&"boards", 0)) == 15, "First Exit carries %d physical boards, expected 15" % int(totals.get(&"boards", 0)))
+	_check(int(totals.get(&"hammer", 0)) == 1, "the shelter needs exactly one hammer")
+	_check(int(totals.get(&"nails", 0)) == 30, "the shelter nail box should contain 30 nails")
 	_check(int(totals.get(&"tinder", 0)) >= 1, "no tinder anywhere: the stove can never be lit")
 	_check(int(totals.get(&"firewood", 0)) >= 2, "not enough firewood for a night")
 	_check(int(totals.get(&"road_flare", 0)) == 1, "the bunker start needs exactly one road flare")
