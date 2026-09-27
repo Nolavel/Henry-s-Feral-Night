@@ -1,0 +1,114 @@
+keys,en,ru
+MENU_TITLE,Henry's Feral Night,Henry's Feral Night
+MENU_NEW_GAME,New game,Новая игра
+MENU_CONTINUE,Continue from last sleep,Продолжить с последнего сна
+MENU_QUIT,Quit,Выход
+MENU_NO_SAVE,No sleep saved yet,Сохранённого сна пока нет
+PAUSE_TITLE,Paused,Пауза
+PAUSE_RESUME,Resume,Продолжить
+PAUSE_TO_TITLE,Quit to title,Выйти в меню
+PAUSE_UNSAVED_HINT,Progress saves only when you sleep,Прогресс сохраняется только во сне
+SLEEP_REFUSED_NOT_SHELTERED,You need shelter to sleep,Для сна нужно укрытие
+SLEEP_REFUSED_TOO_COLD,Too cold to sleep here,Здесь слишком холодно для сна
+SLEEP_REFUSED_TOO_ALERT,You are not tired enough,Вы недостаточно устали
+SLEEP_REFUSED_ALREADY_SLEEPING,Already asleep,Уже спите
+CONSUME_REFUSED_UNKNOWN_ITEM,Unknown item,Неизвестный предмет
+CONSUME_REFUSED_NOT_CONSUMABLE,You cannot eat that,Это нельзя съесть
+CONSUME_REFUSED_NOT_CARRIED,You are not carrying that,У вас этого нет
+CONSUME_REFUSED_NO_BIO_MONITOR,Cannot eat right now,Сейчас нельзя поесть
+FEED_REFUSED_NO_SOURCE,There is nothing to burn it in,Здесь негде развести огонь
+FEED_REFUSED_ALREADY_FULL,The fire is already full,Огонь уже полный
+FEED_REFUSED_NO_FUEL,You need firewood,Нужны дрова
+FEED_REFUSED_NO_TINDER,You need tinder to start it,Для розжига нужна растопка
+FEED_REFUSED_NO_INVENTORY,Cannot reach your pack,Нет доступа к рюкзаку
+BREACH_GENERIC,Board up the gap,Заколотить проём
+WEATHER_CALM,Calm,Штиль
+WEATHER_WINDY,Windy,Ветер
+WEATHER_SNOWFALL,Snowfall,Снегопад
+WEATHER_BLIZZARD,Blizzard,Буря
+FEED_PROMPT,Add a log,Подкинуть полено
+INTERACT_PUSH,Push,Толкнуть
+INTERACT_PICKUP,Pick up,Подобрать
+INTERACT_PRESS,Press,Нажать
+INTERACT_OPEN,Open,Открыть
+INTERACT_USE,Use,Использовать
+HOUSE_DOOR_OPEN,Open door,Открыть дверь
+HOUSE_DOOR_CLOSE,Close door,Закрыть дверь
+BREACH_REFUSED_NO_BOARDS,Lay some boards beside this opening first,Сначала положите доски у этого проёма
+BREACH_REFUSED_NO_HAMMER,Pick up the hammer from the tool bench; F here draws it,Возьмите молоток со стола · здесь F достанет его
+BREACH_REFUSED_NO_NAILS,You need two nails for one board,На одну доску нужны два гвоздя
+BREACH_BOARDS_STAGED,Boards by the opening: %d,Досок у проёма: %d
+BREACH_BOARD_PLACE_HINT,Aim up/down · LMB nail board · Esc cancel,Цельтесь выше/ниже · ЛКМ прибить доску · Esc отмена
+BREACH_GAP_REMAINS,Gap remaining: %d%%,Осталась щель: %d%%
+BREACH_SEALED,Opening sealed,Проём закрыт
+PICKUP_REFUSED_TOO_HEAVY,Too heavy to carry,Слишком тяжело нести
+PICKUP_REFUSED_HANDS_FULL,You can carry at most three,Можно нести максимум три
+PICKUP_REFUSED_HANDS_OCCUPIED,Free your hands first,Сначала освободите руки
+CABINET_OPEN,Open the cabinet,Открыть шкаф
+CABINET_CLOSE,Close the cabinet,Закрыть шкаф
+SLEEP_PROMPT,Sleep,Спать
+SLEEP_DIALOG_KEYS,Wheel or ← →  hours      [ F ]  sleep and save      [ Esc ]  cancel,Колесо или ← →  часы      [ F ]  спать и сохранить      [ Esc ]  отмена
+BEDROLL_PACK,Roll up the bedroll,Свернуть спальник
+HUB_PACK,Backpack,Рюкзак
+HUB_QUICK_ACCESS,Quick access,Быстрый доступ
+HUB_TO_POCKET,Into pocket,В карман
+HUB_TO_PACK,Into pack,В рюкзак
+HUB_EMPTY,empty,пусто
+HUB_WEIGHT,Weight: %.1f / %.0f kg,Вес: %.1f / %.0f кг
+HUB_CLOSE_HINT,Tab or Esc — close,Tab или Esc — закрыть
+HUB_SIZE_POCKET,pocket,карманный
+HUB_SIZE_CARRIED,carried,переносной
+HUB_SIZE_BULKY,bulky,громоздкий
+HUB_REFUSED_TOO_LARGE,Too big for this pocket,Слишком большой для этого кармана
+HUB_REFUSED_OCCUPIED,That pocket is taken,Этот карман занят
+HUB_REFUSED_NO_ZONE,No free pocket fits it,Нет свободного подходящего кармана
+HUB_REFUSED_OVERWEIGHT,Too heavy for the pack,Слишком тяжело для рюкзака
+HUB_PLACE_HINT,Drag with LMB into a lit pocket; release to close,Перетащите ЛКМ в подсвеченный карман; отпустите — закрыть
+HUB_USE,Use,Использовать
+HUB_CANNOT_USE,Cannot use this here,Здесь это не использовать
+BEDROLL_PLACE_HINT,F — lay here · Esc — cancel,F — разложить · Esc — отмена
+BEDROLL_PLACE_BLOCKED,Cannot lay the bedroll here · Esc — cancel,Здесь нельзя разложить спальник · Esc — отмена
+REST_PROMPT,Sit down,Сесть
+WAIT_TITLE,WAIT BY THE FIRE,ЖДАТЬ У ОГНЯ
+REST_SEATED_HINT,F — wait · move — stand up,F — ждать · движение — встать
+WAIT_DIALOG_KEYS,Wheel or ← →  hours      [ F ]  wait      [ Esc ]  cancel,Колесо или ← →  часы      [ F ]  ждать      [ Esc ]  отмена
+TABLE_EAT,Eat,Съесть
+TABLE_DRINK,Drink,Выпить
+WAIT_ENDED_RECOVERED,Warm and dry,Согрелся и высох
+WAIT_ENDED_FIRE_OUT,The stove went out,Печь погасла
+WARM_PUT,Warm up,Разогреть
+WARM_WARMING,Warming…,Греется…
+HUB_INSPECT,Take the pack off,Снять рюкзак
+HUB_INSPECT_TITLE,Full inspection,Полная ревизия
+HUB_SECTION_MAIN,Main compartment,Главное отделение
+HUB_SECTION_LID,Lid,Клапан
+HUB_SECTION_SIDES,Side flaps,Боковые клапаны
+PACK_INSPECT,Go through the pack,Разобрать рюкзак
+LIGHT_PROMPT,Light the stove,Разжечь печь
+LIGHT_REQUIREMENTS,Requires tinder + firewood,Нужны растопка + дрова
+PROMPT_HEADER_INTERACT,Interact,Взаимодействие
+PROMPT_DETAIL_ITEM,Item,Предмет
+PROMPT_DETAIL_CONTROL,Control,Управление
+PROMPT_DETAIL_DOOR,Door,Дверь
+PROMPT_DETAIL_OBJECT,Object,Объект
+STOVE_OPEN,Open stove door,Открыть дверцу печки
+STOVE_LOAD,Put carried logs inside,Положить дрова из рук в печку
+STOVE_CLOSE,Close stove door,Закрыть дверцу печки
+STOVE_IGNITE,Light with lighter,Зажечь зажигалкой
+STOVE_NEED_LIGHTER,Pick up the lighter from the tool bench,Возьмите зажигалку со стола с инструментами
+STOVE_LIGHTER_READY,Lighter ready; wood catches in 5 seconds,Зажигалка есть · дрова разгорятся за 5 секунд
+STOVE_LOADED,Logs placed inside: %d,Положено поленьев: %d
+STOVE_FUEL_DETAIL,Stove: %d / %d logs · %.1f h,Печка: %d / %d поленьев · %.1f ч
+BREACH_STAGE_ACTION,Lay boards beside window,Сложить доски рядом с проёмом
+BREACH_TAKE_ACTION,Take one board and draw hammer,Взять доску и достать молоток
+BREACH_NAIL_ACTION,Nail board,Прибить доску
+BREACH_RECOVER_ACTION,Take remaining boards,Забрать оставшиеся доски
+BREACH_CARRIED_DETAIL,Carrying %d boards; F leaves them here,В руках %d доски · F сложить здесь
+REST_FREE_HANDS,Lay down boards or logs before sitting,Сначала положите доски или дрова
+REST_TABLE_DETAIL,Sit: pack beside seat; food on table; aim and F to eat,Сесть: рюкзак рядом · еда на столике · F на еде — есть
+SHELTER_ROOM_TEMPERATURE,Room air: %.1f °C,В комнате: %.1f °C
+Lighter,Lighter,Зажигалка
+Hammer,Hammer,Молоток
+Nails,Nails,Гвозди
+Firewood,Firewood,Дрова
+Salvaged boards,Salvaged boards,Доски

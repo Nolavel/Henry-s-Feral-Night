@@ -1,24 +1,21 @@
-[gd_resource type="ShaderMaterial" load_steps=4 format=3]
+[gd_resource type="ShaderMaterial" format=3 uid="uid://8lxt6ci70oqs"]
 
-[ext_resource type="Shader" path="res://shaders/environment/stylized_shadows.gdshader" id="1_shader"]
+[ext_resource type="Shader" uid="uid://cx85pox3k0iak" path="res://shaders/environment/stylized_shadows.gdshader" id="1_shader"]
 
 [sub_resource type="FastNoiseLite" id="FastNoiseLite_shadow"]
 noise_type = 3
 frequency = 0.045
-fractal_type = 1
 fractal_octaves = 3
 fractal_lacunarity = 2.1
-fractal_gain = 0.5
 
 [sub_resource type="NoiseTexture2D" id="NoiseTexture2D_shadow"]
 width = 256
 height = 256
-seamless = true
-normalize = true
-generate_mipmaps = true
 noise = SubResource("FastNoiseLite_shadow")
+seamless = true
 
 [resource]
+render_priority = 0
 shader = ExtResource("1_shader")
 shader_parameter/noise_texture = SubResource("NoiseTexture2D_shadow")
 shader_parameter/use_albedo_texture = false

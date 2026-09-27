@@ -1,6 +1,13 @@
 class_name ThermalManager
 extends Node3D
 
+## Scripts looked up through the world context, never by node path.
+const WEATHER_CONTROLLER_SCRIPT: GDScript = preload("res://scripts/systems/world/WeatherController.gd")
+const DAY_NIGHT_SCRIPT: GDScript = preload("res://scripts/systems/world/DayNightManager.gd")
+const EQUIPMENT_SCRIPT: GDScript = preload("res://scripts/actors/player/henry/components/equipment_component.gd")
+## Radius of the probe built when the scene supplies none.
+const PROBE_RADIUS: float = 0.4
+
 ## Simulates Henry's body temperature against the felt temperature of his
 ## surroundings. This is the survival pillar every other cold system feeds.
 
@@ -14,6 +21,9 @@ signal stage_changed(stage: Stage)
 signal freezing_death_reached
 ## Emitted when clothing wetness changes, 0.0 dry to 1.0 soaked.
 signal wetness_changed(wetness: float)
+## Emitted on the edge of entering or leaving an interior zone; the colour grade
+## and other presentation switch on it rather than guessing from position.
+signal sheltered_changed(is_sheltered: bool)
 
 ## Hypothermia stages, ordered from safe to lethal.
 enum Stage { NORMAL, CHILLED, COLD, HYPOTHERMIC, CRITICAL }
@@ -43,12 +53,20 @@ const HOURS_PER_DAY: float = 24.0
 @export var critical_below_c: float = 31.0
 
 @export_group("Insulation")
-## Degrees of protection from clothing; raised by better gear.
+## Fallback protection used only when no EquipmentComponent is wired. Once one
+## is, what Henry is actually wearing decides this instead.
 @export var clothing_insulation_c: float = 6.0
+## What Henry is wearing. When present its summed garment insulation replaces
+## the fallback above, so a coat is a survival decision rather than a costume.
+@export var equipment: EquipmentComponent
 ## Fraction of insulation lost when clothing is fully soaked.
 @export_range(0.0, 1.0) var wetness_insulation_penalty: float = 0.8
-## Wetness units lost per in-game hour while sheltered and warm.
+## Wetness units lost per in-game hour at full warmth, beside a real fire.
 @export var drying_rate_per_hour: float = 0.35
+## Felt temperature below which nothing dries at all.
+@export var drying_starts_c: float = 0.0
+## Felt temperature at which clothes dry at the full rate.
+@export var drying_full_c: float = 25.0
 
 @export_group("Wind chill")
 ## Degrees lost per metre per second of wind at full exposure.
@@ -82,7 +100,55 @@ var _exertion: float = 0.0
 var _is_dead: bool = false
 var _hours: GameHourTracker = GameHourTracker.new()
 var _zones: Array[ThermalZone] = []
+var _was_sheltered: bool = false
 var _initialized: bool = false
+var _follow_target: Node3D
+var _outdoor_air_c: float = 0.0
+
+
+## Lifecycle hook world.gd calls once the player and camera exist. Everything
+## this system needs is found here, so no scene has to wire it by hand.
+func on_world_ready(context: WorldContext) -> void:
+	_follow_target = context.player
+	if weather_controller == null:
+		weather_controller = context.get_system(WEATHER_CONTROLLER_SCRIPT) as WeatherController
+	if day_night_manager == null:
+		day_night_manager = context.find_in_scene(DAY_NIGHT_SCRIPT) as DayNightManager
+	if equipment == null:
+		equipment = context.find_in_scene(EQUIPMENT_SCRIPT) as EquipmentComponent
+	if zone_probe == null:
+		zone_probe = _build_probe()
+	_follow()
+	initialize()
+	if day_night_manager == null:
+		push_warning("ThermalManager: the world has no DayNightManager, body temperature will not tick")
+
+
+## The thermal model reads the world at Henry's feet, so it rides with him.
+func _process(_delta: float) -> void:
+	_follow()
+
+
+func _follow() -> void:
+	if _follow_target != null and _follow_target.is_inside_tree():
+		global_position = _follow_target.global_position
+
+
+## An Area3D that notices ThermalZones, built when the scene supplies none.
+## Masks every layer: a zone authored on any layer must still be felt.
+func _build_probe() -> Area3D:
+	var probe := Area3D.new()
+	probe.name = "ZoneProbe"
+	probe.monitorable = false
+	probe.collision_layer = 0
+	probe.collision_mask = 0xFFFFF
+	var shape := CollisionShape3D.new()
+	var sphere := SphereShape3D.new()
+	sphere.radius = PROBE_RADIUS
+	shape.shape = sphere
+	probe.add_child(shape)
+	add_child(probe)
+	return probe
 
 
 func _ready() -> void:
@@ -92,17 +158,36 @@ func _ready() -> void:
 ## Seeds body temperature and connects the clock and the zone probe.
 ## Public so headless tests can drive it without waiting for a frame.
 func initialize() -> void:
-	if _initialized:
+	if not _initialized:
+		_initialized = true
+		_body_temp_c = normal_body_temp_c
+	_connect_clock()
+	_connect_probe()
+
+
+## Subscribes to the clock, at most once.
+func _connect_clock() -> void:
+	if day_night_manager == null:
 		return
-	_initialized = true
-	_body_temp_c = normal_body_temp_c
-	if day_night_manager != null:
+	if not day_night_manager.time_update.is_connected(_on_time_update):
 		day_night_manager.time_update.connect(_on_time_update)
-	else:
-		push_warning("ThermalManager: no DayNightManager, body temperature will not tick")
-	if zone_probe != null:
+
+
+## Subscribes to the zone probe, at most once.
+func _connect_probe() -> void:
+	if zone_probe == null:
+		return
+	if not zone_probe.area_entered.is_connected(_on_zone_entered):
 		zone_probe.area_entered.connect(_on_zone_entered)
 		zone_probe.area_exited.connect(_on_zone_exited)
+
+
+## Dry insulation in degrees: what Henry is wearing when equipment is wired,
+## the exported fallback otherwise.
+func get_insulation_c() -> float:
+	if equipment != null:
+		return equipment.get_total_insulation_c()
+	return clothing_insulation_c
 
 
 ## Current core temperature in degrees Celsius.
@@ -116,9 +201,21 @@ func get_body_temperature_normalised() -> float:
 	return clampf((_body_temp_c - lethal_body_temp_c) / span, 0.0, 1.0)
 
 
+## Outdoor air: time of day plus weather, before wind, shelter or fires.
+## What frost on the world responds to, as opposed to what Henry feels.
+func get_outdoor_air_c() -> float:
+	return _outdoor_air_c
+
+
 ## Temperature the player feels right now, after wind, shelter and fires.
 func get_felt_temperature_c() -> float:
 	return _felt_temp_c
+
+
+## Room air excludes the stove's local radiant heat and Henry's body temperature.
+func get_room_temperature_c() -> float:
+	var zone: ThermalZone = _get_dominant_zone()
+	return _outdoor_air_c + (zone.get_total_offset_c() if zone != null else 0.0)
 
 
 func get_stage() -> Stage:
@@ -219,16 +316,20 @@ func _on_time_update(current_hour: float) -> void:
 func _compute_felt_temperature(current_hour: float) -> float:
 	var felt: float = _sample_ambient_c(current_hour)
 	var wind: float = 0.0
+	var wind_direction: Vector3 = Vector3.ZERO
 	if weather_controller != null:
 		felt += weather_controller.get_ambient_offset_c()
+	_outdoor_air_c = felt
+	if weather_controller != null:
 		wind = weather_controller.get_wind_speed_mps()
+		wind_direction = weather_controller.get_wind_direction()
 
 	var zone_offset: float = 0.0
 	var exposure: float = 1.0
 	var best: ThermalZone = _get_dominant_zone()
 	if best != null:
 		zone_offset = best.get_total_offset_c()
-		exposure = best.wind_exposure
+		exposure = best.get_wind_exposure(wind_direction)
 	felt += zone_offset
 
 	var capped_wind: float = minf(wind, wind_chill_cap_mps)
@@ -243,7 +344,7 @@ func _compute_felt_temperature(current_hour: float) -> float:
 
 ## Moves body temperature toward the felt temperature through insulation.
 func _integrate_body_temperature(hours: float) -> void:
-	var insulation: float = clothing_insulation_c * (1.0 - _wetness * wetness_insulation_penalty)
+	var insulation: float = get_insulation_c() * (1.0 - _wetness * wetness_insulation_penalty)
 	var effective: float = _felt_temp_c + insulation + basal_heat_c
 	var deficit: float = comfort_temp_c - effective
 	var previous: float = _body_temp_c
@@ -272,8 +373,15 @@ func _update_wetness(hours: float, _current_hour: float) -> void:
 		if rate > 0.0:
 			_set_wetness(_wetness + rate * hours)
 			return
-	if sheltered and _felt_temp_c > comfort_temp_c * 0.5:
-		_set_wetness(_wetness - drying_rate_per_hour * hours)
+	## Out of the precipitation, clothes dry as fast as the warmth allows: a
+	## stove dries them, a cold boarded room barely does, frost never does.
+	_set_wetness(_wetness - get_drying_rate_per_hour() * hours)
+
+
+## Wetness shed per game hour at the current felt temperature.
+func get_drying_rate_per_hour() -> float:
+	var warmth: float = clampf(inverse_lerp(drying_starts_c, drying_full_c, _felt_temp_c), 0.0, 1.0)
+	return drying_rate_per_hour * warmth
 
 
 ## Reads the ambient air temperature curve for the given hour of day.
@@ -325,9 +433,19 @@ func _on_zone_entered(area: Area3D) -> void:
 	var zone := area as ThermalZone
 	if zone != null and not _zones.has(zone):
 		_zones.append(zone)
+		_emit_sheltered_edge()
 
 
 func _on_zone_exited(area: Area3D) -> void:
 	var zone := area as ThermalZone
 	if zone != null:
 		_zones.erase(zone)
+		_emit_sheltered_edge()
+
+
+func _emit_sheltered_edge() -> void:
+	var sheltered: bool = is_sheltered()
+	if sheltered == _was_sheltered:
+		return
+	_was_sheltered = sheltered
+	sheltered_changed.emit(sheltered)

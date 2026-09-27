@@ -6,6 +6,11 @@ extends SceneTree
 
 const WORLD_DATA: String = "res://data/world_data.tres"
 
+## Upper bound on how long a settle may wait for the loader thread.
+const SETTLE_DEADLINE_MS: int = 5000
+## Consecutive pumps with no state change before a settle counts as done.
+const SETTLE_QUIET_PUMPS: int = 60
+
 var _failures: int = 0
 
 
@@ -61,9 +66,19 @@ func _dispose_rig(rig: Dictionary) -> void:
 
 
 ## Pumps until every load settles, with a bound so a stall fails rather than hangs.
-func _settle(system: StreamingSystem, iterations: int = 400) -> void:
-	for i: int in range(iterations):
+## Loads run on a worker thread, so a burst of pumps with no wall time between
+## them can finish before the thread does. Pump with real time between calls,
+## up to a deadline, so the result depends on the code and not machine load.
+func _settle(system: StreamingSystem, deadline_ms: int = SETTLE_DEADLINE_MS) -> void:
+	var until: int = Time.get_ticks_msec() + deadline_ms
+	var quiet: int = 0
+	while Time.get_ticks_msec() < until:
+		var before: String = str(system._states)
 		system.pump()
+		OS.delay_msec(1)
+		quiet = quiet + 1 if str(system._states) == before else 0
+		if quiet >= SETTLE_QUIET_PUMPS:
+			return
 
 
 func _first_chunk() -> ChunkData:
@@ -168,8 +183,7 @@ func _test_instantiation_budget_is_respected() -> void:
 	centre /= float(data.get_streamable_chunks().size())
 
 	system.scan(centre)
-	for i: int in range(200):
-		system.pump()
+	_settle(system)
 	var ready_now: int = 0
 	for chunk: ChunkData in data.get_streamable_chunks():
 		if system.get_state(chunk.id) == StreamingSystem.CellState.READY:

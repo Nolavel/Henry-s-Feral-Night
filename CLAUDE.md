@@ -21,7 +21,8 @@ author. Claude flags cost and risk for them.
 
 - Claude owns `claudeflow` — **one branch, always**. Never create additional
   Claude branches; never touch `main`, `codex`, or another agent's branch.
-- Integration into `main` happens only when the author explicitly asks.
+- Merging `main` into `claudeflow` is routine (see below); integration into
+  `main` happens only when the author asks. Same rule as `AGENTS.md`.
 
 ## Staying in sync
 
@@ -41,9 +42,11 @@ rule changes) and `global.json` (take `main`'s).
 ## Engine baseline
 
 - Godot **4.8-dev6 .NET (mono)**, `Godot.NET.Sdk` 4.8.x, `net8.0`.
-- Renderer: Forward+ / Vulkan. CI renders on CPU via lavapipe (see `tools/ci/`).
+- Renderer: Forward+ / Vulkan. CI runs headless suites only; render locally on
+  CPU via lavapipe (`tools/ci/render.sh`).
 - Main development scene: `res://tests/scenes/TestScene.tscn`.
-- Terrain3D stays a vendored third-party addon; it is never edited as game code.
+- Terrain is `IslandTerrain` from `world/terrain/source/graciosa_height.png`;
+  heights are edited via Blender (`tools/blender/`), never by hand in code.
 
 ## Language policy
 

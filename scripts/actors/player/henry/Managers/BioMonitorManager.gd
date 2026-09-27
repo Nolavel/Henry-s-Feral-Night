@@ -43,6 +43,23 @@ signal exhaustion_recovered # Восстановление после крити
 @export var critical_thirst_threshold: float = 10.0 # 20% от максимальной гидратации
 @export var critical_energy_threshold: float = 10.0 # 20% от максимальной энергии
 
+# === ЭКСПОРТ ПАРАМЕТРЫ - СОН ===
+@export_group("Sleep")
+## Percent of the energy track returned per hour slept. Eight hours is a night.
+@export var energy_restored_per_hour: float = 12.5
+## Metabolism while asleep, as a fraction of the waking rate.
+@export_range(0.0, 1.0) var sleep_metabolism_factor: float = 0.65
+## Hydration loss while asleep, as a fraction of the waking rate.
+@export_range(0.0, 1.0) var sleep_thirst_factor: float = 0.5
+## Worst rest quality an empty stomach can drag a night down to.
+@export_range(0.0, 1.0) var minimum_rest_quality: float = 0.25
+
+@export_group("Carry")
+## Extra hourly energy cost with a full pack; nothing below half full.
+@export var carry_fatigue_factor: float = 0.6
+## The pack whose weight tires Henry. Found under the player when unset.
+@export var carry_inventory: InventoryComponent
+
 # === ТЕКУЩИЕ ЗНАЧЕНИЯ ===
 var current_calories: float
 var current_hydration: float
@@ -64,7 +81,6 @@ var has_recently_rested: bool = false
 
 # === ССЫЛКИ ===
 @export var dn_manager: DayNightManager
-@export var bio_monitor_ui: Control
 
 func _ready():
 	# Инициализация начальных значений
@@ -81,9 +97,7 @@ func _ready():
 		dn_manager.time_changed.connect(_on_time_changed)
 	else:
 		print("ОШИБКА: DayNightManager не назначен в BioMonitorManager!")
-		
-	if not bio_monitor_ui:
-		print("ОШИБКА: PlayerHUD_Control не назначен в BioMonitorManager! Динамические оповещения не будут работать.")
+
 
 	# Инициализация начального прогресса и состояний
 	call_deferred("emit_initial_progress")
@@ -99,7 +113,7 @@ func emit_initial_progress():
 	is_currently_critically_thirsty = (current_hydration <= max_hydration * (critical_thirst_threshold / 100.0))
 	is_currently_critically_tired = (current_energy <= max_energy * (critical_energy_threshold / 100.0))
 
-func _on_time_changed(formatted_time: String, is_day: bool, day_number: int, period_description: String):
+func _on_time_changed(_formatted_time: String, _is_day: bool, _day_number: int, _period_description: String):
 	var current_game_hour = int(dn_manager.get_current_hour_float()) 
 
 	if current_game_hour != last_game_hour:
@@ -127,36 +141,32 @@ func _on_time_changed(formatted_time: String, is_day: bool, day_number: int, per
 		# === ПРОВЕРКА КРИТИЧЕСКИХ СОСТОЯНИЙ ===
 		check_critical_states()
 		
-		# === UI МЕТОДЫ (если назначен) ===
-		if bio_monitor_ui:
-			# Upper/Lower алерты только если НЕ в критических состояниях
-			trigger_ui_alerts()
 
-func process_hourly_consumption():
-	"""Обрабатывает почасовой расход всех показателей"""
+## Applies the hourly drain of every vital; `fraction` bills part of an hour.
+func process_hourly_consumption(fraction: float = 1.0):
 	# Голод
 	var hourly_calorie_loss = base_metabolism_rate
 	hourly_calorie_loss = apply_hunger_modifiers(hourly_calorie_loss) # TODO: Будущие модификаторы
-	current_calories = max(0.0, current_calories - hourly_calorie_loss)
+	current_calories = max(0.0, current_calories - hourly_calorie_loss * fraction)
 	
 	# Жажда  
 	var hourly_thirst_loss = base_thirst_rate
 	hourly_thirst_loss = apply_thirst_modifiers(hourly_thirst_loss) # TODO: Жара, активность
-	current_hydration = max(0.0, current_hydration - hourly_thirst_loss)
+	current_hydration = max(0.0, current_hydration - hourly_thirst_loss * fraction)
 	
 	# Энергия
 	var hourly_energy_loss = base_energy_rate
 	hourly_energy_loss = apply_energy_modifiers(hourly_energy_loss) # TODO: Влияние голода
-	current_energy = max(0.0, current_energy - hourly_energy_loss)
+	current_energy = max(0.0, current_energy - hourly_energy_loss * fraction)
 
+## Emits UI update signals for every vital.
 func update_ui_signals():
-	"""Отправляет сигналы обновления UI для всех показателей"""
 	hunger_level_changed.emit(calculate_hunger_progress())
 	thirst_level_changed.emit(calculate_thirst_progress())
 	energy_level_changed.emit(calculate_energy_progress())
 
+## Checks every vital against its critical threshold.
 func check_critical_states():
-	"""Проверяет критические состояния всех показателей"""
 	# === ГОЛОД ===
 	var new_critical_hunger = (current_calories <= max_calories * (critical_hunger_threshold / 100.0))
 	if new_critical_hunger and not is_currently_critically_hungry:
@@ -190,21 +200,7 @@ func check_critical_states():
 		exhaustion_recovered.emit()
 		print("Игрок восстановил энергию.")
 
-func trigger_ui_alerts():
-	"""Запускает UI алерты при изменении показателей"""
-	# Голод - только если не в критическом состоянии и значение уменьшилось
-	if not is_currently_critically_hungry and current_calories < previous_calories:
-		bio_monitor_ui.trigger_hourly_hunger_alert()
-	
-	# Жажда - только если не в критическом состоянии и значение уменьшилось
-	if not is_currently_critically_thirsty and current_hydration < previous_hydration:
-		bio_monitor_ui.trigger_hourly_thirst_alert()
-	
-	# Энергия - только если не в критическом состоянии и значение уменьшилось
-	if not is_currently_critically_tired and current_energy < previous_energy:
-		bio_monitor_ui.trigger_hourly_energy_alert()
-
-# === РАСЧЕТ ПРОГРЕССА ===
+## Fires UI alerts when a vital changes.
 func calculate_hunger_progress() -> float:
 	return clamp(current_calories / max_calories, 0.0, 1.0)
 
@@ -215,8 +211,8 @@ func calculate_energy_progress() -> float:
 	return clamp(current_energy / max_energy, 0.0, 1.0)
 
 # === МЕТОДЫ ВОСПОЛНЕНИЯ ===
+## Adds calories and updates the UI.
 func add_calories(amount: float):
-	"""Добавляет калории и обновляет UI."""
 	var old_critical_state = is_currently_critically_hungry
 	
 	current_calories = clamp(current_calories + amount, 0.0, max_calories)
@@ -231,11 +227,9 @@ func add_calories(amount: float):
 		print("Игрок поел, больше не в критическом голоде.")
 	
 	# Показываем Upper alert при восполнении
-	if bio_monitor_ui:
-		bio_monitor_ui.trigger_hunger_upper_alert()
 
+## Adds hydration and updates the UI.
 func add_hydration(amount: float):
-	"""Добавляет гидратацию и обновляет UI."""
 	var old_critical_state = is_currently_critically_thirsty
 	
 	current_hydration = clamp(current_hydration + amount, 0.0, max_hydration)
@@ -250,11 +244,9 @@ func add_hydration(amount: float):
 		print("Игрок восстановил гидратацию.")
 	
 	# Показываем Upper alert при восполнении
-	if bio_monitor_ui:
-		bio_monitor_ui.trigger_thirst_upper_alert()
 
+## Adds energy and updates the UI.
 func add_energy(amount: float):
-	"""Добавляет энергию и обновляет UI."""
 	var old_critical_state = is_currently_critically_tired
 	
 	current_energy = clamp(current_energy + amount, 0.0, max_energy)
@@ -269,30 +261,67 @@ func add_energy(amount: float):
 		print("Игрок восстановил энергию.")
 	
 	# Показываем Upper alert при восполнении
-	if bio_monitor_ui:
-		bio_monitor_ui.trigger_energy_upper_alert()
 
-func rest_sleep(hours: float):
-	"""Восстанавливает энергию через сон."""
-	# TODO: Реализовать восстановление через сон
-	# Примерная логика: add_energy(hours * 12.5) # ~100% за 8 часов
-	pass
+## Restores energy over a night and charges the night's own metabolism.
+## Sleep is not a free reset: a starving or parched body rests badly.
+## Bills hours spent awake while the clock jumps (waiting by the stove), fractions included.
+func pass_awake_hours(hours: float) -> void:
+	var whole: int = floori(maxf(hours, 0.0))
+	for i: int in range(whole):
+		process_hourly_consumption()
+	var part: float = maxf(hours, 0.0) - float(whole)
+	if part > 0.0:
+		process_hourly_consumption(part)
+	update_ui_signals()
+	check_critical_states()
+
+
+func rest_sleep(hours: float) -> void:
+	if hours <= 0.0:
+		return
+
+	## The clock jumps past _on_time_changed, so sleep bills its own hours.
+	var slept_metabolism: float = base_metabolism_rate * sleep_metabolism_factor
+	current_calories = max(0.0, current_calories - slept_metabolism * hours)
+	current_hydration = max(0.0, current_hydration - base_thirst_rate * sleep_thirst_factor * hours)
+
+	add_energy(hours * energy_restored_per_hour * get_rest_quality())
+	update_ui_signals()
+	check_critical_states()
+
+
+## How well the body rests, from the worse of hunger and thirst. Full quality
+## above half on both tracks, never below the floor.
+func get_rest_quality() -> float:
+	var worst: float = min(calculate_hunger_progress(), calculate_thirst_progress())
+	return clamp(worst * 2.0, minimum_rest_quality, 1.0)
 
 # === МОДИФИКАТОРЫ (ЗАГЛУШКИ ДЛЯ БУДУЩЕГО ФУНКЦИОНАЛА) ===
+## Applies modifiers to calorie drain.
 func apply_hunger_modifiers(base_rate: float) -> float:
-	"""Применяет модификаторы к расходу калорий"""
 	# TODO: Влияние температуры, активности, болезней
 	return base_rate
 
+## Applies modifiers to hydration drain.
 func apply_thirst_modifiers(base_rate: float) -> float:
-	"""Применяет модификаторы к расходу гидратации"""
 	# TODO: Влияние жары, физической активности, потоотделения
 	return base_rate
 
+## A pack past half its limit tires Henry faster, up to carry_fatigue_factor
+## extra at the limit. Hunger and illness are still to come.
 func apply_energy_modifiers(base_rate: float) -> float:
-	"""Применяет модификаторы к расходу энергии"""
-	# TODO: Влияние голода, болезней, стресса
-	return base_rate
+	var load: float = _carry_load_fraction()
+	var over_half: float = clamp((load - 0.5) * 2.0, 0.0, 1.0)
+	return base_rate * (1.0 + over_half * carry_fatigue_factor)
+
+
+func _carry_load_fraction() -> float:
+	## Only Henry's own pack: search from the player, never from the scene root.
+	if carry_inventory == null and get_parent() != null and get_parent().is_in_group(&"player"):
+		carry_inventory = InventoryComponent.find_in(get_parent())
+	if carry_inventory == null:
+		return 0.0
+	return carry_inventory.get_load_fraction()
 
 # === ВСПОМОГАТЕЛЬНЫЕ МЕТОДЫ (СОВМЕСТИМОСТЬ) ===
 func is_currently_satiated_from_meal() -> bool:
@@ -303,3 +332,30 @@ func is_currently_hydrated_from_drink() -> bool:
 
 func is_currently_rested_from_sleep() -> bool:
 	return has_recently_rested
+
+
+## Key this system owns in a save file, stated explicitly so renaming the
+## script never orphans an existing save.
+func get_save_key() -> StringName:
+	return &"bio"
+
+
+func get_save_data() -> Dictionary:
+	return {
+		"calories": current_calories,
+		"hydration": current_hydration,
+		"energy": current_energy,
+	}
+
+
+## Restores the three tracks and re-derives the critical flags from them, so
+## a loaded starving Henry is starving again rather than silently fine.
+func load_save_data(data: Dictionary) -> void:
+	current_calories = clamp(float(data.get("calories", current_calories)), 0.0, max_calories)
+	current_hydration = clamp(float(data.get("hydration", current_hydration)), 0.0, max_hydration)
+	current_energy = clamp(float(data.get("energy", current_energy)), 0.0, max_energy)
+	previous_calories = current_calories
+	previous_hydration = current_hydration
+	previous_energy = current_energy
+	update_ui_signals()
+	check_critical_states()

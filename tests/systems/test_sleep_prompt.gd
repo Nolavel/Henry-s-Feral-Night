@@ -1,6 +1,6 @@
 extends SceneTree
 
-## Covers the hold-to-sleep gate and the fuel loop it depends on.
+## Covers the sleep dialog, the SleepSpot that opens it and the fuel loop.
 ## Run: godot --headless --script tests/systems/test_sleep_prompt.gd
 
 const STEP_MINUTES: float = 10.0
@@ -20,8 +20,8 @@ func _run() -> void:
 	_test_fuel_burns_down_and_puts_the_fire_out()
 	_test_a_dead_fire_stops_heating_its_zone()
 	_test_refuelling_relights_and_caps()
-	_test_hold_does_not_charge_when_sleep_is_impossible()
-	_test_hold_opens_the_dialog_after_the_full_second()
+	_test_open_is_refused_when_sleep_is_impossible()
+	_test_sleep_spot_opens_the_dialog()
 	_test_hour_selection_clamps()
 	_test_confirm_sleeps_for_the_selected_hours()
 	_test_the_fuel_warning_tracks_the_chosen_hours()
@@ -158,7 +158,7 @@ func _test_refuelling_relights_and_caps() -> void:
 
 
 ## S is also move_backward, so the hold must not charge outside a shelter.
-func _test_hold_does_not_charge_when_sleep_is_impossible() -> void:
+func _test_open_is_refused_when_sleep_is_impossible() -> void:
 	var thermal := _make_thermal(-20.0)
 	var sleep := SleepController.new()
 	sleep.thermal_manager = thermal
@@ -168,10 +168,10 @@ func _test_hold_does_not_charge_when_sleep_is_impossible() -> void:
 	root.add_child(prompt)
 	_simulate(thermal, 0.5)
 
-	_check(not prompt.can_begin_hold(), "the hold was allowed while standing in the open")
-	prompt.update_hold(2.0)
-	_check(not prompt.is_open(), "the dialog opened while sleeping was impossible")
-	_check(is_zero_approx(prompt.get_hold_progress()), "the hold charged with no valid sleep")
+	var reasons: Array[String] = []
+	prompt.refused.connect(func(key: String) -> void: reasons.append(key))
+	_check(not prompt.request_open(), "the dialog opened while standing in the open cold")
+	_check(not prompt.is_open() and reasons.size() == 1, "a refused open did not report its reason")
 
 	_dispose(prompt)
 	_dispose(sleep)
@@ -194,7 +194,6 @@ func _make_sheltered_rig() -> Dictionary:
 
 	var prompt := SleepPrompt.new()
 	prompt.sleep_controller = sleep
-	prompt.hold_seconds = 1.0
 	root.add_child(prompt)
 
 	_simulate(thermal, 0.5)
@@ -206,17 +205,26 @@ func _dispose_rig(rig: Dictionary) -> void:
 		_dispose(rig[key])
 
 
-func _test_hold_opens_the_dialog_after_the_full_second() -> void:
+## F on a SleepSpot opens the dialog; wheel and arrows step the hours.
+func _test_sleep_spot_opens_the_dialog() -> void:
 	var rig: Dictionary = _make_sheltered_rig()
 	var prompt: SleepPrompt = rig["prompt"]
-	_check(prompt.can_begin_hold(), "the hold was refused in a warm shelter")
-
-	## A tap is not intent.
-	prompt.open()
-	_check(prompt.is_open(), "open() did not open the dialog")
+	var area: Node = (load("res://scenes/environment/interactive/InteractiveArea.tscn") as PackedScene).instantiate()
+	area.set_script(load("res://scripts/environment/interactive/sleep_spot.gd"))
+	area.set(&"interactable_scene", null)
+	var spot := area as SleepSpot
+	root.add_child(spot)
+	spot.interact()
+	_check(prompt.is_open(), "F on the mattress did not open the sleep dialog")
+	var wheel := InputEventMouseButton.new()
+	wheel.button_index = MOUSE_BUTTON_WHEEL_DOWN
+	wheel.pressed = true
+	_check(prompt._hour_step(wheel) == -1, "wheel down does not step hours down")
+	wheel.button_index = MOUSE_BUTTON_WHEEL_UP
+	_check(prompt._hour_step(wheel) == 1, "wheel up does not step hours up")
 	prompt.close()
 	_check(not prompt.is_open(), "close() did not close the dialog")
-	_check(is_zero_approx(prompt.get_hold_progress()), "closing left the hold charged")
+	_dispose(spot)
 	_dispose_rig(rig)
 
 

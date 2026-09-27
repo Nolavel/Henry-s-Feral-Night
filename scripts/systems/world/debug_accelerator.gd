@@ -3,7 +3,7 @@
 extends Control
 #Визуальный дебаггер работы аксселератора, в дальнейшем может
 #быть использован для крафтовой системы и системы сна как прототипная механика
-@export var perfomance_visible_display: bool = true
+@export var perfomance_visible_display: bool = false
 
 @export var accelerator: TimeAccelerator
 @export var day_night_manager: DayNightManager

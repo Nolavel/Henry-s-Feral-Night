@@ -35,6 +35,10 @@ const SLEEP_SLOT: int = 0
 var _last_error: String = ""
 var _registered: Array[Node] = []
 
+## Slot a menu asked for before the game scene existed, or -1 for a new game.
+## Static because the menu and the world are different scenes.
+static var pending_load_slot: int = -1
+
 
 ## The composition root's optional lifecycle hook. Everything this system
 ## needs is the already-built systems list.
@@ -42,6 +46,31 @@ func on_world_ready(context: WorldContext) -> void:
 	for system: Node in context.systems:
 		if system != self and implements_save_contract(system):
 			register(system)
+	## Inventory, equipment and the biomonitor live on the player, not in the
+	## systems list, and a save without them is not Henry's save.
+	_register_subtree(context.player)
+	if pending_load_slot >= 0:
+		## Deferred: systems later in the list adopt their scene state in their
+		## own hook, and a load applied before that would be overwritten.
+		_apply_pending_load.call_deferred()
+
+
+func _register_subtree(node: Node) -> void:
+	if node == null:
+		return
+	if node != self and implements_save_contract(node):
+		register(node)
+	for child: Node in node.get_children():
+		_register_subtree(child)
+
+
+## Applies and clears the slot the title menu asked for. Cleared first, so a
+## failed load cannot loop the next time a world comes up.
+func _apply_pending_load() -> void:
+	var slot: int = pending_load_slot
+	pending_load_slot = -1
+	if not load_from_slot(slot):
+		push_warning("SaveManager: could not continue from slot %d: %s" % [slot, _last_error])
 
 
 ## Registers a participant explicitly. Use this from _ready() when a system
@@ -271,7 +300,18 @@ func _migrate(document: Dictionary) -> Dictionary:
 
 
 func _slot_path(slot: int) -> String:
+	return slot_path(slot)
+
+
+## Where a slot lives on disk. Static so a title menu can ask before any
+## SaveManager exists.
+static func slot_path(slot: int) -> String:
 	return "%s/slot_%d.json" % [SAVE_DIR, slot]
+
+
+## True when a sleep save is on disk, for the title menu's Continue button.
+static func has_sleep_save() -> bool:
+	return FileAccess.file_exists(slot_path(SLEEP_SLOT))
 
 
 func _is_valid_slot(slot: int) -> bool:

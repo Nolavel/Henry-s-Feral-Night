@@ -1,0 +1,14 @@
+[gd_resource type="Resource" script_class="ItemResource" load_steps=2 format=3]
+
+[ext_resource type="Script" path="res://core/items/item_resource.gd" id="item"]
+
+[resource]
+script = ExtResource("item")
+id = &"boards"
+display_name = "Salvaged boards"
+weight = 2.5
+max_stack = 3
+size_class = 2
+attached_mesh_node_name = &"CarryBoards"
+carried_in_hands = true
+hand_carry_limit = 3

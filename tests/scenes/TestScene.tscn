@@ -1,11 +1,15 @@
-[gd_scene load_steps=23 format=3 uid="uid://bcxsh1dufbls3"]
+[gd_scene format=3 uid="uid://bcxsh1dufbls3"]
 
+[ext_resource type="Script" path="res://world/world.gd" id="90_world"]
+[ext_resource type="PackedScene" path="res://scenes/environment/shelter/test_shelter.tscn" id="91_shelter"]
+[ext_resource type="Script" path="res://scripts/environment/interactive/item_pickup.gd" id="92_pickup"]
 [ext_resource type="PackedScene" uid="uid://cvv8y27vmgjfi" path="res://scenes/game/systems/world/WorldEnvironmentSystem.tscn" id="2_2ompc"]
 [ext_resource type="PackedScene" uid="uid://duxn5rqcau5dw" path="res://tools/StatsDisplay/StatsDisplay.tscn" id="2_h763q"]
-[ext_resource type="PackedScene" uid="uid://dputwp1am8vfu" path="res://scenes/game/systems/camera/PlayerCamera.tscn" id="3_4vd7y"]
+[ext_resource type="PackedScene" uid="uid://dputwp1am8vfu" path="res://scenes/game/systems/camera/tps_camera.tscn" id="3_4vd7y"]
 [ext_resource type="PackedScene" uid="uid://ciy301x7wh6ie" path="res://scenes/actors/player/player.tscn" id="4_vhdnb"]
 [ext_resource type="PackedScene" uid="uid://btnxy5t02bhtw" path="res://scenes/environment/interactive/InteractiveArea.tscn" id="8_loucq"]
 [ext_resource type="PackedScene" uid="uid://dj0m3h8m8d6wh" path="res://scenes/environment/props/Masks/AFM/Airlock_Filter_Mask.tscn" id="9_inqvh"]
+[ext_resource type="PackedScene" uid="uid://otm5ic4xbx0g" path="res://scenes/environment/props/Flashlight/Flashlight.tscn" id="9_flashlight"]
 [ext_resource type="PackedScene" path="res://scenes/environment/visual_fx/FadeVolume.tscn" id="10_fade"]
 [ext_resource type="Material" path="res://scenes/environment/visual_fx/StylizedShadowMaterial.tres" id="11_shadow"]
 
@@ -78,7 +82,12 @@ size = Vector3(6.2, 4.2, 0.35)
 material = SubResource("StandardMaterial3D_fx_target")
 size = Vector3(1.25, 2.6, 1.25)
 
+[sub_resource type="SphereShape3D" id="SphereShape3D_pickup"]
+radius = 1.4
+
 [node name="TestScene" type="Node3D"]
+script = ExtResource("90_world")
+streaming_enabled = false
 
 [node name="StatsDisplay" parent="." instance=ExtResource("2_h763q")]
 
@@ -104,29 +113,8 @@ mesh = SubResource("BoxMesh_efhgp")
 [node name="Player" parent="." instance=ExtResource("4_vhdnb")]
 transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 0, 1, 0)
 
-[node name="DETAILS Low Poly" parent="Player/player_base_mesh/GeneralSkeleton/RetargetModifier3D/OriginalSkeleton" index="1"]
-surface_material_override/0 = null
-
-[node name="Boots Low Poly" parent="Player/player_base_mesh/GeneralSkeleton/RetargetModifier3D/OriginalSkeleton" index="2"]
-surface_material_override/0 = null
-
-[node name="Low Poly Headset" parent="Player/player_base_mesh/GeneralSkeleton/RetargetModifier3D/OriginalSkeleton" index="4"]
-surface_material_override/0 = null
-
-[node name="BioMonitorManager" parent="Player" index="10" node_paths=PackedStringArray("dn_manager", "bio_monitor_ui")]
+[node name="BioMonitorManager" parent="Player" node_paths=PackedStringArray("dn_manager")]
 dn_manager = NodePath("../../WorldEnvironmentSystem/DayNightManager")
-bio_monitor_ui = NodePath("../InGameUI/Vital_Signs")
-
-[node name="Vital_Signs" parent="Player/InGameUI" index="0" node_paths=PackedStringArray("player", "bio_monitor")]
-player = NodePath("../..")
-bio_monitor = NodePath("../../BioMonitorManager")
-
-[node name="Active_Weapon_Highlight" parent="Player/HUD/CombatHUD/Icon_Weapons" index="0"]
-layout_mode = 0
-offset_left = 0.0
-offset_top = 0.0
-offset_right = 50.0
-offset_bottom = 40.0
 
 [node name="MeshWall" type="MeshInstance3D" parent="."]
 transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 0, 2.52639, -10)
@@ -159,6 +147,7 @@ shape = SubResource("ConvexPolygonShape3D_swxfl")
 transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, -3.295, 0.1, -1.239)
 interaction_type = 1
 pickup_subtype = 5
+interactable_scene = ExtResource("9_flashlight")
 item_name = "Фонарик нагрудный"
 description = "Светит долго, почти сутки без перерыва."
 highlight_color = Color(1, 1, 0, 0.0470588)
@@ -228,7 +217,58 @@ position = Vector3(-8.5, 2.0, -11)
 rotation = Vector3(0, 1.5708, 0)
 scale = Vector3(2.2, 1.33, 1.45)
 
+[node name="TestShelter" parent="." instance=ExtResource("91_shelter")]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 0, 0, 14)
+
+[node name="PickupFirewoodA" parent="." instance=ExtResource("8_loucq")]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, -2, 0.1, 6)
+script = ExtResource("92_pickup")
+interactable_scene = null
+item_id = &"firewood"
+count = 1
+
+[node name="CollisionShape3D" parent="PickupFirewoodA" index="1"]
+shape = SubResource("SphereShape3D_pickup")
+
+[node name="PickupFirewoodB" parent="." instance=ExtResource("8_loucq")]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 2, 0.1, 6)
+script = ExtResource("92_pickup")
+interactable_scene = null
+item_id = &"firewood"
+count = 1
+
+[node name="CollisionShape3D" parent="PickupFirewoodB" index="1"]
+shape = SubResource("SphereShape3D_pickup")
+
+[node name="PickupTinder" parent="." instance=ExtResource("8_loucq")]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 0, 0.1, 8)
+script = ExtResource("92_pickup")
+interactable_scene = null
+item_id = &"tinder"
+count = 1
+
+[node name="CollisionShape3D" parent="PickupTinder" index="1"]
+shape = SubResource("SphereShape3D_pickup")
+
+[node name="PickupBoards" parent="." instance=ExtResource("8_loucq")]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, -3.5, 0.1, 9)
+script = ExtResource("92_pickup")
+interactable_scene = null
+item_id = &"boards"
+count = 1
+
+[node name="CollisionShape3D" parent="PickupBoards" index="1"]
+shape = SubResource("SphereShape3D_pickup")
+
+[node name="PickupStew" parent="." instance=ExtResource("8_loucq")]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 3.5, 0.1, 9)
+script = ExtResource("92_pickup")
+interactable_scene = null
+item_id = &"tinned_stew"
+count = 1
+
+[node name="CollisionShape3D" parent="PickupStew" index="1"]
+shape = SubResource("SphereShape3D_pickup")
+
 [editable path="WorldEnvironmentSystem"]
 [editable path="Player"]
-[editable path="Player/Henry_Test_player"]
-[editable path="Player/InGameUI"]

@@ -118,7 +118,7 @@ func take_damage(amount: float, source: String = "unknown") -> void:
 	if current_health <= 0.0:
 		die()
 
-func heal(amount: float, source: String = "unknown") -> void:
+func heal(amount: float, _source: String = "unknown") -> void:
 	if _is_dead or amount <= 0.0:
 		return
 	
@@ -169,11 +169,9 @@ func _trigger_damage_effects(damage: float, source: String) -> void:
 	# Можно добавить частицы крови, звуки и т.д.
 	_play_damage_sound(source)
 
-func _trigger_screen_shake(damage: float) -> void:
-	# Интенсивность тряски зависит от урона
-	var shake_intensity = clamp(damage / max_health, 0.1, 1.0)
-	# Здесь нужно будет подключиться к системе камеры
-	# camera_system.shake(shake_intensity)
+func _trigger_screen_shake(_damage: float) -> void:
+	## Not wired to TpsCamera yet; intensity would be clamp(damage / max_health, 0.1, 1).
+	pass
 
 func _play_damage_sound(source: String) -> void:
 	# Воспроизведение звука в зависимости от источника урона

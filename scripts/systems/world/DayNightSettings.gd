@@ -35,7 +35,7 @@ class_name DayNightSettings
 @export_range(0.0, 128.0, 0.05) var day_overcast_exposure: float = 0.82
 @export_range(0.0, 128.0, 0.05) var night_overcast_exposure: float = 0.24
 @export_range(0.1, 12.0, 0.1) var cloud_density: float = 4.8
-@export_range(0.0, 6.0, 0.1) var cloud_depth: float = 2.0
+@export_range(0.0, 6.0, 0.05) var cloud_depth: float = 2.35
 @export_range(0.25, 6.0, 0.05) var cloud_sag: float = 2.0
 @export var cloud_tiling: Vector2 = Vector2(1.0, 1.0)
 @export var cloud_wind_speed: Vector2 = Vector2(0.24, 0.08)
@@ -45,6 +45,8 @@ class_name DayNightSettings
 @export_range(1.0, 4.0, 0.05) var cloud_parallax_mid_scale: float = 1.65
 @export_range(1.0, 6.0, 0.05) var cloud_parallax_high_scale: float = 2.55
 @export_range(0.1, 20.0, 0.1) var cloud_light_energy_scale: float = 5.0
+@export_range(0.0, 0.95, 0.01) var cloud_coverage: float = 0.34
+@export_range(0.0, 1.0, 0.01) var cloud_opacity: float = 0.92
 @export_range(0.001, 0.2, 0.001) var ground_curve: float = 0.04
 
 @export_group("Cloud Noise")

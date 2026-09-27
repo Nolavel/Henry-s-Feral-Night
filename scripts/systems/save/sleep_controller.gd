@@ -10,11 +10,24 @@ signal sleep_refused(reason: Refusal)
 signal sleep_started(hours: float)
 ## Emitted after the world has been advanced and the autosave written.
 signal sleep_completed(hours: float, saved: bool)
+## Emitted after a seated wait, with the hours that actually passed.
+signal wait_completed(hours: float, ended_early_key: String)
 
 ## Why a sleep attempt was turned down.
 enum Refusal { NONE, NOT_SHELTERED, TOO_COLD, TOO_ALERT, ALREADY_SLEEPING }
 
 const HOURS_PER_DAY: float = 24.0
+## A seated wait ends early once Henry is this dry and this warm.
+const WAIT_DRY_WETNESS: float = 0.02
+const WAIT_WARM_BODY: float = 0.97
+const WAIT_ENDED_RECOVERED_KEY: String = "WAIT_ENDED_RECOVERED"
+const WAIT_ENDED_FIRE_OUT_KEY: String = "WAIT_ENDED_FIRE_OUT"
+
+## Scripts looked up through the world context, never by node path.
+const THERMAL_SCRIPT: GDScript = preload("res://scripts/systems/survival/thermal_manager.gd")
+const SAVE_SCRIPT: GDScript = preload("res://scripts/systems/save/save_manager.gd")
+const DAY_NIGHT_SCRIPT: GDScript = preload("res://scripts/systems/world/DayNightManager.gd")
+const BIO_MONITOR_SCRIPT: GDScript = preload("res://scripts/actors/player/henry/Managers/BioMonitorManager.gd")
 
 @export_group("Conditions")
 ## Minimum felt temperature, in Celsius, required to risk sleeping.
@@ -38,6 +51,19 @@ const HOURS_PER_DAY: float = 24.0
 @export var save_manager: SaveManager
 
 var _is_sleeping: bool = false
+
+
+## Lifecycle hook world.gd calls once every system exists. Sleeping needs four
+## other systems, and none of them should have to be wired in a scene.
+func on_world_ready(context: WorldContext) -> void:
+	if thermal_manager == null:
+		thermal_manager = context.get_system(THERMAL_SCRIPT) as ThermalManager
+	if save_manager == null:
+		save_manager = context.get_system(SAVE_SCRIPT) as SaveManager
+	if day_night_manager == null:
+		day_night_manager = context.find_in_scene(DAY_NIGHT_SCRIPT) as DayNightManager
+	if bio_monitor == null:
+		bio_monitor = context.find_in_scene(BIO_MONITOR_SCRIPT) as BioMonitorManager
 
 
 ## Whether sleeping is possible right now, without attempting it.
@@ -71,6 +97,47 @@ func try_sleep(hours: float = -1.0) -> bool:
 	_is_sleeping = false
 	sleep_completed.emit(duration, saved)
 	return true
+
+
+## Waits awake, seated by the stove: no rest, no save. Stops early once Henry is
+## dry and warm, or when no fire warms him any more. Returns the hours waited.
+func try_wait(hours: float) -> float:
+	if _is_sleeping or hours <= 0.0:
+		return 0.0
+	var step: float = 0.25
+	var elapsed: float = 0.0
+	var start_hour: float = _current_hour()
+	var reason: String = ""
+	while elapsed < hours:
+		elapsed += step
+		if thermal_manager != null:
+			thermal_manager._on_time_update(fmod(start_hour + elapsed, HOURS_PER_DAY))
+			if _recovered():
+				reason = WAIT_ENDED_RECOVERED_KEY
+			elif not _fire_warms_henry():
+				reason = WAIT_ENDED_FIRE_OUT_KEY
+			if reason != "":
+				break
+	if day_night_manager != null:
+		day_night_manager.total_game_time_hours += elapsed
+	if bio_monitor != null:
+		bio_monitor.pass_awake_hours(elapsed)
+	if thermal_manager != null:
+		thermal_manager.reset_clock()
+	wait_completed.emit(elapsed, reason if elapsed < hours else "")
+	return elapsed
+
+
+func _recovered() -> bool:
+	return thermal_manager.get_wetness() <= WAIT_DRY_WETNESS \
+		and thermal_manager.get_body_temperature_normalised() >= WAIT_WARM_BODY
+
+
+func _fire_warms_henry() -> bool:
+	for source: HeatSource in HeatSource.get_all():
+		if source.is_burning() and source.get_offset_at(thermal_manager.global_position) > 0.0:
+			return true
+	return false
 
 
 ## Explains a refusal as a localisation key, never as a hardcoded sentence.

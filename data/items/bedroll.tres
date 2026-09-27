@@ -1,0 +1,11 @@
+[gd_resource type="Resource" script_class="ItemResource" load_steps=2 format=3]
+
+[ext_resource type="Script" path="res://core/items/item_resource.gd" id="item"]
+
+[resource]
+script = ExtResource("item")
+id = &"bedroll"
+display_name = "Bedroll"
+weight = 2.4
+max_stack = 1
+size_class = 1

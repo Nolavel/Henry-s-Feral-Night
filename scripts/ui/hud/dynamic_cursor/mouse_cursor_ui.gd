@@ -1,480 +1,609 @@
-extends Control
 class_name MouseCursorUI
+extends Control
 
-# === НАСТРОЙКИ КУРСОРА ===
+## ADT's centre ring, brightening over interactables, carrying this project's
+## movement dot, stamina-coloured sprint arcs and jump arc around it.
+
+@export var player: CharacterBody3D
 @export var cursor_radius: float = 8.0
 @export var cursor_thickness: float = 2.0
-@export var front_zone_color: Color = Color.WHITE
-@export var neutral_zone_color: Color = Color(0.5, 0.5, 0.5, 0.8)
-@export var color_transition_speed: float = 8.0
+## Brush Enso replaces only the centre ring. Sprint/jump stamina arcs keep
+## their existing geometry and behaviour.
+@export var cursor_enso_scale: float = 1.10
+## Nothing under the ring.
+@export var cursor_color_idle: Color = Color(0.62, 0.64, 0.66, 0.75)
+## An interactable under the ring.
+@export var cursor_color_target: Color = Color(1.0, 1.0, 1.0, 0.95)
+## Not instant: a highlight that snaps in reads as a flicker.
+@export var cursor_color_speed: float = 10.0
+## Ray length from the camera, metres.
+@export var target_ray_length: float = 12.0
 
-# === НАСТРОЙКИ ИНДИКАЦИИ ДВИЖЕНИЯ ===
-@export_group("Индикация движения")
-@export var movement_dot_radius: float = 4.0
+@export_group("Interaction morph")
+## ADT-derived interruptible circle -> bracket morph. The brackets first tear
+## from the Enso, then travel outward to make room for the ink prompt.
+@export_range(0.12, 0.7, 0.01) var interaction_morph_duration: float = 0.34
+@export_range(1.0, 4.0, 0.1) var interaction_morph_ease_power: float = 2.4
+@export_range(0.0, 0.8, 0.01) var interaction_split_delay: float = 0.16
+@export_range(1.0, 1.35, 0.01) var interaction_morph_punch: float = 1.10
+@export_range(0.0, 0.35, 0.01) var interaction_morph_overshoot: float = 0.12
+@export_range(0.0, 1.2, 0.05) var interaction_morph_glow: float = 0.40
+@export var interaction_bracket_offset: float = 250.0
+@export var interaction_bracket_radius: float = 24.0
+@export var interaction_bracket_thickness: float = 2.6
+## One continuous yellow gradient lives under the entire key/action block.
+## Centre stays denser under F + action text; both ends soften toward brackets.
+@export var interaction_gradient_color: Color = Color(1.0, 0.823529, 0.0, 1.0)
+@export_range(0.0, 1.0, 0.01) var interaction_gradient_center_alpha: float = 0.44
+## Final profile: a compact fully-dense centre, then one continuous fade
+## on each side all the way to alpha=0 at the ends. No alpha "steps".
+@export var interaction_gradient_core_width: float = 20.0
+## Slightly tighter than the first pass: enough room for F + action/detail,
+## but no longer reaching as far toward the brackets.
+@export var interaction_gradient_width: float = 420.0
+@export var interaction_gradient_height: float = 38.0
+@export var prompt_content_size: Vector2 = Vector2(360.0, 150.0)
+
+@export_group("Movement and stamina")
+@export var movement_controller: MovementController
+@export var stamina_manager: StaminaManager
 @export var movement_dot_color: Color = Color.GRAY
 @export var movement_dot_bright_color: Color = Color.WHITE
 @export var sprint_arc_thickness: float = 4.0
 @export var sprint_arc_color: Color = Color(0.8, 0.9, 1.0, 1.0)
 @export var sprint_animation_speed: float = 2.0
+## Below this speed Henry counts as standing still, m/s.
+@export var stationary_speed: float = 0.05
 
-# === НАСТРОЙКИ ЛЕЙБЛА ===
-@export var label_text: String = "Double-tap S to snap turn"
-@export var label_show_delay: float = 1.0
-@export var label_fade_speed: float = 6.0
-@export var label_offset: Vector2 = Vector2(0, 30)
+const RING_SEGMENTS: int = 32
+const JUMP_ARC_COLOR: Color = Color(0.4, 0.8, 1.0)
+const CURSOR_ENSO_PATH := "res://assets/ui/hud/dynamic_cursor/enso_cursor_ring.svg"
+const GROUP_INTERACTION_PROMPT: StringName = &"interaction_cursor_prompt"
+const MORPH_CIRCLE_SEGMENTS: int = 32
+const MORPH_BRACKET_SEGMENTS: int = 10
+const MORPH_BRACKET_HALF_ANGLE: float = 0.62
+const MORPH_OPEN_PATH_THRESHOLD: float = 0.035
 
-# === ЗОНЫ ПОВОРОТА (синхронизировать с Player) ===
-@export var front_sector_deg: float = 120.0
-@export var yaw_sector_deg: float = 60.0
-@export var back_slow_sector_deg: float = 120.0
-@export var back_deadzone_deg: float = 60.0
-@export var min_mouse_distance: float = 0.6
-@export var noise_floor_deg: float = 0.35
+var is_over_target: bool = false
+var _color: Color = Color.WHITE
+var _stamina_ratio: float = 1.0
+var _sprint_progress: float = 0.0
+var _was_sprinting: bool = false
+var _dot_alpha: float = 0.0
+var _arcs_alpha: float = 0.0
+var _arc_angle: float = 0.0
+var _jump_charging: bool = false
+var _jump_time: float = 0.0
+var _jump_alpha: float = 0.0
+var _jump_progress: float = 0.0
+var _jump_tween: Tween
+var _arcs_tween: Tween
+var _cursor_enso_texture: Texture2D
+var _interact_component: InteractComponent
+var _interaction_target: InteractiveArea
+var _interaction_morph_progress: float = 0.0
+var _interaction_morph_from: float = 0.0
+var _interaction_morph_target: float = 0.0
+var _interaction_morph_elapsed: float = 0.0
+var _interaction_gradient: TextureRect
+var _prompt_face: ActionPromptFace
+var _confirm_tween: Tween
 
-# === ПОРОГИ СТАТИЧНОСТИ ===
-@export var mouse_stationary_px: float = 2.0
-@export var player_move_stationary_speed: float = 0.05
-@export var player_rot_stationary_deg_per_s: float = 10.0
-
-# === ССЫЛКИ ===
-@export var player: CharacterBody3D
-@export var movement_controller: MovementController
-@export var stamina_manager: StaminaManager
-
-# === СОСТОЯНИЕ КУРСОРА ===
-var current_cursor_color: Color
-var label_alpha: float = 0.0
-var cursor_position: Vector2 = Vector2.ZERO
-
-var is_back_zone: bool = false
-var is_front_zone: bool = false
-var is_behind: bool = false
-
-var mouse_stationary_timer: float = 0.0
-var last_mouse_pos: Vector2 = Vector2.ZERO
-
-var last_player_pos: Vector3 = Vector3.ZERO
-var last_player_yaw: float = 0.0
-
-# === СОСТОЯНИЕ ИНДИКАЦИИ ДВИЖЕНИЯ ===
-var is_player_moving: bool = false
-var is_player_sprinting: bool = false
-var sprint_progress: float = 0.0  # 0.0 - 1.0
-var sprint_arc_angle: float = 0.0  # Для анимации дуг
-var movement_dot_alpha: float = 0.0
-var sprint_arcs_alpha: float = 0.0
-
-# === СОСТОЯНИЕ СТАМИНЫ ДЛЯ UI ===
-var current_stamina_ratio: float = 1.0
-var sprint_arc_start_angle: float = 0.0  # Угол начала дуг (для обратной анимации)
-var sprint_arc_end_angle: float = 0.0    # Угол конца дуг
-var sprint_arc_reverse_speed: float = 3.0
-
-# === СОСТОЯНИЕ ПРЫЖКА ===
-var jump_arc_alpha: float = 0.0
-var jump_arc_progress: float = 0.0  # 0 = дуга внизу, 1 = полный круг
-var jump_is_charging: bool = false
-var jump_animation_tween: Tween
-var jump_time: float = 0.0
-
-# === UI ЭЛЕМЕНТЫ ===
-var label: Label
-var tween: Tween
 
 func _ready() -> void:
-	current_cursor_color = neutral_zone_color
+	add_to_group(GROUP_INTERACTION_PROMPT)
+	set_anchors_preset(Control.PRESET_FULL_RECT)
+	mouse_filter = Control.MOUSE_FILTER_IGNORE
+	# The Enso is rendered far below its source resolution. Linear filtering is
+	# required here; project-default nearest filtering turns the brush edge into
+	# visible square pixels.
+	texture_filter = CanvasItem.TEXTURE_FILTER_LINEAR
+	_color = cursor_color_idle
+	_cursor_enso_texture = load(CURSOR_ENSO_PATH) as Texture2D
+	if _cursor_enso_texture == null:
+		push_warning("[MouseCursorUI] Enso cursor texture failed to load")
+	if player == null:
+		player = get_parent() as CharacterBody3D
+	if player != null and movement_controller == null:
+		movement_controller = player.get_node_or_null(^"MovementController") as MovementController
+	if player != null:
+		_interact_component = player.get_node_or_null(^"InteractComponent") as InteractComponent
+	_build_interaction_prompt()
+	if _interact_component != null and not _interact_component.interaction_performed.is_connected(_on_interaction_performed):
+		_interact_component.interaction_performed.connect(_on_interaction_performed)
+	if movement_controller != null and stamina_manager == null:
+		stamina_manager = movement_controller.get_node_or_null(^"StaminaManager") as StaminaManager
+	if stamina_manager != null:
+		stamina_manager.stamina_changed.connect(_on_stamina_changed)
+		stamina_manager.jump_performed.connect(_on_jump_performed)
 
-	label = Label.new()
-	label.text = label_text
-	label.add_theme_color_override("font_color", Color.WHITE)
-	label.add_theme_color_override("font_shadow_color", Color.BLACK)
-	label.add_theme_constant_override("shadow_offset_x", 1)
-	label.add_theme_constant_override("shadow_offset_y", 1)
-	label.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
-	label.vertical_alignment = VERTICAL_ALIGNMENT_CENTER
-	label.visible = false
-	add_child(label)
-
-	Input.set_mouse_mode(Input.MOUSE_MODE_HIDDEN)
-
-	if player:
-		last_player_pos = player.global_transform.origin
-		last_player_yaw = player.rotation.y
-		
-		# Проверяем ссылки на компоненты
-		if movement_controller == null:
-			movement_controller = player.get_node_or_null("MovementController")
-			if movement_controller == null:
-				push_warning("MovementController reference is not valid. Make sure the Player node has a child named 'MovementController' and the export variable is set.")
-		
-		if stamina_manager == null:
-			stamina_manager = player.get_node_or_null("StaminaManager")
-			if stamina_manager == null:
-				push_warning("StaminaManager reference is not valid. Sprint UI indicators will not work correctly.")
-		
-		# Подключаемся к сигналам стамины
-		if stamina_manager:
-			stamina_manager.stamina_changed.connect(_on_stamina_changed)
-			stamina_manager.stamina_depleted.connect(_on_stamina_depleted)
-			stamina_manager.stamina_recovered.connect(_on_stamina_recovered)
-			stamina_manager.jump_performed.connect(_on_jump_performed)
-			
-	last_mouse_pos = get_viewport().get_mouse_position()
 
 func _process(delta: float) -> void:
-	if not player or not movement_controller:
+	visible = not _is_paused()
+	if not visible:
 		return
-
-	cursor_position = get_viewport().get_mouse_position()
-
-	# 1) Курсор стоит?
-	var mouse_moved: bool = cursor_position.distance_to(last_mouse_pos) > mouse_stationary_px
-	if mouse_moved:
-		mouse_stationary_timer = 0.0
-		last_mouse_pos = cursor_position
-	else:
-		mouse_stationary_timer += delta
-
-	# 2) Игрок стоит?
-	var player_pos: Vector3 = player.global_transform.origin
-	var lin_speed: float = (player_pos - last_player_pos).length() / max(delta, 0.0001)
-	last_player_pos = player_pos
-
-	var yaw_now: float = player.rotation.y
-	var yaw_delta: float = abs(rad_to_deg(wrapf(yaw_now - last_player_yaw, -PI, PI))) / max(delta, 0.0001)
-	last_player_yaw = yaw_now
-
-	var player_stationary: bool = (lin_speed <= player_move_stationary_speed) and (yaw_delta <= player_rot_stationary_deg_per_s)
-
-	# 3) Обновление состояния движения
-	_update_movement_state(delta, lin_speed, player_stationary)
-
-	# 4) Анализ зоны
-	_analyze_cursor_zone()
-
-	# 5) Цвет курсора
-	_update_cursor_color(delta)
-
-	# 6) Лейбл: за спиной + курсор стоит + игрок статичен
-	var should_show_label: bool = is_behind and (mouse_stationary_timer >= label_show_delay) and player_stationary
-	_update_label(delta, should_show_label)
-	
-	if jump_is_charging:
-		jump_time += delta
-	else:
-		jump_time = 0.0
-
+	var focused := _focused_prompt_target()
+	is_over_target = focused != null if _interact_component != null else _ray_hits_target()
+	var wanted: Color = cursor_color_target if is_over_target else cursor_color_idle
+	_color = _color.lerp(wanted, clampf(cursor_color_speed * delta, 0.0, 1.0))
+	_update_interaction_target(focused)
+	if focused != null:
+		_sync_prompt(focused)
+	_update_interaction_morph(delta)
+	_update_prompt_visuals()
+	_update_movement(delta)
 	queue_redraw()
 
-func _update_movement_state(delta: float, lin_speed: float, player_stationary: bool) -> void:
-	var was_sprinting: bool = is_player_sprinting
-	
-	is_player_moving = not player_stationary
-	is_player_sprinting = movement_controller.is_currently_sprinting(player.velocity)
-	
-	# Получаем прогресс спринта из MovementController
-	sprint_progress = movement_controller.get_sprint_blend()
-	
-	# Обновляем стамину из StaminaManager
-	if stamina_manager:
-		current_stamina_ratio = stamina_manager.get_stamina_ratio()
-	
-	sprint_progress = clamp(sprint_progress, 0.0, 1.0)
-	
-	# Анимация точки движения
-	var target_dot_alpha: float = 1.0 if is_player_moving else 0.0
-	movement_dot_alpha = lerp(movement_dot_alpha, target_dot_alpha, 8.0 * delta)
-	
-	var target_arcs_alpha: float = sprint_progress * current_stamina_ratio
-	sprint_arcs_alpha = lerp(sprint_arcs_alpha, target_arcs_alpha, 6.0 * delta)
-	
-	if is_player_sprinting:
-		sprint_arc_angle += sprint_animation_speed * delta * (0.5 + sprint_progress * 0.5)
-		if sprint_arc_angle > TAU:
-			sprint_arc_angle -= TAU
-	else:
-		sprint_arc_angle = lerp_angle(sprint_arc_angle, 0.0, 4.0 * delta)
-	
-	if was_sprinting != is_player_sprinting:
-		_animate_sprint_transition(is_player_sprinting)
-
-	# Обратная анимация дуг
-	sprint_arc_end_angle -= sprint_arc_reverse_speed * delta
-	if sprint_arc_end_angle < 0.0:
-		sprint_arc_end_angle += TAU
-	else:
-		# Плавное возвращение дуг в норму
-		sprint_arc_end_angle = lerp_angle(sprint_arc_end_angle, sprint_arc_angle, 4.0 * delta)
-		
-		# Отслеживание зарядки прыжка
-	var player_on_floor = player.is_on_floor()
-	var jump_charging = Input.is_action_pressed("jump") and player_on_floor
-
-	if jump_charging and not jump_is_charging:
-		# Начали заряжать прыжок
-		jump_is_charging = true
-		jump_arc_alpha = 0.6
-	elif not jump_charging and jump_is_charging:
-		# Перестали заряжать (но не факт что прыгнули)
-		jump_is_charging = false
-		if player_on_floor:
-			jump_arc_alpha = 0.0
-
-	jump_is_charging = jump_charging
-	
-	
-func _animate_sprint_transition(starting_sprint: bool) -> void:
-	if tween:
-		tween.kill()
-	tween = create_tween()
-	
-	if starting_sprint:
-		# При начале спринта - быстрое появление дуг
-		tween.tween_method(_set_sprint_arcs_alpha, 0.0, 1.0, 0.2)
-	else:
-		# При остановке - плавное исчезновение
-		tween.tween_method(_set_sprint_arcs_alpha, sprint_arcs_alpha, 0.0, 0.4)
-
-func _set_sprint_arcs_alpha(value: float) -> void:
-	sprint_arcs_alpha = value
-
-func _analyze_cursor_zone() -> void:
-	is_front_zone = false
-	is_back_zone = false
-	is_behind = false
-
-	var camera: Camera3D = get_viewport().get_camera_3d()
-	if camera == null:
-		return
-
-	var mouse_pos: Vector2 = cursor_position
-	var ray_origin: Vector3 = camera.project_ray_origin(mouse_pos)
-	var ray_dir: Vector3 = camera.project_ray_normal(mouse_pos)
-
-	var player_y: float = player.global_transform.origin.y
-	var target_world: Vector3 = Vector3.ZERO
-	var have_target: bool = false
-
-	if absf(ray_dir.y) > 0.0001:
-		var t: float = (player_y - ray_origin.y) / ray_dir.y
-		if t > 0.0 and t <= 1000.0:
-			target_world = ray_origin + ray_dir * t
-			have_target = true
-
-	if not have_target:
-		return
-
-	var to_target: Vector3 = target_world - player.global_transform.origin
-	to_target.y = 0.0
-	if to_target.length() < min_mouse_distance:
-		return
-
-	var fwd: Vector3 = -player.global_transform.basis.z
-	fwd.y = 0.0
-	if fwd.length() < 0.0001:
-		return
-	fwd = fwd.normalized()
-
-	var tgt: Vector3 = to_target.normalized()
-
-	var cross_y: float = fwd.cross(tgt).y
-	var dot_ft: float = clamp(fwd.dot(tgt), -1.0, 1.0)
-	var delta_yaw: float = atan2(cross_y, dot_ft)
-	var angle_diff_deg: float = abs(rad_to_deg(delta_yaw))
-
-	if angle_diff_deg < noise_floor_deg:
-		return
-
-	# Новый флаг: курсор за спиной (угол > 90°)
-	is_behind = angle_diff_deg > 90.0
-
-	# Фронтальная активная зона
-	var front_half: float = front_sector_deg * 0.5
-	var front_dead_half: float = yaw_sector_deg * 0.5
-	var in_front_active: bool = (angle_diff_deg <= front_half) and (angle_diff_deg > front_dead_half)
-
-	# Задняя активная зона
-	var back_offset: float = absf(angle_diff_deg - 180.0)
-	var back_active_half: float = back_slow_sector_deg * 0.5
-	var back_dead_half: float = back_deadzone_deg * 0.5
-	var in_back_active: bool = (back_offset <= back_active_half) and (back_offset > back_dead_half)
-
-	is_front_zone = in_front_active
-	is_back_zone = in_back_active
-
-func _update_cursor_color(delta: float) -> void:
-	var target_color: Color
-	if is_back_zone:
-		target_color = neutral_zone_color
-	elif is_front_zone:
-		target_color = front_zone_color
-	else:
-		target_color = neutral_zone_color
-
-	current_cursor_color = current_cursor_color.lerp(target_color, clamp(color_transition_speed * delta, 0.0, 1.0))
-
-func _update_label(delta: float, should_show_label: bool) -> void:
-	var target_alpha: float = 1.0 if should_show_label else 0.0
-	if target_alpha > label_alpha:
-		label_alpha = min(1.0, label_alpha + label_fade_speed * delta)
-	else:
-		label_alpha = max(0.0, label_alpha - label_fade_speed * delta)
-
-	if label_alpha > 0.0:
-		label.position = cursor_position + label_offset - label.size * 0.5
-		var m: Color = label.modulate
-		m.a = label_alpha
-		label.modulate = m
-		label.visible = true
-	else:
-		label.visible = false
 
 func _draw() -> void:
-	var color: Color = current_cursor_color
-	# За спиной — приглушаем альфу
-	if is_back_zone:
-		color.a = min(color.a, 0.6)
+	var center: Vector2 = get_viewport_rect().size * 0.5
+	_draw_interaction_cursor(center, _color)
+	var inner: Color = _color
+	inner.a *= 0.3 * (1.0 - _interaction_morph_progress)
+	if inner.a > 0.005:
+		draw_circle(center, cursor_radius * 0.3, inner)
+	if _dot_alpha > 0.01:
+		var dot: Color = movement_dot_color.lerp(movement_dot_bright_color, _dot_alpha)
+		dot.a *= _dot_alpha
+		draw_circle(center + Vector2(0.0, cursor_radius + 8.5), 1.5, dot)
+	if _arcs_alpha > 0.01:
+		_draw_sprint_arcs(center)
+	if _jump_alpha > 0.01:
+		_draw_jump_arc(center)
 
-	# Внешний контур основного курсора
-	_draw_circle_outline(cursor_position, cursor_radius, color, cursor_thickness)
 
-	# Внутренний мягкий круг
-	var inner_color: Color = color
-	inner_color.a *= 0.3
-	draw_circle(cursor_position, cursor_radius * 0.3, inner_color)
-
-	# === ИНДИКАЦИЯ ДВИЖЕНИЯ ===
-	
-	# Маленькая точка ниже курсора при движении
-	if movement_dot_alpha > 0.0:
-		var dot_color: Color = movement_dot_color.lerp(movement_dot_bright_color, movement_dot_alpha)
-		dot_color.a *= movement_dot_alpha
-		var dot_position: Vector2 = cursor_position + Vector2(0, cursor_radius + 8.5)
-		draw_circle(dot_position, 1.5, dot_color)
-
-	# Дуги спринта
-	if sprint_arcs_alpha > 0.0:
-		_draw_sprint_arcs()
-		
-	# Дуга прыжка (после основных дуг спринта)
-	if jump_arc_alpha > 0.0:
-		_draw_jump_arc()
-
-func _draw_sprint_arcs() -> void:
-	var base_color: Color = sprint_arc_color
-
-	# Меняем цвет в зависимости от уровня стамины
-	if current_stamina_ratio > 0.5:
-		var t: float = (1.0 - current_stamina_ratio) * 2.0
-		base_color = base_color.lerp(Color(1.0, 1.0, 0.0), t)
-	elif current_stamina_ratio > 0.25:
-		var t: float = (0.5 - current_stamina_ratio) * 4.0
-		base_color = Color(1.0, 1.0, 0.0).lerp(Color(1.0, 0.5, 0.0), t)
+func _update_movement(delta: float) -> void:
+	if player == null or movement_controller == null:
+		return
+	var planar_speed: float = Vector2(player.velocity.x, player.velocity.z).length()
+	var moving: bool = planar_speed > stationary_speed
+	var sprinting: bool = movement_controller.is_currently_sprinting(player.velocity)
+	_sprint_progress = clampf(movement_controller.get_sprint_blend(), 0.0, 1.0)
+	if stamina_manager != null:
+		_stamina_ratio = stamina_manager.get_stamina_ratio()
+	_dot_alpha = lerpf(_dot_alpha, 1.0 if moving else 0.0, clampf(8.0 * delta, 0.0, 1.0))
+	if sprinting != _was_sprinting:
+		_fade_arcs(sprinting)
+	_was_sprinting = sprinting
+	if not (_arcs_tween and _arcs_tween.is_running()):
+		var target: float = _sprint_progress * _stamina_ratio
+		_arcs_alpha = lerpf(_arcs_alpha, target, clampf(6.0 * delta, 0.0, 1.0))
+	if sprinting:
+		_arc_angle = wrapf(_arc_angle + sprint_animation_speed * delta * (0.5 + _sprint_progress * 0.5), 0.0, TAU)
 	else:
-		var t: float = (0.25 - current_stamina_ratio) * 4.0
-		base_color = Color(1.0, 0.5, 0.0).lerp(Color(1.0, 0.0, 0.0), t)
+		_arc_angle = lerp_angle(_arc_angle, 0.0, clampf(4.0 * delta, 0.0, 1.0))
+	## Player reports a held jump on the floor; the arc charges under the ring.
+	var charging: bool = bool(player.get(&"cam_jump_hold_active"))
+	if charging and not _jump_charging:
+		_jump_alpha = 0.6
+	elif not charging and _jump_charging and player.is_on_floor():
+		_jump_alpha = 0.0
+	_jump_charging = charging
+	_jump_time = _jump_time + delta if charging else 0.0
 
-	base_color.a *= current_stamina_ratio
 
-	var arc_radius: float = cursor_radius + 4.0
-	var quarter_length: float = PI * 0.5 * sprint_progress * current_stamina_ratio
-
-	for i in range(4):
-		var base_angle: float = i * PI * 0.5 + sprint_arc_end_angle
-		_draw_arc(cursor_position, arc_radius, base_angle, base_angle + quarter_length, base_color, sprint_arc_thickness)
-
-func _draw_arc(center: Vector2, radius: float, start_angle: float, end_angle: float, color: Color, thickness: float) -> void:
-	var segments: int = max(8, int(abs(end_angle - start_angle) * radius * 0.5))
-	var angle_step: float = (end_angle - start_angle) / segments
-	
-	for i in range(segments):
-		var angle1: float = start_angle + i * angle_step
-		var angle2: float = start_angle + (i + 1) * angle_step
-		
-		var point1: Vector2 = center + Vector2(cos(angle1), sin(angle1)) * radius
-		var point2: Vector2 = center + Vector2(cos(angle2), sin(angle2)) * radius
-		
-		draw_line(point1, point2, color, thickness)
-
-func _draw_circle_outline(center: Vector2, radius: float, color: Color, thickness: float) -> void:
-	var segments: int = 32
-	var points: Array[Vector2] = []
-	points.resize(segments + 1)
-
-	# Вычисляем точки окружности
-	for i in range(segments + 1):
-		var angle: float = (i / float(segments)) * TAU
-		points[i] = center + Vector2(cos(angle), sin(angle)) * radius
-
-	# Соединяем точки линиями
-	for i in range(segments):
-		draw_line(points[i], points[i + 1], color, thickness)
-		
-func _draw_jump_arc() -> void:
-	var jump_radius = cursor_radius + 12.0
-	var jump_color: Color = Color(0.4, 0.8, 1.0, jump_arc_alpha)
-
-	# Меняем цвет в зависимости от стамины
-	if current_stamina_ratio > 0.5:
-		jump_color = jump_color.lerp(Color(1, 1, 0), (1.0 - current_stamina_ratio) * 2.0)
-	elif current_stamina_ratio > 0.25:
-		jump_color = Color(1, 1, 0).lerp(Color(1, 0.5, 0), (0.5 - current_stamina_ratio) * 4.0)
+func _fade_arcs(starting: bool) -> void:
+	if _arcs_tween:
+		_arcs_tween.kill()
+	_arcs_tween = create_tween()
+	if starting:
+		_arcs_tween.tween_property(self, ^"_arcs_alpha", 1.0, 0.2)
 	else:
-		jump_color = Color(1, 0.5, 0).lerp(Color(1, 0, 0), (0.25 - current_stamina_ratio) * 4.0)
+		_arcs_tween.tween_property(self, ^"_arcs_alpha", 0.0, 0.4)
 
-	jump_color.a *= jump_arc_alpha
 
-	if jump_is_charging:
-		# Зарядка — дуга снизу с импульсом
-		var base_arc_length = PI * 0.2
-		var pulse = sin(jump_time * 20.0) * 0.1
-		var total_arc_length = base_arc_length + pulse + (PI * 0.3 * jump_arc_progress)
-		var center_angle = PI * 0.5  # низ
-		var start_angle = center_angle - total_arc_length * 0.5
-		var end_angle = center_angle + total_arc_length * 0.5
-		_draw_arc(cursor_position, jump_radius, start_angle, end_angle, jump_color, 2.0)
+## Stamina colour: pale blue when full, through yellow and orange to red.
+func _stamina_color(base: Color) -> Color:
+	var r: float = _stamina_ratio
+	if r > 0.5:
+		return base.lerp(Color(1.0, 1.0, 0.0), (1.0 - r) * 2.0)
+	if r > 0.25:
+		return Color(1.0, 1.0, 0.0).lerp(Color(1.0, 0.5, 0.0), (0.5 - r) * 4.0)
+	return Color(1.0, 0.5, 0.0).lerp(Color(1.0, 0.0, 0.0), (0.25 - r) * 4.0)
+
+
+## Four quarter arcs that shrink with stamina and spin while sprinting.
+func _draw_sprint_arcs(center: Vector2) -> void:
+	var color: Color = _stamina_color(sprint_arc_color)
+	color.a *= _stamina_ratio * _arcs_alpha
+	var length: float = PI * 0.5 * _sprint_progress * _stamina_ratio
+	for i: int in range(4):
+		var start: float = float(i) * PI * 0.5 + _arc_angle
+		draw_arc(center, cursor_radius + 4.0, start, start + length, 12, color, sprint_arc_thickness, true)
+
+
+## Charging: a pulsing arc under the ring. Released: it closes to a circle.
+func _draw_jump_arc(center: Vector2) -> void:
+	var color: Color = _stamina_color(JUMP_ARC_COLOR)
+	color.a = _jump_alpha
+	var radius: float = cursor_radius + 12.0
+	if _jump_charging:
+		var length: float = PI * 0.2 + sin(_jump_time * 20.0) * 0.1 + PI * 0.3 * _jump_progress
+		draw_arc(center, radius, PI * 0.5 - length * 0.5, PI * 0.5 + length * 0.5, 16, color, 2.0, true)
+		return
+	var half: float = PI * clampf(_jump_progress, 0.0, 1.0)
+	if half >= PI:
+		_draw_ring(center, radius, color, 2.0)
+	elif half > 0.0:
+		draw_arc(center, radius, PI * 1.5 - half, PI * 1.5 + half, 24, color, 2.0, true)
+
+
+func _focused_prompt_target() -> InteractiveArea:
+	var placement := get_tree().get_first_node_in_group(&"active_board_placement") as BreachBoardUp
+	if is_instance_valid(placement) and placement.is_placing_board():
+		return placement
+	if _interact_component == null or not is_instance_valid(_interact_component.current_target):
+		return null
+	var target := _interact_component.current_target
+	if not target.can_interact() or not target.shape_cast_detected:
+		return null
+	return target
+
+
+func _update_interaction_target(target: InteractiveArea) -> void:
+	if target == _interaction_target:
+		return
+	_interaction_target = target
+	_interaction_morph_from = _interaction_morph_progress
+	_interaction_morph_target = 1.0 if target != null else 0.0
+	_interaction_morph_elapsed = 0.0
+	if target != null:
+		_sync_prompt(target)
+
+
+func _update_interaction_morph(delta: float) -> void:
+	if is_equal_approx(_interaction_morph_progress, _interaction_morph_target):
+		return
+	_interaction_morph_elapsed += maxf(delta, 0.0)
+	var raw := clampf(
+		_interaction_morph_elapsed / maxf(interaction_morph_duration, 0.001),
+		0.0, 1.0
+	)
+	var eased := _morph_ease_in_out(raw, interaction_morph_ease_power)
+	_interaction_morph_progress = lerpf(_interaction_morph_from, _interaction_morph_target, eased)
+	if raw >= 1.0:
+		_interaction_morph_progress = _interaction_morph_target
+
+
+func _build_interaction_prompt() -> void:
+	_interaction_gradient = _build_interaction_gradient()
+
+	_prompt_face = ActionPromptFace.new()
+	_prompt_face.name = "InteractionPrompt"
+	_prompt_face.mouse_filter = Control.MOUSE_FILTER_IGNORE
+	_prompt_face.size = prompt_content_size
+	_prompt_face.modulate.a = 1.0
+	_prompt_face.visible = false
+	add_child(_prompt_face)
+
+
+func _build_interaction_gradient() -> TextureRect:
+	var gradient := Gradient.new()
+	var transparent := interaction_gradient_color
+	transparent.a = 0.0
+	var center_color := interaction_gradient_color
+	center_color.a = interaction_gradient_center_alpha
+
+	# Keep only four control points: transparent edge -> dense core ->
+	# dense core -> transparent edge. Gradient interpolates continuously between
+	# them, so there are no discrete alpha bands to read as a staircase.
+	var final_width := maxf(interaction_gradient_width, interaction_gradient_core_width + 2.0)
+	var half_core := clampf(
+		(interaction_gradient_core_width * 0.5) / final_width,
+		0.001,
+		0.49
+	)
+	gradient.offsets = PackedFloat32Array([
+		0.0,
+		0.5 - half_core,
+		0.5 + half_core,
+		1.0,
+	])
+	gradient.colors = PackedColorArray([
+		transparent,
+		center_color,
+		center_color,
+		transparent,
+	])
+
+	var texture := GradientTexture2D.new()
+	texture.gradient = gradient
+	# Oversample the 420 px UI strip so the alpha ramp remains visually smooth
+	# while the TextureRect is stretching during the morph.
+	texture.width = 1024
+	texture.height = 64
+	texture.fill_from = Vector2(0.0, 0.5)
+	texture.fill_to = Vector2(1.0, 0.5)
+
+	var strip := TextureRect.new()
+	strip.name = "InteractionGradient"
+	strip.mouse_filter = Control.MOUSE_FILTER_IGNORE
+	strip.texture = texture
+	strip.expand_mode = TextureRect.EXPAND_IGNORE_SIZE
+	strip.stretch_mode = TextureRect.STRETCH_SCALE
+	strip.show_behind_parent = true
+	strip.visible = false
+	add_child(strip)
+	return strip
+
+
+func _sync_prompt(target: InteractiveArea) -> void:
+	if _prompt_face == null or not is_instance_valid(target):
+		return
+	var data := target.get_interaction_prompt_data()
+	_prompt_face.set_prompt(
+		"",
+		String(data.get("key", "F")),
+		String(data.get("action", tr("INTERACT_USE"))),
+		String(data.get("detail", ""))
+	)
+
+
+func _update_prompt_visuals() -> void:
+	if _prompt_face == null:
+		return
+	var center := get_viewport_rect().size * 0.5
+	_prompt_face.position = center - prompt_content_size * 0.5
+	_prompt_face.size = prompt_content_size
+
+	var t := clampf(_interaction_morph_progress, 0.0, 1.0)
+
+	# UI juice is deliberately staged instead of fading the whole prompt at once:
+	# 1) the yellow field stretches out from screen centre while the Enso splits,
+	# 2) the physical key fades in,
+	# 3) action copy follows,
+	# 4) target detail lands last.
+	var key_reveal := _smoothstep01((t - 0.52) / 0.18)
+	var text_reveal := _smoothstep01((t - 0.66) / 0.18)
+	var detail_reveal := _smoothstep01((t - 0.76) / 0.16)
+	_prompt_face.visible = maxf(key_reveal, maxf(text_reveal, detail_reveal)) > 0.001
+	_prompt_face.set_reveal_amounts(key_reveal, text_reveal, detail_reveal)
+	_update_interaction_edge_fades(center, t)
+
+
+func _update_interaction_edge_fades(center: Vector2, t: float) -> void:
+	if _interaction_gradient == null:
+		return
+
+	# Stretch from the exact centre instead of popping in at final width.
+	# Its expansion overlaps the bracket morph so both motions read as one event.
+	var stretch := _smoothstep01((t - 0.34) / 0.44)
+	var reveal := _smoothstep01((t - 0.30) / 0.24)
+	var width := maxf(8.0, interaction_gradient_width * stretch)
+	var height_scale := lerpf(0.72, 1.0, stretch)
+	var size := Vector2(width, interaction_gradient_height * height_scale)
+	_interaction_gradient.position = center - size * 0.5
+	_interaction_gradient.size = size
+	_interaction_gradient.modulate.a = reveal
+	_interaction_gradient.visible = stretch > 0.001 and reveal > 0.001
+
+
+func _on_interaction_performed(target: InteractiveArea) -> void:
+	if _prompt_face == null or target != _interaction_target:
+		return
+	# A consumed pickup is already queued for deletion here. There is no target
+	# to morph back from, so clear F/copy/gradient/spread brackets immediately.
+	if not is_instance_valid(target) or target.is_queued_for_deletion() or not target.can_interact():
+		_dismiss_interaction_prompt_immediately()
+		return
+	if _confirm_tween != null:
+		_confirm_tween.kill()
+	_prompt_face.set_confirm_amount(1.0)
+	_confirm_tween = create_tween()
+	_confirm_tween.tween_method(_prompt_face.set_confirm_amount, 1.0, 0.0, 0.22)
+
+
+func _dismiss_interaction_prompt_immediately() -> void:
+	_interaction_target = null
+	_interaction_morph_progress = 0.0
+	_interaction_morph_from = 0.0
+	_interaction_morph_target = 0.0
+	_interaction_morph_elapsed = 0.0
+	if _confirm_tween != null:
+		_confirm_tween.kill()
+		_confirm_tween = null
+	if _prompt_face != null:
+		_prompt_face.set_confirm_amount(0.0)
+		_prompt_face.set_reveal_amounts(0.0, 0.0, 0.0)
+		_prompt_face.visible = false
+	if _interaction_gradient != null:
+		_interaction_gradient.modulate.a = 0.0
+		_interaction_gradient.visible = false
+	queue_redraw()
+
+
+func _draw_interaction_cursor(center: Vector2, color: Color) -> void:
+	var t := clampf(_interaction_morph_progress, 0.0, 1.0)
+	var enso_color := color
+	enso_color.a *= 1.0 - _smoothstep01(t / 0.28)
+	if enso_color.a > 0.005:
+		_draw_cursor_enso(center, enso_color)
+	if t <= 0.001:
+		return
+	_draw_interaction_morph_shape(center, t, color)
+
+
+## Ported from ADT's DynamicCursor morph, adapted so the bracket geometry is
+## born near the Enso and then the two halves travel apart around HFN's ink.
+func _draw_interaction_morph_shape(center: Vector2, t: float, color: Color) -> void:
+	var shape_t := clampf(t / 0.62, 0.0, 1.0)
+	var eased := _morph_ease_in_out(shape_t, interaction_morph_ease_power)
+	var base_radius := lerpf(cursor_radius, interaction_bracket_radius, eased)
+	var stretch_in := _morph_ease_in_out(minf(shape_t / 0.55, 1.0), 1.8)
+	var stretch_out_raw := maxf((shape_t - 0.55) / 0.45, 0.0)
+	var stretch_out := _morph_ease_in_out(minf(stretch_out_raw, 1.0), 1.8)
+	var stretch_weight := stretch_in * (1.0 - stretch_out)
+	var stretch_factor := lerpf(1.0, 1.50, stretch_weight)
+	var radius_x := base_radius * stretch_factor
+	var radius_y := base_radius / sqrt(maxf(stretch_factor, 0.001))
+	var open := (PI * 0.5 - MORPH_BRACKET_HALF_ANGLE) * _morph_gap_curve(shape_t)
+	var punch_scale := _morph_scale_curve(shape_t)
+	var paths := _build_morph_paths(center, radius_x, radius_y, open, punch_scale)
+
+	var spread_t := _smoothstep01((t - 0.50) / 0.50)
+	var spread := maxf(interaction_bracket_offset - interaction_bracket_radius, 0.0) * spread_t
+	if paths.size() == 2:
+		for i: int in range(paths[0].size()):
+			paths[0][i].x += spread
+		for i: int in range(paths[1].size()):
+			paths[1][i].x -= spread
+
+	var alpha := _smoothstep01(t / 0.18)
+	var shape_color := color
+	shape_color.a *= alpha
+	var juice := sin(shape_t * PI)
+	if juice > 0.001 and interaction_morph_glow > 0.0:
+		_draw_morph_paths(
+			paths,
+			_color_with_alpha(shape_color, 0.10 * interaction_morph_glow * juice),
+			interaction_bracket_thickness * 3.0
+		)
+	_draw_morph_paths(paths, shape_color, interaction_bracket_thickness)
+
+
+func _build_morph_paths(
+		center: Vector2, radius_x: float, radius_y: float, open: float, shape_scale: float
+	) -> Array[PackedVector2Array]:
+	var paths: Array[PackedVector2Array] = []
+	if open < MORPH_OPEN_PATH_THRESHOLD:
+		paths.append(_build_ellipse_arc(
+			center, radius_x, radius_y, 0.0, TAU, shape_scale, MORPH_CIRCLE_SEGMENTS
+		))
+		return paths
+	paths.append(_build_ellipse_arc(
+		center, radius_x, radius_y,
+		-PI * 0.5 + open, PI * 0.5 - open,
+		shape_scale, MORPH_BRACKET_SEGMENTS
+	))
+	paths.append(_build_ellipse_arc(
+		center, radius_x, radius_y,
+		PI * 0.5 + open, PI * 1.5 - open,
+		shape_scale, MORPH_BRACKET_SEGMENTS
+	))
+	return paths
+
+
+func _build_ellipse_arc(
+		center: Vector2,
+		radius_x: float,
+		radius_y: float,
+		start_angle: float,
+		end_angle: float,
+		shape_scale: float,
+		segments: int
+	) -> PackedVector2Array:
+	var points := PackedVector2Array()
+	for i: int in range(segments + 1):
+		var weight := float(i) / float(segments)
+		var angle := lerpf(start_angle, end_angle, weight)
+		var offset := Vector2(cos(angle) * radius_x, sin(angle) * radius_y) * shape_scale
+		points.append(center + offset)
+	return points
+
+
+func _draw_morph_paths(paths: Array[PackedVector2Array], color: Color, width: float) -> void:
+	for points: PackedVector2Array in paths:
+		if points.size() > 1:
+			draw_polyline(points, color, width, true)
+
+
+func _morph_gap_curve(t: float) -> float:
+	var span := maxf(1.0 - interaction_split_delay, 0.001)
+	var delayed := clampf((t - interaction_split_delay) / span, 0.0, 1.0)
+	return _morph_ease_in_out(delayed, 2.1)
+
+
+func _morph_scale_curve(t: float) -> float:
+	var pulse := sin(t * PI)
+	var settle := 1.0 if t < 0.7 else 0.4
+	var peak := interaction_morph_punch + interaction_morph_overshoot * sin(t * PI * 1.4) * settle
+	return 1.0 + (peak - 1.0) * pulse
+
+
+static func _morph_ease_in_out(t: float, power: float) -> float:
+	var clamped := clampf(t, 0.0, 1.0)
+	if clamped < 0.5:
+		return pow(2.0 * clamped, power) * 0.5
+	return 1.0 - pow(2.0 * (1.0 - clamped), power) * 0.5
+
+
+static func _smoothstep01(value: float) -> float:
+	var x := clampf(value, 0.0, 1.0)
+	return x * x * (3.0 - 2.0 * x)
+
+
+static func _color_with_alpha(color: Color, alpha_scale: float) -> Color:
+	var result := color
+	result.a *= clampf(alpha_scale, 0.0, 1.0)
+	return result
+
+
+func get_interaction_morph_progress() -> float:
+	return _interaction_morph_progress
+
+
+func has_center_interaction_prompt() -> bool:
+	return _prompt_face != null
+
+
+func _draw_cursor_enso(center: Vector2, color: Color) -> void:
+	# The texture is authored with the brush opening at six o'clock. Tinting
+	# preserves the old idle/target highlight behaviour without touching stamina.
+	var diameter := cursor_radius * 2.0 * cursor_enso_scale
+	var size := Vector2.ONE * diameter
+	var rect := Rect2(center - size * 0.5, size)
+	if _cursor_enso_texture != null:
+		draw_texture_rect(_cursor_enso_texture, rect, false, color, false)
 	else:
-		# Если отпустили — растём к полному кругу, замкнутому сверху
-		var full_progress = clamp(jump_arc_progress, 0.0, 1.0)
-		var circle_center_angle = PI * 1.5  # верхняя точка
-		var start_angle = circle_center_angle - TAU * 0.5 * full_progress
-		var end_angle = circle_center_angle + TAU * 0.5 * full_progress
+		_draw_ring(center, cursor_radius, color, cursor_thickness)
 
-		if full_progress >= 1.0:
-			_draw_circle_outline(cursor_position, jump_radius, jump_color, 2.0)
-		else:
-			_draw_arc(cursor_position, jump_radius, start_angle, end_angle, jump_color, 2.0)
 
-		
+func _draw_ring(center: Vector2, radius: float, color: Color, thickness: float) -> void:
+	var points := PackedVector2Array()
+	for i: int in range(RING_SEGMENTS + 1):
+		var angle: float = TAU * float(i) / float(RING_SEGMENTS)
+		points.append(center + Vector2(cos(angle), sin(angle)) * radius)
+	draw_polyline(points, color, thickness, true)
+
+
+func _on_stamina_changed(current: float, maximum: float) -> void:
+	_stamina_ratio = current / maxf(maximum, 0.001)
+
+
 func _on_jump_performed() -> void:
-	# Анимация расширения и сжатия дуги прыжка
-	if jump_animation_tween:
-		jump_animation_tween.kill()
-	jump_animation_tween = create_tween()
-	jump_animation_tween.set_parallel(true)  # параллельные анимации
-	
-	# Расширение до круга и обратно
-	jump_animation_tween.tween_method(_set_jump_arc_progress, 0.0, 1.0, 0.15)
-	jump_animation_tween.tween_method(_set_jump_arc_progress, 1.0, 0.0, 0.25).set_delay(0.15)
-	
-	# Затухание альфы
-	jump_animation_tween.tween_method(_set_jump_arc_alpha, 0.8, 0.0, 0.4)
+	if _jump_tween:
+		_jump_tween.kill()
+	_jump_tween = create_tween().set_parallel(true)
+	_jump_tween.tween_property(self, ^"_jump_progress", 1.0, 0.15)
+	_jump_tween.tween_property(self, ^"_jump_progress", 0.0, 0.25).set_delay(0.15)
+	_jump_tween.tween_property(self, ^"_jump_alpha", 0.0, 0.4).from(0.8)
 
-func _set_jump_arc_progress(value: float) -> void:
-	jump_arc_progress = value
 
-func _set_jump_arc_alpha(value: float) -> void:
-	jump_arc_alpha = value
+## One ray from the camera through screen centre, the look direction.
+func _ray_hits_target() -> bool:
+	var camera: Camera3D = get_viewport().get_camera_3d()
+	if camera == null or player == null:
+		return false
+	var center: Vector2 = get_viewport_rect().size * 0.5
+	var from: Vector3 = camera.project_ray_origin(center)
+	var to: Vector3 = from + camera.project_ray_normal(center) * target_ray_length
+	var params := PhysicsRayQueryParameters3D.create(from, to)
+	params.collide_with_areas = true
+	params.collide_with_bodies = true
+	params.exclude = [player.get_rid()]
+	var hit: Dictionary = player.get_world_3d().direct_space_state.intersect_ray(params)
+	if hit.is_empty():
+		return false
+	var node := hit.get("collider") as Node
+	for i: int in range(4):
+		if node == null:
+			return false
+		if node is InteractiveArea:
+			return (node as InteractiveArea).can_interact()
+		node = node.get_parent()
+	return false
 
-func _on_stamina_changed(current_stamina: float, max_stamina: float) -> void:
-	current_stamina_ratio = current_stamina / max_stamina
 
-func _on_stamina_depleted() -> void:
-	# Можно добавить специальные эффекты когда стамина заканчивается
-	# Например, вспышка красного цвета или дрожание курсора
-	pass
-
-func _on_stamina_recovered() -> void:
-	# Можно добавить эффекты восстановления стамины
-	# Например, зеленую вспышку
-	pass
+func _is_paused() -> bool:
+	var state: Node = get_node_or_null(^"/root/PlayerState")
+	return state != null and bool(state.call(&"is_paused"))

@@ -1,6 +1,10 @@
 extends Area3D
 class_name InteractiveArea
 
+## Optional semantic animation requested on Henry when this interaction fires.
+## Empty lets InteractComponent choose a generic action.
+@export var player_animation_action: StringName = &""
+
 enum InteractionType {
 	PUSHABLE,
 	PICKUP,
@@ -36,6 +40,14 @@ enum PickupSubtype {
 @export var info_label: Label3D
 @export var interactive_mesh: MeshInstance3D  # Меш под которым создаем круг
 
+@export_group("Focus")
+## Optional visible action point, independent of the proximity trigger origin.
+@export var focus_anchor: Node3D
+## Explicit solid owners when the object's bodies are siblings of this Area.
+@export var focus_bodies: Array[CollisionObject3D] = []
+
+const FOCUS_OWNER_META: StringName = &"interactive_focus_owner"
+
 # === НАСТРОЙКИ ОТОБРАЖЕНИЯ ===
 @export_group("Настройки отображения")
 @export var icon_height_offset: float = 1.5
@@ -59,6 +71,10 @@ var ground_raycast: RayCast3D
 # === ВНУТРЕННИЕ ПЕРЕМЕННЫЕ ===
 var player_in_area := false
 var shape_cast_detected := false
+var _targeted: bool = false
+var _message_serial: int = 0
+var _feedback_text: String = ""
+var _feedback_until_ms: int = 0
 var player_reference: CharacterBody3D = null
 var tween_icon: Tween
 var tween_info: Tween
@@ -79,6 +95,13 @@ const SHAKE_TIME: float = 2.0  # Длительность шейка
 const SHAKE_STRENGTH: float = 0.1  # Сила тряски
 
 func _ready() -> void:
+	if not body_entered.is_connected(_on_body_entered):
+		body_entered.connect(_on_body_entered)
+	if not body_exited.is_connected(_on_body_exited):
+		body_exited.connect(_on_body_exited)
+	for body: CollisionObject3D in focus_bodies:
+		if is_instance_valid(body):
+			body.set_meta(FOCUS_OWNER_META, weakref(self))
 	_load_interactable_scene()
 	_setup_initial_state()
 	_setup_ground_detection()
@@ -110,7 +133,8 @@ func _setup_visual_elements() -> void:
 
 func _create_highlight_circle() -> void:
 	if not interactive_mesh:
-		push_warning("InteractiveArea: interactive_mesh не назначен!")
+		if object_on_ground and focus_anchor == null:
+			push_warning("InteractiveArea: ground highlight needs a mesh or focus anchor")
 		return
 	
 	highlight_circle = MeshInstance3D.new()
@@ -154,36 +178,83 @@ func _on_body_entered(body: Node) -> void:
 	if body.is_in_group("player"):
 		player_in_area = true
 		player_reference = body
-		_show_icon_sprite()
-		_start_shake_cycle()
+		# Proximity owns the old world marker (the check mark). Crosshair focus
+		# owns the F prompt. Keeping these separate prevents the marker from
+		# disappearing merely because Henry is not aiming at the item yet.
+		if can_interact() and not shape_cast_detected:
+			_show_icon_sprite()
+			_start_shake_cycle()
 
 func _on_body_exited(body: Node) -> void:
 	if body.is_in_group("player"):
 		player_in_area = false
-		shape_cast_detected = false
 		player_reference = null
+		_stop_shake_cycle()
 		_hide_icon_sprite_with_lift()
 		_hide_info_label()
-		_stop_shake_cycle()
+		if object_on_ground:
+			_hide_highlight_circle()
 
-func set_shape_cast_detected(detected: bool) -> void:
-	# Небольшая оптимизация - избегаем лишних вызовов
-	if shape_cast_detected == detected:
-		return
-		
-	shape_cast_detected = detected
-	if player_in_area:
-		if shape_cast_detected:
-			_stop_shake_cycle()  # Останавливаем тряску
-			_hide_icon_sprite_with_lift_then_show_info()  # Сначала скрываем спрайт, потом показываем инфо
-			if object_on_ground:
-				_show_highlight_circle()
+
+## Crosshair focus owns the F prompt. Proximity owns the world marker.
+func set_target_state(targeted: bool, in_prompt_range: bool) -> void:
+	var was_prompt: bool = shape_cast_detected
+	var was_targeted: bool = _targeted
+	_targeted = targeted
+	shape_cast_detected = targeted and in_prompt_range
+
+	if not targeted:
+		_hide_info_label()
+		if was_prompt and object_on_ground:
+			_hide_highlight_circle()
+		if player_in_area and can_interact():
+			if was_targeted or not icon_sprite or not icon_sprite.visible:
+				_show_icon_sprite()
+			_start_shake_cycle()
 		else:
-			_show_icon_sprite()
-			_hide_info_label()
-			if object_on_ground:
-				_hide_highlight_circle()
-			_start_shake_cycle()  # Перезапускаем цикл тряски
+			_stop_shake_cycle()
+			if was_targeted:
+				_hide_icon_sprite_with_lift()
+		return
+
+	if shape_cast_detected and not was_prompt:
+		_stop_shake_cycle()
+		_hide_icon_sprite_with_lift_then_show_info()
+		if object_on_ground:
+			_show_highlight_circle()
+	elif not shape_cast_detected and (was_prompt or not was_targeted):
+		_hide_info_label()
+		if was_prompt and object_on_ground:
+			_hide_highlight_circle()
+		_show_icon_sprite()
+		_start_shake_cycle()
+
+
+## Kept for callers of the old manager: detected means targeted and in prompt range.
+func set_shape_cast_detected(detected: bool) -> void:
+	set_target_state(detected, detected)
+
+
+## Replaces the prompt with a short message, e.g. why F was refused.
+func show_message(text: String, seconds: float = 2.5) -> void:
+	if text == "":
+		return
+	_feedback_text = text
+	_feedback_until_ms = Time.get_ticks_msec() + int(seconds * 1000.0)
+	if not info_label:
+		return
+	info_label.text = text
+	info_label.visible = true
+	info_label.modulate.a = 1.0
+	_message_serial += 1
+	var serial: int = _message_serial
+	await get_tree().create_timer(seconds).timeout
+	if serial != _message_serial or not is_instance_valid(info_label):
+		return
+	if shape_cast_detected:
+		info_label.text = _get_interaction_text()
+	else:
+		_hide_info_label()
 
 func _show_icon_sprite() -> void:
 	if not icon_sprite:
@@ -262,6 +333,15 @@ func _hide_icon_sprite_with_lift_then_show_info() -> void:
 func _show_info_label() -> void:
 	if not info_label:
 		return
+	if is_inside_tree():
+		var tree := get_tree()
+		if (
+			tree.get_first_node_in_group(&"interaction_cursor_prompt") != null
+			or tree.get_first_node_in_group(&"action_prompt_3d") != null
+		):
+			info_label.visible = false
+			info_label.modulate.a = 0.0
+			return
 	
 	info_label.text = _get_interaction_text()
 	info_label.visible = true
@@ -282,46 +362,77 @@ func _hide_info_label() -> void:
 	tween_info.tween_callback(func(): info_label.visible = false)
 
 func _get_interaction_text() -> String:
-	# Кэшируем текст чтобы не пересоздавать каждый раз
 	if _text_cache_dirty:
-		var action_text: String
-		
+		var verb: String
 		match interaction_type:
 			InteractionType.PUSHABLE:
-				action_text = "[E] Толкнуть"
+				verb = "INTERACT_PUSH"
 			InteractionType.PICKUP:
-				action_text = "[E] Подобрать " + _get_pickup_subtype_text()
+				verb = "INTERACT_PICKUP"
 			InteractionType.BUTTON:
-				action_text = "[E] Нажать"
+				verb = "INTERACT_PRESS"
 			InteractionType.DOOR:
-				action_text = "[E] Открыть"
+				verb = "INTERACT_OPEN"
 			_:
-				action_text = "[E] Взаимодействовать"
-		
-		_cached_interaction_text = action_text + "\n" + item_name + "\n" + description
+				verb = "INTERACT_USE"
+		var header: String = "[%s] %s" % [_interact_key_label(), tr(verb)]
+		_cached_interaction_text = header + "\n" + item_name
+		if description != "":
+			_cached_interaction_text += "\n" + description
 		_text_cache_dirty = false
-	
 	return _cached_interaction_text
 
-func _get_pickup_subtype_text() -> String:
-	match pickup_subtype:
-		PickupSubtype.WEAPON:
-			return "(Оружие)"
-		PickupSubtype.FOOD:
-			return "(Еда)"
-		PickupSubtype.WATER:
-			return "(Вода)"
-		PickupSubtype.CLOTHING:
-			return "(Одежда)"
-		PickupSubtype.TOOLS:
-			return "(Инструменты)"
-		PickupSubtype.SPECIAL:
-			return "(Особый предмет)"
-		PickupSubtype.JUNK:
-			return "(Хлам)"
-		_:
-			return ""
-			
+
+## The key bound to interact, read from the input map rather than hardcoded.
+static func _interact_key_label() -> String:
+	for event: InputEvent in InputMap.action_get_events(&"interact"):
+		var key := event as InputEventKey
+		if key != null:
+			var code: Key = key.physical_keycode if key.physical_keycode != KEY_NONE else key.keycode
+			return OS.get_keycode_string(code)
+	return "?"
+
+
+
+
+## Public factual description for the shared world-space ActionPrompt3D.
+## Subclasses keep ownership of the verb by overriding _get_interaction_text();
+## this method only separates that existing text into key / action / detail.
+func get_interaction_prompt_data() -> Dictionary:
+	var key: String = _interact_key_label()
+	var rendered: String = _get_interaction_text()
+	var lines := rendered.split("\n", false)
+	var action: String = lines[0].strip_edges() if not lines.is_empty() else tr("INTERACT_USE")
+	var prefix := "[%s]" % key
+	if action.begins_with(prefix):
+		action = action.substr(prefix.length()).strip_edges()
+
+	var detail := ""
+	if description != "" and description != "Описание отсутствует":
+		detail = description.strip_edges()
+	if detail == "" and item_name != "" and item_name != "Неизвестный объект" and item_name != action:
+		detail = item_name.strip_edges()
+	if detail == "":
+		match interaction_type:
+			InteractionType.PICKUP:
+				detail = tr("PROMPT_DETAIL_ITEM")
+			InteractionType.BUTTON:
+				detail = tr("PROMPT_DETAIL_CONTROL")
+			InteractionType.DOOR:
+				detail = tr("PROMPT_DETAIL_DOOR")
+			InteractionType.PUSHABLE:
+				detail = tr("PROMPT_DETAIL_OBJECT")
+			_:
+				detail = tr("PROMPT_DETAIL_OBJECT")
+
+	if Time.get_ticks_msec() < _feedback_until_ms:
+		detail = _feedback_text
+	return {
+		"key": key,
+		"action": action,
+		"detail": detail,
+	}
+
 func _show_highlight_circle() -> void:
 	if not highlight_circle: 
 		return
@@ -388,13 +499,13 @@ func _fade_circle_alpha(to_alpha: float) -> void:
 func is_player_in_area() -> bool:
 	return player_in_area
 
+## Whether this object offers itself at all; reach is InteractComponent's call.
 func can_interact() -> bool:
-	return player_in_area and shape_cast_detected
+	return true
 
 func interact() -> void:
 	if can_interact():
-		print("Взаимодействие с: ", item_name)
-		_stop_shake_cycle()  # Останавливаем тряску при взаимодействии
+		_stop_shake_cycle()
 		_on_interaction_performed()
 
 func _on_interaction_performed() -> void:
@@ -411,7 +522,7 @@ func _stop_shake_cycle() -> void:
 	_stop_shake()
 
 func _start_shake() -> void:
-	# Проверяем что игрок все еще в области и нет взаимодействия
+	# Marker animation follows proximity, not crosshair focus.
 	if not player_in_area or shape_cast_detected:
 		return
 	

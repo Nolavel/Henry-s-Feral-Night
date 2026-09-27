@@ -30,8 +30,17 @@ const WORLD_READY_METHOD: StringName = &"on_world_ready"
 ## Node systems — .new(), parented to World.
 const WORLD_SYSTEM_SCRIPTS: Array[GDScript] = [
 	preload("res://scripts/systems/world/WeatherController.gd"),
+	preload("res://scripts/systems/world/weather/snowfall_vfx.gd"),
+	preload("res://scripts/systems/world/snow/snow_presentation_system.gd"),
+	preload("res://scripts/systems/world/snow/footprint_system.gd"),
 	preload("res://scripts/systems/save/save_manager.gd"),
 	preload("res://core/world/streaming_system.gd"),
+	preload("res://scripts/systems/survival/thermal_manager.gd"),
+	preload("res://scripts/systems/survival/shelter_state.gd"),
+	preload("res://scripts/systems/world/shelter_grade_binder.gd"),
+	preload("res://scripts/systems/audio/world_audio_binder.gd"),
+	preload("res://scripts/systems/save/sleep_controller.gd"),
+	preload("res://scripts/systems/save/session_state.gd"),
 ]
 
 ## Standalone 3D scenes — instantiate(), parented to StreamContainer.
@@ -39,7 +48,9 @@ const WORLD_3D_ENTITY_SCENES: Array[PackedScene] = []
 
 ## Screen-space UI scenes — instantiate(), parented to a shared CanvasLayer.
 const WORLD_UI_SCENES: Array[PackedScene] = [
+	preload("res://scenes/ui/hud/input_hints/key_hints_panel.tscn"),
 	preload("res://scenes/ui/hud/sleep_prompt.tscn"),
+	preload("res://scenes/ui/menu/pause_menu.tscn"),
 ]
 
 const UI_CANVAS_LAYER_INDEX: int = 40
@@ -55,6 +66,9 @@ const SPAWN_CLEARANCE: float = 1.0
 @export var camera: Camera3D
 ## Where the player starts. Freed after use, as the old GameRouter did.
 @export var first_spawner_marker: Marker3D
+## Off for a scene with its own floor, such as TestScene, so the island's
+## chunks are not streamed on top of it.
+@export var streaming_enabled: bool = true
 
 var _systems: Array[Node] = []
 var _context: WorldContext
@@ -115,6 +129,7 @@ func _place_player() -> void:
 	player.global_position = (
 		first_spawner_marker.global_position + Vector3(0.0, SPAWN_CLEARANCE, 0.0)
 	)
+	player.global_rotation.y = first_spawner_marker.global_rotation.y
 	first_spawner_marker.queue_free()
 	first_spawner_marker = null
 
@@ -124,6 +139,8 @@ func _build_context() -> WorldContext:
 	context.player = player
 	context.camera = camera
 	context.stream_container = stream_container
+	context.world = self
+	context.streaming_enabled = streaming_enabled
 	context.systems = _systems
 	return context
 
@@ -148,7 +165,12 @@ func _build_ui() -> void:
 		_notify(instance)
 
 
-## Calls the optional lifecycle hook, if the node implements it.
+## Offers the optional lifecycle hook to a node and everything under it, so a
+## HUD indicator deep in the player scene can ask for what it needs too.
 func _notify(node: Node) -> void:
-	if node != null and node.has_method(WORLD_READY_METHOD):
+	if node == null:
+		return
+	if node.has_method(WORLD_READY_METHOD):
 		node.call(WORLD_READY_METHOD, _context)
+	for child: Node in node.get_children():
+		_notify(child)

@@ -1,0 +1,25 @@
+nodes: firewood=true feed=true cabinet=true board=true shelter=FirstExitBlockout
+phase 1 at 3.1s
+shot 01_firewood_approach action= locked=false carry=false
+phase 2 at 4.7s
+shot 02_firewood_pickup action=pickup locked=true carry=true
+shot 03_firewood_held action=pickup locked=false carry=true
+phase 3 at 6.6s
+shot 04_carry_walk_a action=pickup locked=false carry=true
+shot 05_carry_walk_b action=pickup locked=false carry=true
+phase 4 at 9.2s
+shot 06_carry_to_stove action=pickup locked=false carry=true
+stove fed; carrying=false
+phase 5 at 10.4s
+shot 07_stove_fed_hands_free action=interact locked=true carry=false
+phase 6 at 11.2s
+phase 7 at 13.5s
+shot 08_cabinet_reach action=chest_open locked=true carry=false
+shot 09_cabinet_swing action=chest_open locked=true carry=false
+shot 10_cabinet_open action=chest_open locked=false carry=false
+phase 8 at 15.2s
+phase 9 at 16.3s
+shot 11_fix_kneel action=fix locked=true carry=false
+shot 12_fix_work action=fix locked=true carry=false
+shot 13_fix_done_walks action=fix locked=true carry=false
+done

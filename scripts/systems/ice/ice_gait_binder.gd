@@ -14,19 +14,38 @@ signal gait_changed(gait: IceField.Gait)
 ## Optional. When set, its sprint state wins over the speed threshold.
 @export var movement_controller: MovementController
 
+## Optional. Its fill adds load: a full pack is heavier on thin ice.
+@export var inventory: InventoryComponent
+
+@export_group("Carry")
+## Extra ice load at a full pack, as a fraction of the gait's own load. Tuned
+## so a loaded walk across the thinnest bay ice cracks it but holds.
+@export var carry_load_factor: float = 0.6
+
 @export_group("Thresholds")
 ## Horizontal speed below which Henry counts as standing still, in m/s.
 @export var still_speed_mps: float = 0.35
 ## Horizontal speed at or above which he counts as sprinting, in m/s. Ignored
 ## when a movement controller is wired.
-@export var sprint_speed_mps: float = 6.0
+@export var sprint_speed_mps: float = 3.5
 
 @export_group("Crouch")
-## Input action for crouching. The project has no crouch yet, so this is empty
-## by default and CROUCH is simply never reported.
-@export var crouch_action: StringName = &""
+## Legacy scene compatibility. Runtime crouch prefers MovementController.
+@export var crouch_action: StringName = &"crouch"
 
 var _gait: IceField.Gait = IceField.Gait.STILL
+
+
+func on_world_ready(context: WorldContext) -> void:
+	if character_body == null:
+		character_body = context.player as CharacterBody3D
+	_resolve_movement_controller()
+
+
+func _resolve_movement_controller() -> void:
+	if movement_controller != null or character_body == null:
+		return
+	movement_controller = character_body.get_node_or_null(^"MovementController") as MovementController
 
 
 func _physics_process(_delta: float) -> void:
@@ -43,7 +62,17 @@ func apply(velocity: Vector3) -> IceField.Gait:
 		gait_changed.emit(gait)
 	if ice_field != null:
 		ice_field.set_gait(gait)
+		ice_field.set_load_multiplier(get_load_multiplier())
 	return gait
+
+
+## Ice load multiplier from what Henry carries, 1.0 with an empty pack.
+func get_load_multiplier() -> float:
+	if inventory == null and character_body != null and character_body.is_in_group(&"player"):
+		inventory = InventoryComponent.find_in(character_body)
+	if inventory == null:
+		return 1.0
+	return 1.0 + inventory.get_load_fraction() * carry_load_factor
 
 
 ## Gait for a velocity, without touching the field. Public so the HUD and the
@@ -65,12 +94,17 @@ func get_gait() -> IceField.Gait:
 
 
 func _is_sprinting(velocity: Vector3, speed: float) -> bool:
+	_resolve_movement_controller()
 	if movement_controller != null:
 		return movement_controller.is_currently_sprinting(velocity)
 	return speed >= sprint_speed_mps
 
 
 func _is_crouching() -> bool:
-	if crouch_action == &"" or not InputMap.has_action(crouch_action):
-		return false
-	return Input.is_action_pressed(crouch_action)
+	_resolve_movement_controller()
+	if movement_controller != null:
+		return movement_controller.is_crouching()
+	var input_systems: Node = get_node_or_null(^"/root/InputSystems")
+	if input_systems != null and input_systems.has_method(&"is_crouching"):
+		return bool(input_systems.call(&"is_crouching"))
+	return false
