@@ -29,10 +29,14 @@ If an agent cannot create or write its own branch, it must stop instead of falli
 Handover rules:
 
 - An agent reviews the other's branch on request; it never pushes to it.
-- Conflicting opinions are resolved in writing (a note in `CHANGELOG.md` or a doc
-  under `docs/`), not by silently reverting the other's work.
-- Shared conventions (style, engine version, hygiene) live in this file and in
-  `CLAUDE.md`; neither agent changes them without saying so in `CHANGELOG.md`.
+- Conflicting opinions are resolved in writing (a note in `CHANGELOG.md` or a doc under `docs/`), not by silently reverting the other's work.
+- Shared conventions (style, engine version, hygiene) live in this file and in `CLAUDE.md`; neither agent changes them without saying so in `CHANGELOG.md`.
+
+## Product documents
+
+- [PRD.md](PRD.md) — Product Requirements Document (vision, current north-star, success criteria, out of scope).
+- [CONTRIBUTING_DECOMPOSITION.md](CONTRIBUTING_DECOMPOSITION.md) — правила декомпозиции PRD → Epic → User Story → Task → Subtask.
+- [docs/game_design/VERTICAL_SLICE.md](docs/game_design/VERTICAL_SLICE.md) — текущий scope First Exit A.
 
 ## Engine baseline
 

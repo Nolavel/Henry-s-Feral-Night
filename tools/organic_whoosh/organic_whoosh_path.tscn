@@ -1,0 +1,16 @@
+[gd_scene load_steps=2 format=3]
+
+[ext_resource type="Script" path="res://tools/organic_whoosh/organic_whoosh_path.gd" id="1_whoosh"]
+
+[node name="OrganicWhooshPath" type="Path3D"]
+script = ExtResource("1_whoosh")
+length = 12.0
+height = 1.8
+loop_radius = 1.4
+ellipse_ratio = 1.25
+dive = 0.3
+early_exit = 0.55
+lateral_sway = 0.35
+curve_bake_interval = 0.12
+auto_rebuild = true
+show_preview_mesh = true
