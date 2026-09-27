@@ -37,10 +37,6 @@ signal interact_released(duration: float)
 ## --- Sleep (hold S, confirm with interact) ---
 ## The relay reports WHEN and FOR HOW LONG; it never says "that was a hold".
 ## The threshold belongs to whoever acts on it.
-signal sleep_hold_started()
-signal sleep_hold_progress(duration: float)
-signal sleep_hold_released(duration: float)
-signal sleep_hours_step(delta: int)
 signal sleep_cancel_pressed()
 
 const ACTION_MOVE_FORWARD: StringName = &"move_forward"
@@ -49,18 +45,35 @@ const ACTION_MOVE_LEFT: StringName = &"move_left"
 const ACTION_MOVE_RIGHT: StringName = &"move_right"
 const ACTION_SPRINT: StringName = &"sprint"
 const ACTION_JUMP: StringName = &"jump"
+const ACTION_CROUCH: StringName = &"crouch"
 const ACTION_INTERACT: StringName = &"interact"
-const ACTION_SLEEP: StringName = &"sleep"
 const ACTION_SLEEP_CANCEL: StringName = &"sleep_cancel"
-const ACTION_SLEEP_LESS: StringName = &"sleep_hours_less"
-const ACTION_SLEEP_MORE: StringName = &"sleep_hours_more"
+const ACTION_LEAN_LEFT: StringName = &"lean_left"
+const ACTION_LEAN_RIGHT: StringName = &"lean_right"
+const ACTION_SWITCH_SHOULDER: StringName = &"switch_shoulder"
+## Radians of camera turn per pixel of mouse travel.
+const MOUSE_SENSITIVITY: float = 0.003
 
-var _sleep_held_for: float = 0.0
-var _is_sleep_held: bool = false
 var _was_sprinting: bool = false
 var _interact_claimant: Node = null
 var _interact_duration: float = 0.0
 var _interact_active: bool = false
+var _look_accum: Vector2 = Vector2.ZERO
+var _frame_look_delta: Vector2 = Vector2.ZERO
+var _look_capture: bool = false
+var _shoulder_latch: bool = false
+
+
+func _ready() -> void:
+	var state: Node = get_node_or_null(^"/root/PlayerState")
+	if state != null and state.has_signal(&"mode_changed"):
+		state.connect(&"mode_changed", func(_old: int, _new: int) -> void: _apply_mouse_mode())
+
+
+## Mouse motion is accumulated per event and handed out once per physics frame.
+func _input(event: InputEvent) -> void:
+	if event is InputEventMouseMotion and _look_capture and not _is_gameplay_blocked():
+		_look_accum += (event as InputEventMouseMotion).relative * MOUSE_SENSITIVITY
 
 
 func _unhandled_input(event: InputEvent) -> void:
@@ -73,35 +86,24 @@ func _unhandled_input(event: InputEvent) -> void:
 		return
 	if _pressed(event, ACTION_JUMP):
 		jump_pressed.emit()
+	if _pressed(event, ACTION_SWITCH_SHOULDER):
+		_shoulder_latch = true
 	if _pressed(event, ACTION_INTERACT):
 		_begin_interact()
 	elif _released(event, ACTION_INTERACT):
 		_end_interact()
 	if _pressed(event, ACTION_SLEEP_CANCEL):
 		sleep_cancel_pressed.emit()
-	if _pressed(event, ACTION_SLEEP_LESS):
-		sleep_hours_step.emit(-1)
-	if _pressed(event, ACTION_SLEEP_MORE):
-		sleep_hours_step.emit(1)
-	if _pressed(event, ACTION_SLEEP):
-		_is_sleep_held = true
-		_sleep_held_for = 0.0
-		sleep_hold_started.emit()
-	elif _released(event, ACTION_SLEEP) and _is_sleep_held:
-		_is_sleep_held = false
-		sleep_hold_released.emit(_sleep_held_for)
-		_sleep_held_for = 0.0
 
 
 func _physics_process(delta: float) -> void:
+	_frame_look_delta = Vector2.ZERO if _is_gameplay_blocked() else _look_accum
+	_look_accum = Vector2.ZERO
 	_tick_interact(delta)
 	var sprinting: bool = is_sprinting()
 	if sprinting != _was_sprinting:
 		_was_sprinting = sprinting
 		sprint_changed.emit(sprinting)
-	if _is_sleep_held:
-		_sleep_held_for += delta
-		sleep_hold_progress.emit(_sleep_held_for)
 
 
 ## ============================================
@@ -207,20 +209,52 @@ func is_sprinting() -> bool:
 	return InputMap.has_action(ACTION_SPRINT) and Input.is_action_pressed(ACTION_SPRINT)
 
 
-## Seconds the sleep key has been held, answered from this file's own latch
-## rather than from Input.
-func get_sleep_hold_duration() -> float:
-	return _sleep_held_for
+func is_crouching() -> bool:
+	if _is_movement_blocked():
+		return false
+	return InputMap.has_action(ACTION_CROUCH) and Input.is_action_pressed(ACTION_CROUCH)
 
 
-func is_sleep_held() -> bool:
-	return _is_sleep_held
+## -1 full left lean, +1 full right; zero while movement is blocked.
+func get_lean_axis() -> float:
+	if _is_movement_blocked():
+		return 0.0
+	var axis: float = 0.0
+	if InputMap.has_action(ACTION_LEAN_LEFT) and Input.is_action_pressed(ACTION_LEAN_LEFT):
+		axis -= 1.0
+	if InputMap.has_action(ACTION_LEAN_RIGHT) and Input.is_action_pressed(ACTION_LEAN_RIGHT):
+		axis += 1.0
+	return axis
 
 
-## Drops the hold latch, for a consumer that has acted on it.
-func clear_sleep_hold() -> void:
-	_is_sleep_held = false
-	_sleep_held_for = 0.0
+## True once per shoulder-swap press; reading it clears the latch.
+func consume_switch_shoulder() -> bool:
+	var pressed: bool = _shoulder_latch
+	_shoulder_latch = false
+	return pressed
+
+
+## Mouse look this physics frame in radians; zero while paused or not captured.
+func get_look_delta() -> Vector2:
+	return _frame_look_delta
+
+
+## A mouse-look camera asks for the pointer; menus get it back while open.
+## Releasing always shows the pointer, so a title menu reached from a game has one.
+func set_look_capture(active: bool) -> void:
+	_look_capture = active
+	_look_accum = Vector2.ZERO
+	if not active:
+		Input.mouse_mode = Input.MOUSE_MODE_VISIBLE
+		return
+	_apply_mouse_mode()
+
+
+func _apply_mouse_mode() -> void:
+	if not _look_capture:
+		return
+	var captured: bool = not _is_gameplay_blocked()
+	Input.mouse_mode = Input.MOUSE_MODE_CAPTURED if captured else Input.MOUSE_MODE_VISIBLE
 
 
 ## PlayerState is an autoload, but this file is also driven directly by tests

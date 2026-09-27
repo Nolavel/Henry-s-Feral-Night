@@ -15,6 +15,8 @@ var _status_label: Label
 func _ready() -> void:
 	## A pause left over from a game quit mid-menu must not freeze the title.
 	get_tree().paused = false
+	## A camera freed mid-capture must not leave the title without a pointer.
+	InputSystems.set_look_capture(false)
 	_build()
 	refresh()
 

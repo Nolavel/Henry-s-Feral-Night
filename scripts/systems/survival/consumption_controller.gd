@@ -36,6 +36,16 @@ func can_consume(item_id: StringName) -> Refusal:
 	return Refusal.NONE
 
 
+## Item Use contract (PlayerHubComponent): Use on food or drink eats it.
+func can_use(item_id: StringName) -> bool:
+	return can_consume(item_id) == Refusal.NONE
+
+
+## The Player plays the eating animation on `consumed`.
+func use(item_id: StringName) -> bool:
+	return consume(item_id) == Refusal.NONE
+
+
 ## Consumes one of the item, wherever it is carried. Returns the refusal,
 ## or NONE when it was eaten.
 func consume(item_id: StringName) -> Refusal:
@@ -49,6 +59,22 @@ func consume(item_id: StringName) -> Refusal:
 		consume_refused.emit(item_id, Refusal.NOT_CARRIED)
 		return Refusal.NOT_CARRIED
 
+	_apply(item.consumable)
+	_leave_behind(item.consumable.leaves_behind_id)
+	consumed.emit(item_id, item)
+	return Refusal.NONE
+
+
+## Eats something that is not carried, straight off a stove top. Same effects
+## and leftover as consume(); the caller owns taking it away.
+func consume_from_world(item_id: StringName) -> Refusal:
+	var item: ItemResource = ItemCatalog.get_item(item_id)
+	if item == null:
+		return Refusal.UNKNOWN_ITEM
+	if item.consumable == null:
+		return Refusal.NOT_CONSUMABLE
+	if bio_monitor == null:
+		return Refusal.NO_BIO_MONITOR
 	_apply(item.consumable)
 	_leave_behind(item.consumable.leaves_behind_id)
 	consumed.emit(item_id, item)

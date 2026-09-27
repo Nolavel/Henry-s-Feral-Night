@@ -1,0 +1,2 @@
+# Input actions allowed to share a key, one pair per line: action_a, action_b  # why it is safe
+pause, sleep_cancel  # the sleep dialog claims Esc while open; pause never sees it then

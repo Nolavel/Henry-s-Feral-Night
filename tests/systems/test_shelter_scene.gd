@@ -61,12 +61,20 @@ func _run() -> void:
 		% [breach.get_exposure_against(wind), breach.severity]
 	)
 
-	## Board it up with a real item through the real prompt.
-	inventory.try_add(ItemCatalog.get_item(&"boards"))
+	## Lay a real three-board armful beside the window. This no longer performs
+	## an instant binary repair; hammer+nails place each board later.
+	for _i: int in range(3):
+		inventory.try_add(ItemCatalog.get_item(&"boards"))
 	board_up._on_interaction_performed()
-	_check(breach.is_boarded(), "the prompt did not board the window")
-	_check(breach.boarded_visual.visible, "the boards did not appear")
-	_check(not inventory.has_item(&"boards"), "boarding did not spend the boards")
+	_check(breach.get_staged_boards() == 3, "the armful was not staged beside the window")
+	_check(not inventory.has_item(&"boards"), "staging left boards in Henry's hands")
+	_check(not breach.is_boarded(), "laying boards beside the window magically sealed it")
+	_check(not breach.boarded_visual.visible, "legacy three-plank visual appeared for staged boards")
+	breach.place_board(-0.30)
+	breach.place_board(0.0)
+	breach.place_board(0.30)
+	_check(breach.get_coverage_fraction() > 0.5 and not breach.is_boarded(),
+		"three real placements did not leave the intended residual gap")
 
 	## Light it with real items through the real prompt.
 	inventory.try_add(ItemCatalog.get_item(&"tinder"))
@@ -80,31 +88,56 @@ func _run() -> void:
 
 	_dispose(player)
 	_dispose(shelter)
-	_test_a_pickup_goes_into_the_pack()
+	_test_hand_carried_pickups()
 	_finish()
 
 
-func _test_a_pickup_goes_into_the_pack() -> void:
+func _test_hand_carried_pickups() -> void:
 	var player := CharacterBody3D.new()
 	player.add_to_group("player")
 	var inventory := InventoryComponent.new()
 	player.add_child(inventory)
 	root.add_child(player)
 
-	var pickup := ItemPickup.new()
-	pickup.item_id = &"firewood"
-	pickup.count = 2
-	root.add_child(pickup)
-	_check(pickup.pick_up(), "a pickup refused to go into an empty pack")
-	_check(inventory.get_count(&"firewood") == 2, "the pack holds %d firewood, expected 2" % inventory.get_count(&"firewood"))
+	var two_logs := ItemPickup.new()
+	two_logs.item_id = &"firewood"
+	two_logs.count = 2
+	root.add_child(two_logs)
+	_check(two_logs.pick_up(), "two logs were refused with empty hands")
+	_check(inventory.get_count(&"firewood") == 2, "two picked logs were not carried")
 
-	inventory.max_carry_weight = inventory.get_total_weight() + 1.0
-	var heavy := ItemPickup.new()
-	heavy.item_id = &"firewood"
-	root.add_child(heavy)
-	_check(not heavy.pick_up(), "a pickup went into a full pack")
-	_check(inventory.get_count(&"firewood") == 2, "a refused pickup still added wood")
-	_dispose(heavy)
+	var third_log := ItemPickup.new()
+	third_log.item_id = &"firewood"
+	root.add_child(third_log)
+	_check(third_log.pick_up(), "the third log was refused")
+	_check(inventory.get_count(&"firewood") == 3, "the third log did not join the armful")
+
+	var fourth_log := ItemPickup.new()
+	fourth_log.item_id = &"firewood"
+	root.add_child(fourth_log)
+	_check(not fourth_log.pick_up(), "a fourth log exceeded the three-unit hand limit")
+	_check(inventory.get_count(&"firewood") == 3, "a refused fourth log changed the count")
+	_dispose(fourth_log)
+
+	var board_while_logs := ItemPickup.new()
+	board_while_logs.item_id = &"boards"
+	root.add_child(board_while_logs)
+	_check(not board_while_logs.pick_up(), "boards mixed into an occupied firewood armful")
+	_dispose(board_while_logs)
+
+	while inventory.has_item(&"firewood"):
+		inventory.try_remove(&"firewood")
+	var three_boards := ItemPickup.new()
+	three_boards.item_id = &"boards"
+	three_boards.count = 3
+	root.add_child(three_boards)
+	_check(three_boards.pick_up(), "three boards were refused with free hands")
+	_check(inventory.get_count(&"boards") == 3, "three boards were not carried")
+	var fourth_board := ItemPickup.new()
+	fourth_board.item_id = &"boards"
+	root.add_child(fourth_board)
+	_check(not fourth_board.pick_up(), "a fourth board exceeded the hand limit")
+	_dispose(fourth_board)
 	_dispose(player)
 
 

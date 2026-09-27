@@ -18,4 +18,5 @@ display_name = "Handful of snow"
 weight = 0.2
 max_stack = 2
 size_class = 0
+warms_into = &"warm_water"
 consumable = SubResource("C_snow_handful")

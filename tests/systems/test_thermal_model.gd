@@ -25,6 +25,7 @@ func _run() -> void:
 	_test_wet_clothing_costs_insulation()
 	_test_stage_ladder_is_ordered()
 	_test_a_lit_shelter_rewarms_a_chilled_player()
+	_test_shelter_edges_are_signalled_once()
 	if _failures > 0:
 		push_error("thermal: %d check(s) failed" % _failures)
 		quit(1)
@@ -259,3 +260,29 @@ func _test_clothes_dry_by_the_warmth() -> void:
 	_check(is_equal_approx(outdoors.get_wetness(), 1.0), "clothes dried at -15 C")
 	for thermal: ThermalManager in [by_stove, cold_room, outdoors]:
 		thermal.free()
+
+
+## Presentation (the colour grade in #31) switches on this edge, so it must fire
+## once per real change: two overlapping interiors are still one "inside".
+func _test_shelter_edges_are_signalled_once() -> void:
+	var manager := ThermalManager.new()
+	root.add_child(manager)
+	var edges: Array[bool] = []
+	manager.sheltered_changed.connect(func(inside: bool) -> void: edges.append(inside))
+	var room := ThermalZone.new()
+	room.is_interior = true
+	var porch := ThermalZone.new()
+	porch.is_interior = true
+	var yard := ThermalZone.new()
+	yard.is_interior = false
+	for zone: ThermalZone in [room, porch, yard]:
+		root.add_child(zone)
+	manager._on_zone_entered(yard)
+	manager._on_zone_entered(porch)
+	manager._on_zone_entered(room)
+	manager._on_zone_exited(porch)
+	manager._on_zone_exited(room)
+	manager._on_zone_exited(yard)
+	_check(edges == [true, false], "expected one enter and one leave edge, got %s" % [edges])
+	for node: Node in [manager, room, porch, yard]:
+		node.queue_free()

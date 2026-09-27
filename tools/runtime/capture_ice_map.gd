@@ -85,7 +85,7 @@ func _simulate_crossing() -> void:
 	var walked: float = 0.0
 	var total: float = _route_length(_bay_route)
 	## MovementController.sprint_speed; a slower guess made sprinting look safe.
-	var speed: float = 8.0
+	var speed: float = 4.5
 	var elapsed: float = 0.0
 	while walked < total and broke.is_empty():
 		walked += speed * 0.1

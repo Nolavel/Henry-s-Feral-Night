@@ -1,0 +1,25 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="512" height="512" viewBox="0 0 512 512">
+  <g fill="none" stroke="#fff" stroke-linecap="round" stroke-linejoin="round">
+    <!-- Clean Enso rebuilt from the reference: smooth vector contour, open at six o'clock. -->
+    <path d="M 307 450
+             C 382 430, 442 365, 458 286
+             C 474 207, 444 126, 382 78
+             C 322 31, 235 27, 170 58
+             C 96 93, 51 163, 52 246
+             C 53 331, 101 403, 181 438"
+          stroke-width="44" opacity="0.98"/>
+    <!-- Soft secondary brush pass: irregularity without raster stair-stepping. -->
+    <path d="M 315 447
+             C 386 424, 437 361, 452 283
+             C 466 207, 437 134, 379 87
+             C 320 39, 242 34, 177 62
+             C 106 93, 60 164, 60 244
+             C 60 327, 106 394, 187 431"
+          stroke-width="13" opacity="0.23"/>
+    <!-- Dry-brush tails only around the opening; these keep the reference character at close range. -->
+    <path d="M 307 449 C 295 452, 286 454, 276 455" stroke-width="24" opacity="0.46"/>
+    <path d="M 181 438 C 194 444, 205 447, 217 450" stroke-width="20" opacity="0.34"/>
+    <path d="M 321 443 C 308 451, 299 455, 289 458" stroke-width="8" opacity="0.28"/>
+    <path d="M 170 433 C 183 440, 194 444, 204 447" stroke-width="7" opacity="0.24"/>
+  </g>
+</svg>

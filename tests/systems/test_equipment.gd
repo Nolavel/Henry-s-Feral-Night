@@ -26,6 +26,9 @@ func _run() -> void:
 	_test_equipment_survives_a_save_round_trip()
 	_test_weight_gates_the_inventory()
 	_test_clothing_slows_freezing()
+	_test_the_backpack_is_worn_in_the_pack_slot()
+	_test_kenny_rides_the_fixture_and_weighs()
+	_test_worn_clothes_show_and_darken_when_wet()
 	if _failures > 0:
 		push_error("equipment: %d check(s) failed" % _failures)
 		quit(1)
@@ -57,13 +60,17 @@ func _make_equipment(starters: Array[StringName] = []) -> EquipmentComponent:
 
 
 func _test_the_catalog_resolves_the_shipped_items() -> void:
-	for id: StringName in [&"worn_coat", &"knit_hat", &"work_trousers", &"worn_boots"]:
+	for id: StringName in [&"worn_coat", &"knit_hat", &"work_trousers", &"worn_boots", &"backpack"]:
 		var item: ItemResource = ItemCatalog.get_item(id)
 		_check(item != null, "the catalog does not resolve '%s'" % id)
 		if item != null:
 			_check(item.garment != null, "'%s' is not a garment" % id)
 			_check(item.garment.insulation_c > 0.0, "'%s' insulates nothing" % id)
 
+	var hammer: ItemResource = ItemCatalog.get_item(&"hammer")
+	var nails: ItemResource = ItemCatalog.get_item(&"nails")
+	_check(hammer != null and hammer.prefer_quick_access, "the shelter hammer is not a Quick Access tool")
+	_check(nails != null and nails.max_stack >= 30, "the 30-nail shelter box cannot be represented")
 	var stew: ItemResource = ItemCatalog.get_item(&"tinned_stew")
 	_check(stew != null and stew.consumable != null, "tinned stew is not consumable")
 	if stew != null and stew.consumable != null:
@@ -299,3 +306,83 @@ func _simulate(thermal: ThermalManager, hours: float) -> void:
 		clock = fmod(clock + step, 24.0)
 		thermal._on_time_update(clock)
 		elapsed += step
+
+
+## The pack is a garment: it goes on the pack slot, brings its own
+## compartments, and its box shows on the body only while worn.
+func _test_the_backpack_is_worn_in_the_pack_slot() -> void:
+	var player := CharacterBody3D.new()
+	var equipment := EquipmentComponent.new()
+	equipment.name = "EquipmentComponent"
+	equipment.layout = load(LAYOUT) as EquipmentLayout
+	equipment.starter_garment_ids = [&"backpack"]
+	player.add_child(equipment)
+	var visual := (load("res://scenes/actors/player/HenryUALVisual.tscn") as PackedScene).instantiate() as HenryUALAnimation
+	player.add_child(visual)
+	root.add_child(player)
+	_check(equipment.get_equipped(&"pack") == &"backpack", "the backpack is not in the pack slot")
+	_check(equipment.can_stow(&"pack", &"pack_main", &"firewood") == EquipmentComponent.Refusal.HANDS_ONLY,
+		"firewood was allowed into the backpack")
+	_check(equipment.can_stow(&"pack", &"pack_main", &"boards") == EquipmentComponent.Refusal.HANDS_ONLY,
+		"boards were allowed into the backpack")
+	var pack := visual.find_child("Backpack", true, false) as Node3D
+	_check(pack != null and pack.visible, "the backpack box is not shown while worn")
+	equipment.unequip(&"pack")
+	_check(pack != null and not pack.visible, "the backpack box still shows after taking it off")
+	_dispose(player)
+
+
+## Kenny starts on his fixture, shows on the pack, and his weight is carried.
+func _test_kenny_rides_the_fixture_and_weighs() -> void:
+	var player := CharacterBody3D.new()
+	var equipment := EquipmentComponent.new()
+	equipment.name = "EquipmentComponent"
+	equipment.layout = load(LAYOUT) as EquipmentLayout
+	equipment.starter_garment_ids = [&"backpack"]
+	equipment.starter_slot_items = {&"back_fixture": &"kenny"}
+	player.add_child(equipment)
+	var inventory := InventoryComponent.new()
+	inventory.equipment = equipment
+	player.add_child(inventory)
+	var visual := (load("res://scenes/actors/player/HenryUALVisual.tscn") as PackedScene).instantiate() as HenryUALAnimation
+	player.add_child(visual)
+	root.add_child(player)
+	_check(equipment.get_equipped(&"back_fixture") == &"kenny", "Kenny is not on the back fixture")
+	_check(is_equal_approx(inventory.get_total_weight(), 3.0), "Kenny's 3 kg is not carried (%.1f)" % inventory.get_total_weight())
+	var kenny := visual.find_child("Kenny", true, false) as Node3D
+	_check(kenny != null and kenny.visible, "Kenny is not shown on the pack")
+	equipment.unequip(&"back_fixture")
+	_check(kenny != null and not kenny.visible, "Kenny still shows after coming off")
+	_check(is_equal_approx(inventory.get_total_weight(), 0.0), "weight stays after Kenny comes off")
+	_dispose(player)
+
+
+## Hat, coat, trousers and boots show while worn, hide when removed, and
+## darken as they get wet.
+func _test_worn_clothes_show_and_darken_when_wet() -> void:
+	var player := CharacterBody3D.new()
+	var equipment := EquipmentComponent.new()
+	equipment.name = "EquipmentComponent"
+	equipment.layout = load(LAYOUT) as EquipmentLayout
+	equipment.starter_garment_ids = [&"worn_coat", &"knit_hat", &"work_trousers", &"worn_boots"]
+	player.add_child(equipment)
+	var visual := (load("res://scenes/actors/player/HenryUALVisual.tscn") as PackedScene).instantiate() as HenryUALAnimation
+	player.add_child(visual)
+	root.add_child(player)
+	for mesh_name: String in ["Hat", "Coat", "Trousers", "Boots"]:
+		var node := visual.find_child(mesh_name, true, false) as Node3D
+		_check(node != null and node.visible, "%s is not shown while worn" % mesh_name)
+	equipment.unequip(&"head")
+	var hat := visual.find_child("Hat", true, false) as Node3D
+	_check(hat != null and not hat.visible, "the hat still shows after taking it off")
+	var torso_skin := visual.find_child("Skin_Coat", true, false) as Node3D
+	_check(torso_skin != null and not torso_skin.visible, "skin under the coat shows through it")
+	var coat_group := visual.find_child("Coat", true, false) as Node3D
+	var coat_mesh := coat_group.find_children("*", "MeshInstance3D", true, false)[0] as MeshInstance3D
+	var dry: Color = (coat_mesh.get_active_material(0) as StandardMaterial3D).albedo_color
+	visual.set_wetness(1.0)
+	var wet: Color = (coat_mesh.get_active_material(0) as StandardMaterial3D).albedo_color
+	_check(wet.get_luminance() < dry.get_luminance() - 0.05, "wet clothes do not read darker")
+	equipment.unequip(&"torso")
+	_check(not coat_group.visible and torso_skin.visible, "taking the coat off leaves a hole in the body")
+	_dispose(player)

@@ -1,0 +1,11 @@
+[gd_resource type="Resource" script_class="ItemResource" load_steps=2 format=3]
+
+[ext_resource type="Script" path="res://core/items/item_resource.gd" id="item"]
+
+[resource]
+script = ExtResource("item")
+id = &"nails"
+display_name = "Nails"
+weight = 0.01
+max_stack = 60
+size_class = 0

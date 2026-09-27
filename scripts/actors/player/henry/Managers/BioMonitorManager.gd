@@ -81,7 +81,6 @@ var has_recently_rested: bool = false
 
 # === ССЫЛКИ ===
 @export var dn_manager: DayNightManager
-@export var bio_monitor_ui: Control
 
 func _ready():
 	# Инициализация начальных значений
@@ -98,9 +97,7 @@ func _ready():
 		dn_manager.time_changed.connect(_on_time_changed)
 	else:
 		print("ОШИБКА: DayNightManager не назначен в BioMonitorManager!")
-		
-	if not bio_monitor_ui:
-		print("ОШИБКА: PlayerHUD_Control не назначен в BioMonitorManager! Динамические оповещения не будут работать.")
+
 
 	# Инициализация начального прогресса и состояний
 	call_deferred("emit_initial_progress")
@@ -116,7 +113,7 @@ func emit_initial_progress():
 	is_currently_critically_thirsty = (current_hydration <= max_hydration * (critical_thirst_threshold / 100.0))
 	is_currently_critically_tired = (current_energy <= max_energy * (critical_energy_threshold / 100.0))
 
-func _on_time_changed(_formatted_time: String, _is_day: bool, _day_number: int, _period_description: String) -> void:
+func _on_time_changed(_formatted_time: String, _is_day: bool, _day_number: int, _period_description: String):
 	var current_game_hour = int(dn_manager.get_current_hour_float()) 
 
 	if current_game_hour != last_game_hour:
@@ -144,36 +141,32 @@ func _on_time_changed(_formatted_time: String, _is_day: bool, _day_number: int, 
 		# === ПРОВЕРКА КРИТИЧЕСКИХ СОСТОЯНИЙ ===
 		check_critical_states()
 		
-		# === UI МЕТОДЫ (если назначен) ===
-		if bio_monitor_ui:
-			# Upper/Lower алерты только если НЕ в критических состояниях
-			trigger_ui_alerts()
 
-## Applies hourly consumption to all survival meters.
-func process_hourly_consumption() -> void:
+## Applies the hourly drain of every vital; `fraction` bills part of an hour.
+func process_hourly_consumption(fraction: float = 1.0):
 	# Голод
 	var hourly_calorie_loss = base_metabolism_rate
 	hourly_calorie_loss = apply_hunger_modifiers(hourly_calorie_loss) # TODO: Будущие модификаторы
-	current_calories = max(0.0, current_calories - hourly_calorie_loss)
+	current_calories = max(0.0, current_calories - hourly_calorie_loss * fraction)
 	
 	# Жажда  
 	var hourly_thirst_loss = base_thirst_rate
 	hourly_thirst_loss = apply_thirst_modifiers(hourly_thirst_loss) # TODO: Жара, активность
-	current_hydration = max(0.0, current_hydration - hourly_thirst_loss)
+	current_hydration = max(0.0, current_hydration - hourly_thirst_loss * fraction)
 	
 	# Энергия
 	var hourly_energy_loss = base_energy_rate
 	hourly_energy_loss = apply_energy_modifiers(hourly_energy_loss) # TODO: Влияние голода
-	current_energy = max(0.0, current_energy - hourly_energy_loss)
+	current_energy = max(0.0, current_energy - hourly_energy_loss * fraction)
 
-## Emits progress updates for all survival meters.
-func update_ui_signals() -> void:
+## Emits UI update signals for every vital.
+func update_ui_signals():
 	hunger_level_changed.emit(calculate_hunger_progress())
 	thirst_level_changed.emit(calculate_thirst_progress())
 	energy_level_changed.emit(calculate_energy_progress())
 
-## Updates critical states and emits their transitions.
-func check_critical_states() -> void:
+## Checks every vital against its critical threshold.
+func check_critical_states():
 	# === ГОЛОД ===
 	var new_critical_hunger = (current_calories <= max_calories * (critical_hunger_threshold / 100.0))
 	if new_critical_hunger and not is_currently_critically_hungry:
@@ -207,21 +200,7 @@ func check_critical_states() -> void:
 		exhaustion_recovered.emit()
 		print("Игрок восстановил энергию.")
 
-## Triggers alerts when a noncritical survival meter decreases.
-func trigger_ui_alerts() -> void:
-	# Голод - только если не в критическом состоянии и значение уменьшилось
-	if not is_currently_critically_hungry and current_calories < previous_calories:
-		bio_monitor_ui.trigger_hourly_hunger_alert()
-	
-	# Жажда - только если не в критическом состоянии и значение уменьшилось
-	if not is_currently_critically_thirsty and current_hydration < previous_hydration:
-		bio_monitor_ui.trigger_hourly_thirst_alert()
-	
-	# Энергия - только если не в критическом состоянии и значение уменьшилось
-	if not is_currently_critically_tired and current_energy < previous_energy:
-		bio_monitor_ui.trigger_hourly_energy_alert()
-
-# === РАСЧЕТ ПРОГРЕССА ===
+## Fires UI alerts when a vital changes.
 func calculate_hunger_progress() -> float:
 	return clamp(current_calories / max_calories, 0.0, 1.0)
 
@@ -233,7 +212,7 @@ func calculate_energy_progress() -> float:
 
 # === МЕТОДЫ ВОСПОЛНЕНИЯ ===
 ## Adds calories and updates the UI.
-func add_calories(amount: float) -> void:
+func add_calories(amount: float):
 	var old_critical_state = is_currently_critically_hungry
 	
 	current_calories = clamp(current_calories + amount, 0.0, max_calories)
@@ -248,11 +227,9 @@ func add_calories(amount: float) -> void:
 		print("Игрок поел, больше не в критическом голоде.")
 	
 	# Показываем Upper alert при восполнении
-	if bio_monitor_ui:
-		bio_monitor_ui.trigger_hunger_upper_alert()
 
 ## Adds hydration and updates the UI.
-func add_hydration(amount: float) -> void:
+func add_hydration(amount: float):
 	var old_critical_state = is_currently_critically_thirsty
 	
 	current_hydration = clamp(current_hydration + amount, 0.0, max_hydration)
@@ -267,11 +244,9 @@ func add_hydration(amount: float) -> void:
 		print("Игрок восстановил гидратацию.")
 	
 	# Показываем Upper alert при восполнении
-	if bio_monitor_ui:
-		bio_monitor_ui.trigger_thirst_upper_alert()
 
 ## Adds energy and updates the UI.
-func add_energy(amount: float) -> void:
+func add_energy(amount: float):
 	var old_critical_state = is_currently_critically_tired
 	
 	current_energy = clamp(current_energy + amount, 0.0, max_energy)
@@ -286,11 +261,21 @@ func add_energy(amount: float) -> void:
 		print("Игрок восстановил энергию.")
 	
 	# Показываем Upper alert при восполнении
-	if bio_monitor_ui:
-		bio_monitor_ui.trigger_energy_upper_alert()
 
 ## Restores energy over a night and charges the night's own metabolism.
 ## Sleep is not a free reset: a starving or parched body rests badly.
+## Bills hours spent awake while the clock jumps (waiting by the stove), fractions included.
+func pass_awake_hours(hours: float) -> void:
+	var whole: int = floori(maxf(hours, 0.0))
+	for i: int in range(whole):
+		process_hourly_consumption()
+	var part: float = maxf(hours, 0.0) - float(whole)
+	if part > 0.0:
+		process_hourly_consumption(part)
+	update_ui_signals()
+	check_critical_states()
+
+
 func rest_sleep(hours: float) -> void:
 	if hours <= 0.0:
 		return
@@ -312,12 +297,12 @@ func get_rest_quality() -> float:
 	return clamp(worst * 2.0, minimum_rest_quality, 1.0)
 
 # === МОДИФИКАТОРЫ (ЗАГЛУШКИ ДЛЯ БУДУЩЕГО ФУНКЦИОНАЛА) ===
-## Applies modifiers to calorie consumption.
+## Applies modifiers to calorie drain.
 func apply_hunger_modifiers(base_rate: float) -> float:
 	# TODO: Влияние температуры, активности, болезней
 	return base_rate
 
-## Applies modifiers to hydration consumption.
+## Applies modifiers to hydration drain.
 func apply_thirst_modifiers(base_rate: float) -> float:
 	# TODO: Влияние жары, физической активности, потоотделения
 	return base_rate

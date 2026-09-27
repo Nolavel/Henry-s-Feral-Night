@@ -1,0 +1,21 @@
+[gd_resource type="Resource" script_class="ItemResource" load_steps=4 format=3]
+
+[ext_resource type="Script" path="res://core/items/item_resource.gd" id="item"]
+[ext_resource type="Script" path="res://core/items/consumable_data.gd" id="consumable"]
+
+[sub_resource type="Resource" id="C_warm_water_mug"]
+script = ExtResource("consumable")
+calories = 0.0
+hydration = 12.0
+energy = 0.0
+body_heat_cost_c = -0.3
+leaves_behind_id = &"mug"
+
+[resource]
+script = ExtResource("item")
+id = &"warm_water_mug"
+display_name = "Warm water"
+weight = 0.45
+max_stack = 1
+size_class = 0
+consumable = SubResource("C_warm_water_mug")

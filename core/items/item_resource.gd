@@ -28,7 +28,21 @@ extends Resource
 @export var size_class: ItemTraits.SizeClass = ItemTraits.SizeClass.POCKET
 ## Wearable facet. Null means this item cannot be worn.
 @export var garment: GarmentData = null
+## Tap-F pickup may move this item from the pack into the first fitting physical
+## Quick Access pocket after the stow animation. Hold-F manual placement wins.
+@export var prefer_quick_access: bool = false
+
+@export_group("Visuals")
+## Mesh on Henry shown while this non-garment rides in a body slot, e.g. Kenny.
+@export var attached_mesh_node_name: StringName = &""
+## Carried in both hands, never stowed: while held, Henry walks with it in his
+## arms, shown by the mesh named in attached_mesh_node_name.
+@export var carried_in_hands: bool = false
+## Maximum units that can be held as one visible two-hand load.
+@export_range(1, 8, 1) var hand_carry_limit: int = 3
 
 @export_group("Survival")
 ## Edible facet. Null means this item cannot be consumed.
 @export var consumable: ConsumableData = null
+## What this becomes after warming on a stove top; empty means it does not warm.
+@export var warms_into: StringName = &""

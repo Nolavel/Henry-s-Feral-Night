@@ -37,6 +37,8 @@ const WORLD_SYSTEM_SCRIPTS: Array[GDScript] = [
 	preload("res://core/world/streaming_system.gd"),
 	preload("res://scripts/systems/survival/thermal_manager.gd"),
 	preload("res://scripts/systems/survival/shelter_state.gd"),
+	preload("res://scripts/systems/world/shelter_grade_binder.gd"),
+	preload("res://scripts/systems/audio/world_audio_binder.gd"),
 	preload("res://scripts/systems/save/sleep_controller.gd"),
 	preload("res://scripts/systems/save/session_state.gd"),
 ]
@@ -46,6 +48,7 @@ const WORLD_3D_ENTITY_SCENES: Array[PackedScene] = []
 
 ## Screen-space UI scenes — instantiate(), parented to a shared CanvasLayer.
 const WORLD_UI_SCENES: Array[PackedScene] = [
+	preload("res://scenes/ui/hud/input_hints/key_hints_panel.tscn"),
 	preload("res://scenes/ui/hud/sleep_prompt.tscn"),
 	preload("res://scenes/ui/menu/pause_menu.tscn"),
 ]
@@ -126,6 +129,7 @@ func _place_player() -> void:
 	player.global_position = (
 		first_spawner_marker.global_position + Vector3(0.0, SPAWN_CLEARANCE, 0.0)
 	)
+	player.global_rotation.y = first_spawner_marker.global_rotation.y
 	first_spawner_marker.queue_free()
 	first_spawner_marker = null
 

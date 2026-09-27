@@ -5,6 +5,723 @@ Maintained per branch; entries are added by whoever makes the change.
 
 ## [Unreleased] — `codex`
 
+### 2026-09-25 — Bunker road flare made part of the opening (codex)
+
+Added
+- One recognisable unlit road flare now lies beside the bunker bedroll instead
+  of the opening route starting without an emergency light.
+- Route coverage locks its placement, count and item-specific world visual.
+
+Changed
+- The flare burns for 75 real seconds: 30 minutes on First Exit's 3600-second
+  game-day clock, matching a real long-burning road-flare rating in game time.
+- Controls now document the existing pocket flow: `F` to collect, wheel to
+  select, wheel-click to strike, and wheel-click again to drop it burning.
+
+### 2026-09-25 — First Exit buildings made physically enterable (codex)
+
+Fixed
+- Re-anchored each bungalow to the ground at its own veranda approach instead
+  of the lowest point of the whole lot; northern decks no longer sink into the
+  terrain.
+- Replaced the decorative single veranda block with visible timber steps over
+  a shallow ramp collider, because Henry has no automatic step-up.
+- Widened house and shed openings, raised lintels and the veranda lean-to roof,
+  leaving real clearance around Henry's 1 m x 2 m collision body.
+
+Added
+- Standing houses and sheds now carry a physical hinged door that opens and
+  closes on `F`. Boarding the shelter doorway closes and locks that leaf.
+- Regression coverage checks all eleven bungalow approaches, door dimensions,
+  matching door collision and the open / close / board interaction lifecycle.
+
+Removed
+- The generic `InteractiveArea` template no longer silently spawns a test
+  flashlight. The TestScene flashlight now opts into that prop explicitly, so
+  generated repair prompts cannot place an invisible blocker in a doorway.
+
+### 2026-09-25 — Restrained startup title (codex)
+
+Changed
+- The engine boot is now a plain `#101010` field instead of the old illustrated
+  splash.
+- The playable island opens under a centered `Henry's Feral Night` / `ALPHA 0.1`
+  title card in soft white, then reveals the scene with a short fade. Capture
+  tools that instantiate the island directly skip the card.
+
+Removed
+- The obsolete `Splash_testing.png` asset and its import metadata.
+
+Tested
+- Added `test_startup_presentation.gd` to lock the boot colour, wording,
+  version label, main-scene wiring and removal of the legacy image.
+
+### 2026-09-25 — Drifting snow made readable (claudeflow)
+
+Changed
+- `SnowLift` (Codex's surface-transport rework): grains are now soft round-edged
+  streaks instead of hard quads, in a muted off-white. They are larger, and the
+  layers sit 5 cm above the surface so they no longer sink into it.
+
+Added
+- A thin ground haze layer that the streamer drags along, so the drift reads
+  from eye height.
+
+### 2026-09-25 — Snow lifted by gusts (claudeflow)
+
+Added
+- `scripts/vfx/snow_lift.gd`: a one-shot puff of grains lifted off the surface.
+  They leave about 10 degrees above flat along the wind, curve steeper under an
+  upward pull and fade out. The grains are tinted a shade off the snow so they
+  read against it.
+- WindGusts lifts snow on the ground under each streak, found with a raycast.
+
+### 2026-09-25 — Wind gusts in First Exit (claudeflow)
+
+Added
+- `scripts/vfx/wind_gusts.gd`: WindStreak loops in front of the camera, running
+  with the wind. None below 6 m/s, one every ~2.6 s in `windy`, and one every
+  ~0.6 s in `blizzard`. Never shown while sheltered. A five-streak burst plays
+  when the weather turns.
+- WeatherBeat owns one WindGusts and fires the burst on `beat_started`.
+
+### 2026-09-25 — WindStreak VFX (claudeflow)
+
+Added
+- `scripts/vfx/wind_streak.gd`: a cartoon wind streak. A line draws itself,
+  curls into one closed self-crossing loop, runs on straight and fades from the
+  tail. The heading turns exactly 360 degrees under a gaussian curvature bump, so the loop
+  always closes. Camera-facing ribbon, tapered and alpha-faded towards the tail.
+
+### 2026-09-25 — First Exit A playtest kit (#80) (claudeflow)
+
+Added
+- `docs/playtest/FIRST_EXIT_A_RUN.md`: what the observer says (and must not),
+  the beat timeline with what to watch and what to ask, the retelling that
+  decides pass, and the failure pass.
+- `tools/runtime/capture_first_exit_frames.gd`: the six publisher frames of the
+  #80 table from the real scene (exile, route clutter, weather turn, boarding,
+  lit stove, seated with Kenny) into `docs/art/issue80/`.
+
+### 2026-09-25 — Breach drafts; one weather controller (#80) (claudeflow)
+
+Added
+- `BreachDraft` on every `ShelterBreach`: snow blows in through an open breach,
+  as dense as `get_exposure_against(wind)` times the wind speed, so the player
+  sees which side to board first; a lee-side hole stays quiet and a boarded one
+  stops. `test_breach_draft`, `tools/runtime/capture_breach_draft.gd`, frame
+  `docs/art/issue80/01_snow_through_windward_breach.png`.
+
+Removed
+- The empty `WeatherController` node in `WorldEnvironmentSystem.tscn` and the
+  unread `WorldEnvironmentController.weather_controller` export: the world's
+  system controller is the only one.
+
+### 2026-09-25 — Game time: 60 real minutes a day, start at noon (#42) (claudeflow)
+
+Changed
+- Author decision for First Exit A: a full game day is a stable 60 real minutes
+  (`day_duration` + `night_duration` = 1800 + 1800 s, was 72 + 72), with no
+  dynamic coefficients. One game hour = 2.5 real minutes.
+- `DayNightManager.start_hour` (default 12.0): a new game starts at noon so a
+  10–15 minute run reaches late afternoon and dusk; a save overrides it.
+- Knock-on: one log (2 h) now burns 5 real minutes, warming on the stove
+  (0.5 h) 75 s; the weather beat's 180 s storm is about 1.2 game hours.
+
+### 2026-09-25 — Authored weather turn on the First Exit route (#78) (claudeflow)
+
+Added
+- `WeatherBeat` (placed by the First Exit builder, saveable): holds `calm` on the
+  way out; once per run, when Henry is 200 m from his start (or after 300 s real
+  as a fallback so the door cannot be waited out), and never while he is
+  sheltered, it drives the one WeatherController into `blizzard` for 180 real
+  seconds, then `windy` (never straight back to calm), then the scheduler.
+  Beat length is in real seconds because the game clock runs a day in 144 s.
+- `WeatherController.set_weather(id, instant, duration_h, then_id)`: an authored
+  beat can pin a duration and the profile that follows; `then_id` is saved.
+- The beat finds the populated WeatherController itself: the environment scene
+  carries an empty leftover controller, and this scene gets no on_world_ready.
+- `test_weather_beat`, `tools/runtime/capture_weather_beat.gd`, frame
+  `docs/art/issue78/calm_then_storm.png`.
+
+### 2026-09-25 — Consumed world pickups stay consumed (#79) (claudeflow)
+
+Added
+- `ItemPickup.world_id`: a stable id for authored pickups; the First Exit
+  builder sets it from the layout id (all 11 route pickups).
+- `PickupLedger` (one per built world, saveable, key `pickup_ledger`): records
+  taken world ids and, on load, removes those pickups from the rebuilt world.
+  Stores ids only; the items themselves stay in the inventory save. Stack pickups
+  stay atomic; dropped items (no world id) are untouched.
+- `test_pickup_ledger`: pick up boards/tinder/firewood/food → save → rebuild →
+  load; items stay in the inventory, the pickups are gone, others remain.
+
+### 2026-09-25 — Lighting the stove as an act (#42) (claudeflow)
+
+Changed
+- F on the stove is a staged act on top of `HeatSourceFeed` (no new survival
+  architecture): tinder and a log go in at once, Henry kneels and holds still
+  (`Player.hold_still()`), the door swings open and a weak flame grows; only
+  after 5 s does the fire take, burn and heat. A log on a live fire is the short
+  act (door, log, door; 2 s) and needs no tinder. The prompt reads "Light the
+  stove" or "Add a log". `feed()` stays the instant path for systems and tests.
+- `StoveVisual` shows as many logs as a full load holds (6 h / 2 h = 3), not 4;
+  the log going in shows during the act. Balance is unchanged: 1 log = 2 h,
+  6 h max, so a full night still needs tending.
+- `test_stove_act`; frame `docs/art/issue42/07_lighting_act.png`.
+
+### 2026-09-25 — Controls audit (#76) (claudeflow)
+
+Removed
+- Input actions nothing consumed: `open inventory` (I), `open map` (M),
+  `open health_panel` (H), `open craft_panel` (K), `select item slot 5–8`,
+  `reload` (R), `secondary action` (RMB), `drop item` (G), `toggle camera view` (V),
+  `use_ability_gizmo_2` (X), `orbit_left`/`orbit_right` (, .), `DEBUG` (Enter).
+
+Added
+- `docs/technical/CONTROLS.md`: every key, and the context rules for F (one verb,
+  resolved by what is in front of Henry) and Esc (always one step back), with the
+  rules new features follow. `test_quick_access` guards against the dead actions returning.
+
+### 2026-09-25 — Full pack inspection (#75) (claudeflow)
+
+Added
+- `PlayerHubComponent.open_inspection()`: a separate, slower Hub state. From the
+  Hub ("Take the pack off") the pack comes off and stands in front of Henry,
+  fully open, Kenny beside it; the camera looks down into it from past his left
+  shoulder. Closing puts it back on. Seated by the stove, F on the set-down pack
+  ("Go through the pack") opens inspection where it stands; afterwards it stays
+  there, ajar.
+- Extension point for sorting, sections, repair and crafting:
+  `inspection_opened(pack)` / `inspection_closed`, and the panel lists the pack's
+  sections in inspection mode.
+- `test_pack_inspection`; frame `docs/art/issue68/10_full_inspection.png`.
+
+### 2026-09-25 — Seated reach: warm and eat from the seat (#42) (claudeflow)
+
+Changed
+- Seated, `InteractComponent` picks the F target by where the camera looks
+  (within 35° of the view) and reaches 2 m instead of 0.9 m: Henry leans to the
+  stove's cooking ring and to the table, and never walks off to a target. Warming
+  and eating off the stove now work from the seat.
+- `test_seated_aim`.
+
+### 2026-09-25 — Warming on the stove top (#42) (claudeflow)
+
+Added
+- `StoveWarmer` on the shelter stove's cooking ring. F with a warmable item
+  carried puts one on the ring ("Warm up: Tinned stew"); it warms over 0.5 game
+  hours, only while the stove burns (also through a seated wait); then F eats or
+  drinks it straight off the stove ("Eat: Hot stew"), with steam while ready.
+  Saved with the world.
+- Items `tinned_stew_hot` (warms Henry, −0.8 °C cost) and `warm_water` (−0.3 °C,
+  versus +0.35 °C for raw snow); `ItemResource.warms_into` names the warmed form.
+- `HeatSource.heat_elapsed(hours)` for things warming on a fire;
+  `ConsumptionController.consume_from_world()` for food that is not carried.
+- `test_stove_warmer`; frames in `tools/runtime/capture_stove.gd`.
+
+### 2026-09-25 — Stove ritual UX pass (#42) (claudeflow)
+
+Changed
+- Food on the meal table is real: one `TableFood` target per kind ("Eat: Tinned
+  stew ×2", "Drink: …"); F eats one through ConsumptionController. Seated, F goes
+  to whatever is at arm's length and only waits when nothing is; the seat is not
+  a target while Henry sits on it.
+- `1`–`4` only select a pocket; the wheel click uses it (no accidental eating).
+- A wait starts at 1 hour (sleep keeps its own last choice) and says why it
+  ended early: "Warm and dry" / "The stove went out".
+- Waited time bills hunger and thirst including part-hours
+  (`BioMonitorManager.pass_awake_hours(float)`); a 15-minute wait was free before.
+- Drying steam: thin wisps from the chest and shoulders, lower while seated.
+- The pack set down by the stove stands ajar (`PackRig.Openness.AJAR`): top and
+  side flaps lifted a little.
+
+### 2026-09-25 — Meal table by the stove (#42) (claudeflow)
+
+Added
+- `MealTable`: a small table with a cloth beside the rest crate. While Henry sits
+  by it, the food and drink he carries (pack and pockets) is laid out on the
+  cloth — a tin per stew, a snowball per handful of snow — and it follows what
+  is eaten or moved; standing up clears it. Eating stays Hub/pocket Use (the
+  seated clip is chair-sitting, so the cloth is on a table, not the floor).
+- `test_shelter_recovery` covers the layout; frame `docs/art/issue42/04_meal_table.png`.
+
+### 2026-09-25 — A real stove in the shelter (#42) (claudeflow)
+
+Added
+- `StoveVisual` around the shelter's HeatSource: legs, an ash pan with a draught
+  vent and pull, a firebox with floor, walls and a front frame, a slotted door on
+  a hinge with a knob, a cooktop with a cooking ring, and a flue. One log shows
+  per fuel unit left (up to 4); the ember bed and an inner light glow through the
+  door slots only while it burns, with a gentle flicker.
+- The builder places it and keeps a collision hull; `test_stove_visual`,
+  `tools/runtime/capture_stove.gd`, frame `docs/art/issue42/03_stove_states.png`.
+
+### 2026-09-25 — Waiting seated; pack and Kenny set down by the stove (#42) (claudeflow)
+
+Added
+- Seated, `F` opens the sleep dialog in wait mode ("WAIT BY THE FIRE"): the same
+  hour picker, no sleep, no save. `SleepController.try_wait()` advances the world
+  and stops early once Henry is dry and warm or no fire warms him;
+  `BioMonitorManager.pass_awake_hours()` bills the waited hours.
+- On sitting Henry takes the pack off and stands it on his left; Kenny is set on
+  his right, facing the pack. Both go back on when he stands
+  (`HenryUALAnimation.set_pack_down()` / `pick_pack_up()`).
+- A seated hint: "F — wait · move — stand up".
+
+Changed
+- Seated, `F` waits instead of standing up; Esc or any move input stands.
+- Drying steam is thinner.
+
+### 2026-09-25 — Recovery by the stove: sitting, trend marks, drying steam (#42) (claudeflow)
+
+Added
+- `RestSpot` (F — Sit down) and `RestComponent`: Henry sits on the seat facing
+  its -Z; F, Esc or any move input stands him up. Sitting gives no bonus (author
+  decision): the stove warms and dries, sitting only holds him still.
+- `HenryUALAnimation` sit states: `Sitting_Enter` → `Sitting_Idle` loop → `Sitting_Exit`.
+- First Exit shelter: a crate to sit on by the stove (`RestCrate`, via the builder).
+- Vital HUD: a trend mark on the warmth cell and a wetness water-fill on the
+  figure with its own mark (green when it helps Henry, red when it hurts).
+- `DryingSteamComponent`: soft steam off wet clothes near a burning HeatSource,
+  thinning with wetness.
+- `tests/systems/test_shelter_recovery.gd`; sit states in `test_henry_animation`;
+  `tools/runtime/capture_shelter_recovery.gd`, frame `docs/art/issue42/`.
+
+### 2026-09-25 — Quick access from pockets; L key removed (#68, #73/#74) (claudeflow)
+
+Added
+- `QuickAccessComponent` on the Player: mouse wheel (`quick_next`/`quick_prev`)
+  cycles worn pockets with a short readout; wheel click (`quick_use`) uses the
+  selected pocket's item through the Use contract; `1`–`4` (existing
+  `select item slot N`) pick and use a pocket directly. Q/E stay free for leaning.
+- `PlayerHubComponent.use_from_zone()`: a pocketed item passes through the pack to
+  its user and returns to the pocket if nothing could use it.
+- `HeldLightComponent.release_held()`: the next quick-access click drops the burning flare.
+- `ConsumptionController` joins the Use contract: food and drink are eaten through
+  Hub Use or a pocket click. Nothing in gameplay called it before, so Henry could not eat.
+- `tests/systems/test_quick_access.gd` (pockets, flare, eating).
+
+Removed
+- `toggle_flashlight` (L) action and its handler.
+
+Fixed
+- `tools/ci/check_input_map.py` ignored mouse-button events and quoted action
+  names (e.g. `open hub`), so their overlaps went unchecked.
+
+### 2026-09-25 — Use action; bedroll via preview, B key removed (#68, #74) (claudeflow)
+
+Added
+- Item Use contract: `PlayerHubComponent.can_use()/use_item()` hand an item to the
+  sibling component whose `can_use(id)` accepts it. Hub panel has a Use button.
+- Bedroll Use: the Hub closes and a see-through roll follows in front of Henry;
+  `F` lays it there, `Esc` cancels (nothing is spent until placed).
+- Flare Use: lights it into the hand (same `HeldLightComponent.light()`; `L` stays for now).
+
+Removed
+- `lay_bedroll` (B) input action and its handler.
+
+Fixed
+- The bedroll was laid behind Henry (+Z); it now lands in front (-Z).
+
+### 2026-09-25 — Hold-F manual placement (#68) (claudeflow)
+
+Added
+- Holding F (0.35 s, `PlayerHubComponent.HOLD_TIME`) through a pickup opens the
+  Hub in placement mode (`open_placement`): the pack opens fully, the item sits
+  under the cursor, the pack and pockets it fits are lit (by `SizeClass`), LMB
+  drags it and releasing drops it there and closes the Hub. A drop outside a lit
+  pocket leaves it in the pack. Tap F stays the quick stow.
+- `test_player_hub` covers the hold and the drop; frame `docs/art/issue68/07_hold_placement.png`.
+
+### 2026-09-25 — Tap-F quick stow through the top flap (#68) (claudeflow)
+
+Added
+- `ItemPickup` hands its mesh to `PlayerHubComponent.stow_visual()`: the item
+  lifts, drops into the pack's top flap (`TOP_ONLY`) and the pack shuts once it
+  lands. The inventory gets the item at once; the flight is presentation only.
+  Armfuls (`carried_in_hands`) still go to the hands.
+- `test_player_hub` covers the stow; frames `docs/art/issue68/04–06`.
+
+### 2026-09-24 — Player Hub foundation: four-flap pack and Quick Access (#68) (claudeflow)
+
+Added
+- `PackRig`: the backpack on Henry is a tray with four hinged flaps (top, bottom,
+  left, right) over an inner attachment field. `TOP_ONLY` opens the top flap
+  (future quick stow); `FULL` opens it like a book. Kenny rides the bottom flap.
+- `PlayerHubComponent` on the Player (`Tab`, the existing `open hub` action):
+  roots Henry, blends to a camera facing the pack, opens it fully. It reads
+  `InventoryComponent` and worn pockets and stores nothing itself.
+- Quick Access zones = pockets on worn garments (pack main compartment excluded).
+  Items move pack → pocket → pack with no duplication; size class gates pockets.
+- `PlayerHubPanel`: temporary localised readout (pack list, zones, weight, refusals).
+- `tests/systems/test_player_hub.gd`, `tools/runtime/capture_player_hub.gd`,
+  frames in `docs/art/issue68/`.
+
+Fixed
+- Pocketed items now count toward carried weight (`EquipmentComponent.get_carried_weight`).
+
+### 2026-09-24 — First Exit split: land night vs Coast / Thin Ice (#24) (claudeflow)
+
+Changed
+- `docs/world/FIRST_EXIT.md`: First Exit (milestone A) is the land night only;
+  the ice route moves to milestone B, Coast / Thin Ice.
+
+### 2026-09-24 — Bedroll: sleep in the field (#63) (claudeflow)
+
+Added
+- `bedroll` item, found at the bunker (First Exit layout `bedroll_bunker`).
+- `BedrollComponent` on the Player. `B` (`lay_bedroll`) spends the bedroll
+  into a roll laid along Henry's facing, with a kneel. The roll offers
+  F — Sleep through the same `SleepSpot`, so `SleepController` still refuses
+  unsafe cold or wet, and a Roll-up prompt at its head returns it to the
+  inventory. A laid roll is saved and restored (`saveable`). `B` stands in
+  until the inventory has a Use action.
+- `test_bedroll.gd`.
+
+### 2026-09-24 — Flare pass 2: raised hand, spark fountain, breathing light (claudeflow)
+
+Changed
+- UAL `Idle_Torch` raises the *left* hand, so the shared hand socket and the
+  held pose moved to `hand_l`. The flare is carried at chest height, tipped
+  out of the fist.
+- Sparks are a gravity fountain that spits in uneven spurts: more particles,
+  higher speed during a spurt, and a colour ramp from orange-white to red.
+  The light's reach breathes with the burn and swells on each spurt.
+- Includes Codex's polish `f3ee73f`: soft spark billboards, warmer smoke,
+  4.5 m / 2.8 indoor-friendly light.
+
+### 2026-09-24 — Road flare in Henry's hand (#57) (claudeflow)
+
+Added
+- A shared held-item socket: `HenryUALAnimation.get_hand_socket()`, a
+  BoneAttachment on `hand_r`. `hold_in_hand()` / `release_hand()` move props
+  in and out of it. It is the one hand path for flares and later lights.
+- A held pose: the right arm eases into `Idle_Torch` through a bone-filtered
+  Blend2 over any locomotion, so the legs keep walking.
+- `HeldLightComponent` on the Player. `L` (`toggle_flashlight`) spends a
+  `road_flare` from the inventory into the hand. A second `L` drops it burning
+  at Henry's feet. A spent flare lingers 3 s for its smoke, then goes. It
+  forwards WorldContext, so the smoke gets live WeatherController wind.
+- The `road_flare` item, a `test_held_light.gd` suite, and
+  `tools/runtime/capture_held_flare_ingame.gd` (a night, windy capture in
+  the main scene). Frames are in `docs/art/issue57/`.
+
+### 2026-09-24 — Sleep is an interaction, not a key (claudeflow)
+
+Changed
+- There is no global sleep key. `SleepSpot`, an InteractiveArea, offers
+  "F — Sleep" on a bed, mattress or bedroll. F opens the sleep dialog through
+  the existing InteractComponent path, and a refusal (cold, wet, unsafe) shows
+  on the spot. Inside the dialog, the mouse wheel or ← → change the hours,
+  F or Enter sleeps and saves, and Esc cancels.
+- `SleepPrompt` lost the hold-S charge and its widgets; `request_open()`
+  checks `SleepController.can_sleep()` first.
+- The First Exit shelter has a mattress by the west wall.
+
+Removed
+- Input actions `sleep`, `sleep_hours_less` and `sleep_hours_more` (S/A/D
+  clashed with movement), with their InputSystems signals. Their allowlist
+  entries are gone, so CI now rejects any new overlap with WASD.
+
+### 2026-09-24 — Build hygiene from the #58 review (claudeflow)
+
+Added
+- `tools/ci/import_gate.sh`: the CI import now fails on load errors (second
+  pass, after cold-cache ordering noise) and compiles every project script
+  (`tools/ci/compile_scripts.gd`). This replaces `--import --quit || true`.
+- `tools/ci/check_input_map.py`: two actions on one key fail CI unless
+  `tools/ci/input_overlap_allowlist.txt` gives the reason.
+
+Changed
+- README rewritten after ADT's layout: what is in, run, controls, layout, docs,
+  agents, licence. Engine is 4.8-dev6, not 4.5.
+- `AGENTS.md` / `CLAUDE.md` now share one branch rule: agents merge `main`
+  into their own branch freely, and integration into `main` needs the author.
+- `docs/THIRD_PARTY_NOTICES.md` credits Godot and Quaternius UAL, and flags the
+  audio files whose source is unrecorded. `ual/NOTICE.md` now says UAL2 is used.
+
+Removed
+- `project.godot` noise: the 5 s boot splash, the low-processor sleep, the
+  orphan cursor hotspot, explicit defaults, the orphan `[debug_draw_3d]`
+  section, and the unused `use_ability_gizmo_1` action (it clashed with Z).
+- Orphans: `experimental_location/exp/` (HTerrain data), the unreferenced
+  `player_test_model` FBX with a broken texture path, and the empty skeleton
+  folders `autoloads/`, `levels/`, `systems/`, `ui/`.
+
+### 2026-09-24 — Issue #56: carry firewood, cabinet, working actions (claudeflow)
+
+Added
+- `CarryComponent` on the Player. An item flagged `carried_in_hands` (firewood)
+  puts Henry in a `Carry` state. Walking plays UAL2 `Walk_Carry`; standing keeps
+  the idle legs with the carry arms. The armful is a real prop on a
+  `spine_03` BoneAttachment. The carry ends when the last log leaves the
+  inventory, for example into the stove.
+- `Cabinet` (an InteractiveArea) with a door on a real hinge. It requests
+  `chest_open` and swings the door after a 0.45 s hand delay, and refuses input
+  while the door moves. Built into the First Exit shelter against the east wall.
+- `tools/runtime/capture_shelter_slice.gd`: an in-scene demo of pickup, carry,
+  stove, cabinet and window repair through the normal approach path, rendered
+  through its own SubViewport. Frames are in `docs/art/issue56/`.
+
+Changed
+- Merged Codex's approved animation layer from #51 (`1ccccf8`).
+- Working actions (`interact`, `pickup`, `fix`, `chest_open`) root Henry until the
+  clip ends. The existing breach repair now reads as `Fixing_Kneeling` with no
+  sliding.
+
+### 2026-09-24 — Coat skirt no longer lets the thighs through (claudeflow)
+
+Fixed
+- The coat's skirt cross-section is the larger of an ellipse and the body's
+  measured outline, so it never sits inside the hip at rest.
+- The hem follows the thighs up to 90%: each side follows its own leg, and the
+  centre line follows both legs' average.
+- The skirt's top tucks under the coat, which closes the gap at the waist.
+- Idle, walk and sprint renders show no thigh through the cloth.
+
+### 2026-09-24 — Outfit pass 2: longer coat, placket, seams (claudeflow)
+
+Changed
+- The coat reaches mid-thigh. A flared skirt is skinned to the pelvis and
+  partly to each thigh, so it swings with the legs instead of splitting into
+  shorts.
+- Sleeves reach the knuckles. The beanie is smaller, with a thinner cuff.
+- The coat stops at the waist, which removes the bulge at the crotch.
+
+Added
+- A front placket with a zip, and seams at the shoulders, cuffs and waist.
+  They are ribbons ray-cast onto the coat's surface and skinned like the
+  nearest coat vertex (`Outfit_Trim`).
+- `HenryUALAnimation` gives every garment surface its own wet-darkening
+  material, so the zip keeps its colour.
+
+### 2026-09-24 — Henry's outfit from Blender (claudeflow)
+
+Added
+- `tools/blender/build_henry_outfit.py` builds a jacket with a rolled hood,
+  trousers, boots with soles and a beanie with a cuff around the UAL mannequin.
+  Each piece is cut from the body, smoothed, pushed out and thickened, so it
+  keeps the body's skin weights and bends at the elbows and knees.
+  Output: `assets/characters/henry/henry_outfit.glb`, with renders in
+  `docs/art/`.
+- Skin under each garment is split into `Skin_<item>` meshes. They are hidden
+  while that item is worn, so clothes never clip and removing one leaves no
+  hole.
+
+Changed
+- `HenryUALVisual` uses the outfit GLB; the same skeleton and the 45 clips.
+- `HenryUALAnimation` groups the outfit meshes per garment for equipment and
+  wetness, and no longer builds greybox primitives (`GARMENT_PIECES` removed).
+
+### 2026-09-24 — Terrain stage 4: Terrain3D removed (claudeflow)
+
+Removed
+- The Terrain3D addon, its editor plugin entry, its CI download and cache key,
+  and the `.gitignore` rule for its binaries.
+- The Graciosa Terrain3D region data (25 MB), `dump_island_heights.gd` and
+  `export_heightmap.py`; the heightmap PNG is now the only terrain source.
+- Capture tools that needed the Terrain3D node (`capture_freemans_sky.gd`,
+  `capture_island_visual_fx.gd`, `capture_production_snow.gd`) and
+  `terrain3d_stylized_capture.gdshader`.
+
+Changed
+- `capture_first_exit.gd` and `island_report.py` work only on the heightmap.
+
+### 2026-09-24 — Terrain stage 3: the main scene runs on IslandTerrain (claudeflow)
+
+Changed
+- Graciosa's main scene uses `IslandTerrain` in place of `NavigationRegion3D`
+  and Terrain3D; the nav mesh was empty and unused. It follows the Player,
+  which now starts at the spawner. The lavapipe crash is gone: 600 frames of
+  the main scene, and full-scene captures in 2 of 2 runs.
+- The blockout builder samples the heightmap instead of Terrain3D.
+- `capture_first_exit.gd` renders the mesh terrain by default.
+
+Fixed
+- Generated interactives (pickups, board-up and stove prompts) saved their
+  body signals twice and logged "already connected" at load. The route test
+  now checks for exactly one connection.
+
+### 2026-09-24 — Terrain stage 2: IslandTerrain from the heightmap (claudeflow)
+
+Added
+- `IslandTerrain` + `IslandHeightmap`: the island ground built from the
+  heightmap. It has 128 m chunks with 1/4/16 m levels of detail, skirts, and
+  HeightMapShape3D collision near the focus; `get_height` matches the Python
+  tools exactly. The terrain shader colours by height and slope, with the
+  shared snow cover on top.
+- `tools/world/bake_terrain.py` writes `world/terrain/graciosa_height_la8.png`,
+  the game-readable copy of the source (Godot drops 16-bit PNGs to 8-bit).
+- `test_island_terrain.gd`.
+
+Changed
+- Heightmap export adds a sea bed that shelves from the coast instead of
+  Terrain3D's flat 0 m plane. The source PNG was re-exported.
+
+Found
+- The full Graciosa scene no longer crashes under lavapipe once Terrain3D is
+  swapped for IslandTerrain (3 of 3 runs, 7 shots each).
+
+### 2026-09-24 — Terrain heightmap becomes the source of truth, stage 1 (claudeflow)
+
+Added
+- `world/terrain/source/graciosa_height.png` (+ `.json`): the island as a
+  16-bit 1 m heightmap, −16…+48 m, exported from Terrain3D with at most
+  0.5 mm error (8 MB against 25 MB of Terrain3D regions).
+- `tools/blender/heightmap_import.py` / `heightmap_export.py`: Blender round
+  trip. Import the whole island or a window as a grid, sculpt, and write back
+  only the changed heights. Verified headless with `bpy`.
+- `tools/world/heightmap.py`; `island_report.py` and `route_metrics.py` read
+  the PNG directly. See `docs/world/TERRAIN_HEIGHTMAP.md`.
+
+Fixed
+- `route_metrics.py` crashed drawing pickups (no footprint size).
+
+### 2026-09-24 — First Exit: the working loop moved into the route (claudeflow)
+
+Added
+- The shelter lot now carries the TestScene loop: an interior ThermalZone,
+  five ShelterBreach openings with board-up prompts, and a stove (HeatSource +
+  feed). Sleep and save work there through the existing SleepController.
+- Layout `pickups`: boards, tinder, firewood and food placed per route with
+  deliberate scarcity (5 openings, 3 boards; tinder only at the fort or in the
+  collapsed house). `test_first_exit_route.gd` guards the loop and the
+  scarcity.
+
+### 2026-09-24 — First Exit: route clutter, Kenny on the pack, visible clothes (claudeflow)
+
+Added
+- Visible greybox clothes. Hat, coat with sleeves, trousers and boots are
+  built on the UAL bones and shown per equipment slot through the garments'
+  `mesh_node_name`. They darken with the thermal model's wetness
+  (`HenryUALAnimation.set_wetness`, wired in `Player.on_world_ready`).
+- Route clutter from the layout: cars, pickups, a van and a bus (overturned,
+  sunk in drift, doors open), bins and dumpsters. Placed per route to break
+  sprint lines and create choke points (Grok, #42).
+- Kenny: item `kenny` (3 kg) on the back fixture from the start, with a plush
+  silhouette strapped to the pack. Carried non-garments now count toward the
+  carry weight (`EquipmentComponent.get_carried_weight`).
+- `ItemResource.attached_mesh_node_name` shows a mesh on Henry for a
+  non-garment in a body slot. `EquipmentComponent.starter_slot_items` places
+  non-garments at start.
+
+### 2026-09-24 — First Exit: suburb on the old road, human speeds (claudeflow)
+
+Changed
+- Greybox reworked per the author (PR #43). It is now an old coast road with
+  a gravel bed, shoulders, ditches, broken asphalt, a junction and a lane to
+  the jetty, and leaning or broken street lamps. Eleven lots face the road,
+  each with a driveway, a fenced plot with a gate, a shed, a water tank, and
+  winter retrofits (boarded, vestibule, stovepipe, insulation, snow fence).
+  Some lots are roofless or collapsed. Houses have gable roofs. Resolved
+  footprints are written to `docs/world/first_exit_resolved.json`.
+- Walk 4 → 1.5 m/s, sprint 8 → 4.5 m/s. Locomotion blend points follow.
+  The ice drain and sprint multiplier are rescaled so per-tile damage is
+  unchanged.
+
+Removed
+- The inland salt lagoon proposal. Ice moves to the real coast later.
+
+### 2026-09-24 — First Exit: island analysis and greybox (claudeflow)
+
+Added
+- `docs/world/FIRST_EXIT.md`: where the game starts on Graciosa, island
+  metrics, buildable sites, measured routes, tropical reference typology and
+  the author decisions the milestone needs (lagoon, walk speed, distance).
+- `tools/world/dump_island_heights.gd`, `island_report.py`, `route_metrics.py`:
+  heightfield dump, height/slope maps with buildable sites, route length /
+  ice / coast-exposure metrics and landmark visibility.
+- `data/world/first_exit_layout.json` and `tools/world/build_first_exit_blockout.gd`:
+  data-driven greybox (bunker door, redoubt, battery, sheds, bus stop,
+  bungalows, water tower, church, jetty, 36 dead palms) placed on terrain
+  heights; instanced in the main scene.
+- `tools/runtime/capture_first_exit.gd`: greybox renders.
+
+Changed
+- `FirstSpawner` faces the water tower; `World` now applies the spawner's yaw.
+
+### 2026-09-24 — Dead player layer removed (claudeflow)
+
+Removed
+- The hidden Genesis8 Henry (skeleton, meshes, materials) embedded in
+  `player.tscn`: 1.7 MB -> 4 KB. The UAL mannequin is the only body.
+- Old HUD: `InGameUI`, `vital_signs.gd`, `CombatHUD` and its weapon slots, debug
+  labels; `BioMonitorManager` no longer pokes a UI.
+- Gizmo (the pre-Kenny robot): scene, scripts, the C# flashlight duplicate,
+  test model and icons.
+
+### 2026-09-24 — Audio system and a cheaper CI gate (claudeflow)
+
+Added
+- `SoundSystem` autoload with `SoundEvent` (variations, jitter, voice limits,
+  cooldown) and `SoundLayer` (parameter-driven loops); bus layout with an
+  interior low-pass. `WorldAudioBinder` feeds wind, shelter and footsteps.
+  See `docs/technical/AUDIO.md`.
+
+Changed
+- CI is one `checks` workflow on pull requests to `main`: import, filename
+  check, headless suites. The lavapipe render and both visual-FX preview
+  workflows are gone; render locally with `tools/ci/render.sh`.
+- `run_tests.sh` kills a hung suite after `SUITE_TIMEOUT` seconds (180) and
+  counts it as failed.
+
+### 2026-09-24 — Solid vital cells, a quiet figure, and a compile fix (claudeflow)
+
+Changed
+- Vital pentagons are a solid translucent backing; the level fill is gone.
+- A plain grey standing figure sits between the top cells, above the health bar.
+
+Fixed
+- `VitalCluster` failed to compile on `main`: `draw_texture_rect_region` arguments
+  were swapped and the glyph atlas SVG had no `.import`, so the HUD never loaded.
+
+### 2026-09-24 — Original HFN vital glyphs and threshold morphs
+
+Changed
+- Replaced the four legacy bitmap glyphs inside `VitalCluster` with one original
+  HFN SVG atlas: stomach, droplet, closing eye and falling thermometer.
+- Each glyph has eight baked frames. A 0.35 s morph plays only when the value
+  crosses 50% or 10%, reverses on recovery and never loops while idle.
+- At 50% and above indicators stay off-white; below 50% the icon, outline and
+  level fill turn muted yellow; below 10% they turn muted red.
+- The always-running critical breathing was removed. Critical cells retain a
+  static inset and stronger opacity, so danger remains legible without motion.
+- Glyphs render at 30 px with a dark keyline for both snow and dark interiors.
+
+Tests
+- `test_vital_cluster.gd` now locks the exact 50% and 10% boundaries and the
+  final critical morph frame.
+
+### 2026-09-24 — Remove legacy map and portrait cameras
+
+Removed
+- The Graciosa island debug minimap pipeline: its SubViewport, regional overhead
+  camera, MapDebug UI and inline minimap script.
+- Henry's old front-face HUD camera pipeline: its SubViewport, CameraFaceHenry,
+  portrait UI subtree and dedicated controller script.
+
+Kept
+- The gameplay TPS PlayerCamera, survival HUD, combat HUD, StatsDisplay and the
+  remaining island debug labels.
+
+
+
+### 2026-09-23 — Cold Ash color grading profiles
+
+Added
+- Two weak 33×33×33 display LUTs: `HFN_ColdAsh_Night` for the outdoor default
+  and `HFN_ColdAsh_Shelter` for safe interiors.
+- `ColorGradeController` owns only the existing Environment adjustments and
+  exposes explicit outdoor, shelter and interior-initialization entry points.
+- A deterministic standard-library LUT generator, a focused headless test and
+  a same-camera TestScene capture tool.
+
+Kept
+- Day/night, weather, Freeman sky and parallax clouds retain their existing
+  ownership. Automatic shelter detection is deliberately deferred until the
+  gameplay system has one authoritative interior-state hook.
+
 ### 2026-09-23 — Weather-driven snowfall promoted to production
 
 Added
@@ -67,6 +784,179 @@ Performance choice
   shared render/test pipeline.
 
 ## [Unreleased] — `claudeflow`
+
+### 2026-09-23 — Vital HUD: X layout, quieter cells
+
+Changed
+- Cells turned 45° into an X with a wider centre; the health band starts from
+  the centre of the X and runs right beneath the cells.
+- No coloured fill at rest: neutral translucent level, rust only when low.
+  Cells sit at 45% opacity and go opaque while draining, refilling or critical.
+- A drain now draws the cell toward the centre instead of pushing it out.
+
+### 2026-09-23 — Experimental vital HUD: pentagon diamond and health band
+
+Added
+- `VitalCluster`: four pentagons in a diamond, tips to the centre — warmth top,
+  water left, food right, sleep bottom. Level fills from the outer edge; a drain
+  nudges the cell out and flashes it dull red, a refill grows it for ~2 s with a
+  green-gold edge, under 15% it breathes and sits out. Warmth has its own
+  cold scale. Procedural, all sizes/colours/timings exported.
+- `HealthStrip`: the old red HUD band, smaller, as the health bar — same
+  `BG_indicatorSURV` shader and fade, cut to current health, with a pale damage
+  trail that catches up.
+
+Changed
+- The old vital icons (`vital_signs_enabled = false`) and the wide red band are
+  hidden, not deleted, for easy rollback.
+
+### 2026-09-23 — Colour grade follows the shelter; Cold Ash LUTs retuned
+
+Added
+- `ShelterGradeBinder` world system: `ThermalManager.sheltered_changed` drives
+  `ColorGradeController.initialize_for_interior()`; the grade module still knows
+  nothing about shelters. `test_shelter_grade.gd` walks Henry in and out of
+  the real test shelter.
+
+Changed
+- Cold Ash LUTs regenerated from `generate_cold_ash_luts.py`. Night no longer
+  darkens the frame (−5% instead of −18%) and puts the cold where #31 asked:
+  shadows go from warm to graphite-teal, highlights and snow stay neutral, warm
+  sources keep their colour. Shelter warms darks and mids and keeps bright
+  openings cool.
+- Preview PNGs are now live in-engine captures, not LUTs sampled over an old
+  screenshot.
+
+### 2026-09-23 — ADT head look; shelter edge signal for the colour grade
+
+Added
+- ADT's procedural head look on the UAL mannequin: standing, the `Head` bone
+  eases toward where the camera looks (up to 55° each way); walking, the clips
+  own the head and the look fades out. The UAL head rests ~13° off the body,
+  so the limits are asymmetric to make the turn equal both ways.
+  `test_head_look.gd` measures the turn through a BoneAttachment3D.
+- `ThermalManager.sheltered_changed(is_sheltered)`: one edge per real change
+  of being inside an interior zone, for #31's LUT switch.
+
+### 2026-09-23 — Smart camera against walls
+
+Fixed
+- With Henry's back to a wall, turning the camera into it put the camera
+  through the wall: the ADT 0.7 m minimum boom overrode the wall probe.
+
+Added
+- Wall assist in `TpsCamera`: when the boom behind Henry lacks ~0.9 m, it
+  searches angles along the wall (up to 90°) and a little above (up to 30°),
+  judging each by where the camera would really sit (shoulder shift and wall
+  clearance included), and glides there; it glides back once the mouse angle
+  has room. It keeps the side it chose so it does not flip.
+- The camera goal is cleared of walls before the follow, and the post-contact
+  restore is faster (5.0), so a sweep along a wall does not leave the camera
+  hugging the head. As a last resort only, the main camera stops drawing the
+  body when closer than 0.3 m to the eyes (the HUD portrait is unaffected).
+- `test_tps_camera_orbit.gd`: back to a wall, a full 360° mouse sweep never
+  enters the wall, never settles closer than 0.55 m and never hides Henry.
+
+### 2026-09-23 — Camera in tight spaces; the backpack is an item
+
+Changed
+- `TpsCamera`: the shoulder offset shrinks with the boom (to 20% in the
+  tightest space), a side sphere cast keeps the shoulder/lean shift out of a
+  wall beside Henry, the near boom is 0.95 m and closing in is softer (2.5).
+
+Added
+- `backpack` item: a garment for the `pack` slot with a BULKY main
+  compartment and a lid pocket, worn from the start. `GarmentData.mesh_node_name`
+  now drives the body: the pack box shows only while the backpack is worn.
+
+Fixed
+- Interaction and camera tests stepped on idle frames and could miss physics
+  ticks under load; they now step on physics frames.
+
+### 2026-09-23 — Cursor ring carries stamina again
+
+Fixed
+- The ADT ring port had dropped this project's movement dot, stamina-coloured
+  sprint arcs and jump-charge arc; they are back around the centre ring.
+
+### 2026-09-23 — Interaction ported from ADT; cursor ring back
+
+Added
+- `InteractComponent` (ADT): a focus cast ahead, then a 2.5 m / 240° intent
+  cone pick the target; F acts within 0.9 m, otherwise Henry walks over and
+  acts on arrival (WASD cancels). Replaces `InteractionManager`.
+- `Player.move_to_position()` / `stop_moving()` / `movement_stopped`.
+- ADT's dynamic cursor ring at screen centre, brightening over interactables.
+- Refusals are said on the object: no boards, no firewood/tinder, too heavy.
+
+Changed
+- `InteractiveArea` visuals are driven by the component: marker when targeted
+  far, prompt and ground ring within 2 m. `can_interact()` now means only
+  "offers itself"; the stove stays targetable while it can take fuel.
+- Prompt text is localised and shows the bound key.
+
+### 2026-09-23 — TPS camera: the rest of ADT's framing; ADT key layout
+
+Added
+- Over-the-shoulder framing from ADT: 0.85 m shoulder offset split 60/40
+  between lens shift and camera move, Z swaps shoulders (`TpsShoulderState`).
+- Q/E lean of the camera, breathing sway on pitch, ADT lead smoothing and
+  start pitch. Pivot and probes use ADT body ratios from the feet, not the
+  capsule centre (the old pivot sat a metre too high).
+
+Changed
+- Keys follow ADT: interact F, lean Q/E, shoulder Z; flashlight moved to L;
+  unused `use_ability_henry` action removed.
+
+### 2026-09-23 — Grey UAL mannequin, backpack placeholder, fonts, menu pointer
+
+Changed
+- Player visual is the Quaternius UAL mannequin from `UAL1_Standard.glb`,
+  painted flat grey; UAL2 clips are added as library `UAL2`. The Henry glbs
+  (`henry_ual`, `henry_test_model`) and their hidden nodes are removed.
+- A box on `spine_03` stands in for the backpack.
+
+Added
+- CGF Locust Resistance font from ADT with its licence note; font table in
+  `docs/THIRD_PARTY_NOTICES.md`. BlackRock stays ADT-only.
+
+Fixed
+- Quitting to the title left the mouse captured: releasing look capture now
+  always shows the pointer, and the title menu releases it on open.
+
+### 2026-09-23 — Debugger warnings cleaned
+
+Changed
+- Triple-quoted "docstrings" in `BioMonitorManager` and `vital_signs.gd`
+  (standalone-expression warnings) became `##` doc comments in English.
+- Unused parameters prefixed with `_`; `load_profiles_from` no longer shadows
+  the `profiles` export; dead `shake_intensity` local removed.
+
+### 2026-09-23 — Picked-up items no longer crash the interaction scan
+
+Fixed
+- `InteractionManager` kept a freed pickup in `detected_areas` and errored
+  every physics frame after a pickup; freed areas are now dropped first.
+
+### 2026-09-23 — TPS camera replaces the cursor camera; pickups fixed
+
+Added
+- `TpsCamera` (`scripts/systems/camera/tps_camera.gd`), ported from ADT's
+  on-foot camera without view toggle, lock-on, aim or lean: captured mouse
+  look, follow smoothing, sprint pull-back, movement lead, sphere-cast wall
+  clamp. New: eight rods plus a ceiling ray judge how open the space is and
+  ease the boom between 1.2 m (doorways, rooms) and 3 m (open ground).
+- `InputSystems.get_look_delta()` / `set_look_capture()`; pause frees the mouse.
+
+Changed
+- Movement is camera-relative and Henry turns to face where he walks.
+  `RotationController` and `MouseCursorUI` are removed from the player scene
+  (files kept for reference). `PlayerCamera.gd` deleted; the scene is now
+  `tps_camera.tscn` (node name `PlayerCamera` kept for `World`).
+
+Fixed
+- Interact (E) never reached placeholder pickups, board-up or stove feed: the
+  shape cast hit the `InteractiveArea` itself, which was not counted.
 
 ### 2026-09-23 — #24: existing systems start costing each other
 

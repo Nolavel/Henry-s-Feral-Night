@@ -32,6 +32,7 @@ enum Refusal {
 	TOO_LARGE,
 	WRONG_BODY_SLOT,
 	POCKETS_NOT_EMPTY,
+	HANDS_ONLY,
 }
 
 const POCKET_SEPARATOR: String = "/"
@@ -41,6 +42,8 @@ const POCKET_SEPARATOR: String = "/"
 @export var layout: EquipmentLayout
 ## Worn from the start, by item id.
 @export var starter_garment_ids: Array[StringName] = []
+## Non-garments placed from the start, body slot id to item id: Kenny on his fixture.
+@export var starter_slot_items: Dictionary[StringName, StringName] = {}
 
 @export_group("Debug")
 @export var debug_log: bool = false
@@ -63,6 +66,23 @@ func initialize() -> void:
 		if item == null or item.garment == null:
 			continue
 		equip(item.garment.body_slot_id, item_id)
+	for slot_id: StringName in starter_slot_items:
+		equip(slot_id, starter_slot_items[slot_id])
+
+
+## Kilograms of non-garments riding in body slots and pockets. Clothes are
+## worn, not carried; Kenny and pocketed items count toward the load.
+func get_carried_weight() -> float:
+	var total: float = 0.0
+	for slot_id: StringName in _body:
+		var item: ItemResource = ItemCatalog.get_item(_body[slot_id])
+		if item != null and item.garment == null:
+			total += item.weight
+	for path: StringName in _pockets:
+		var pocketed: ItemResource = ItemCatalog.get_item(_pockets[path])
+		if pocketed != null:
+			total += pocketed.weight
+	return total
 
 
 ## Item worn in a body slot, or empty.
@@ -123,6 +143,8 @@ func can_equip(slot_id: StringName, item_id: StringName) -> Refusal:
 	var item: ItemResource = ItemCatalog.get_item(item_id)
 	if item == null:
 		return Refusal.UNKNOWN_ITEM
+	if item.carried_in_hands:
+		return Refusal.HANDS_ONLY
 	if item.garment != null:
 		if item.garment.body_slot_id != slot_id:
 			return Refusal.WRONG_BODY_SLOT
@@ -141,6 +163,8 @@ func can_stow(body_slot_id: StringName, pocket_id: StringName, item_id: StringNa
 	var item: ItemResource = ItemCatalog.get_item(item_id)
 	if item == null:
 		return Refusal.UNKNOWN_ITEM
+	if item.carried_in_hands:
+		return Refusal.HANDS_ONLY
 	return _check_fit(definition, item)
 
 
@@ -203,6 +227,8 @@ func stow_anywhere(item_id: StringName) -> Refusal:
 	var item: ItemResource = ItemCatalog.get_item(item_id)
 	if item == null:
 		return Refusal.UNKNOWN_ITEM
+	if item.carried_in_hands:
+		return Refusal.HANDS_ONLY
 	if item.garment != null and equip(item.garment.body_slot_id, item_id) == Refusal.NONE:
 		return Refusal.NONE
 

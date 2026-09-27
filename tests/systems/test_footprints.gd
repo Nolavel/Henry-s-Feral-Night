@@ -14,6 +14,9 @@ func _process(_delta: float) -> bool:
 
 func _run() -> void:
 	_test_a_step_plants_once()
+	_test_blended_lift_rearms_through_probe_gap()
+	_test_small_foot_jitter_does_not_rearm()
+	_test_surface_clearance_follows_the_slope_normal()
 	_test_standing_still_leaves_nothing()
 	_test_the_air_leaves_nothing()
 	_test_the_rig_has_the_bones()
@@ -65,6 +68,63 @@ func _test_a_step_plants_once() -> void:
 	_dispose(sensor)
 
 
+## A blended gait can make a real step without ever reaching the old 9 cm
+## absolute-clearance threshold. The animated phase must still rearm, even if
+## the ground ray is absent during the lifted part of the stride.
+func _test_blended_lift_rearms_through_probe_gap() -> void:
+	var sensor := _sensor()
+	var side: int = FootContactSensor.Side.LEFT
+
+	sensor.observe_foot_motion(side, -1.0)
+	_check(
+		sensor.update_foot(side, 0.02, Vector3.ZERO, Vector3.FORWARD, true, 1.5),
+		"initial blended foot plant was rejected"
+	)
+
+	## No update_foot call here: this is the frame range where a terrain seam
+	## makes the ground probe miss. Animation sampling still sees a 6 cm lift.
+	sensor.observe_foot_motion(side, -0.94)
+	sensor.observe_foot_motion(side, -1.0)
+	_check(
+		sensor.update_foot(side, 0.02, Vector3(0.0, 0.0, -0.7), Vector3.FORWARD, true, 1.5),
+		"animation lift during a ground-probe gap did not rearm the next step"
+	)
+	_dispose(sensor)
+
+
+## Rearming from animation must still reject small planted-foot noise/shuffle.
+func _test_small_foot_jitter_does_not_rearm() -> void:
+	var sensor := _sensor()
+	var side: int = FootContactSensor.Side.RIGHT
+
+	sensor.observe_foot_motion(side, -1.0)
+	_check(
+		sensor.update_foot(side, 0.02, Vector3.ZERO, Vector3.FORWARD, true, 1.5),
+		"initial jitter test plant was rejected"
+	)
+	sensor.observe_foot_motion(side, -0.97)
+	sensor.observe_foot_motion(side, -1.0)
+	_check(
+		not sensor.update_foot(side, 0.02, Vector3.ZERO, Vector3.FORWARD, true, 1.5),
+		"a 3 cm planted-foot jitter rearmed a duplicate footprint"
+	)
+	_dispose(sensor)
+
+
+## Contact height is measured toward the surface, not along global Y.
+func _test_surface_clearance_follows_the_slope_normal() -> void:
+	var sensor := _sensor()
+	var normal := Vector3(0.0, 1.0, 1.0).normalized()
+	var ball := Vector3(0.0, 0.08, 0.0)
+	var clearance: float = sensor.surface_clearance(ball, Vector3.ZERO, normal)
+	_check(
+		clearance < sensor.contact_height_m,
+		"slope-normal clearance %.3f did not enter the %.3f m contact band"
+		% [clearance, sensor.contact_height_m]
+	)
+	_dispose(sensor)
+
+
 func _test_standing_still_leaves_nothing() -> void:
 	var sensor := _sensor()
 	_check(_stride(sensor, FootContactSensor.Side.RIGHT, true, 0.1) == 0, "shuffling on the spot left a print")
@@ -79,7 +139,7 @@ func _test_the_air_leaves_nothing() -> void:
 
 ## The rule is worthless if the real rig names its bones differently.
 func _test_the_rig_has_the_bones() -> void:
-	var model := (load("res://assets/models/characters/henry_ual/Henry_UAL_Rigged.glb") as PackedScene).instantiate()
+	var model := (load("res://assets/animation/ual/Unreal-Godot/UAL1_Standard.glb") as PackedScene).instantiate()
 	root.add_child(model)
 	var skeleton: Skeleton3D = _find_skeleton(model)
 	_check(skeleton != null, "Henry's rig has no skeleton")

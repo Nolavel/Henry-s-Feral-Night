@@ -232,4 +232,4 @@ tools/ci/render.sh res://tests/scenes/TestScene.tscn user://shots/test.png 40
 
 Verified in this session: Forward+/Vulkan on llvmpipe under Xvfb, `TestScene`
 boots and produces a frame. This is now also a GitHub Actions job
-(`.github/workflows/render-smoke.yml`) that uploads renders as artifacts.
+(`.github/workflows/checks.yml`); rendering moved to local `tools/ci/render.sh`.

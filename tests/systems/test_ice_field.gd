@@ -288,11 +288,20 @@ func _test_gait_follows_velocity() -> void:
 		binder.classify(Vector3(0.0, -9.0, 0.0)) == IceField.Gait.STILL,
 		"falling was mistaken for horizontal movement"
 	)
-	## No crouch action exists in the project, so CROUCH must never be reported.
+	var movement := MovementController.new()
+	root.add_child(movement)
+	binder.movement_controller = movement
+	movement.set_crouching(true)
 	_check(
-		binder.classify(Vector3(1.0, 0.0, 0.0)) != IceField.Gait.CROUCH,
-		"CROUCH was reported although no crouch action is bound"
+		binder.classify(Vector3(1.0, 0.0, 0.0)) == IceField.Gait.CROUCH,
+		"the real crouch state did not reach IceField.Gait.CROUCH"
 	)
+	movement.set_crouching(false)
+	_check(
+		binder.classify(Vector3(1.0, 0.0, 0.0)) == IceField.Gait.WALK,
+		"leaving crouch did not restore the walking gait"
+	)
+	_dispose(movement)
 	_dispose(binder)
 	_dispose(field)
 
@@ -347,8 +356,8 @@ func _test_climbing_out_requires_thrashing_first() -> void:
 ## The author's call in issue #7: the bay is a real gamble at a sprint and a
 ## safe, slow crossing on foot. Same bay and route as capture_ice_map.gd.
 func _test_sprinting_the_bay_breaks_walking_it_does_not() -> void:
-	var walk: float = _cross_bay(IceField.Gait.WALK, 4.0)
-	var sprint: float = _cross_bay(IceField.Gait.SPRINT, 8.0)
+	var walk: float = _cross_bay(IceField.Gait.WALK, 1.5)
+	var sprint: float = _cross_bay(IceField.Gait.SPRINT, 4.5)
 	_check(walk < 0.0, "walking the bay broke through at %.0f m" % walk)
 	_check(sprint >= 0.0, "sprinting the bay survived, so the shortcut is free")
 	## Mid-bay, not at the first step off the shore.
@@ -433,9 +442,9 @@ func _loaded_binder(fraction: float) -> IceGaitBinder:
 	var inventory := InventoryComponent.new()
 	inventory.max_carry_weight = 30.0
 	root.add_child(inventory)
-	var firewood: ItemResource = ItemCatalog.get_item(&"firewood")
-	while inventory.get_total_weight() + firewood.weight <= 30.0 * fraction + 0.001:
-		inventory.try_add(firewood)
+	var cargo: ItemResource = ItemCatalog.get_item(&"tinned_stew")
+	while inventory.get_total_weight() + cargo.weight <= 30.0 * fraction + 0.001:
+		inventory.try_add(cargo)
 	binder.inventory = inventory
 	root.add_child(binder)
 	return binder

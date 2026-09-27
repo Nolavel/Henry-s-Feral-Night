@@ -1,39 +1,30 @@
-[gd_resource type="Resource" script_class="EquipmentLayout" load_steps=9 format=3]
+[gd_resource type="Resource" script_class="EquipmentLayout" format=3 uid="uid://dtk4ig1rt1a1b"]
 
-[ext_resource type="Script" path="res://core/equipment/equipment_slot_definition.gd" id="slot"]
-[ext_resource type="Script" path="res://core/equipment/equipment_layout.gd" id="layout"]
+[ext_resource type="Script" uid="uid://jupvim8nmjrv" path="res://core/equipment/equipment_layout.gd" id="layout"]
+[ext_resource type="Script" uid="uid://40y6ohgf4m2w" path="res://core/equipment/equipment_slot_definition.gd" id="slot"]
 
 [sub_resource type="Resource" id="Slot_head"]
 script = ExtResource("slot")
 id = &"head"
 display_name = "Head"
-max_size = 0
-accepts_non_garment = false
-excluded_from_auto_stow = false
 
 [sub_resource type="Resource" id="Slot_torso"]
 script = ExtResource("slot")
 id = &"torso"
 display_name = "Torso"
 max_size = 1
-accepts_non_garment = false
-excluded_from_auto_stow = false
 
 [sub_resource type="Resource" id="Slot_legs"]
 script = ExtResource("slot")
 id = &"legs"
 display_name = "Legs"
 max_size = 1
-accepts_non_garment = false
-excluded_from_auto_stow = false
 
 [sub_resource type="Resource" id="Slot_feet"]
 script = ExtResource("slot")
 id = &"feet"
 display_name = "Feet"
 max_size = 1
-accepts_non_garment = false
-excluded_from_auto_stow = false
 
 [sub_resource type="Resource" id="Slot_pack"]
 script = ExtResource("slot")
@@ -41,7 +32,6 @@ id = &"pack"
 display_name = "Pack"
 max_size = 2
 accepts_non_garment = true
-excluded_from_auto_stow = false
 
 [sub_resource type="Resource" id="Slot_fixture"]
 script = ExtResource("slot")
@@ -53,4 +43,4 @@ excluded_from_auto_stow = true
 
 [resource]
 script = ExtResource("layout")
-body_slots = [SubResource("Slot_head"), SubResource("Slot_torso"), SubResource("Slot_legs"), SubResource("Slot_feet"), SubResource("Slot_pack"), SubResource("Slot_fixture")]
+body_slots = Array[ExtResource("slot")]([SubResource("Slot_head"), SubResource("Slot_torso"), SubResource("Slot_legs"), SubResource("Slot_feet"), SubResource("Slot_pack"), SubResource("Slot_fixture")])

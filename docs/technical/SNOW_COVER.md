@@ -125,11 +125,15 @@ FootprintSystem (composition root) — pooled Decals
 - **Signal.** `foot_planted(side, position, normal, forward, speed)`. The normal
   is the ground's, from the same ray; `forward` runs heel to toe *along* that
   ground, so a print on a slope lies on the slope instead of hovering flat.
-- **Contact rule.** The ball of the foot within 6 cm of the ground, after it
-  has risen past 9 cm since the last print, with Henry on the floor and moving
-  faster than 0.35 m/s. The ground is found by a short ray under the foot, so
-  the rule works on any surface. The rule itself is a pure method
-  (`update_foot`) and is tested without a scene.
+- **Contact rule.** The ball of the foot within 6 cm of the sampled surface,
+  with Henry on the floor and moving faster than 0.35 m/s. Contact distance is
+  measured along the hit surface normal rather than world Y. A foot rearms
+  either after an obvious 9 cm ground clearance or after its animated ball bone
+  rises 4.5 cm relative to that foot's last planted pose in Player-local space.
+  The animated phase is observed before the ground ray, so a brief Terrain3D /
+  collider-seam probe miss cannot silently lose the next step. Small planted
+  jitter remains below the rearm threshold. The contact rule itself remains
+  testable without a scene.
 - **Orientation.** The decal's +Y is the ground normal (it projects along −Y);
   the print image has the toe at the top, which a decal maps to its −Z, set to
   the heel→toe direction along the ground. Left

@@ -26,4 +26,69 @@ WEATHER_CALM,Calm,Штиль
 WEATHER_WINDY,Windy,Ветер
 WEATHER_SNOWFALL,Snowfall,Снегопад
 WEATHER_BLIZZARD,Blizzard,Буря
-FEED_PROMPT,Light or feed the stove,Разжечь или подкинуть в печь
+FEED_PROMPT,Add a log,Подкинуть полено
+INTERACT_PUSH,Push,Толкнуть
+INTERACT_PICKUP,Pick up,Подобрать
+INTERACT_PRESS,Press,Нажать
+INTERACT_OPEN,Open,Открыть
+INTERACT_USE,Use,Использовать
+HOUSE_DOOR_OPEN,Open door,Открыть дверь
+HOUSE_DOOR_CLOSE,Close door,Закрыть дверь
+BREACH_REFUSED_NO_BOARDS,Lay some boards beside this opening first,Сначала положите доски у этого проёма
+BREACH_REFUSED_NO_HAMMER,Equip the hammer from Quick Access,Достаньте молоток из быстрого доступа
+BREACH_REFUSED_NO_NAILS,You need two nails for one board,На одну доску нужны два гвоздя
+BREACH_BOARDS_STAGED,Boards by the opening: %d,Досок у проёма: %d
+BREACH_BOARD_PLACE_HINT,Aim up/down · LMB nail board · Esc cancel,Цельтесь выше/ниже · ЛКМ прибить доску · Esc отмена
+BREACH_GAP_REMAINS,Gap remaining: %d%%,Осталась щель: %d%%
+BREACH_SEALED,Opening sealed,Проём закрыт
+PICKUP_REFUSED_TOO_HEAVY,Too heavy to carry,Слишком тяжело нести
+PICKUP_REFUSED_HANDS_FULL,You can carry at most three,Можно нести максимум три
+PICKUP_REFUSED_HANDS_OCCUPIED,Free your hands first,Сначала освободите руки
+CABINET_OPEN,Open the cabinet,Открыть шкаф
+CABINET_CLOSE,Close the cabinet,Закрыть шкаф
+SLEEP_PROMPT,Sleep,Спать
+SLEEP_DIALOG_KEYS,"Wheel or ← →  hours      [ F ]  sleep and save      [ Esc ]  cancel","Колесо или ← →  часы      [ F ]  спать и сохранить      [ Esc ]  отмена"
+BEDROLL_PACK,Roll up the bedroll,Свернуть спальник
+HUB_PACK,Backpack,Рюкзак
+HUB_QUICK_ACCESS,Quick access,Быстрый доступ
+HUB_TO_POCKET,Into pocket,В карман
+HUB_TO_PACK,Into pack,В рюкзак
+HUB_EMPTY,empty,пусто
+HUB_WEIGHT,Weight: %.1f / %.0f kg,Вес: %.1f / %.0f кг
+HUB_CLOSE_HINT,Tab or Esc — close,Tab или Esc — закрыть
+HUB_SIZE_POCKET,pocket,карманный
+HUB_SIZE_CARRIED,carried,переносной
+HUB_SIZE_BULKY,bulky,громоздкий
+HUB_REFUSED_TOO_LARGE,Too big for this pocket,Слишком большой для этого кармана
+HUB_REFUSED_OCCUPIED,That pocket is taken,Этот карман занят
+HUB_REFUSED_NO_ZONE,No free pocket fits it,Нет свободного подходящего кармана
+HUB_REFUSED_OVERWEIGHT,Too heavy for the pack,Слишком тяжело для рюкзака
+HUB_PLACE_HINT,Drag with LMB into a lit pocket; release to close,Перетащите ЛКМ в подсвеченный карман; отпустите — закрыть
+HUB_USE,Use,Использовать
+HUB_CANNOT_USE,Cannot use this here,Здесь это не использовать
+BEDROLL_PLACE_HINT,F — lay here · Esc — cancel,F — разложить · Esc — отмена
+BEDROLL_PLACE_BLOCKED,Cannot lay the bedroll here · Esc — cancel,Здесь нельзя разложить спальник · Esc — отмена
+REST_PROMPT,Sit down,Сесть
+WAIT_TITLE,WAIT BY THE FIRE,ЖДАТЬ У ОГНЯ
+REST_SEATED_HINT,F — wait · move — stand up,F — ждать · движение — встать
+WAIT_DIALOG_KEYS,"Wheel or ← →  hours      [ F ]  wait      [ Esc ]  cancel","Колесо или ← →  часы      [ F ]  ждать      [ Esc ]  отмена"
+TABLE_EAT,Eat,Съесть
+TABLE_DRINK,Drink,Выпить
+WAIT_ENDED_RECOVERED,Warm and dry,Согрелся и высох
+WAIT_ENDED_FIRE_OUT,The stove went out,Печь погасла
+WARM_PUT,Warm up,Разогреть
+WARM_WARMING,Warming…,Греется…
+HUB_INSPECT,Take the pack off,Снять рюкзак
+HUB_INSPECT_TITLE,Full inspection,Полная ревизия
+HUB_SECTION_MAIN,Main compartment,Главное отделение
+HUB_SECTION_LID,Lid,Клапан
+HUB_SECTION_SIDES,Side flaps,Боковые клапаны
+PACK_INSPECT,Go through the pack,Разобрать рюкзак
+LIGHT_PROMPT,Light the stove,Разжечь печь
+LIGHT_REQUIREMENTS,Requires tinder + firewood,Нужны растопка + дрова
+
+PROMPT_HEADER_INTERACT,Interact,Взаимодействие
+PROMPT_DETAIL_ITEM,Item,Предмет
+PROMPT_DETAIL_CONTROL,Control,Управление
+PROMPT_DETAIL_DOOR,Door,Дверь
+PROMPT_DETAIL_OBJECT,Object,Объект
