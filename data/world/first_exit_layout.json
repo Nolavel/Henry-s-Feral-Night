@@ -1,12 +1,9 @@
 {
- "_doc": "First Exit greybox layout on Graciosa's east peninsula. World metres, +X east, -Z north. Y is sampled from the terrain by tools/world/build_first_exit_blockout.gd, which also resolves lots along roads and writes every final footprint to docs/world/first_exit_resolved.json. Temporary shelter test start faces the entrance; original bunker supplies remain. See docs/world/FIRST_EXIT.md.",
+ "_doc": "First Exit greybox layout on Graciosa's east peninsula. World metres, +X east, -Z north. Y is sampled from the terrain by tools/world/build_first_exit_blockout.gd, which also resolves lots along roads and writes every final footprint to docs/world/first_exit_resolved.json. Production starts at the bunker facing the water tower; the author retains all shelter supplies and bonus stacks for the live run. See docs/world/FIRST_EXIT.md.",
  "spawn": {
-  "anchor": "shelter_house/House",
-  "local": [
-   0,
-   0,
-   12
-  ]
+  "x": 1420,
+  "z": -943,
+  "yaw_deg": 132
  },
  "structures": [
   {
@@ -1218,5 +1215,5 @@
    "route": "shelter_test"
   }
  ],
- "_scarcity": "Temporary shelter test supplies: 33 boards and 66 nails across the route, 9 logs at the entrance, hammer/nails/lighter on the tool bench. Three logs fit the stove. Remove the explicitly labelled shelter_test extras when restoring route scarcity. The same test start adds one 1000 ml flask, two pineapple tins, two stew tins and a reusable knife on separate benches. A hatchet on the tool bench converts loose boards into firewood; the meal table is protected."
+ "_scarcity": "Author-retained live candidate supplies (2026-09-28): 33 boards, 66 nails and 12 logs across route and shelter, including 9 logs at the entrance; both bunker and shelter starter kits remain. Keep bonus stacks and shelter_test pickups when regenerating the bunker start. Hammer/nails/lighter and knife/hatchet remain on the tool bench; one 1000 ml flask, two pineapple tins and two extra stew tins remain on the food bench. Three logs fit the stove. The hatchet converts loose boards into firewood; the meal table is protected. The historical 15-board / 30-nail reduction is not authorized for this candidate."
 }

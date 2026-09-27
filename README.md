@@ -23,7 +23,7 @@ the bunker to the shelter on Graciosa.
   sources), hunger/thirst/energy and sleep with time skip. Thin-ice and
   cold-water systems exist in code but are intentionally not instantiated in
   First Exit A; coastal ice content belongs to the later Coast / Thin Ice slice.
-- **Shelter loop:** pick up boards, firewood and tinder; board breaches; light
+- **Shelter loop:** pick up boards, firewood and the lighter; board breaches; light
   and feed the stove; sleep; save.
 - **Henry:** UAL animation set on a runtime AnimationTree (locomotion, crouch,
   jump, carry, work actions), clothes built in Blender as skinned meshes,
@@ -31,11 +31,12 @@ the bunker to the shelter on Graciosa.
 - **Tech:** world composition root, streaming, SoundSystem autoload, weather,
   snow cover and footprints, atomic save slots, 29 headless test suites.
 
-Not in yet for First Exit A: the authored weather-turn beat, route audio,
-persistent removal of spent world pickups, and a continuous stranger-playtest
-pass. Coastal thin-ice geography is deliberately deferred to Coast / Thin Ice.
-The held road flare, Player Hub foundation, field bedroll and Quick Access
-pocket transfer are already in.
+WeatherBeat, persistent consumed-pickup records, the held road flare, Player Hub
+and inspection, field bedroll, physical Quick Access, finite water/tins and
+shelter work are implemented. The remaining First Exit proof is the continuous
+stranger playtest and its captures; optional route audio and coastal thin-ice
+content are later work. The bunker start is restored; shelter supplies and
+bonus stacks remain as explicitly requested by the author on 2026-09-28.
 
 ## Run
 
@@ -65,7 +66,9 @@ unless `tools/ci/input_overlap_allowlist.txt` says why that is safe.
 | `,` / `.` | orbit the camera |
 | `Esc` | pause |
 | `F` on a bed or mattress | sleep: wheel or `←` `→` hours, `F`/`Enter` sleep, `Esc` cancel |
-| wheel / wheel click / `1`–`4` | quick access: pick a pocket / use what is in it (a pocketed flare lights in hand; click again drops it) |
+| wheel / wheel click / `1`–`4` | select a pocket / draw its item; LMB or another wheel-click uses the held item |
+| `LMB` | use the physically held item; place a window board preview |
+| `G` | put a carried log/board armful on clear ground |
 | `Tab` | Player Hub: the pack opens on Henry's back; move items between the pack and pockets, Use (bedroll: preview, `F` lays it). `Tab`/`Esc` closes |
 | hold `F` | on a pickup: open the pack and drag the item into a pocket with LMB |
 

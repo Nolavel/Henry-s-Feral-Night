@@ -1,15 +1,24 @@
 # First Exit A — stranger playtest run (#80)
 
-One continuous run on `main`, Graciosa, no debug, no teleport, no TestScene.
+One continuous run on the integrated candidate, Graciosa, no debug, no teleport, no TestScene.
 Game time is fixed: 60 real minutes per game day, a new game starts at 12:00
 (#42), so a 10–15 minute run ends in late afternoon / dusk.
+
+Start **New Game**, not Continue from a shelter test save. Record the candidate
+commit, renderer, locale and elapsed real time before the run. Do not delete the
+author's saves. The current candidate starts at the bunker and retains all
+author-approved supplies: 33 boards, 66 nails, 12 logs (nine at the shelter), both kits,
+one flask and two pineapple tins. The historical scarcity reduction is not part
+of this candidate. Existing WeatherBeat and pickup/save systems are implemented;
+this run checks whether a stranger discovers and completes their connected flow.
 
 ## Before: what the observer says to the tester
 
 Say only this:
 
-> "You play Henry. Survive the first night. Controls: WASD, F for everything,
-> Tab for your pack, Esc to back out. I will not help; think aloud."
+> "You play Henry. Survive the first night. WASD moves; F interacts; Tab opens
+> your pack; 1–4 draws from pockets; LMB uses the held item; G puts carried wood
+> down; Esc goes back. Think aloud. I will observe without helping."
 
 Do **not** mention: tinder, boards, the shelter house, wind, the weather turn,
 sitting, the stove ring, the table, or sleep = save.
@@ -21,11 +30,17 @@ sitting, the stove ring, the table, or sleep = save.
 | 0:00–0:45 | Bunker, exile | Does the tester try the bunker door? Do they read "no way back"? Is the water tower a heading? | "Where were you, and why did you leave?" |
 | 0:45–2:00 | Route choice: road / shore / ruins | Which route, and did they look before choosing? | "Why that way?" |
 | 2:00–5:30 | Resources | Do they read boards / tinder / firewood as future decisions? Do they leave something behind? | "What did you not take, and why?" |
-| ~4:00–6:00 | Weather turn (200 m from the start, or 5 min) | Did the plan change: faster, less looting, a sheltered path, no going back? | "What changed when the storm came?" |
+| When 200 m from the start, or after 5 min; deferred while sheltered | Weather turn | Did the plan change: faster, less looting, a sheltered path, no going back? | "What changed when the storm came?" |
 | 5:30–7:30 | Finding the shelter among 11 lots | Did they pick it by looking (breaches, stove, mattress), or by a prompt? | "How did you know which house?" |
-| 7:00–9:00 | 5 breaches, 1–3 boards | Did they board the windward holes (snow blowing in) or the nearest ones? | "Which windows did you close, and why those?" |
+| 7:00–9:00 | 5 breaches, boards carried three at a time | Do they discover staging, hammer/nails and camera-aimed LMB placement? Which holes do they choose first? | "Which windows did you close, and why those?" |
 | 8:00–12:00 | Stove and recovery | Light the stove (5 s act), sit, wait, dry (steam, trend marks), warm food on the ring, eat from the table. Did it read as a ritual or as a chain of F prompts? | "What were you doing by the stove?" |
 | 11:00–15:00 | Sleep → save → reload | Sleep through the mattress/bedroll. Reload the slot: picked-up loot must not return (#79), shelter, fuel, weather, bedroll and inventory must hold. | — |
+
+Use the existing stove sequence: F open, F load cold, F light with the owned
+lighter. Observe hand item visibility, water remaining, knife refusal and separate
+pineapple opening/eating, G drop recovery and the protected seated meal ritual.
+Do not give these steps to the tester in advance. If they need help, record the
+timestamp, intended action, visible prompt and intervention as a failed link.
 
 ## Pass
 

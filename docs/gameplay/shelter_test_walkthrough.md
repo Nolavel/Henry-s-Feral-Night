@@ -1,13 +1,15 @@
 # Shelter test walkthrough
 
-The ordinary island start is temporarily at the shelter. Start a new game to test
-the complete supply layout: old saves correctly retain their pickup ledger and
+The ordinary island starts at the bunker again (2026-09-28). Follow the land
+route to the shelter; the author retains the complete supply layout, including
+bonus stacks and its spare bedroll/flare kit. Start a new game for the route test:
+old saves correctly retain their pickup ledger and
 already consumed supplies. No existing save is deleted or rewritten by this pass.
 
 ## Find and carry supplies
 
-1. Henry starts facing the entrance, beyond the veranda steps. The packed bedroll
-   and road flare are still separate pickups beside the approach.
+1. Henry starts at the bunker facing the water tower. Pick up its packed bedroll
+   and road flare if desired. A second separate pair remains by the shelter approach.
 2. Looking toward the entrance, walk along the right side of the house for the
    full-size plank stacks. Each F pickup carries three boards in Henry's arms;
    they are not placed invisibly into a backpack. More than one trip is expected.

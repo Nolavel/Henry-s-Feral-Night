@@ -16595,4 +16595,4 @@ transform = Transform3D(0.75, 0, 0, 0, 0.75, 0, 0, 0, 0.75, 0, 0, 0)
 texture = ExtResource("2_14ntb")
 
 [node name="SpawnPoint" type="Marker3D" parent="." unique_id=1615005507]
-transform = Transform3D(-0.8511692, 0, -0.5248913, 0, 1, 0, 0.5248913, 0, -0.8511692, 1129.3971, 6.065492, -664.7485)
+transform = Transform3D(-0.6691307, 0, 0.7431448, 0, 1, 0, -0.7431448, 0, -0.6691307, 1420, 1.2100252, -943)
