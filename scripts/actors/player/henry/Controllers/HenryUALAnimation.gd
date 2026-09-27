@@ -115,6 +115,10 @@ const GARMENT_PARTS: Dictionary = {
 ## burning tip read clear of Henry's hand.
 @export var hand_prop_offset: Vector3 = Vector3(0.0, 0.12, 0.06)
 @export var hand_prop_rotation_deg: Vector3 = Vector3(-55.0, 0.0, 0.0)
+## Right hand is reserved for a selected board while the left holds the hammer.
+@export var offhand_bone: StringName = &"hand_r"
+@export var offhand_prop_offset: Vector3 = Vector3(0.02, 0.16, 0.04)
+@export var offhand_prop_rotation_deg: Vector3 = Vector3(0.0, 0.0, 90.0)
 ## How fast the right arm eases into and out of the held pose.
 @export_range(1.0, 20.0, 0.5) var hold_pose_rate: float = 8.0
 
@@ -163,6 +167,8 @@ var _resolved_carry_walk: StringName = &""
 var _resolved_torch: StringName = &""
 var _hand_socket: BoneAttachment3D
 var _held_prop: Node3D
+var _offhand_socket: BoneAttachment3D
+var _offhand_prop: Node3D
 var _hold_pose: float = 0.0
 var _current_action: StringName = &""
 var _carried: ItemResource = null
@@ -337,6 +343,45 @@ func release_hand() -> Node3D:
 
 func get_held_prop() -> Node3D:
 	return _held_prop if is_instance_valid(_held_prop) else null
+
+
+func get_offhand_socket() -> BoneAttachment3D:
+	if is_instance_valid(_offhand_socket) or skeleton == null:
+		return _offhand_socket
+	_offhand_socket = BoneAttachment3D.new()
+	_offhand_socket.name = "OffhandSocket"
+	_offhand_socket.bone_name = offhand_bone
+	skeleton.add_child(_offhand_socket)
+	return _offhand_socket
+
+
+func hold_in_offhand(prop: Node3D) -> void:
+	var socket: BoneAttachment3D = get_offhand_socket()
+	if socket == null:
+		return
+	if is_instance_valid(_offhand_prop) and _offhand_prop != prop:
+		release_offhand()
+	if prop.get_parent() != null:
+		prop.get_parent().remove_child(prop)
+	socket.add_child(prop)
+	var rot: Vector3 = offhand_prop_rotation_deg * (PI / 180.0)
+	prop.transform = Transform3D(Basis.from_euler(rot), offhand_prop_offset)
+	_set_layers_recursive(prop, portrait_render_layers | 1)
+	_offhand_prop = prop
+
+
+func release_offhand() -> Node3D:
+	var prop: Node3D = _offhand_prop if is_instance_valid(_offhand_prop) else null
+	_offhand_prop = null
+	if prop != null and prop.get_parent() != null:
+		var world_xf: Transform3D = prop.global_transform
+		prop.get_parent().remove_child(prop)
+		prop.transform = world_xf
+	return prop
+
+
+func get_offhand_prop() -> Node3D:
+	return _offhand_prop if is_instance_valid(_offhand_prop) else null
 
 
 func _set_layers_recursive(node: Node, layers: int) -> void:

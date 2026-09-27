@@ -61,8 +61,7 @@ func get_breaches() -> Array[ShelterBreach]:
 func get_sealed_fraction() -> float:
 	var open: float = 0.0
 	for breach: ShelterBreach in _breaches:
-		if not breach.is_boarded():
-			open += breach.severity
+		open += breach.severity * breach.get_open_fraction()
 	return clampf(1.0 - open, 0.0, 1.0)
 
 

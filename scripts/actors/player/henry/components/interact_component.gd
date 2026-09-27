@@ -129,7 +129,7 @@ func _perform(target: InteractiveArea) -> void:
 			if target is ItemPickup:
 				action = &"pickup"
 			elif target is BreachBoardUp:
-				action = &"fix"
+				action = &"interact"
 			else:
 				action = &"interact"
 		_player.call(&"play_action_animation", action)
