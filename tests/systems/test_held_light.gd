@@ -25,6 +25,7 @@ var _inventory: InventoryComponent
 var _equipment: EquipmentComponent
 var _light: HeldLightComponent
 var _pocket_path: StringName
+var _spent_flare: HeldFlare
 
 
 func _process(_delta: float) -> bool:
@@ -70,6 +71,10 @@ func _process(_delta: float) -> bool:
 			_check(dropped.size() == 1 and (dropped[0] as HeldFlare).is_burning(),
 				"the dropped flare is not burning on the ground")
 			_test_unlit_put_away()
+			_test_spent_while_held()
+		12:
+			_check(not is_instance_valid(_spent_flare),
+				"spent held flare was not destroyed after deferred cleanup")
 			_finish()
 	return false
 
@@ -105,6 +110,26 @@ func _test_unlit_put_away() -> void:
 	_check(_light.put_away_unlit(), "unlit flare would not return to storage")
 	_check(_equipment_item(path) == &"road_flare" or _inventory.has_item(&"road_flare"),
 		"put-away flare was lost instead of returning to carried storage")
+
+
+func _test_spent_while_held() -> void:
+	_check(_equipment.stow_anywhere(&"road_flare") == EquipmentComponent.Refusal.NONE,
+		"spent-test flare would not enter a pocket")
+	var path := _flare_pocket_path()
+	_check(path != &"", "spent-test flare pocket could not be found")
+	_check(_light.equip_from_zone(&"road_flare", path), "spent-test flare would not draw")
+	_check(_light.use_held(), "spent-test flare would not ignite")
+	_spent_flare = _visual.get_held_prop() as HeldFlare
+	_check(_spent_flare != null, "spent-test flare is not in the hand")
+	if _spent_flare == null:
+		return
+	# Reproduce the real burn-out callback while the emitter is signal-locked.
+	_spent_flare.spent.emit()
+	_check(not _light.is_holding(), "spent flare remained owned by HeldLightComponent")
+	_check(_visual.get_held_prop() == null, "spent flare remained attached to the hand socket")
+	_check(_spent_flare.get_parent() == null, "spent held flare was not detached before cleanup")
+	_check(is_instance_valid(_spent_flare),
+		"spent held flare was destroyed synchronously inside its signal")
 
 
 func _flare_pocket_path() -> StringName:

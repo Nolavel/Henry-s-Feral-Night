@@ -205,7 +205,11 @@ func _on_spent(flare: HeldFlare) -> void:
 	if not is_instance_valid(flare):
 		return
 	if flare.get_parent() == null:
-		flare.free()
+		# _on_spent() runs inside HeldFlare.spent.emit(). Godot locks an
+		# emitter for the duration of signal dispatch, so free() here is illegal.
+		# The held prop has already been detached by release_hand(); defer the
+		# actual destruction until the signal stack has unwound.
+		flare.call_deferred(&"free")
 		return
 	get_tree().create_timer(SPENT_LINGER_S).timeout.connect(func() -> void:
 		if is_instance_valid(flare):
