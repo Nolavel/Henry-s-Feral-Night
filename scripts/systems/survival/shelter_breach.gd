@@ -22,7 +22,7 @@ signal staged_boards_changed(count: int)
 @export_range(0.4, 4.0, 0.05) var opening_width_m: float = 1.8
 @export_range(0.4, 3.0, 0.05) var opening_height_m: float = 1.1
 @export_range(0.08, 0.5, 0.01) var board_height_m: float = 0.24
-@export_range(0.5, 1.0, 0.01) var seal_threshold: float = 0.92
+@export_range(0.5, 1.0, 0.01) var seal_threshold: float = 0.99
 
 @export_group("Visual")
 @export var boarded_visual: Node3D
