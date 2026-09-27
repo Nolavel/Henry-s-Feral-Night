@@ -36,12 +36,14 @@ func _ready() -> void:
 	if interactive_mesh == null:
 		interactive_mesh = _make_placeholder()
 	interaction_type = InteractionType.PICKUP
+	object_on_ground = false
+	auto_detect_ground = false
 	if world_id != &"":
 		add_to_group(WORLD_GROUP)
 	super()
 	var item: ItemResource = ItemCatalog.get_item(item_id)
 	if item != null:
-		var label: String = item.display_name if count == 1 else "%s ×%d" % [item.display_name, count]
+		var label: String = tr(item.display_name) if count == 1 else "%s ×%d" % [tr(item.display_name), count]
 		set_item_name(label)
 	set_description("")
 
@@ -111,6 +113,10 @@ func _make_placeholder() -> MeshInstance3D:
 		return _make_hammer()
 	if item_id == NAILS_ID:
 		return _make_nails()
+	if item_id == &"boards" or item_id == &"firewood":
+		return _make_wood_stack()
+	if item_id == &"lighter":
+		return _box_prop("Lighter", Vector3(0.045, 0.085, 0.025), Vector3(0, 0.045, 0), Color(0.9, 0.5, 0.08))
 	var crate := MeshInstance3D.new()
 	crate.name = "Placeholder"
 	var box := BoxMesh.new()
@@ -141,7 +147,7 @@ func _make_road_flare() -> MeshInstance3D:
 	body_material.roughness = 0.58
 	tube.material_override = body_material
 	tube.rotation.z = PI * 0.5
-	tube.position.y = -0.13
+	tube.position.y = 0.02
 	add_child(tube)
 
 	var cap := MeshInstance3D.new()
@@ -170,7 +176,8 @@ func _make_hammer() -> MeshInstance3D:
 	wood.albedo_color = Color(0.26, 0.16, 0.08)
 	handle_mesh.material = wood
 	handle.mesh = handle_mesh
-	handle.position = Vector3(0.0, 0.16, 0.0)
+	handle.position = Vector3(0.0, 0.04, 0.0)
+	handle.rotation.x = PI * 0.5
 	add_child(handle)
 	var head := MeshInstance3D.new()
 	var head_mesh := BoxMesh.new()
@@ -188,6 +195,7 @@ func _make_hammer() -> MeshInstance3D:
 ## One pickup represents a box of thirty nails; three visible nails are enough
 ## to communicate what it is without drawing thirty tiny meshes.
 func _make_nails() -> MeshInstance3D:
+	var box := _box_prop("NailBox", Vector3(0.24, 0.065, 0.18), Vector3(0, 0.035, 0), Color(0.70, 0.51, 0.24))
 	var first := MeshInstance3D.new()
 	first.name = "NailsVisual"
 	var nail_mesh := CylinderMesh.new()
@@ -209,6 +217,61 @@ func _make_nails() -> MeshInstance3D:
 		nail.rotation.z = PI * 0.5
 		nail.position = offset
 		first.add_child(nail)
+	first.reparent(box)
+	first.position = Vector3(-0.04, 0.04, 0.0)
+	return box
+
+
+func _box_prop(prop_name: String, size: Vector3, at: Vector3, colour: Color) -> MeshInstance3D:
+	var prop := MeshInstance3D.new()
+	prop.name = prop_name
+	var mesh := BoxMesh.new()
+	mesh.size = size
+	var material := StandardMaterial3D.new()
+	material.albedo_color = colour
+	material.roughness = 0.85
+	mesh.material = material
+	prop.mesh = mesh
+	prop.position = at
+	add_child(prop)
+	return prop
+
+
+## Full-size loose planks and bark-covered logs communicate the carried load.
+func _make_wood_stack() -> MeshInstance3D:
+	var first: MeshInstance3D
+	for i: int in range(count):
+		var prop: MeshInstance3D
+		if item_id == &"boards":
+			prop = _box_prop("Plank%d" % i, Vector3(1.7, 0.065, 0.24),
+				Vector3(0.04 * (i % 2), 0.04 + i * 0.07, 0), Color(0.56, 0.39, 0.22))
+		else:
+			prop = MeshInstance3D.new()
+			prop.name = "Log%d" % i
+			var cylinder := CylinderMesh.new()
+			cylinder.top_radius = 0.075
+			cylinder.bottom_radius = 0.085
+			cylinder.height = 0.65
+			var bark := StandardMaterial3D.new()
+			bark.albedo_color = Color(0.30, 0.18, 0.09)
+			cylinder.material = bark
+			prop.mesh = cylinder
+			prop.rotation.z = PI * 0.5
+			prop.position = Vector3(0, 0.085 + (i / 2) * 0.14, (i % 2) * 0.17)
+			add_child(prop)
+			var cut := MeshInstance3D.new()
+			var end := CylinderMesh.new()
+			end.top_radius = 0.07
+			end.bottom_radius = 0.07
+			end.height = 0.004
+			var grain := StandardMaterial3D.new()
+			grain.albedo_color = Color(0.72, 0.53, 0.30)
+			end.material = grain
+			cut.mesh = end
+			cut.position.y = 0.327
+			prop.add_child(cut)
+		if first == null:
+			first = prop
 	return first
 
 

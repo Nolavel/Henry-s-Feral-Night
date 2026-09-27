@@ -495,6 +495,7 @@ func _shelter_gameplay(house: Node3D, w: float, d: float, h: float,
 	zone.set(&"wind_exposure", 0.05)
 	zone.set(&"is_interior", true)
 	zone.set(&"max_heated_offset_c", 18.0)
+	zone.set(&"minimum_heated_offset_c", 2.0)
 	zone.position = Vector3(0.0, floor_y + inner_h * 0.5, 0.0)
 	_add(house, zone)
 	var zone_shape := CollisionShape3D.new()
@@ -518,6 +519,7 @@ func _shelter_gameplay(house: Node3D, w: float, d: float, h: float,
 		breach.set(&"name_key", "BREACH_DOOR" if opening[0] == "Door" else "BREACH_WINDOW")
 		breach.set(&"opening_width_m", float(opening[2]))
 		breach.set(&"opening_height_m", 2.0 if opening[0] == "Door" else 1.1)
+		breach.set(&"staging_floor_y", HOUSE_FLOOR_TOP_Y - floor_y - float(opening[3]))
 		## -Z of the breach points out of the house.
 		breach.position = Vector3(float(opening[1]), float(opening[3]) + floor_y - zone.position.y, side * d * 0.5)
 		breach.rotation.y = PI if side > 0.0 else 0.0
@@ -538,6 +540,11 @@ func _shelter_gameplay(house: Node3D, w: float, d: float, h: float,
 		prompt.name = "BoardUp"
 		prompt.set_script(load(BOARD_SCRIPT))
 		prompt.set(&"interactable_scene", null)
+		var aperture_focus := Marker3D.new()
+		aperture_focus.name = "BoardFocus"
+		aperture_focus.position.z = 0.14
+		_add(breach, aperture_focus)
+		prompt.set(&"focus_anchor", aperture_focus)
 		prompt.position = Vector3(0.0, -0.4, 0.9)
 		_add(breach, prompt)
 		_prompt_shape(prompt, Vector3(float(opening[2]), 1.6, 1.2))
@@ -593,6 +600,14 @@ func _shelter_gameplay(house: Node3D, w: float, d: float, h: float,
 	_cabinet(zone, Vector3(w * 0.5 - 0.5, floor_y - zone.position.y, -d * 0.2))
 	_mattress(zone, Vector3(-w * 0.5 + 0.8, floor_y - zone.position.y, d * 0.22))
 	_rest_crate(zone, Vector3(-w * 0.5 + 2.3, floor_y - zone.position.y, -d * 0.2 + 1.1), stove.position)
+	var bench := Node3D.new()
+	bench.name = "ToolBench"
+	bench.position = Vector3(2.0, HOUSE_FLOOR_TOP_Y, 1.2)
+	_add(house, bench)
+	_box(bench, Vector3(0, 0.77, 0), Vector3(1.9, 0.06, 0.65), _wood)
+	for x: float in [-0.8, 0.8]:
+		for z: float in [-0.22, 0.22]:
+			_box(bench, Vector3(x, 0.37, z), Vector3(0.06, 0.74, 0.06), _wood, false)
 
 
 ## A crate to sit on by the stove, turned so Henry faces the fire (-Z).
@@ -609,6 +624,7 @@ func _rest_crate(parent: Node3D, pos: Vector3, facing: Vector3) -> void:
 	prompt.set_script(load(REST_SPOT_SCRIPT))
 	prompt.set(&"interactable_scene", null)
 	prompt.set(&"interactive_mesh", crate)
+	prompt.set(&"focus_anchor", crate)
 	_add(seat, prompt)
 	_prompt_shape(prompt, Vector3(1.2, 1.4, 1.2))
 	var table := Node3D.new()  # the cloth-covered table the food is laid on
@@ -616,6 +632,19 @@ func _rest_crate(parent: Node3D, pos: Vector3, facing: Vector3) -> void:
 	table.set_script(load(MEAL_TABLE_SCRIPT))
 	table.position = Vector3(0.32, 0.0, -0.55)
 	_add(seat, table)
+	var table_rest: Node3D = _interactive_area()
+	table_rest.name = "Sit"
+	table_rest.set_script(load(REST_SPOT_SCRIPT))
+	table_rest.set(&"interactive_mesh", crate)
+	table_rest.set(&"seat_anchor", seat)
+	var table_focus := Marker3D.new()
+	table_focus.name = "TableFocus"
+	table_focus.position = table.position + Vector3.UP * 0.50
+	_add(seat, table_focus)
+	table_rest.set(&"focus_anchor", table_focus)
+	_add(seat, table_rest)
+	table_rest.position = table.position
+	_prompt_shape(table_rest, Vector3(0.6, 1.0, 0.5))
 
 
 ## A mattress on the floor by the west wall: the shelter's place to sleep.
@@ -707,7 +736,7 @@ func _layout_position(spec: Dictionary) -> Vector3:
 func _build_pickup(spec: Dictionary) -> void:
 	var world: Vector3 = _layout_position(spec)
 	if not bool(spec.get("keep_height", false)):
-		world.y = _ground(world.x, world.z).y + 0.15
+		world.y = _ground(world.x, world.z).y + 0.025
 	var pickup: Node3D = _interactive_area()
 	pickup.name = String(spec["id"]).to_pascal_case()
 	pickup.set_script(load(PICKUP_SCRIPT))

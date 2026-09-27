@@ -26,6 +26,8 @@ signal staged_boards_changed(count: int)
 
 @export_group("Visual")
 @export var boarded_visual: Node3D
+## The floor relative to the aperture centre; staging stays inside the room.
+@export var staging_floor_y: float = -1.35
 
 var _forced_boarded: bool = false
 var _placed_board_y: Array[float] = []
@@ -264,7 +266,7 @@ func _refresh_staged_visual() -> void:
 		material.roughness = 1.0
 		mesh.material = material
 		plank.mesh = mesh
-		plank.position = Vector3(opening_width_m * 0.5 + 0.25, -opening_height_m * 0.5 + 0.04 + i * 0.065, 0.32)
+		plank.position = Vector3(opening_width_m * 0.5 + 0.25, staging_floor_y + 0.04 + i * 0.065, 0.65)
 		_staged_root.add_child(plank)
 
 

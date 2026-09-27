@@ -710,44 +710,44 @@
 			"z": -643.0
 		},
 		{
-			"count": 1,
+			"count": 3,
 			"id": "firewood_shelter",
 			"item_id": "firewood",
 			"kind": "pickup",
-			"x": 1139.1,
-			"z": -653.1
+			"x": 1136.9,
+			"z": -662.1
 		},
 		{
-			"count": 1,
+			"count": 3,
 			"id": "firewood_shelter_yard",
 			"item_id": "firewood",
 			"kind": "pickup",
-			"x": 1134.0,
-			"z": -648.8
+			"x": 1136.3,
+			"z": -663.1
 		},
 		{
-			"count": 1,
+			"count": 3,
 			"id": "firewood_shelter_outbuilding",
 			"item_id": "firewood",
 			"kind": "pickup",
-			"x": 1134.8,
-			"z": -661.6
+			"x": 1135.6,
+			"z": -664.1
 		},
 		{
 			"count": 3,
 			"id": "boards_shelter_yard",
 			"item_id": "boards",
 			"kind": "pickup",
-			"x": 1128.5,
-			"z": -658.9
+			"x": 1129.3,
+			"z": -655.3
 		},
 		{
 			"count": 3,
 			"id": "boards_shelter_outbuilding",
 			"item_id": "boards",
 			"kind": "pickup",
-			"x": 1139.1,
-			"z": -653.1
+			"x": 1128.8,
+			"z": -656.2
 		},
 		{
 			"count": 1,
@@ -794,24 +794,88 @@
 			"id": "boards_shelter_inside",
 			"item_id": "boards",
 			"kind": "pickup",
-			"x": 1132.9,
-			"z": -654.2
+			"x": 1132.3,
+			"z": -655.1
 		},
 		{
 			"count": 1,
 			"id": "hammer_shelter",
 			"item_id": "hammer",
 			"kind": "pickup",
-			"x": 1133.6,
-			"z": -654.7
+			"x": 1134.0,
+			"z": -654.9
 		},
 		{
-			"count": 30,
+			"count": 66,
 			"id": "nails_shelter",
 			"item_id": "nails",
 			"kind": "pickup",
-			"x": 1133.3,
+			"x": 1133.4,
 			"z": -654.5
+		},
+		{
+			"count": 3,
+			"id": "boards_shelter_test_1",
+			"item_id": "boards",
+			"kind": "pickup",
+			"x": 1128.3,
+			"z": -657.0
+		},
+		{
+			"count": 3,
+			"id": "boards_shelter_test_2",
+			"item_id": "boards",
+			"kind": "pickup",
+			"x": 1127.9,
+			"z": -657.6
+		},
+		{
+			"count": 3,
+			"id": "boards_shelter_test_3",
+			"item_id": "boards",
+			"kind": "pickup",
+			"x": 1127.6,
+			"z": -658.1
+		},
+		{
+			"count": 3,
+			"id": "boards_shelter_test_4",
+			"item_id": "boards",
+			"kind": "pickup",
+			"x": 1127.3,
+			"z": -658.7
+		},
+		{
+			"count": 3,
+			"id": "boards_shelter_test_5",
+			"item_id": "boards",
+			"kind": "pickup",
+			"x": 1126.9,
+			"z": -659.2
+		},
+		{
+			"count": 3,
+			"id": "boards_shelter_test_6",
+			"item_id": "boards",
+			"kind": "pickup",
+			"x": 1126.6,
+			"z": -659.8
+		},
+		{
+			"count": 1,
+			"id": "lighter_shelter_test",
+			"item_id": "lighter",
+			"kind": "pickup",
+			"x": 1132.8,
+			"z": -654.1
+		},
+		{
+			"count": 2,
+			"id": "stew_shelter_test",
+			"item_id": "tinned_stew",
+			"kind": "pickup",
+			"x": 1133.8,
+			"z": -651.0
 		}
 	],
 	"spawn": {

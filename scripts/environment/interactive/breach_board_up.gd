@@ -49,6 +49,9 @@ func _ready() -> void:
 
 func _process(_delta: float) -> void:
 	if _placing:
+		if _hammer() == null or not _hammer().is_holding():
+			_cancel_placement()
+			return
 		_update_preview()
 
 
@@ -69,6 +72,21 @@ func can_interact() -> bool:
 
 func is_placing_board() -> bool:
 	return _placing
+
+
+## The entire visible aperture stays selectable as the player aims above/below its centre.
+func is_aim_on_opening(from: Vector3, direction: Vector3) -> bool:
+	if breach == null:
+		return false
+	var normal: Vector3 = breach.get_facing()
+	var denominator: float = normal.dot(direction)
+	if absf(denominator) < 0.001:
+		return false
+	var distance_on_ray: float = normal.dot(breach.global_position - from) / denominator
+	if distance_on_ray <= 0 or distance_on_ray > RAY_LENGTH:
+		return false
+	var point: Vector3 = breach.to_local(from + direction * distance_on_ray)
+	return absf(point.x) <= breach.opening_width_m * 0.5 and absf(point.y) <= breach.opening_height_m * 0.5
 
 
 func _on_interaction_performed() -> void:
@@ -92,6 +110,8 @@ func _on_interaction_performed() -> void:
 		show_message(tr(NO_BOARDS_KEY))
 		return
 	var hammer: HammerComponent = _hammer()
+	if hammer != null and not hammer.is_holding():
+		_equip_hammer(hammer)
 	if hammer == null or not hammer.is_holding():
 		repair_refused.emit(&"hammer")
 		show_message(tr(NEED_HAMMER_KEY))
@@ -103,6 +123,39 @@ func _on_interaction_performed() -> void:
 	_begin_placement()
 
 
+func _equip_hammer(hammer: HammerComponent) -> void:
+	if hammer.can_use(&"hammer"):
+		hammer.use(&"hammer")
+		return
+	var player: Node = get_tree().get_first_node_in_group(&"player")
+	var equipment: EquipmentComponent = player.get_node_or_null(^"EquipmentComponent") as EquipmentComponent if player != null else null
+	if equipment != null:
+		for pocket: Dictionary in equipment.get_available_pockets():
+			if pocket["item_id"] == &"hammer":
+				hammer.equip_from_zone(&"hammer", equipment.pocket_path(pocket["body_slot"], pocket["pocket"]))
+				return
+
+
+func _get_interaction_text() -> String:
+	var key: String = "BREACH_STAGE_ACTION"
+	var inventory: InventoryComponent = _get_inventory()
+	var detail: String = tr(NO_BOARDS_KEY)
+	if _placing:
+		return "[LMB] %s\n%s" % [tr("BREACH_NAIL_ACTION"), tr(PLACE_HINT_KEY)]
+	if inventory != null and inventory.get_count(BOARD_ID) > 0:
+		detail = tr("BREACH_CARRIED_DETAIL") % inventory.get_count(BOARD_ID)
+	elif breach != null and breach.get_staged_boards() > 0:
+		key = "BREACH_TAKE_ACTION"
+		detail = tr(STAGED_KEY) % breach.get_staged_boards()
+		if inventory == null or inventory.get_count(NAIL_ID) < NAILS_PER_BOARD:
+			detail = tr(NEED_NAILS_KEY)
+		if breach.is_boarded():
+			key = "BREACH_RECOVER_ACTION"
+	set_item_name(tr(key))
+	set_description(detail)
+	return "[%s] %s" % [_interact_key_label(), tr(key)]
+
+
 func _begin_placement() -> void:
 	if _placing or breach == null:
 		return
@@ -110,6 +163,7 @@ func _begin_placement() -> void:
 	if animation == null or animation.get_offhand_socket() == null:
 		return
 	_placing = true
+	add_to_group(&"active_board_placement")
 	_preview = MeshInstance3D.new()
 	_preview.name = "BoardPreview"
 	var mesh := BoxMesh.new()
@@ -134,6 +188,7 @@ func _update_preview() -> void:
 	var viewport := get_viewport()
 	var camera: Camera3D = viewport.get_camera_3d() if viewport != null else null
 	_preview_valid = false
+	_preview.visible = false
 	if player == null or camera == null:
 		_preview_y = 0.0
 		_preview.position = Vector3(0.0, _preview_y, 0.12)
@@ -153,16 +208,24 @@ func _update_preview() -> void:
 	var limit: float = maxf(0.0, breach.opening_height_m * 0.5 - breach.board_height_m * 0.5)
 	_preview_y = clampf(local.y, -limit, limit)
 	_preview.position = Vector3(0.0, _preview_y, 0.12)
+	_preview.visible = true
 	var close_enough: bool = player.global_position.distance_to(breach.global_position) <= MAX_BOARDING_DISTANCE
 	var within_width: bool = absf(local.x) <= breach.opening_width_m * 0.5 + 0.15
 	var within_height: bool = absf(local.y) <= breach.opening_height_m * 0.5 + 0.15
-	_preview_valid = close_enough and within_width and within_height
+	var query := PhysicsRayQueryParameters3D.create(from, hit - direction * 0.04)
+	query.exclude = [(player as CollisionObject3D).get_rid()]
+	query.collide_with_areas = false
+	var unobstructed: bool = get_world_3d().direct_space_state.intersect_ray(query).is_empty()
+	_preview_valid = close_enough and within_width and within_height and unobstructed
 	if _preview_material != null:
 		_preview_material.albedo_color = Color(0.55, 0.86, 0.55, 0.38) if _preview_valid else Color(0.95, 0.28, 0.22, 0.38)
 
 
 func _commit_board() -> void:
-	if not _placing or not _preview_valid or breach == null:
+	if not _placing or breach == null:
+		return
+	_update_preview()
+	if not _preview_valid:
 		return
 	var inventory: InventoryComponent = _get_inventory()
 	var hammer: HammerComponent = _hammer()
@@ -198,6 +261,8 @@ func _cancel_placement() -> void:
 
 func _clear_placement_visuals() -> void:
 	_placing = false
+	if is_in_group(&"active_board_placement"):
+		remove_from_group(&"active_board_placement")
 	if is_instance_valid(_preview):
 		_preview.queue_free()
 	_preview = null
@@ -209,6 +274,19 @@ func _clear_placement_visuals() -> void:
 	if is_instance_valid(_offhand_board):
 		_offhand_board.queue_free()
 	_offhand_board = null
+
+
+func _exit_tree() -> void:
+	_clear_placement_visuals()
+
+
+func get_interaction_prompt_data() -> Dictionary:
+	var data: Dictionary = super()
+	if _placing:
+		data["key"] = "LMB"
+		data["action"] = tr("BREACH_NAIL_ACTION")
+		data["detail"] = tr(PLACE_HINT_KEY)
+	return data
 
 
 func _recover_staged_boards() -> void:

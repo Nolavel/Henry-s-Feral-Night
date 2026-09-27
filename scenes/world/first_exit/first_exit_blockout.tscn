@@ -583,6 +583,20 @@ size = Vector3(0.5, 0.44, 0.4)
 [sub_resource type="BoxShape3D" id="BoxShape3D_n0e0r"]
 size = Vector3(1.2, 1.4, 1.2)
 
+[sub_resource type="BoxShape3D" id="BoxShape3D_shelter_ce04d127"]
+size = Vector3(0.6, 1, 0.5)
+
+[sub_resource type="BoxMesh" id="BoxMesh_shelter_ccada4e4"]
+material = SubResource("StandardMaterial3D_ls7dj")
+size = Vector3(1.9, 0.06, 0.65)
+
+[sub_resource type="BoxShape3D" id="BoxShape3D_shelter_1d4ab785"]
+size = Vector3(1.9, 0.06, 0.65)
+
+[sub_resource type="BoxMesh" id="BoxMesh_shelter_03d7ac94"]
+material = SubResource("StandardMaterial3D_ls7dj")
+size = Vector3(0.06, 0.74, 0.06)
+
 [sub_resource type="BoxMesh" id="BoxMesh_4pmsd"]
 material = SubResource("StandardMaterial3D_ls7dj")
 size = Vector3(0.15, 3.5, 3)
@@ -1444,6 +1458,30 @@ radius = 0.6
 radius = 0.6
 
 [sub_resource type="SphereShape3D" id="SphereShape3D_s7f4c"]
+radius = 0.6
+
+[sub_resource type="SphereShape3D" id="SphereShape3D_shelter_9f76c435"]
+radius = 0.6
+
+[sub_resource type="SphereShape3D" id="SphereShape3D_shelter_96acd1cc"]
+radius = 0.6
+
+[sub_resource type="SphereShape3D" id="SphereShape3D_shelter_2d1ab6a3"]
+radius = 0.6
+
+[sub_resource type="SphereShape3D" id="SphereShape3D_shelter_1c438e23"]
+radius = 0.6
+
+[sub_resource type="SphereShape3D" id="SphereShape3D_shelter_6b9ab40e"]
+radius = 0.6
+
+[sub_resource type="SphereShape3D" id="SphereShape3D_shelter_d69e4e78"]
+radius = 0.6
+
+[sub_resource type="SphereShape3D" id="SphereShape3D_shelter_77e791ac"]
+radius = 0.6
+
+[sub_resource type="SphereShape3D" id="SphereShape3D_shelter_3197a4af"]
 radius = 0.6
 
 [node name="FirstExitBlockout" type="Node3D" unique_id=1206899588]
@@ -5452,6 +5490,7 @@ temperature_offset_c = 8.0
 wind_exposure = 0.05
 is_interior = true
 max_heated_offset_c = 18.0
+minimum_heated_offset_c = 2.0
 
 [node name="CollisionShape3D" type="CollisionShape3D" parent="ShelterHouse/House/ShelterZone" unique_id=1571842153]
 shape = SubResource("BoxShape3D_ww6k8")
@@ -5464,6 +5503,7 @@ name_key = "BREACH_DOOR"
 opening_width_m = 1.1
 opening_height_m = 2.0
 boarded_visual = NodePath("Boards")
+staging_floor_y = -0.9
 
 [node name="Boards" type="Node3D" parent="ShelterHouse/House/ShelterZone/Door" unique_id=1446862701]
 visible = false
@@ -5480,9 +5520,13 @@ mesh = SubResource("BoxMesh_aoej7")
 transform = Transform3D(0.9945219, -0.104528464, 0, 0.104528464, 0.9945219, 0, 0, 0, 1, 0, 0.7, 0.12)
 mesh = SubResource("BoxMesh_aoej7")
 
-[node name="BoardUp" type="Area3D" parent="ShelterHouse/House/ShelterZone/Door" unique_id=1653534983]
+[node name="BoardFocus" type="Marker3D" parent="ShelterHouse/House/ShelterZone/Door" unique_id=1352638223]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 0, 0, 0.14)
+
+[node name="BoardUp" type="Area3D" parent="ShelterHouse/House/ShelterZone/Door" unique_id=1653534983 node_paths=PackedStringArray("focus_anchor")]
 transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 0, -0.4, 0.9)
 script = ExtResource("5_k1cjx")
+focus_anchor = NodePath("../BoardFocus")
 
 [node name="CollisionShape3D" type="CollisionShape3D" parent="ShelterHouse/House/ShelterZone/Door/BoardUp" unique_id=726929784]
 shape = SubResource("BoxShape3D_05hxk")
@@ -5516,9 +5560,13 @@ mesh = SubResource("BoxMesh_urh5q")
 transform = Transform3D(0.9945219, -0.104528464, 0, 0.104528464, 0.9945219, 0, 0, 0, 1, 0, 0.385, 0.12)
 mesh = SubResource("BoxMesh_urh5q")
 
-[node name="BoardUp" type="Area3D" parent="ShelterHouse/House/ShelterZone/FrontWindow1" unique_id=1744809893]
+[node name="BoardFocus" type="Marker3D" parent="ShelterHouse/House/ShelterZone/FrontWindow1" unique_id=1423851741]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 0, 0, 0.14)
+
+[node name="BoardUp" type="Area3D" parent="ShelterHouse/House/ShelterZone/FrontWindow1" unique_id=1744809893 node_paths=PackedStringArray("focus_anchor")]
 transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 0, -0.4, 0.9)
 script = ExtResource("5_k1cjx")
+focus_anchor = NodePath("../BoardFocus")
 
 [node name="CollisionShape3D" type="CollisionShape3D" parent="ShelterHouse/House/ShelterZone/FrontWindow1/BoardUp" unique_id=1064305909]
 shape = SubResource("BoxShape3D_p58nt")
@@ -5552,9 +5600,13 @@ mesh = SubResource("BoxMesh_urh5q")
 transform = Transform3D(0.9945219, -0.104528464, 0, 0.104528464, 0.9945219, 0, 0, 0, 1, 0, 0.385, 0.12)
 mesh = SubResource("BoxMesh_urh5q")
 
-[node name="BoardUp" type="Area3D" parent="ShelterHouse/House/ShelterZone/BackWindow1" unique_id=1202390739]
+[node name="BoardFocus" type="Marker3D" parent="ShelterHouse/House/ShelterZone/BackWindow1" unique_id=603091186]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 0, 0, 0.14)
+
+[node name="BoardUp" type="Area3D" parent="ShelterHouse/House/ShelterZone/BackWindow1" unique_id=1202390739 node_paths=PackedStringArray("focus_anchor")]
 transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 0, -0.4, 0.9)
 script = ExtResource("5_k1cjx")
+focus_anchor = NodePath("../BoardFocus")
 
 [node name="CollisionShape3D" type="CollisionShape3D" parent="ShelterHouse/House/ShelterZone/BackWindow1/BoardUp" unique_id=821855419]
 shape = SubResource("BoxShape3D_3t608")
@@ -5588,9 +5640,13 @@ mesh = SubResource("BoxMesh_fjigs")
 transform = Transform3D(0.9945219, -0.104528464, 0, 0.104528464, 0.9945219, 0, 0, 0, 1, 0, 0.385, 0.12)
 mesh = SubResource("BoxMesh_fjigs")
 
-[node name="BoardUp" type="Area3D" parent="ShelterHouse/House/ShelterZone/FrontWindow2" unique_id=1339953016]
+[node name="BoardFocus" type="Marker3D" parent="ShelterHouse/House/ShelterZone/FrontWindow2" unique_id=1290480203]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 0, 0, 0.14)
+
+[node name="BoardUp" type="Area3D" parent="ShelterHouse/House/ShelterZone/FrontWindow2" unique_id=1339953016 node_paths=PackedStringArray("focus_anchor")]
 transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 0, -0.4, 0.9)
 script = ExtResource("5_k1cjx")
+focus_anchor = NodePath("../BoardFocus")
 
 [node name="CollisionShape3D" type="CollisionShape3D" parent="ShelterHouse/House/ShelterZone/FrontWindow2/BoardUp" unique_id=1166236363]
 shape = SubResource("BoxShape3D_5lcb8")
@@ -5624,9 +5680,13 @@ mesh = SubResource("BoxMesh_fjigs")
 transform = Transform3D(0.9945219, -0.104528464, 0, 0.104528464, 0.9945219, 0, 0, 0, 1, 0, 0.385, 0.12)
 mesh = SubResource("BoxMesh_fjigs")
 
-[node name="BoardUp" type="Area3D" parent="ShelterHouse/House/ShelterZone/BackWindow2" unique_id=2129588405]
+[node name="BoardFocus" type="Marker3D" parent="ShelterHouse/House/ShelterZone/BackWindow2" unique_id=1548639580]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 0, 0, 0.14)
+
+[node name="BoardUp" type="Area3D" parent="ShelterHouse/House/ShelterZone/BackWindow2" unique_id=2129588405 node_paths=PackedStringArray("focus_anchor")]
 transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 0, -0.4, 0.9)
 script = ExtResource("5_k1cjx")
+focus_anchor = NodePath("../BoardFocus")
 
 [node name="CollisionShape3D" type="CollisionShape3D" parent="ShelterHouse/House/ShelterZone/BackWindow2/BoardUp" unique_id=1980360142]
 shape = SubResource("BoxShape3D_dstl8")
@@ -5799,9 +5859,10 @@ transform = Transform3D(0.6178216, 0, 0.7863183, 0, 1, 0, -0.7863183, 0, 0.61782
 transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 0, 0.22, 0.25)
 mesh = SubResource("BoxMesh_h3l16")
 
-[node name="Rest" type="Area3D" parent="ShelterHouse/House/ShelterZone/RestCrate" unique_id=804940730 node_paths=PackedStringArray("interactive_mesh")]
+[node name="Rest" type="Area3D" parent="ShelterHouse/House/ShelterZone/RestCrate" unique_id=804940730 node_paths=PackedStringArray("interactive_mesh", "focus_anchor")]
 script = ExtResource("12_6xf2v")
 interactive_mesh = NodePath("../MeshInstance3D")
+focus_anchor = NodePath("../MeshInstance3D")
 
 [node name="CollisionShape3D" type="CollisionShape3D" parent="ShelterHouse/House/ShelterZone/RestCrate/Rest" unique_id=1984205140]
 shape = SubResource("BoxShape3D_n0e0r")
@@ -5815,6 +5876,53 @@ texture = ExtResource("2_14ntb")
 [node name="MealTable" type="Node3D" parent="ShelterHouse/House/ShelterZone/RestCrate" unique_id=1386982313]
 transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 0.32, 0, -0.55)
 script = ExtResource("13_le8xu")
+
+[node name="TableFocus" type="Marker3D" parent="ShelterHouse/House/ShelterZone/RestCrate" unique_id=1230447855]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 0.32, 0.5, -0.55)
+
+[node name="Sit" type="Area3D" parent="ShelterHouse/House/ShelterZone/RestCrate" unique_id=1193119950 node_paths=PackedStringArray("seat_anchor", "interactive_mesh", "focus_anchor")]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 0.32, 0, -0.55)
+script = ExtResource("12_6xf2v")
+seat_anchor = NodePath("..")
+interactive_mesh = NodePath("../MeshInstance3D")
+focus_anchor = NodePath("../TableFocus")
+
+[node name="CollisionShape3D" type="CollisionShape3D" parent="ShelterHouse/House/ShelterZone/RestCrate/Sit" unique_id=315205536]
+shape = SubResource("BoxShape3D_shelter_ce04d127")
+
+[node name="InfoLabel" type="Label3D" parent="ShelterHouse/House/ShelterZone/RestCrate/Sit" unique_id=1490059302]
+
+[node name="Sprite3D" type="Sprite3D" parent="ShelterHouse/House/ShelterZone/RestCrate/Sit" unique_id=848155815]
+transform = Transform3D(0.75, 0, 0, 0, 0.75, 0, 0, 0, 0.75, 0, 0, 0)
+texture = ExtResource("2_14ntb")
+
+[node name="ToolBench" type="Node3D" parent="ShelterHouse/House" unique_id=787455164]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 2, 0.9, 1.2)
+
+[node name="MeshInstance3D" type="MeshInstance3D" parent="ShelterHouse/House/ToolBench" unique_id=1804783720]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 0, 0.77, 0)
+mesh = SubResource("BoxMesh_shelter_ccada4e4")
+
+[node name="StaticBody3D" type="StaticBody3D" parent="ShelterHouse/House/ToolBench/MeshInstance3D" unique_id=799755267]
+
+[node name="CollisionShape3D" type="CollisionShape3D" parent="ShelterHouse/House/ToolBench/MeshInstance3D/StaticBody3D" unique_id=2086040195]
+shape = SubResource("BoxShape3D_shelter_1d4ab785")
+
+[node name="MeshInstance3D2" type="MeshInstance3D" parent="ShelterHouse/House/ToolBench" unique_id=1269917413]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, -0.8, 0.37, -0.22)
+mesh = SubResource("BoxMesh_shelter_03d7ac94")
+
+[node name="MeshInstance3D3" type="MeshInstance3D" parent="ShelterHouse/House/ToolBench" unique_id=819984462]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, -0.8, 0.37, 0.22)
+mesh = SubResource("BoxMesh_shelter_03d7ac94")
+
+[node name="MeshInstance3D4" type="MeshInstance3D" parent="ShelterHouse/House/ToolBench" unique_id=437354352]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 0.8, 0.37, -0.22)
+mesh = SubResource("BoxMesh_shelter_03d7ac94")
+
+[node name="MeshInstance3D5" type="MeshInstance3D" parent="ShelterHouse/House/ToolBench" unique_id=661295372]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 0.8, 0.37, 0.22)
+mesh = SubResource("BoxMesh_shelter_03d7ac94")
 
 [node name="Outbuilding" type="Node3D" parent="ShelterHouse" unique_id=333863954]
 transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, -6.5, 0.21373034, -9.5)
@@ -15137,7 +15245,7 @@ script = ExtResource("14_vmog6")
 script = ExtResource("15_v5ham")
 
 [node name="BoardsFort1" type="Area3D" parent="." unique_id=746569788]
-transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 1296.2108, 5.6808343, -743.967)
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 1296.2108, 5.5558343, -743.967)
 script = ExtResource("16_yryj5")
 item_id = &"boards"
 count = 3
@@ -15153,7 +15261,7 @@ transform = Transform3D(0.75, 0, 0, 0, 0.75, 0, 0, 0, 0.75, 0, 0, 0)
 texture = ExtResource("2_14ntb")
 
 [node name="TinderFort" type="Area3D" parent="." unique_id=824710424]
-transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 1296.833, 5.668086, -746.28925)
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 1296.833, 5.543086, -746.28925)
 script = ExtResource("16_yryj5")
 item_id = &"tinder"
 world_id = &"tinder_fort"
@@ -15168,7 +15276,7 @@ transform = Transform3D(0.75, 0, 0, 0, 0.75, 0, 0, 0, 0.75, 0, 0, 0)
 texture = ExtResource("2_14ntb")
 
 [node name="StewPatrolHut" type="Area3D" parent="." unique_id=2113009995]
-transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 1315.0326, 5.215627, -847.99945)
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 1315.0326, 5.090627, -847.99945)
 script = ExtResource("16_yryj5")
 item_id = &"tinned_stew"
 world_id = &"stew_patrol_hut"
@@ -15183,7 +15291,7 @@ transform = Transform3D(0.75, 0, 0, 0, 0.75, 0, 0, 0, 0.75, 0, 0, 0)
 texture = ExtResource("2_14ntb")
 
 [node name="FirewoodBusStop" type="Area3D" parent="." unique_id=1966385628]
-transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 1204.7821, 5.583546, -733.06805)
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 1204.7821, 5.458546, -733.06805)
 script = ExtResource("16_yryj5")
 item_id = &"firewood"
 world_id = &"firewood_bus_stop"
@@ -15198,7 +15306,7 @@ transform = Transform3D(0.75, 0, 0, 0, 0.75, 0, 0, 0, 0.75, 0, 0, 0)
 texture = ExtResource("2_14ntb")
 
 [node name="BoardsNextDoor" type="Area3D" parent="." unique_id=186010183]
-transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 1108.9824, 6.099068, -645.3914)
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 1108.9824, 5.974068, -645.3914)
 script = ExtResource("16_yryj5")
 item_id = &"boards"
 count = 3
@@ -15214,7 +15322,7 @@ transform = Transform3D(0.75, 0, 0, 0, 0.75, 0, 0, 0, 0.75, 0, 0, 0)
 texture = ExtResource("2_14ntb")
 
 [node name="FirewoodShedN1" type="Area3D" parent="." unique_id=1293616136]
-transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 1080.6094, 5.803037, -674.43)
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 1080.6094, 5.678037, -674.43)
 script = ExtResource("16_yryj5")
 item_id = &"firewood"
 count = 2
@@ -15230,7 +15338,7 @@ transform = Transform3D(0.75, 0, 0, 0, 0.75, 0, 0, 0, 0.75, 0, 0, 0)
 texture = ExtResource("2_14ntb")
 
 [node name="TinderCollapsedN3" type="Area3D" parent="." unique_id=535389719]
-transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 1043.4713, 5.1741776, -642.9558)
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 1043.4713, 5.0491776, -642.9558)
 script = ExtResource("16_yryj5")
 item_id = &"tinder"
 world_id = &"tinder_collapsed_n3"
@@ -15245,9 +15353,10 @@ transform = Transform3D(0.75, 0, 0, 0, 0.75, 0, 0, 0, 0.75, 0, 0, 0)
 texture = ExtResource("2_14ntb")
 
 [node name="FirewoodShelter" type="Area3D" parent="." unique_id=987027849]
-transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 1139.143, 5.8198123, -653.1356)
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 1136.9072, 5.744738, -662.09564)
 script = ExtResource("16_yryj5")
 item_id = &"firewood"
+count = 3
 world_id = &"firewood_shelter"
 
 [node name="CollisionShape3D" type="CollisionShape3D" parent="FirewoodShelter" unique_id=1670169287]
@@ -15260,9 +15369,10 @@ transform = Transform3D(0.75, 0, 0, 0, 0.75, 0, 0, 0, 0.75, 0, 0, 0)
 texture = ExtResource("2_14ntb")
 
 [node name="FirewoodShelterYard" type="Area3D" parent="." unique_id=1465579673]
-transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 1133.9651, 5.790514, -648.7677)
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 1136.2773, 5.756643, -663.11707)
 script = ExtResource("16_yryj5")
 item_id = &"firewood"
+count = 3
 world_id = &"firewood_shelter_yard"
 
 [node name="CollisionShape3D" type="CollisionShape3D" parent="FirewoodShelterYard" unique_id=582970817]
@@ -15275,9 +15385,10 @@ transform = Transform3D(0.75, 0, 0, 0, 0.75, 0, 0, 0, 0.75, 0, 0, 0)
 texture = ExtResource("2_14ntb")
 
 [node name="FirewoodShelterOutbuilding" type="Area3D" parent="." unique_id=949061793]
-transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 1134.8375, 5.910524, -661.64166)
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 1135.6475, 5.770467, -664.1384)
 script = ExtResource("16_yryj5")
 item_id = &"firewood"
+count = 3
 world_id = &"firewood_shelter_outbuilding"
 
 [node name="CollisionShape3D" type="CollisionShape3D" parent="FirewoodShelterOutbuilding" unique_id=1087452738]
@@ -15290,7 +15401,7 @@ transform = Transform3D(0.75, 0, 0, 0, 0.75, 0, 0, 0, 0.75, 0, 0, 0)
 texture = ExtResource("2_14ntb")
 
 [node name="BoardsShelterYard" type="Area3D" parent="." unique_id=740588106]
-transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 1128.5247, 6.0255613, -658.9236)
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 1129.3403, 5.836902, -655.31464)
 script = ExtResource("16_yryj5")
 item_id = &"boards"
 count = 3
@@ -15306,7 +15417,7 @@ transform = Transform3D(0.75, 0, 0, 0, 0.75, 0, 0, 0, 0.75, 0, 0, 0)
 texture = ExtResource("2_14ntb")
 
 [node name="BoardsShelterOutbuilding" type="Area3D" parent="." unique_id=636504810]
-transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 1139.143, 5.8198123, -653.1356)
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 1128.8154, 5.862949, -656.16583)
 script = ExtResource("16_yryj5")
 item_id = &"boards"
 count = 3
@@ -15322,7 +15433,7 @@ transform = Transform3D(0.75, 0, 0, 0, 0.75, 0, 0, 0, 0.75, 0, 0, 0)
 texture = ExtResource("2_14ntb")
 
 [node name="StewBeachWreck" type="Area3D" parent="." unique_id=814746169]
-transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 1211.033, 2.3859432, -868.25275)
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 1211.033, 2.2609432, -868.25275)
 script = ExtResource("16_yryj5")
 item_id = &"tinned_stew"
 world_id = &"stew_beach_wreck"
@@ -15337,7 +15448,7 @@ transform = Transform3D(0.75, 0, 0, 0, 0.75, 0, 0, 0, 0.75, 0, 0, 0)
 texture = ExtResource("2_14ntb")
 
 [node name="BedrollShelterTest" type="Area3D" parent="." unique_id=1271899529]
-transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 1130.393, 5.999319, -664.65765)
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 1130.393, 5.874319, -664.65765)
 script = ExtResource("16_yryj5")
 item_id = &"bedroll"
 world_id = &"bedroll_shelter_test"
@@ -15352,7 +15463,7 @@ transform = Transform3D(0.75, 0, 0, 0, 0.75, 0, 0, 0, 0.75, 0, 0, 0)
 texture = ExtResource("2_14ntb")
 
 [node name="RoadFlareShelterTest" type="Area3D" parent="." unique_id=250907635]
-transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 1129.0311, 6.029802, -663.8178)
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 1129.0311, 5.904802, -663.8178)
 script = ExtResource("16_yryj5")
 item_id = &"road_flare"
 world_id = &"road_flare_shelter_test"
@@ -15367,7 +15478,7 @@ transform = Transform3D(0.75, 0, 0, 0, 0.75, 0, 0, 0, 0.75, 0, 0, 0)
 texture = ExtResource("2_14ntb")
 
 [node name="BedrollBunker" type="Area3D" parent="." unique_id=1517082584]
-transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 1418.5, 1.2757496, -947)
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 1418.5, 1.1507496, -947)
 script = ExtResource("16_yryj5")
 item_id = &"bedroll"
 world_id = &"bedroll_bunker"
@@ -15382,7 +15493,7 @@ transform = Transform3D(0.75, 0, 0, 0, 0.75, 0, 0, 0, 0.75, 0, 0, 0)
 texture = ExtResource("2_14ntb")
 
 [node name="RoadFlareBunker" type="Area3D" parent="." unique_id=997862002]
-transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 1419.3, 1.2600648, -946.8)
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 1419.3, 1.1350648, -946.8)
 script = ExtResource("16_yryj5")
 item_id = &"road_flare"
 world_id = &"road_flare_bunker"
@@ -15397,7 +15508,7 @@ transform = Transform3D(0.75, 0, 0, 0, 0.75, 0, 0, 0, 0.75, 0, 0, 0)
 texture = ExtResource("2_14ntb")
 
 [node name="BoardsShelterInside" type="Area3D" parent="." unique_id=1471734588]
-transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 1132.8528, 5.9467626, -654.1911)
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 1132.2755, 6.3267627, -655.1274)
 script = ExtResource("16_yryj5")
 item_id = &"boards"
 count = 3
@@ -15413,7 +15524,7 @@ transform = Transform3D(0.75, 0, 0, 0, 0.75, 0, 0, 0, 0.75, 0, 0, 0)
 texture = ExtResource("2_14ntb")
 
 [node name="HammerShelter" type="Area3D" parent="." unique_id=1303255852]
-transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 1133.6189, 5.9467626, -654.6635)
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 1133.9594, 7.106763, -654.8735)
 script = ExtResource("16_yryj5")
 item_id = &"hammer"
 world_id = &"hammer_shelter"
@@ -15428,10 +15539,10 @@ transform = Transform3D(0.75, 0, 0, 0, 0.75, 0, 0, 0, 0.75, 0, 0, 0)
 texture = ExtResource("2_14ntb")
 
 [node name="NailsShelter" type="Area3D" parent="." unique_id=257503550]
-transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 1133.2784, 5.9467626, -654.45355)
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 1133.3635, 7.106763, -654.50604)
 script = ExtResource("16_yryj5")
 item_id = &"nails"
-count = 30
+count = 66
 world_id = &"nails_shelter"
 
 [node name="CollisionShape3D" type="CollisionShape3D" parent="NailsShelter" unique_id=1187051135]
@@ -15440,6 +15551,133 @@ shape = SubResource("SphereShape3D_s7f4c")
 [node name="InfoLabel" type="Label3D" parent="NailsShelter" unique_id=432665154]
 
 [node name="Sprite3D" type="Sprite3D" parent="NailsShelter" unique_id=840817374]
+transform = Transform3D(0.75, 0, 0, 0, 0.75, 0, 0, 0, 0.75, 0, 0, 0)
+texture = ExtResource("2_14ntb")
+
+[node name="BoardsShelterTest1" type="Area3D" parent="." unique_id=450823572]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 1128.2905, 5.8777237, -657.01697)
+script = ExtResource("16_yryj5")
+item_id = &"boards"
+count = 3
+world_id = &"boards_shelter_test_1"
+
+[node name="CollisionShape3D" type="CollisionShape3D" parent="BoardsShelterTest1" unique_id=615684553]
+shape = SubResource("SphereShape3D_shelter_9f76c435")
+
+[node name="InfoLabel" type="Label3D" parent="BoardsShelterTest1" unique_id=1448764958]
+
+[node name="Sprite3D" type="Sprite3D" parent="BoardsShelterTest1" unique_id=1233818698]
+transform = Transform3D(0.75, 0, 0, 0, 0.75, 0, 0, 0, 0.75, 0, 0, 0)
+texture = ExtResource("2_14ntb")
+
+[node name="BoardsShelterTest2" type="Area3D" parent="." unique_id=92195948]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 1127.9493, 5.8903475, -657.57025)
+script = ExtResource("16_yryj5")
+item_id = &"boards"
+count = 3
+world_id = &"boards_shelter_test_2"
+
+[node name="CollisionShape3D" type="CollisionShape3D" parent="BoardsShelterTest2" unique_id=70371147]
+shape = SubResource("SphereShape3D_shelter_96acd1cc")
+
+[node name="InfoLabel" type="Label3D" parent="BoardsShelterTest2" unique_id=889754373]
+
+[node name="Sprite3D" type="Sprite3D" parent="BoardsShelterTest2" unique_id=1025780492]
+transform = Transform3D(0.75, 0, 0, 0, 0.75, 0, 0, 0, 0.75, 0, 0, 0)
+texture = ExtResource("2_14ntb")
+
+[node name="BoardsShelterTest3" type="Area3D" parent="." unique_id=1690755237]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 1127.6082, 5.902743, -658.1235)
+script = ExtResource("16_yryj5")
+item_id = &"boards"
+count = 3
+world_id = &"boards_shelter_test_3"
+
+[node name="CollisionShape3D" type="CollisionShape3D" parent="BoardsShelterTest3" unique_id=937402526]
+shape = SubResource("SphereShape3D_shelter_2d1ab6a3")
+
+[node name="InfoLabel" type="Label3D" parent="BoardsShelterTest3" unique_id=530010623]
+
+[node name="Sprite3D" type="Sprite3D" parent="BoardsShelterTest3" unique_id=1559579368]
+transform = Transform3D(0.75, 0, 0, 0, 0.75, 0, 0, 0, 0.75, 0, 0, 0)
+texture = ExtResource("2_14ntb")
+
+[node name="BoardsShelterTest4" type="Area3D" parent="." unique_id=329153837]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 1127.2671, 5.915803, -658.67676)
+script = ExtResource("16_yryj5")
+item_id = &"boards"
+count = 3
+world_id = &"boards_shelter_test_4"
+
+[node name="CollisionShape3D" type="CollisionShape3D" parent="BoardsShelterTest4" unique_id=1268447810]
+shape = SubResource("SphereShape3D_shelter_1c438e23")
+
+[node name="InfoLabel" type="Label3D" parent="BoardsShelterTest4" unique_id=1006563571]
+
+[node name="Sprite3D" type="Sprite3D" parent="BoardsShelterTest4" unique_id=981680978]
+transform = Transform3D(0.75, 0, 0, 0, 0.75, 0, 0, 0, 0.75, 0, 0, 0)
+texture = ExtResource("2_14ntb")
+
+[node name="BoardsShelterTest5" type="Area3D" parent="." unique_id=704496769]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 1126.9259, 5.9308333, -659.23004)
+script = ExtResource("16_yryj5")
+item_id = &"boards"
+count = 3
+world_id = &"boards_shelter_test_5"
+
+[node name="CollisionShape3D" type="CollisionShape3D" parent="BoardsShelterTest5" unique_id=134039685]
+shape = SubResource("SphereShape3D_shelter_6b9ab40e")
+
+[node name="InfoLabel" type="Label3D" parent="BoardsShelterTest5" unique_id=487746626]
+
+[node name="Sprite3D" type="Sprite3D" parent="BoardsShelterTest5" unique_id=25204826]
+transform = Transform3D(0.75, 0, 0, 0, 0.75, 0, 0, 0, 0.75, 0, 0, 0)
+texture = ExtResource("2_14ntb")
+
+[node name="BoardsShelterTest6" type="Area3D" parent="." unique_id=2077661450]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 1126.5847, 5.9473453, -659.78326)
+script = ExtResource("16_yryj5")
+item_id = &"boards"
+count = 3
+world_id = &"boards_shelter_test_6"
+
+[node name="CollisionShape3D" type="CollisionShape3D" parent="BoardsShelterTest6" unique_id=1582649640]
+shape = SubResource("SphereShape3D_shelter_d69e4e78")
+
+[node name="InfoLabel" type="Label3D" parent="BoardsShelterTest6" unique_id=2125513494]
+
+[node name="Sprite3D" type="Sprite3D" parent="BoardsShelterTest6" unique_id=1850113501]
+transform = Transform3D(0.75, 0, 0, 0, 0.75, 0, 0, 0, 0.75, 0, 0, 0)
+texture = ExtResource("2_14ntb")
+
+[node name="LighterShelterTest" type="Area3D" parent="." unique_id=2106859687]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 1132.7677, 7.106763, -654.1386)
+script = ExtResource("16_yryj5")
+item_id = &"lighter"
+world_id = &"lighter_shelter_test"
+
+[node name="CollisionShape3D" type="CollisionShape3D" parent="LighterShelterTest" unique_id=858139831]
+shape = SubResource("SphereShape3D_shelter_77e791ac")
+
+[node name="InfoLabel" type="Label3D" parent="LighterShelterTest" unique_id=1742236747]
+
+[node name="Sprite3D" type="Sprite3D" parent="LighterShelterTest" unique_id=1613788754]
+transform = Transform3D(0.75, 0, 0, 0, 0.75, 0, 0, 0, 0.75, 0, 0, 0)
+texture = ExtResource("2_14ntb")
+
+[node name="StewShelterTest" type="Area3D" parent="." unique_id=767373986]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 1133.7665, 7.1167626, -650.99493)
+script = ExtResource("16_yryj5")
+item_id = &"tinned_stew"
+count = 2
+world_id = &"stew_shelter_test"
+
+[node name="CollisionShape3D" type="CollisionShape3D" parent="StewShelterTest" unique_id=1806729367]
+shape = SubResource("SphereShape3D_shelter_3197a4af")
+
+[node name="InfoLabel" type="Label3D" parent="StewShelterTest" unique_id=1519423633]
+
+[node name="Sprite3D" type="Sprite3D" parent="StewShelterTest" unique_id=1102692783]
 transform = Transform3D(0.75, 0, 0, 0, 0.75, 0, 0, 0, 0.75, 0, 0, 0)
 texture = ExtResource("2_14ntb")
 
