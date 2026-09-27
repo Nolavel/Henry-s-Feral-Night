@@ -317,8 +317,10 @@ func _test_the_backpack_is_worn_in_the_pack_slot() -> void:
 	player.add_child(visual)
 	root.add_child(player)
 	_check(equipment.get_equipped(&"pack") == &"backpack", "the backpack is not in the pack slot")
-	_check(equipment.can_stow(&"pack", &"pack_main", &"firewood") == EquipmentComponent.Refusal.NONE,
-		"firewood does not fit the main compartment")
+	_check(equipment.can_stow(&"pack", &"pack_main", &"firewood") == EquipmentComponent.Refusal.HANDS_ONLY,
+		"firewood was allowed into the backpack")
+	_check(equipment.can_stow(&"pack", &"pack_main", &"boards") == EquipmentComponent.Refusal.HANDS_ONLY,
+		"boards were allowed into the backpack")
 	var pack := visual.find_child("Backpack", true, false) as Node3D
 	_check(pack != null and pack.visible, "the backpack box is not shown while worn")
 	equipment.unequip(&"pack")

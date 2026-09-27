@@ -1,13 +1,13 @@
 extends SceneTree
 
-## Consumed world pickups (#79): pick up boards/tinder/firewood/food → save →
+## Consumed world pickups (#79): pick up boards/tinder/food → save →
 ## rebuild the world → load: the items stay in the inventory, the authored
 ## pickups are gone and cannot be taken again; unrelated pickups stay.
 ## Run: godot --headless --script tests/systems/test_pickup_ledger.gd
 
 const AREA_SCENE: String = "res://scenes/environment/interactive/InteractiveArea.tscn"
-const TAKEN: Array[String] = ["boards_fort_1", "tinder_hut", "firewood_road", "stew_shore"]
-const ITEMS: Array[String] = ["boards", "tinder", "firewood", "tinned_stew"]
+const TAKEN: Array[String] = ["boards_fort_1", "tinder_hut", "stew_shore"]
+const ITEMS: Array[String] = ["boards", "tinder", "tinned_stew"]
 
 var _failures: int = 0
 var _frame: int = 0
