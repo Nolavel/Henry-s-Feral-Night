@@ -35,6 +35,7 @@ func can_use(item_id: StringName) -> bool:
 		and not is_holding()
 		and inventory != null
 		and inventory.has_item(item_id)
+		and _other_hands_clear()
 	)
 
 
@@ -45,7 +46,7 @@ func use(item_id: StringName) -> bool:
 ## Number-key Quick Access draw: move the unlit flare out of its physical pocket
 ## into the existing held-item hand socket without consuming or igniting it.
 func equip_from_zone(item_id: StringName, zone_path: StringName) -> bool:
-	if item_id != flare_item_id or is_holding():
+	if item_id != flare_item_id or is_holding() or not _other_hands_clear():
 		return false
 	var animation: HenryUALAnimation = _animation()
 	var equipment: EquipmentComponent = _equipment()
@@ -139,7 +140,7 @@ func ignite_held() -> bool:
 ## immediately. The number-key path uses equip_from_zone() so the draw is visible.
 func light() -> bool:
 	var animation: HenryUALAnimation = _animation()
-	if is_holding() or animation == null or inventory == null:
+	if is_holding() or animation == null or inventory == null or not _other_hands_clear():
 		return false
 	if not _take_flare():
 		return false
@@ -237,3 +238,14 @@ func _equipment() -> EquipmentComponent:
 func _animation() -> HenryUALAnimation:
 	var player: Node = get_parent()
 	return player.get(&"animation_component") as HenryUALAnimation if player != null else null
+
+
+func _other_hands_clear() -> bool:
+	var player: Node = get_parent()
+	if player == null:
+		return false
+	var carry := player.get_node_or_null(^"CarryComponent") as CarryComponent
+	if carry != null and carry.is_carrying():
+		return false
+	var hammer := player.get_node_or_null(^"HammerComponent") as HammerComponent
+	return hammer == null or not hammer.is_holding()

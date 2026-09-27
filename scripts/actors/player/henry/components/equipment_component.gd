@@ -32,6 +32,7 @@ enum Refusal {
 	TOO_LARGE,
 	WRONG_BODY_SLOT,
 	POCKETS_NOT_EMPTY,
+	HANDS_ONLY,
 }
 
 const POCKET_SEPARATOR: String = "/"
@@ -142,6 +143,8 @@ func can_equip(slot_id: StringName, item_id: StringName) -> Refusal:
 	var item: ItemResource = ItemCatalog.get_item(item_id)
 	if item == null:
 		return Refusal.UNKNOWN_ITEM
+	if item.carried_in_hands:
+		return Refusal.HANDS_ONLY
 	if item.garment != null:
 		if item.garment.body_slot_id != slot_id:
 			return Refusal.WRONG_BODY_SLOT
@@ -160,6 +163,8 @@ func can_stow(body_slot_id: StringName, pocket_id: StringName, item_id: StringNa
 	var item: ItemResource = ItemCatalog.get_item(item_id)
 	if item == null:
 		return Refusal.UNKNOWN_ITEM
+	if item.carried_in_hands:
+		return Refusal.HANDS_ONLY
 	return _check_fit(definition, item)
 
 
@@ -222,6 +227,8 @@ func stow_anywhere(item_id: StringName) -> Refusal:
 	var item: ItemResource = ItemCatalog.get_item(item_id)
 	if item == null:
 		return Refusal.UNKNOWN_ITEM
+	if item.carried_in_hands:
+		return Refusal.HANDS_ONLY
 	if item.garment != null and equip(item.garment.body_slot_id, item_id) == Refusal.NONE:
 		return Refusal.NONE
 

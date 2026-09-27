@@ -20,7 +20,9 @@
 [ext_resource type="Resource" path="res://data/items/kenny.tres" id="kenny"]
 [ext_resource type="Resource" path="res://data/items/road_flare.tres" id="road_flare"]
 [ext_resource type="Resource" path="res://data/items/bedroll.tres" id="bedroll"]
+[ext_resource type="Resource" path="res://data/items/hammer.tres" id="hammer"]
+[ext_resource type="Resource" path="res://data/items/nails.tres" id="nails"]
 
 [resource]
 script = ExtResource("catalog")
-items = [ExtResource("worn_coat"), ExtResource("knit_hat"), ExtResource("work_trousers"), ExtResource("worn_boots"), ExtResource("tinned_stew"), ExtResource("empty_tin"), ExtResource("snow_handful"), ExtResource("boards"), ExtResource("firewood"), ExtResource("tinder"), ExtResource("backpack"), ExtResource("kenny"), ExtResource("road_flare"), ExtResource("bedroll"), ExtResource("tinned_stew_hot"), ExtResource("warm_water"), ExtResource("mug"), ExtResource("mug_snow"), ExtResource("warm_water_mug")]
+items = [ExtResource("worn_coat"), ExtResource("knit_hat"), ExtResource("work_trousers"), ExtResource("worn_boots"), ExtResource("tinned_stew"), ExtResource("empty_tin"), ExtResource("snow_handful"), ExtResource("boards"), ExtResource("firewood"), ExtResource("tinder"), ExtResource("backpack"), ExtResource("kenny"), ExtResource("road_flare"), ExtResource("bedroll"), ExtResource("hammer"), ExtResource("nails"), ExtResource("tinned_stew_hot"), ExtResource("warm_water"), ExtResource("mug"), ExtResource("mug_snow"), ExtResource("warm_water_mug")]

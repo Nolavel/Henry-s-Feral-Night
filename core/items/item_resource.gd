@@ -35,9 +35,11 @@ extends Resource
 @export_group("Visuals")
 ## Mesh on Henry shown while this non-garment rides in a body slot, e.g. Kenny.
 @export var attached_mesh_node_name: StringName = &""
-## Carried in both hands, not stowed: while held, Henry walks with it in his
+## Carried in both hands, never stowed: while held, Henry walks with it in his
 ## arms, shown by the mesh named in attached_mesh_node_name.
 @export var carried_in_hands: bool = false
+## Maximum units that can be held as one visible two-hand load.
+@export_range(1, 8, 1) var hand_carry_limit: int = 3
 
 @export_group("Survival")
 ## Edible facet. Null means this item cannot be consumed.

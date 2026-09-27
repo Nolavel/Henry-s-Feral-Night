@@ -1,8 +1,8 @@
 class_name ItemPickup
 extends InteractiveArea
 
-## An item lying in the world. F puts it in the pack and flies its mesh into the
-## top flap; too heavy to carry, and it stays where it is.
+## An item lying in the world. Ordinary items stow in the pack; two-hand loads
+## stay visibly in Henry's arms. Refused pickups stay where they are.
 
 ## Emitted after the item went into the pack.
 signal picked_up(item_id: StringName, count: int)
@@ -13,6 +13,8 @@ signal pickup_refused(item_id: StringName)
 const PLACEHOLDER_SIZE: Vector3 = Vector3(0.32, 0.16, 0.22)
 const PLACEHOLDER_COLOR: Color = Color(0.42, 0.3, 0.2)
 const ROAD_FLARE_ID: StringName = &"road_flare"
+const HAMMER_ID: StringName = &"hammer"
+const NAILS_ID: StringName = &"nails"
 const TOO_HEAVY_KEY: String = "PICKUP_REFUSED_TOO_HEAVY"
 const WORLD_GROUP: StringName = &"world_pickup"
 
@@ -55,9 +57,14 @@ func pick_up() -> bool:
 	if item == null or inventory == null:
 		pickup_refused.emit(item_id)
 		return false
-	if inventory.get_total_weight() + item.weight * float(count) > inventory.max_carry_weight:
+	if item.carried_in_hands and not _free_safe_held_item():
 		pickup_refused.emit(item_id)
-		show_message(tr(TOO_HEAVY_KEY))
+		show_message(tr("PICKUP_REFUSED_HANDS_OCCUPIED"))
+		return false
+	var refusal: StringName = inventory.get_add_refusal(item, count)
+	if refusal != &"":
+		pickup_refused.emit(item_id)
+		show_message(tr(_refusal_key(refusal)))
 		return false
 	for i: int in range(count):
 		inventory.try_add(item)
@@ -75,6 +82,16 @@ func _on_interaction_performed() -> void:
 	pick_up()
 
 
+static func _refusal_key(reason: StringName) -> String:
+	match reason:
+		&"hands_full":
+			return "PICKUP_REFUSED_HANDS_FULL"
+		&"hands_occupied":
+			return "PICKUP_REFUSED_HANDS_OCCUPIED"
+		_:
+			return TOO_HEAVY_KEY
+
+
 ## Passes the item's mesh to the player's Hub, which flies it into the pack.
 func _hand_visual_to_pack() -> void:
 	var visual := interactive_mesh as Node3D
@@ -90,6 +107,10 @@ func _hand_visual_to_pack() -> void:
 func _make_placeholder() -> MeshInstance3D:
 	if item_id == ROAD_FLARE_ID:
 		return _make_road_flare()
+	if item_id == HAMMER_ID:
+		return _make_hammer()
+	if item_id == NAILS_ID:
+		return _make_nails()
 	var crate := MeshInstance3D.new()
 	crate.name = "Placeholder"
 	var box := BoxMesh.new()
@@ -138,6 +159,76 @@ func _make_road_flare() -> MeshInstance3D:
 	cap.position.y = 0.122
 	tube.add_child(cap)
 	return tube
+
+
+func _make_hammer() -> MeshInstance3D:
+	var handle := MeshInstance3D.new()
+	handle.name = "HammerVisual"
+	var handle_mesh := BoxMesh.new()
+	handle_mesh.size = Vector3(0.035, 0.30, 0.035)
+	var wood := StandardMaterial3D.new()
+	wood.albedo_color = Color(0.26, 0.16, 0.08)
+	handle_mesh.material = wood
+	handle.mesh = handle_mesh
+	handle.position = Vector3(0.0, 0.16, 0.0)
+	add_child(handle)
+	var head := MeshInstance3D.new()
+	var head_mesh := BoxMesh.new()
+	head_mesh.size = Vector3(0.18, 0.065, 0.065)
+	var metal := StandardMaterial3D.new()
+	metal.albedo_color = Color(0.22, 0.24, 0.25)
+	metal.metallic = 0.7
+	head_mesh.material = metal
+	head.mesh = head_mesh
+	head.position = Vector3(0.0, 0.16, 0.0)
+	handle.add_child(head)
+	return handle
+
+
+## One pickup represents a box of thirty nails; three visible nails are enough
+## to communicate what it is without drawing thirty tiny meshes.
+func _make_nails() -> MeshInstance3D:
+	var first := MeshInstance3D.new()
+	first.name = "NailsVisual"
+	var nail_mesh := CylinderMesh.new()
+	nail_mesh.top_radius = 0.005
+	nail_mesh.bottom_radius = 0.005
+	nail_mesh.height = 0.12
+	nail_mesh.radial_segments = 7
+	var metal := StandardMaterial3D.new()
+	metal.albedo_color = Color(0.36, 0.38, 0.40)
+	metal.metallic = 0.8
+	nail_mesh.material = metal
+	first.mesh = nail_mesh
+	first.rotation.z = PI * 0.5
+	first.position = Vector3(-0.04, 0.025, 0.0)
+	add_child(first)
+	for offset: Vector3 in [Vector3(0.04, 0.026, 0.025), Vector3(0.0, 0.027, -0.035)]:
+		var nail := MeshInstance3D.new()
+		nail.mesh = nail_mesh
+		nail.rotation.z = PI * 0.5
+		nail.position = offset
+		first.add_child(nail)
+	return first
+
+
+func _free_safe_held_item() -> bool:
+	if not is_inside_tree():
+		return true
+	var player: Node = get_tree().get_first_node_in_group(&"player")
+	if player == null:
+		return true
+	for child: Node in player.get_children():
+		if child.has_method(&"is_burning") and bool(child.call(&"is_burning")):
+			return false
+		if not child.has_method(&"is_holding") or not bool(child.call(&"is_holding")):
+			continue
+		if child.has_method(&"put_away_unlit") and bool(child.call(&"put_away_unlit")):
+			continue
+		if child.has_method(&"put_away") and bool(child.call(&"put_away")):
+			continue
+		return false
+	return true
 
 
 func _get_inventory() -> InventoryComponent:

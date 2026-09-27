@@ -442,9 +442,9 @@ func _loaded_binder(fraction: float) -> IceGaitBinder:
 	var inventory := InventoryComponent.new()
 	inventory.max_carry_weight = 30.0
 	root.add_child(inventory)
-	var firewood: ItemResource = ItemCatalog.get_item(&"firewood")
-	while inventory.get_total_weight() + firewood.weight <= 30.0 * fraction + 0.001:
-		inventory.try_add(firewood)
+	var cargo: ItemResource = ItemCatalog.get_item(&"tinned_stew")
+	while inventory.get_total_weight() + cargo.weight <= 30.0 * fraction + 0.001:
+		inventory.try_add(cargo)
 	binder.inventory = inventory
 	root.add_child(binder)
 	return binder

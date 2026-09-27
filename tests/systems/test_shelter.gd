@@ -20,6 +20,7 @@ func _run() -> void:
 	_test_a_breachless_zone_behaves_as_before()
 	_test_a_breach_facing_the_wind_costs_more_than_one_in_the_lee()
 	_test_boarding_restores_the_shelter()
+	_test_physical_board_gaps()
 	_test_a_fire_cannot_heat_a_holed_shelter()
 	_test_boarding_costs_an_item()
 	_test_boards_survive_a_save_round_trip()
@@ -122,6 +123,30 @@ func _test_boarding_restores_the_shelter() -> void:
 
 ## A fire in a holed room is a fire outside. This is what makes boarding worth
 ## the trouble rather than optional decoration.
+func _test_physical_board_gaps() -> void:
+	var zone := _make_zone(0.6, Vector3.BACK)
+	var breach: ShelterBreach = zone.get_breaches()[0]
+	breach.opening_height_m = 1.1
+	breach.board_height_m = 0.24
+	var open_exposure: float = zone.get_wind_exposure(NORTH_WIND)
+
+	## Three boards nailed on top of each other are three spent boards but only
+	## one strip of protection: bad workmanship must remain a real gap.
+	for _i: int in range(3):
+		breach.place_board(0.0)
+	_check(not breach.is_boarded(), "three overlapping boards somehow sealed the opening")
+	_check(breach.get_coverage_fraction() < 0.3, "overlap was counted more than once")
+	_check(zone.get_wind_exposure(NORTH_WIND) < open_exposure, "partial boards reduced no wind")
+	_check(zone.get_wind_exposure(NORTH_WIND) > zone.wind_exposure, "a remaining slit leaked no wind")
+
+	breach.tear_open()
+	for y: float in [-0.43, -0.215, 0.0, 0.215, 0.43]:
+		breach.place_board(y)
+	_check(breach.is_boarded(), "five careful boards did not seal a 1.1 m window")
+	_check(breach.get_coverage_fraction() >= breach.seal_threshold, "sealed window is below threshold")
+	_dispose(zone)
+
+
 func _test_a_fire_cannot_heat_a_holed_shelter() -> void:
 	var holed := _make_zone(0.5, Vector3.BACK)
 	var sealed := _make_zone(0.5, Vector3.BACK)

@@ -5375,6 +5375,8 @@ transform = Transform3D(-1, 0, -8.742278e-08, 0, 1, 0, 8.742278e-08, 0, -1, 0, -
 script = ExtResource("4_k1cjx")
 severity = 0.3
 name_key = "BREACH_DOOR"
+opening_width_m = 1.1
+opening_height_m = 2
 boarded_visual = NodePath("Boards")
 
 [node name="Boards" type="Node3D" parent="ShelterHouse/House/ShelterZone/Door" unique_id=1637962956]
@@ -5401,6 +5403,8 @@ transform = Transform3D(-1, 0, -8.742278e-08, 0, 1, 0, 8.742278e-08, 0, -1, -2, 
 script = ExtResource("4_k1cjx")
 severity = 0.25
 name_key = "BREACH_WINDOW"
+opening_width_m = 2
+opening_height_m = 1.1
 boarded_visual = NodePath("Boards")
 
 [node name="Boards" type="Node3D" parent="ShelterHouse/House/ShelterZone/FrontWindow1" unique_id=1650189380]
@@ -5427,6 +5431,8 @@ transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, -2, 0.17499995, -5)
 script = ExtResource("4_k1cjx")
 severity = 0.25
 name_key = "BREACH_WINDOW"
+opening_width_m = 2
+opening_height_m = 1.1
 boarded_visual = NodePath("Boards")
 
 [node name="Boards" type="Node3D" parent="ShelterHouse/House/ShelterZone/BackWindow1" unique_id=304989965]
@@ -5453,6 +5459,8 @@ transform = Transform3D(-1, 0, -8.742278e-08, 0, 1, 0, 8.742278e-08, 0, -1, 2.4,
 script = ExtResource("4_k1cjx")
 severity = 0.2
 name_key = "BREACH_WINDOW"
+opening_width_m = 1.6
+opening_height_m = 1.1
 boarded_visual = NodePath("Boards")
 
 [node name="Boards" type="Node3D" parent="ShelterHouse/House/ShelterZone/FrontWindow2" unique_id=1748842796]
@@ -5479,6 +5487,8 @@ transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 2.4, 0.17499995, -5)
 script = ExtResource("4_k1cjx")
 severity = 0.2
 name_key = "BREACH_WINDOW"
+opening_width_m = 1.6
+opening_height_m = 1.1
 boarded_visual = NodePath("Boards")
 
 [node name="Boards" type="Node3D" parent="ShelterHouse/House/ShelterZone/BackWindow2" unique_id=778204645]
@@ -14956,6 +14966,7 @@ script = ExtResource("16_6e2dm")
 transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 1296.2108, 5.6808343, -743.967)
 script = ExtResource("17_h1v22")
 item_id = &"boards"
+count = 3
 world_id = &"boards_fort_1"
 
 [node name="TinderFort" type="Area3D" parent="." unique_id=1726752746 instance=ExtResource("5_2bj3x")]
@@ -14980,6 +14991,7 @@ world_id = &"firewood_bus_stop"
 transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 1108.9824, 6.099068, -645.3914)
 script = ExtResource("17_h1v22")
 item_id = &"boards"
+count = 3
 world_id = &"boards_next_door"
 
 [node name="FirewoodShedN1" type="Area3D" parent="." unique_id=1248433984 instance=ExtResource("5_2bj3x")]
@@ -15017,13 +15029,35 @@ world_id = &"firewood_shelter_outbuilding"
 position = Vector3(2.8, 0.54, 5.5)
 script = ExtResource("17_h1v22")
 item_id = &"boards"
+count = 3
 world_id = &"boards_shelter_yard"
 
 [node name="BoardsShelterOutbuilding" type="Area3D" parent="ShelterHouse" instance=ExtResource("5_2bj3x")]
 position = Vector3(-3.2, 0.54, -5)
 script = ExtResource("17_h1v22")
 item_id = &"boards"
+count = 3
 world_id = &"boards_shelter_outbuilding"
+
+[node name="BoardsShelterInside" type="Area3D" parent="." instance=ExtResource("5_2bj3x")]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 1132.013, 5.946763, -655.8707)
+script = ExtResource("17_h1v22")
+item_id = &"boards"
+count = 3
+world_id = &"boards_shelter_inside"
+
+[node name="HammerShelter" type="Area3D" parent="." instance=ExtResource("5_2bj3x")]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 1132.7791, 5.946763, -655.3983)
+script = ExtResource("17_h1v22")
+item_id = &"hammer"
+world_id = &"hammer_shelter"
+
+[node name="NailsShelter" type="Area3D" parent="." instance=ExtResource("5_2bj3x")]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 1132.4386, 5.946763, -655.6083)
+script = ExtResource("17_h1v22")
+item_id = &"nails"
+count = 30
+world_id = &"nails_shelter"
 
 [node name="StewBeachWreck" type="Area3D" parent="." unique_id=309826123 instance=ExtResource("5_2bj3x")]
 transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 1211.033, 2.3859432, -868.25275)

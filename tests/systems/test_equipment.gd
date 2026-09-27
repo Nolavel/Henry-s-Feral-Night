@@ -67,6 +67,10 @@ func _test_the_catalog_resolves_the_shipped_items() -> void:
 			_check(item.garment != null, "'%s' is not a garment" % id)
 			_check(item.garment.insulation_c > 0.0, "'%s' insulates nothing" % id)
 
+	var hammer: ItemResource = ItemCatalog.get_item(&"hammer")
+	var nails: ItemResource = ItemCatalog.get_item(&"nails")
+	_check(hammer != null and hammer.prefer_quick_access, "the shelter hammer is not a Quick Access tool")
+	_check(nails != null and nails.max_stack >= 30, "the 30-nail shelter box cannot be represented")
 	var stew: ItemResource = ItemCatalog.get_item(&"tinned_stew")
 	_check(stew != null and stew.consumable != null, "tinned stew is not consumable")
 	if stew != null and stew.consumable != null:
@@ -317,8 +321,10 @@ func _test_the_backpack_is_worn_in_the_pack_slot() -> void:
 	player.add_child(visual)
 	root.add_child(player)
 	_check(equipment.get_equipped(&"pack") == &"backpack", "the backpack is not in the pack slot")
-	_check(equipment.can_stow(&"pack", &"pack_main", &"firewood") == EquipmentComponent.Refusal.NONE,
-		"firewood does not fit the main compartment")
+	_check(equipment.can_stow(&"pack", &"pack_main", &"firewood") == EquipmentComponent.Refusal.HANDS_ONLY,
+		"firewood was allowed into the backpack")
+	_check(equipment.can_stow(&"pack", &"pack_main", &"boards") == EquipmentComponent.Refusal.HANDS_ONLY,
+		"boards were allowed into the backpack")
 	var pack := visual.find_child("Backpack", true, false) as Node3D
 	_check(pack != null and pack.visible, "the backpack box is not shown while worn")
 	equipment.unequip(&"pack")

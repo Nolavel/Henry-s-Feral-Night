@@ -4,11 +4,8 @@
 
 [resource]
 script = ExtResource("item")
-id = &"firewood"
-display_name = "Firewood"
-weight = 3.0
-max_stack = 3
-size_class = 2
-attached_mesh_node_name = &"CarryFirewood"
-carried_in_hands = true
-hand_carry_limit = 3
+id = &"nails"
+display_name = "Nails"
+weight = 0.01
+max_stack = 60
+size_class = 0

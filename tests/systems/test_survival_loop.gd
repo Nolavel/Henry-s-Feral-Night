@@ -217,8 +217,8 @@ func _test_a_heavy_pack_tires_faster() -> void:
 	var pack := InventoryComponent.new()
 	pack.max_carry_weight = 30.0
 	root.add_child(pack)
-	var firewood: ItemResource = ItemCatalog.get_item(&"firewood")
-	while pack.try_add(firewood):
+	var cargo: ItemResource = ItemCatalog.get_item(&"tinned_stew")
+	while pack.try_add(cargo):
 		pass
 	heavy.carry_inventory = pack
 	var empty := InventoryComponent.new()

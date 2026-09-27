@@ -511,6 +511,8 @@ func _shelter_gameplay(house: Node3D, w: float, d: float, h: float,
 		breach.set_script(load(BREACH_SCRIPT))
 		breach.set(&"severity", opening[4])
 		breach.set(&"name_key", "BREACH_DOOR" if opening[0] == "Door" else "BREACH_WINDOW")
+		breach.set(&"opening_width_m", float(opening[2]))
+		breach.set(&"opening_height_m", 2.0 if opening[0] == "Door" else 1.1)
 		## -Z of the breach points out of the house.
 		breach.position = Vector3(float(opening[1]), float(opening[3]) + floor_y - zone.position.y, side * d * 0.5)
 		breach.rotation.y = PI if side > 0.0 else 0.0

@@ -53,7 +53,8 @@ F always acts on the thing in front of Henry. The first matching row wins.
 | Standing, a target within 0.9 m | Act on it: pick up, open, board up, feed the stove, sit, sleep |
 | Standing, a target further away | Walk to it, then act |
 | Pickup, F held past 0.35 s | Open the Hub in placement mode instead of the quick stow |
-| Bedroll placement preview is up | Lay the bedroll here |
+| Bedroll placement preview is up | Lay only when the camera-ray preview is green; red means slope/clearance/distance is invalid |
+| Board-placement preview is up | LMB nails the translucent board at the camera-aimed height; Esc cancels |
 
 Rules for new features:
 - A new interaction is an `InteractiveArea`, never a new key.
@@ -61,6 +62,18 @@ Rules for new features:
   `_input` and marks it handled; everything else stays in the normal target path.
 - A seated feature is reached by looking at it (`InteractComponent` seated aim), not
   by a second key.
+
+### Boarding a shelter opening
+
+1. Pick up up to three boards. They stay visibly in Henry's arms.
+2. Aim at an opening and press `F`: the whole armful is laid beside that opening.
+3. Pick the shelter hammer from Quick Access (`1`–`4` or wheel selection).
+4. Aim at the opening and press `F` again. Henry takes one staged board in the other hand.
+5. Move the camera up/down. The translucent board stays bound to the opening plane.
+6. `LMB` nails that exact position. It spends one staged board and **2 nails**.
+7. Overlapping placements are legal: only actual covered height reduces the remaining wind/snow gap.
+
+The hammer and a 30-nail box are authored inside the First Exit shelter.
 
 ## Esc: always one step back
 

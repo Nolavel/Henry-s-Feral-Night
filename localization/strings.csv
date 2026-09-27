@@ -34,8 +34,16 @@ INTERACT_OPEN,Open,Открыть
 INTERACT_USE,Use,Использовать
 HOUSE_DOOR_OPEN,Open door,Открыть дверь
 HOUSE_DOOR_CLOSE,Close door,Закрыть дверь
-BREACH_REFUSED_NO_BOARDS,You need boards,Нужны доски
+BREACH_REFUSED_NO_BOARDS,Lay some boards beside this opening first,Сначала положите доски у этого проёма
+BREACH_REFUSED_NO_HAMMER,Equip the hammer from Quick Access,Достаньте молоток из быстрого доступа
+BREACH_REFUSED_NO_NAILS,You need two nails for one board,На одну доску нужны два гвоздя
+BREACH_BOARDS_STAGED,Boards by the opening: %d,Досок у проёма: %d
+BREACH_BOARD_PLACE_HINT,Aim up/down · LMB nail board · Esc cancel,Цельтесь выше/ниже · ЛКМ прибить доску · Esc отмена
+BREACH_GAP_REMAINS,Gap remaining: %d%%,Осталась щель: %d%%
+BREACH_SEALED,Opening sealed,Проём закрыт
 PICKUP_REFUSED_TOO_HEAVY,Too heavy to carry,Слишком тяжело нести
+PICKUP_REFUSED_HANDS_FULL,You can carry at most three,Можно нести максимум три
+PICKUP_REFUSED_HANDS_OCCUPIED,Free your hands first,Сначала освободите руки
 CABINET_OPEN,Open the cabinet,Открыть шкаф
 CABINET_CLOSE,Close the cabinet,Закрыть шкаф
 SLEEP_PROMPT,Sleep,Спать
@@ -59,6 +67,7 @@ HUB_PLACE_HINT,Drag with LMB into a lit pocket; release to close,Перетащ�
 HUB_USE,Use,Использовать
 HUB_CANNOT_USE,Cannot use this here,Здесь это не использовать
 BEDROLL_PLACE_HINT,F — lay here · Esc — cancel,F — разложить · Esc — отмена
+BEDROLL_PLACE_BLOCKED,Cannot lay the bedroll here · Esc — cancel,Здесь нельзя разложить спальник · Esc — отмена
 REST_PROMPT,Sit down,Сесть
 WAIT_TITLE,WAIT BY THE FIRE,ЖДАТЬ У ОГНЯ
 REST_SEATED_HINT,F — wait · move — stand up,F — ждать · движение — встать
