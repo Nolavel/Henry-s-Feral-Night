@@ -103,7 +103,7 @@ func toggle() -> bool:
 
 ## Enters the Hub. Refused mid-fall, while carrying in both hands or mid-action.
 func open() -> bool:
-	if _open or not _can_open():
+	if _open or not _can_open() or not _stow_safe_held_items():
 		return false
 	_previous_mouse_mode = Input.mouse_mode
 	Input.mouse_mode = Input.MOUSE_MODE_VISIBLE
@@ -381,8 +381,28 @@ func _can_open() -> bool:
 	var body := get_parent() as CharacterBody3D
 	if body != null and body.velocity.y < -0.5:
 		return false
+	var light := get_parent().get_node_or_null(^"HeldLightComponent") as HeldLightComponent if get_parent() != null else null
+	if light != null and light.is_burning():
+		return false
 	var visual: HenryUALAnimation = _visual()
 	return visual == null or not (visual.is_carrying() or visual.is_action_locking())
+
+
+func _stow_safe_held_items() -> bool:
+	var body: Node = get_parent()
+	if body == null:
+		return true
+	for child: Node in body.get_children():
+		if child.has_method(&"is_burning") and bool(child.call(&"is_burning")):
+			return false
+		if not child.has_method(&"is_holding") or not bool(child.call(&"is_holding")):
+			continue
+		if child.has_method(&"put_away_unlit") and bool(child.call(&"put_away_unlit")):
+			continue
+		if child.has_method(&"put_away") and bool(child.call(&"put_away")):
+			continue
+		return false
+	return true
 
 
 func _visual() -> HenryUALAnimation:
