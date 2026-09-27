@@ -20,6 +20,7 @@ func _ready() -> void:
 		return
 	inventory.item_added.connect(func(_item: ItemResource, _total: int) -> void: _refresh())
 	inventory.item_removed.connect(func(_item: ItemResource, _total: int) -> void: _refresh())
+	inventory.weight_changed.connect(func(_kg: float, _max_kg: float) -> void: _refresh())
 	_refresh()
 
 
