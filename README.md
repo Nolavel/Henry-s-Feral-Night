@@ -1,4 +1,7 @@
-# Henry's Feral Night
+# RIMEWATCH
+
+**Public / commercial title:** **RIMEWATCH**  
+**Internal project codename:** **Henry's Feral Night**
 
 Third-person survival in the endless cold. A tropical island has frozen over;
 Henry has to get from the bunker he woke in to a house he can hold through the
