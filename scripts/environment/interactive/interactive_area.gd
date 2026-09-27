@@ -73,6 +73,8 @@ var player_in_area := false
 var shape_cast_detected := false
 var _targeted: bool = false
 var _message_serial: int = 0
+var _feedback_text: String = ""
+var _feedback_until_ms: int = 0
 var player_reference: CharacterBody3D = null
 var tween_icon: Tween
 var tween_info: Tween
@@ -131,7 +133,8 @@ func _setup_visual_elements() -> void:
 
 func _create_highlight_circle() -> void:
 	if not interactive_mesh:
-		push_warning("InteractiveArea: interactive_mesh не назначен!")
+		if object_on_ground and focus_anchor == null:
+			push_warning("InteractiveArea: ground highlight needs a mesh or focus anchor")
 		return
 	
 	highlight_circle = MeshInstance3D.new()
@@ -234,7 +237,11 @@ func set_shape_cast_detected(detected: bool) -> void:
 
 ## Replaces the prompt with a short message, e.g. why F was refused.
 func show_message(text: String, seconds: float = 2.5) -> void:
-	if not info_label or text == "":
+	if text == "":
+		return
+	_feedback_text = text
+	_feedback_until_ms = Time.get_ticks_msec() + int(seconds * 1000.0)
+	if not info_label:
 		return
 	info_label.text = text
 	info_label.visible = true
@@ -418,6 +425,8 @@ func get_interaction_prompt_data() -> Dictionary:
 			_:
 				detail = tr("PROMPT_DETAIL_OBJECT")
 
+	if Time.get_ticks_msec() < _feedback_until_ms:
+		detail = _feedback_text
 	return {
 		"key": key,
 		"action": action,

@@ -133,14 +133,14 @@ func _draw() -> void:
 	)
 
 	var text_x := 124.0
-	draw_string(
-		_font, Vector2(text_x, 80.0), _action,
-		HORIZONTAL_ALIGNMENT_LEFT, 202.0, 25,
+	draw_multiline_string(
+		_font, Vector2(text_x, 72.0), _action,
+		HORIZONTAL_ALIGNMENT_LEFT, 300.0, 20, 2,
 		Color(0.98, 0.96, 0.91, _text_reveal)
 	)
 	if not _detail.is_empty():
-		draw_string(
-			_font, Vector2(text_x, 105.0), _detail,
-			HORIZONTAL_ALIGNMENT_LEFT, 202.0, 14,
+		draw_multiline_string(
+			_font, Vector2(text_x, 116.0), _detail,
+			HORIZONTAL_ALIGNMENT_LEFT, 300.0, 14, 3,
 			Color(0.82, 0.82, 0.80, _detail_reveal)
 		)

@@ -114,7 +114,8 @@ func can_interact_with(player: Node) -> bool:
 func get_prompt_text(player: Node) -> String:
 	match _state:
 		State.EMPTY:
-			var raw: ItemResource = ItemCatalog.get_item(find_warmable(InventoryComponent.find_in(player)))
+			var id: StringName = find_warmable(InventoryComponent.find_in(player))
+			var raw: ItemResource = ItemCatalog.get_item(id) if id != &"" else null
 			return "%s: %s" % [tr(PUT_KEY), tr(raw.display_name) if raw != null else ""]
 		State.WARMING:
 			return tr(WARMING_KEY)

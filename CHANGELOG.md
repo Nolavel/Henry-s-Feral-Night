@@ -5,6 +5,47 @@ Maintained per branch; entries are added by whoever makes the change.
 
 ## [Unreleased] — `codex`
 
+### 2026-09-27 — Playable shelter supply and work rituals (codex)
+
+Fixed
+- Dropped burning flares now fall from the actual hand in a rigid body, inherit
+  movement velocity, and settle against terrain/floor while continuing to burn.
+- Hammer and nails were below the generated house floor (0.55 m versus 0.90 m).
+  Hammer, a visible 66-nail box and a reusable lighter now occupy separate spots
+  on a tool bench; logs/planks have recognizable full-size pickup geometry.
+- Inventory counts sum all stacks, including the second nail stack. The centre
+  prompt refreshes after an action and displays refusals instead of retaining old
+  copy. Pickup ground rings no longer obscure objects on the bench.
+- Window focus covers the visible aperture, including a camera inside its trigger.
+  F stages boards, then draws the owned hammer and one offhand board; camera aim
+  moves the ghost and LMB consumes two nails per placement. Esc loses no material;
+  obstacles prevent placement. Staged planks lie on the actual interior floor.
+- Stove input now explicitly opens, loads up to three cold logs, and ignites with
+  a lighter over five seconds. Missing ignition tools preserve the loaded wood.
+  Cold fuel remains visible/savable; restored ignition state is published before
+  fuel observers save it. Flames and a room-air readout show the result.
+- The cloth table offers a seat entry, explains occupied hands, and lays out food
+  for F consumption. Seated aim uses the actual projected centre ray and occlusion.
+
+Changed
+- Explicit temporary test pickups provide 33 route boards (27 near/inside the
+  shelter), 66 nails and nine nearby logs. Layout and generated scene agree.
+- The generated shelter retains up to two extra degrees in its fully leaky state;
+  boarding raises that ceiling toward eighteen. Heating remains gradual and uses
+  the existing ThermalZone model. The HUD distinguishes room air from body heat.
+- Longer contextual instructions wrap within the existing prompt face.
+
+Validation
+- Added a real-player/input/TPS-projection workflow covering floor/tool pickup,
+  two board trips and five placements, cancel/obstruction/same-frame camera turn, three-log cold loading,
+  missing lighter, timed ignition, room warmth/readout, table eating/standing and
+  flare gravity/settling. Updated stove and route expectations for the new steps.
+- The workflow and 21 related system suites pass; the traversal fixture also
+  climbs the veranda and enters the house through generated collisions.
+- Full scenario and limitations: `docs/gameplay/shelter_test_walkthrough.md`.
+- Local compatibility captures show the bench, board ghost and lit stove/readout;
+  they do not establish Forward+ island performance or manual traversal.
+
 ### 2026-09-27 — Shelter test start and visible-object interaction (codex)
 
 Changed

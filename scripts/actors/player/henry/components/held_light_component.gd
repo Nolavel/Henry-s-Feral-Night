@@ -162,9 +162,29 @@ func drop() -> void:
 	var hand_xf: Transform3D = flare.global_transform
 	animation.release_hand()
 	var world: Node = get_tree().current_scene if get_tree().current_scene != null else get_tree().root
-	world.add_child(flare)
-	var feet: Vector3 = (get_parent() as Node3D).global_position
-	flare.global_transform = Transform3D(Basis(Vector3.RIGHT, -PI * 0.5), Vector3(hand_xf.origin.x, feet.y + 0.05, hand_xf.origin.z))
+	var dropped := RigidBody3D.new()
+	dropped.name = "DroppedFlare"
+	dropped.mass = 0.15
+	dropped.continuous_cd = true
+	dropped.linear_damp = 0.3
+	dropped.angular_damp = 1.5
+	var collision := CollisionShape3D.new()
+	var shape := CapsuleShape3D.new()
+	shape.radius = 0.025
+	shape.height = 0.24
+	collision.shape = shape
+	dropped.add_child(collision)
+	world.add_child(dropped)
+	dropped.global_transform = hand_xf.orthonormalized()
+	dropped.add_child(flare)
+	flare.transform = Transform3D.IDENTITY
+	var player := get_parent() as PhysicsBody3D
+	if player != null:
+		dropped.add_collision_exception_with(player)
+		dropped.linear_velocity = player.get("velocity") as Vector3
+	flare.spent.connect(func() -> void:
+		if is_instance_valid(dropped):
+			get_tree().create_timer(SPENT_LINGER_S).timeout.connect(dropped.queue_free))
 	flare_dropped.emit(flare)
 
 

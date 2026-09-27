@@ -246,7 +246,7 @@ func _begin_hide() -> void:
 func _on_interaction_performed(target: InteractiveArea) -> void:
 	if target != _follow_target or _phase == Phase.HIDDEN:
 		return
-	_suppressed_after_press = target
+	_suppressed_after_press = null
 	_target = null
 	_kill_transition()
 	_phase = Phase.CONFIRMING

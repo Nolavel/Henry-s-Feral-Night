@@ -212,6 +212,12 @@ func get_felt_temperature_c() -> float:
 	return _felt_temp_c
 
 
+## Room air excludes the stove's local radiant heat and Henry's body temperature.
+func get_room_temperature_c() -> float:
+	var zone: ThermalZone = _get_dominant_zone()
+	return _outdoor_air_c + (zone.get_total_offset_c() if zone != null else 0.0)
+
+
 func get_stage() -> Stage:
 	return _stage
 

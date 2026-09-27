@@ -26,6 +26,7 @@ var _logs: Array[Node3D] = []
 var _glow: OmniLight3D
 var _flicker_t: float = 0.0
 var _door: Node3D
+var _flames: Array[MeshInstance3D] = []
 ## 0..1 while a lighting act catches: a weak flame that grows before the fire takes.
 var _kindle: float = 0.0
 var _acting: bool = false
@@ -53,7 +54,7 @@ func get_capacity_logs() -> int:
 ## a weak flame over `seconds` before the fire itself takes.
 func begin_act(lighting: bool, seconds: float) -> void:
 	_acting = true
-	_act_log = true
+	_act_log = false
 	_swing_door(true)
 	if lighting:
 		_kindle = 0.05
@@ -71,6 +72,10 @@ func end_act() -> void:
 
 func is_door_open() -> bool:
 	return _door != null and _door.rotation.y > 0.1
+
+
+func set_door_open(open: bool) -> void:
+	_swing_door(open)
 
 
 func _swing_door(open: bool) -> void:
@@ -106,6 +111,8 @@ func _process(delta: float) -> void:
 	var strength: float = _kindle if _acting and _kindle > 0.0 and not _burning() else 1.0
 	_glow.light_energy = 1.4 * flicker * strength
 	_embers.emission_energy_multiplier = 2.2 * flicker * strength
+	for flame: MeshInstance3D in _flames:
+		flame.scale.y = (0.7 + 0.3 * flicker) * strength
 	if source != null and source.flame_light != null and source.flame_light.visible:
 		source.flame_light.light_energy = 2.5 * (0.85 + 0.15 * flicker)
 
@@ -124,6 +131,8 @@ func _refresh() -> void:
 	for i: int in range(_logs.size()):
 		_logs[i].visible = i < clampi(units, 0, get_capacity_logs())
 	_glow.visible = burning or (_acting and _kindle > 0.0)
+	for flame: MeshInstance3D in _flames:
+		flame.visible = _glow.visible
 	_embers.emission_enabled = burning or (_acting and _kindle > 0.0)
 	_embers.albedo_color = Color(0.9, 0.35, 0.1) if burning else Color(0.18, 0.17, 0.16)
 
@@ -174,6 +183,21 @@ func _build() -> void:
 	_glow.omni_range = 1.4
 	_glow.position = Vector3(hx + 0.15, mid_y, 0.0)  # spills out through the door slots
 	add_child(_glow)
+	var flame_material := _material(Color(1.0, 0.48, 0.08), 1.0, 0.0)
+	flame_material.shading_mode = BaseMaterial3D.SHADING_MODE_UNSHADED
+	flame_material.emission_enabled = true
+	flame_material.emission = Color(1.0, 0.24, 0.025)
+	for z: float in [-0.12, 0.0, 0.12]:
+		var fire := MeshInstance3D.new()
+		var cone := CylinderMesh.new()
+		cone.top_radius = 0.006
+		cone.bottom_radius = 0.035
+		cone.height = 0.16
+		cone.material = flame_material
+		fire.mesh = cone
+		fire.position = Vector3(0.1, floor_y + 0.18, z)
+		add_child(fire)
+		_flames.append(fire)
 	_build_door(Vector3(hx + 0.01, floor_y + sill, -DOOR_W * 0.5))
 	## Flue: a collar on the cooktop at the back, a pipe to the roof.
 	_cylinder(0.08, 0.06, Vector3(-hx + 0.15, top_y + 0.06, 0.0), _iron)

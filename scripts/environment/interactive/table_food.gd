@@ -33,3 +33,11 @@ func _on_interaction_performed() -> void:
 	var refusal: ConsumptionController.Refusal = eater.consume(item_id)
 	if refusal != ConsumptionController.Refusal.NONE:
 		show_message(tr(ConsumptionController.describe_refusal(refusal)))
+
+
+func can_interact() -> bool:
+	return super() and get_parent() != null and not get_parent().is_queued_for_deletion()
+
+
+func _get_interaction_text() -> String:
+	return "[%s] %s" % [_interact_key_label(), item_name]

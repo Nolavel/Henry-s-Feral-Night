@@ -101,11 +101,12 @@ func try_remove(item_id: StringName) -> bool:
 
 
 func get_count(item_id: StringName) -> int:
+	var count: int = 0
 	for entry: Dictionary in _entries:
 		var stored: ItemResource = entry["item"]
 		if stored.id == item_id:
-			return entry["count"]
-	return 0
+			count += int(entry["count"])
+	return count
 
 
 func has_item(item_id: StringName) -> bool:

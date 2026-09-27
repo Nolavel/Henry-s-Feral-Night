@@ -127,6 +127,8 @@ func _process(delta: float) -> void:
 	var wanted: Color = cursor_color_target if is_over_target else cursor_color_idle
 	_color = _color.lerp(wanted, clampf(cursor_color_speed * delta, 0.0, 1.0))
 	_update_interaction_target(focused)
+	if focused != null:
+		_sync_prompt(focused)
 	_update_interaction_morph(delta)
 	_update_prompt_visuals()
 	_update_movement(delta)
@@ -227,6 +229,9 @@ func _draw_jump_arc(center: Vector2) -> void:
 
 
 func _focused_prompt_target() -> InteractiveArea:
+	var placement := get_tree().get_first_node_in_group(&"active_board_placement") as BreachBoardUp
+	if is_instance_valid(placement) and placement.is_placing_board():
+		return placement
 	if _interact_component == null or not is_instance_valid(_interact_component.current_target):
 		return null
 	var target := _interact_component.current_target

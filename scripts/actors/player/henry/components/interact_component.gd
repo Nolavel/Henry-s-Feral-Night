@@ -211,6 +211,10 @@ func _find_crosshair_target() -> InteractiveArea:
 		if toward.length() < 0.01:
 			continue
 		var angle := direction.angle_to(toward.normalized())
+		if area is BreachBoardUp:
+			if not (area as BreachBoardUp).is_aim_on_opening(from, direction):
+				continue
+			angle = 0.0
 		if angle > best_angle:
 			continue
 		if not _has_focus_line(camera, area):
@@ -268,6 +272,8 @@ func _focus_hit_is_visible(from: Vector3, hit_position: Vector3, target: Interac
 
 
 func _is_focus_aligned(from: Vector3, direction: Vector3, area: InteractiveArea) -> bool:
+	if area is BreachBoardUp:
+		return (area as BreachBoardUp).is_aim_on_opening(from, direction)
 	var toward: Vector3 = _focus_point(area) - from
 	if toward.length() < 0.01:
 		return false
@@ -275,7 +281,7 @@ func _is_focus_aligned(from: Vector3, direction: Vector3, area: InteractiveArea)
 
 
 func _has_focus_line(camera: Camera3D, area: InteractiveArea) -> bool:
-	var from := camera.global_position
+	var from: Vector3 = camera.project_ray_origin(get_viewport().get_visible_rect().size * 0.5)
 	var to := _focus_point(area)
 	var ray := PhysicsRayQueryParameters3D.create(from, to)
 	ray.collide_with_areas = false
@@ -301,7 +307,9 @@ func _focus_point(area: InteractiveArea) -> Vector3:
 		var point: Vector3 = mesh.to_global(bounds.get_center())
 		# Keep tiny/rotated ground props (flare, cup, food) a few centimetres
 		# above the authored root so their own supporting surface cannot win LOS.
-		var safe_lift: float = clampf(bounds.size.y * 0.35, 0.08, 0.35)
+		var axes: Basis = mesh.global_basis
+		var height: float = absf(axes.x.y) * bounds.size.x + absf(axes.y.y) * bounds.size.y + absf(axes.z.y) * bounds.size.z
+		var safe_lift: float = clampf(height * 0.35, 0.025, 0.20)
 		point.y = maxf(point.y, area.global_position.y + safe_lift)
 		return point
 	return area.global_position + Vector3.UP * 0.15
@@ -350,6 +358,9 @@ func _reach() -> float:
 
 ## Seated: the area within seated_reach closest to where the camera looks.
 func _find_seated_target() -> InteractiveArea:
+	if get_viewport().get_camera_3d() != null:
+		var focused: InteractiveArea = _find_crosshair_target()
+		return focused if focused != null and _flat_distance_to(focused) <= seated_reach else null
 	var shape := SphereShape3D.new()
 	shape.radius = seated_reach
 	var query := PhysicsShapeQueryParameters3D.new()

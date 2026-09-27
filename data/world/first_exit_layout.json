@@ -2,7 +2,11 @@
  "_doc": "First Exit greybox layout on Graciosa's east peninsula. World metres, +X east, -Z north. Y is sampled from the terrain by tools/world/build_first_exit_blockout.gd, which also resolves lots along roads and writes every final footprint to docs/world/first_exit_resolved.json. Temporary shelter test start faces the entrance; original bunker supplies remain. See docs/world/FIRST_EXIT.md.",
  "spawn": {
   "anchor": "shelter_house/House",
-  "local": [0, 0, 12]
+  "local": [
+   0,
+   0,
+   12
+  ]
  },
  "structures": [
   {
@@ -911,24 +915,24 @@
   {
    "id": "firewood_shelter",
    "item_id": "firewood",
-   "count": 1,
+   "count": 3,
    "anchor": "shelter_house/House",
    "local": [
-    -2.2,
+    -5.0,
     0,
-    -3
+    5.8
    ],
    "route": "shelter"
   },
   {
    "id": "firewood_shelter_yard",
    "item_id": "firewood",
-   "count": 1,
-   "anchor": "shelter_house",
+   "count": 3,
+   "anchor": "shelter_house/House",
    "local": [
-    3.5,
+    -5.0,
     0,
-    -6
+    7.0
    ],
    "route": "shelter",
    "note": "Yard pile by outbuilding; densifies the light-stove beat."
@@ -936,12 +940,12 @@
   {
    "id": "firewood_shelter_outbuilding",
    "item_id": "firewood",
-   "count": 1,
-   "anchor": "shelter_house",
+   "count": 3,
+   "anchor": "shelter_house/House",
    "local": [
-    -4,
+    -5.0,
     0,
-    4.5
+    8.2
    ],
    "route": "shelter",
    "note": "Lean-to side of the shelter lot."
@@ -950,11 +954,11 @@
    "id": "boards_shelter_yard",
    "item_id": "boards",
    "count": 3,
-   "anchor": "shelter_house",
+   "anchor": "shelter_house/House",
    "local": [
-    2.8,
+    5.0,
     0,
-    5.5
+    4.0
    ],
    "route": "shelter",
    "note": "Loose boards against the house for window boarding."
@@ -963,11 +967,11 @@
    "id": "boards_shelter_outbuilding",
    "item_id": "boards",
    "count": 3,
-   "anchor": "shelter_house",
+   "anchor": "shelter_house/House",
    "local": [
-    -3.2,
+    5.0,
     0,
-    -5
+    5.0
    ],
    "route": "shelter",
    "note": "Second board stack near the tank/outbuilding."
@@ -989,7 +993,11 @@
    "item_id": "bedroll",
    "count": 1,
    "anchor": "shelter_house/House",
-   "local": [-0.8, 0, 11.4],
+   "local": [
+    -0.8,
+    0,
+    11.4
+   ],
    "route": "shelter_test"
   },
   {
@@ -997,7 +1005,11 @@
    "item_id": "road_flare",
    "count": 1,
    "anchor": "shelter_house/House",
-   "local": [0.8, 0, 11.4],
+   "local": [
+    0.8,
+    0,
+    11.4
+   ],
    "route": "shelter_test"
   },
   {
@@ -1023,8 +1035,8 @@
    "anchor": "shelter_house/House",
    "local": [
     2.6,
-    0.55,
-    1.2
+    0.93,
+    2.3
    ],
    "keep_height": true,
    "route": "shelter"
@@ -1035,8 +1047,8 @@
    "count": 1,
    "anchor": "shelter_house/House",
    "local": [
-    1.7,
-    0.55,
+    1.3,
+    1.71,
     1.2
    ],
    "keep_height": true,
@@ -1045,16 +1057,114 @@
   {
    "id": "nails_shelter",
    "item_id": "nails",
-   "count": 30,
+   "count": 66,
    "anchor": "shelter_house/House",
    "local": [
-    2.1,
-    0.55,
+    2.0,
+    1.71,
     1.2
    ],
    "keep_height": true,
    "route": "shelter"
+  },
+  {
+   "id": "boards_shelter_test_1",
+   "item_id": "boards",
+   "count": 3,
+   "anchor": "shelter_house/House",
+   "local": [
+    5.0,
+    0,
+    6.0
+   ],
+   "route": "shelter_test"
+  },
+  {
+   "id": "boards_shelter_test_2",
+   "item_id": "boards",
+   "count": 3,
+   "anchor": "shelter_house/House",
+   "local": [
+    5.0,
+    0,
+    6.65
+   ],
+   "route": "shelter_test"
+  },
+  {
+   "id": "boards_shelter_test_3",
+   "item_id": "boards",
+   "count": 3,
+   "anchor": "shelter_house/House",
+   "local": [
+    5.0,
+    0,
+    7.3
+   ],
+   "route": "shelter_test"
+  },
+  {
+   "id": "boards_shelter_test_4",
+   "item_id": "boards",
+   "count": 3,
+   "anchor": "shelter_house/House",
+   "local": [
+    5.0,
+    0,
+    7.95
+   ],
+   "route": "shelter_test"
+  },
+  {
+   "id": "boards_shelter_test_5",
+   "item_id": "boards",
+   "count": 3,
+   "anchor": "shelter_house/House",
+   "local": [
+    5.0,
+    0,
+    8.6
+   ],
+   "route": "shelter_test"
+  },
+  {
+   "id": "boards_shelter_test_6",
+   "item_id": "boards",
+   "count": 3,
+   "anchor": "shelter_house/House",
+   "local": [
+    5.0,
+    0,
+    9.25
+   ],
+   "route": "shelter_test"
+  },
+  {
+   "id": "lighter_shelter_test",
+   "item_id": "lighter",
+   "count": 1,
+   "anchor": "shelter_house/House",
+   "local": [
+    2.7,
+    1.71,
+    1.2
+   ],
+   "keep_height": true,
+   "route": "shelter_test"
+  },
+  {
+   "id": "stew_shelter_test",
+   "item_id": "tinned_stew",
+   "count": 2,
+   "anchor": "shelter_house/House",
+   "local": [
+    3.5,
+    1.72,
+    -2.0
+   ],
+   "keep_height": true,
+   "route": "shelter_test"
   }
  ],
- "_scarcity": "Shelter has 5 openings. There are 15 physical boards and 30 nails total (2 nails per board): enough for about three careful window seals, but overlap/wasted placement leaves real gaps. Hammer and the 30-nail box are inside the shelter."
+ "_scarcity": "Temporary shelter test supplies: 33 boards and 66 nails across the route, 9 logs at the entrance, hammer/nails/lighter on the tool bench. Three logs fit the stove. Remove the explicitly labelled shelter_test extras when restoring route scarcity."
 }

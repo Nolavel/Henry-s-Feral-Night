@@ -35,7 +35,7 @@ INTERACT_USE,Use,Использовать
 HOUSE_DOOR_OPEN,Open door,Открыть дверь
 HOUSE_DOOR_CLOSE,Close door,Закрыть дверь
 BREACH_REFUSED_NO_BOARDS,Lay some boards beside this opening first,Сначала положите доски у этого проёма
-BREACH_REFUSED_NO_HAMMER,Equip the hammer from Quick Access,Достаньте молоток из быстрого доступа
+BREACH_REFUSED_NO_HAMMER,Pick up the hammer from the tool bench; F here draws it,Возьмите молоток со стола · здесь F достанет его
 BREACH_REFUSED_NO_NAILS,You need two nails for one board,На одну доску нужны два гвоздя
 BREACH_BOARDS_STAGED,Boards by the opening: %d,Досок у проёма: %d
 BREACH_BOARD_PLACE_HINT,Aim up/down · LMB nail board · Esc cancel,Цельтесь выше/ниже · ЛКМ прибить доску · Esc отмена
@@ -47,7 +47,7 @@ PICKUP_REFUSED_HANDS_OCCUPIED,Free your hands first,Сначала освобо�
 CABINET_OPEN,Open the cabinet,Открыть шкаф
 CABINET_CLOSE,Close the cabinet,Закрыть шкаф
 SLEEP_PROMPT,Sleep,Спать
-SLEEP_DIALOG_KEYS,"Wheel or ← →  hours      [ F ]  sleep and save      [ Esc ]  cancel","Колесо или ← →  часы      [ F ]  спать и сохранить      [ Esc ]  отмена"
+SLEEP_DIALOG_KEYS,Wheel or ← →  hours      [ F ]  sleep and save      [ Esc ]  cancel,Колесо или ← →  часы      [ F ]  спать и сохранить      [ Esc ]  отмена
 BEDROLL_PACK,Roll up the bedroll,Свернуть спальник
 HUB_PACK,Backpack,Рюкзак
 HUB_QUICK_ACCESS,Quick access,Быстрый доступ
@@ -71,7 +71,7 @@ BEDROLL_PLACE_BLOCKED,Cannot lay the bedroll here · Esc — cancel,Здесь �
 REST_PROMPT,Sit down,Сесть
 WAIT_TITLE,WAIT BY THE FIRE,ЖДАТЬ У ОГНЯ
 REST_SEATED_HINT,F — wait · move — stand up,F — ждать · движение — встать
-WAIT_DIALOG_KEYS,"Wheel or ← →  hours      [ F ]  wait      [ Esc ]  cancel","Колесо или ← →  часы      [ F ]  ждать      [ Esc ]  отмена"
+WAIT_DIALOG_KEYS,Wheel or ← →  hours      [ F ]  wait      [ Esc ]  cancel,Колесо или ← →  часы      [ F ]  ждать      [ Esc ]  отмена
 TABLE_EAT,Eat,Съесть
 TABLE_DRINK,Drink,Выпить
 WAIT_ENDED_RECOVERED,Warm and dry,Согрелся и высох
@@ -86,9 +86,29 @@ HUB_SECTION_SIDES,Side flaps,Боковые клапаны
 PACK_INSPECT,Go through the pack,Разобрать рюкзак
 LIGHT_PROMPT,Light the stove,Разжечь печь
 LIGHT_REQUIREMENTS,Requires tinder + firewood,Нужны растопка + дрова
-
 PROMPT_HEADER_INTERACT,Interact,Взаимодействие
 PROMPT_DETAIL_ITEM,Item,Предмет
 PROMPT_DETAIL_CONTROL,Control,Управление
 PROMPT_DETAIL_DOOR,Door,Дверь
 PROMPT_DETAIL_OBJECT,Object,Объект
+STOVE_OPEN,Open stove door,Открыть дверцу печки
+STOVE_LOAD,Put carried logs inside,Положить дрова из рук в печку
+STOVE_CLOSE,Close stove door,Закрыть дверцу печки
+STOVE_IGNITE,Light with lighter,Зажечь зажигалкой
+STOVE_NEED_LIGHTER,Pick up the lighter from the tool bench,Возьмите зажигалку со стола с инструментами
+STOVE_LIGHTER_READY,Lighter ready; wood catches in 5 seconds,Зажигалка есть · дрова разгорятся за 5 секунд
+STOVE_LOADED,Logs placed inside: %d,Положено поленьев: %d
+STOVE_FUEL_DETAIL,Stove: %d / %d logs · %.1f h,Печка: %d / %d поленьев · %.1f ч
+BREACH_STAGE_ACTION,Lay boards beside window,Сложить доски рядом с проёмом
+BREACH_TAKE_ACTION,Take one board and draw hammer,Взять доску и достать молоток
+BREACH_NAIL_ACTION,Nail board,Прибить доску
+BREACH_RECOVER_ACTION,Take remaining boards,Забрать оставшиеся доски
+BREACH_CARRIED_DETAIL,Carrying %d boards; F leaves them here,В руках %d доски · F сложить здесь
+REST_FREE_HANDS,Lay down boards or logs before sitting,Сначала положите доски или дрова
+REST_TABLE_DETAIL,Sit: pack beside seat; food on table; aim and F to eat,Сесть: рюкзак рядом · еда на столике · F на еде — есть
+SHELTER_ROOM_TEMPERATURE,Room air: %.1f °C,В комнате: %.1f °C
+Lighter,Lighter,Зажигалка
+Hammer,Hammer,Молоток
+Nails,Nails,Гвозди
+Firewood,Firewood,Дрова
+Salvaged boards,Salvaged boards,Доски

@@ -22,6 +22,8 @@ signal protection_changed(sealed_fraction: float)
 @export_group("Heating")
 ## Extra degrees this zone can gain from heat sources burning inside it.
 @export var max_heated_offset_c: float = 0.0
+## Optional small heat retention even with every opening exposed.
+@export var minimum_heated_offset_c: float = 0.0
 ## Degrees per in-game hour the zone gains while a heat source burns inside.
 @export var heating_rate_c_per_hour: float = 6.0
 ## Degrees per in-game hour the zone loses once nothing is burning.
@@ -77,7 +79,7 @@ func get_wind_exposure(wind_direction: Vector3 = Vector3.ZERO) -> float:
 ## The warmth a fire can build here. A holed shelter cannot hold heat however
 ## long it burns, which is what makes boarding up worth the trouble.
 func get_heat_ceiling_c() -> float:
-	return max_heated_offset_c * get_sealed_fraction()
+	return lerpf(minimum_heated_offset_c, max_heated_offset_c, get_sealed_fraction())
 
 
 ## The warmth accumulated from fires alone, without the zone's base offset.

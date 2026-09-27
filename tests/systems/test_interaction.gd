@@ -35,10 +35,10 @@ func _physics_process(_delta: float) -> bool:
 			_build()
 		4:
 			_check_proximity_without_focus()
-			_camera.look_at(_near.global_position, Vector3.UP)
+			_camera.look_at(_component._focus_point(_near), Vector3.UP)
 		7:
 			_check_near_first()
-			_camera.look_at(_far.global_position, Vector3.UP)
+			_camera.look_at(_component._focus_point(_far), Vector3.UP)
 		10:
 			_check_far_next()
 		13:

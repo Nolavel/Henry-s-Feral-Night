@@ -5,6 +5,7 @@ extends InteractiveArea
 ## (RestComponent); the node's -Z is where he faces.
 
 const PROMPT_KEY: String = "REST_PROMPT"
+@export var seat_anchor: Node3D
 
 
 func _ready() -> void:
@@ -33,4 +34,10 @@ func _rest() -> RestComponent:
 func _on_interaction_performed() -> void:
 	var rest: RestComponent = _rest()
 	if rest != null:
-		rest.sit(self)
+		if not rest.sit(seat_anchor if seat_anchor != null else self):
+			show_message(tr("REST_FREE_HANDS"))
+
+
+func _get_interaction_text() -> String:
+	set_description(tr("REST_TABLE_DETAIL"))
+	return "[%s] %s" % [_interact_key_label(), tr(PROMPT_KEY)]

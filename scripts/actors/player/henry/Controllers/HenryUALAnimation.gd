@@ -794,7 +794,8 @@ func refresh_garment_meshes() -> void:
 	var worn: Dictionary = {}
 	if _equipment != null and _equipment.layout != null:
 		for slot: EquipmentSlotDefinition in _equipment.layout.body_slots:
-			var item: ItemResource = ItemCatalog.get_item(_equipment.get_equipped(slot.id))
+			var id: StringName = _equipment.get_equipped(slot.id)
+			var item: ItemResource = ItemCatalog.get_item(id) if id != &"" else null
 			if item != null and item.garment != null and item.garment.mesh_node_name != &"":
 				worn[item.garment.mesh_node_name] = true
 			elif item != null and item.attached_mesh_node_name != &"":

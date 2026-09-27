@@ -1,8 +1,8 @@
 class_name HeatSourceFeed
 extends InteractiveArea
 
-## Lights and feeds one HeatSource. Firewood buys hours; a dead fire also
-## needs tinder. Without this, a fire could only ever burn down.
+## F opens the door, loads carried logs, then ignites the cold load with a lighter.
+## Cold fuel belongs to HeatSource too, so saving never loses a loaded stove.
 
 ## Emitted when a staged act starts: lighting (true) or adding a log (false).
 signal act_started(lighting: bool)
@@ -12,7 +12,7 @@ signal fuel_added(source: HeatSource, remaining_hours: float)
 signal feed_refused(reason: Refusal)
 
 ## Why a feed attempt was turned down.
-enum Refusal { NONE, NO_SOURCE, ALREADY_FULL, NO_FUEL, NO_TINDER, NO_INVENTORY }
+enum Refusal { NONE, NO_SOURCE, ALREADY_FULL, NO_FUEL, NO_TINDER, NO_INVENTORY, NO_LIGHTER }
 
 ## Label shown over the fire, resolved through localisation.
 const PROMPT_KEY: String = "FEED_PROMPT"
@@ -38,6 +38,7 @@ const ADD_SECONDS: float = 2.0
 var _inventory: InventoryComponent
 var _act_left: float = 0.0
 var _act_lighting: bool = false
+var _door_open: bool = false
 
 
 func _ready() -> void:
@@ -65,27 +66,48 @@ func _ready() -> void:
 
 ## Offers itself while the fire can take fuel; a missing item is said on F.
 func can_interact() -> bool:
-	return super() and heat_source != null and heat_source.can_refuel() and not is_acting()
+	return super() and heat_source != null and not is_acting()
 
 
 func is_acting() -> bool:
 	return _act_left > 0.0
 
 
-## The staged act, as the player does it: items go in at once, the fire takes
-## after LIGHT_SECONDS (lighting) or ADD_SECONDS (a log on a live fire).
+## Advances one explicit step. Opening and loading never silently ignite wood.
 func begin_act() -> Refusal:
-	var refusal: Refusal = can_feed()
-	if refusal != Refusal.NONE:
-		feed_refused.emit(refusal)
-		return refusal
-	_act_lighting = not heat_source.is_burning()
-	_act_left = LIGHT_SECONDS if _act_lighting else ADD_SECONDS
+	if heat_source == null or is_acting():
+		return Refusal.NO_SOURCE
+	if not _door_open:
+		_door_open = true
+		if _visual() != null:
+			_visual().set_door_open(true)
+		return Refusal.NONE
 	var inventory: InventoryComponent = _get_inventory()
-	if _act_lighting and tinder_item_id != &"":
-		inventory.try_remove(tinder_item_id)
-	if fuel_item_id != &"":
-		inventory.try_remove(fuel_item_id)
+	if inventory == null:
+		return Refusal.NO_INVENTORY
+	var available: int = inventory.get_count(fuel_item_id)
+	var room: int = maxi(0, floori((heat_source.burn_duration_h - heat_source.get_remaining_hours() + 0.001)
+		/ (heat_source.hours_per_fuel_unit * units_per_item)))
+	if available > 0 and room > 0:
+		var amount: int = mini(available, room)
+		for _i: int in range(amount):
+			inventory.try_remove(fuel_item_id)
+		var hours: float = heat_source.get_remaining_hours() + amount * units_per_item * heat_source.hours_per_fuel_unit
+		heat_source.restore_fuel(hours, heat_source.is_burning())
+		fuel_added.emit(heat_source, hours)
+		show_message(tr("STOVE_LOADED") % amount)
+		return Refusal.NONE
+	if heat_source.is_burning():
+		_door_open = false
+		if _visual() != null:
+			_visual().set_door_open(false)
+		return Refusal.NONE
+	if heat_source.get_remaining_hours() <= 0.0:
+		return Refusal.NO_FUEL
+	if not _has_lighter():
+		return Refusal.NO_LIGHTER
+	_act_lighting = true
+	_act_left = LIGHT_SECONDS
 	var visual: StoveVisual = _visual()
 	if visual != null:
 		visual.begin_act(_act_lighting, _act_left)
@@ -110,12 +132,49 @@ func _process(delta: float) -> void:
 ## The fire catches (or takes the log): only now does it burn and give heat.
 func _finish_act() -> void:
 	_act_left = 0.0
-	heat_source.refuel(units_per_item)
+	heat_source.restore_fuel(heat_source.get_remaining_hours(), true)
+	_door_open = false
 	var visual: StoveVisual = _visual()
 	if visual != null:
 		visual.end_act()
 	fuel_added.emit(heat_source, heat_source.get_remaining_hours())
 	_update_label()
+
+
+func _has_lighter() -> bool:
+	var inventory: InventoryComponent = _get_inventory()
+	if inventory != null and inventory.has_item(&"lighter"):
+		return true
+	var player: Node = get_tree().get_first_node_in_group(&"player")
+	var equipment: EquipmentComponent = player.get_node_or_null(^"EquipmentComponent") as EquipmentComponent if player != null else null
+	if equipment != null:
+		for pocket: Dictionary in equipment.get_available_pockets():
+			if pocket["item_id"] == &"lighter":
+				return true
+	return false
+
+
+func _get_interaction_text() -> String:
+	var key: String = "STOVE_OPEN"
+	var detail: String = ""
+	if heat_source != null:
+		var capacity: int = ceili(heat_source.burn_duration_h / heat_source.hours_per_fuel_unit)
+		var loaded: int = ceili(heat_source.get_remaining_hours() / heat_source.hours_per_fuel_unit - 0.001)
+		detail = tr("STOVE_FUEL_DETAIL") % [loaded, capacity, heat_source.get_remaining_hours()]
+	if _door_open and heat_source != null:
+		var inventory: InventoryComponent = _get_inventory()
+		if inventory != null and inventory.has_item(fuel_item_id) and heat_source.can_refuel():
+			key = "STOVE_LOAD"
+		elif heat_source.is_burning():
+			key = "STOVE_CLOSE"
+		elif heat_source.get_remaining_hours() > 0.0:
+			key = "STOVE_IGNITE"
+			detail = tr("STOVE_LIGHTER_READY" if _has_lighter() else "STOVE_NEED_LIGHTER")
+		else:
+			key = "STOVE_LOAD"
+			detail = tr("FEED_REFUSED_NO_FUEL")
+	set_description(detail)
+	return "[%s] %s" % [_interact_key_label(), tr(key)]
 
 
 func _update_label() -> void:
@@ -146,7 +205,7 @@ func can_feed() -> Refusal:
 	return Refusal.NONE
 
 
-## Spends the items, then feeds the fire. Nothing is spent on a refusal.
+## Legacy instantaneous seam for tools; player input uses the staged begin_act().
 func feed() -> Refusal:
 	var refusal: Refusal = can_feed()
 	if refusal != Refusal.NONE:
@@ -186,6 +245,8 @@ static func describe_refusal(refusal: Refusal) -> String:
 			return "FEED_REFUSED_NO_TINDER"
 		Refusal.NO_INVENTORY:
 			return "FEED_REFUSED_NO_INVENTORY"
+		Refusal.NO_LIGHTER:
+			return "STOVE_NEED_LIGHTER"
 		_:
 			return ""
 

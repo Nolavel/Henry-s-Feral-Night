@@ -1,89 +1,68 @@
 extends SceneTree
 
-## Lighting as an act (#42): F spends tinder and a log at once, the door opens
-## and a weak flame grows, but the fire only burns and heats after LIGHT_SECONDS;
-## a log on a live fire takes ADD_SECONDS and no tinder. Henry holds still meanwhile.
-## Run: godot --headless --script tests/systems/test_stove_act.gd
-
-const BODY: String = """extends CharacterBody3D
-var held: float = 0.0
-func hold_still(seconds: float) -> void:
-	held = seconds
-func play_action_animation(_action: StringName) -> bool:
-	return true
-"""
+## Door -> cold logs -> lighter -> timed ignition -> hot refuel.
+## Refusals preserve loaded fuel; saved state follows ignition.
 
 var _failures: int = 0
-var _time: float = 0.0
-var _phase: int = 0
-var _stove: HeatSource
-var _visual: StoveVisual
-var _feed: HeatSourceFeed
-var _inventory: InventoryComponent
-var _body: CharacterBody3D
 
 
-func _process(delta: float) -> bool:
-	_time += delta
-	match _phase:
-		0:
-			_build()
-			_check(_visual.get_capacity_logs() == 3, "a 6 h stove at 2 h a log shows more than 3 logs")
-			_check(_feed.begin_act() == HeatSourceFeed.Refusal.NONE, "F did not start lighting")
-			_check(not _stove.is_burning(), "the fire burned before the act finished")
-			_check(not _inventory.has_item(&"tinder") and _inventory.get_count(&"firewood") == 1,
-				"lighting did not take one tinder and one log")
-			_check(is_equal_approx(float(_body.get(&"held")), HeatSourceFeed.LIGHT_SECONDS), "Henry was not held for the lighting")
-			_check(not _feed.can_interact(), "the stove offered F again mid-act")
-			_phase = 1
-			_time = 0.0
-		1:
-			if _time > 0.6 and _time < 0.7:
-				_check(_visual.is_door_open(), "the door did not open for lighting")
-			if _time > HeatSourceFeed.LIGHT_SECONDS + 0.8:
-				_check(_stove.is_burning(), "the fire did not take after the lighting act")
-				_check(not _visual.is_door_open(), "the door stayed open after lighting")
-				_check(_feed.begin_act() == HeatSourceFeed.Refusal.NONE, "a log on the live fire was refused")
-				_check(_inventory.get_count(&"firewood") == 0, "adding a log did not take it")
-				_check(is_equal_approx(float(_body.get(&"held")), HeatSourceFeed.ADD_SECONDS), "adding a log is not the short act")
-				_phase = 2
-				_time = 0.0
-		2:
-			if _time > HeatSourceFeed.ADD_SECONDS + 0.5:
-				_check(is_equal_approx(_stove.get_remaining_hours(), 4.0), "two logs did not make 4 h (%.2f)" % _stove.get_remaining_hours())
-				print("test_stove_act: %s" % ("PASS" if _failures == 0 else "%d FAILED" % _failures))
-				quit(1 if _failures > 0 else 0)
-	return false
+func _initialize() -> void:
+	call_deferred(&"_run")
 
 
-func _build() -> void:
-	var script := GDScript.new()
-	script.source_code = BODY
-	script.reload()
-	_body = CharacterBody3D.new()
-	_body.set_script(script)
-	_body.add_to_group(&"player")
-	_inventory = InventoryComponent.new()
-	_body.add_child(_inventory)
-	root.add_child(_body)
-	for id: String in ["tinder", "firewood", "firewood"]:
-		_inventory.try_add(load("res://data/items/%s.tres" % id) as ItemResource)
-	_stove = HeatSource.new()
-	_stove.starts_burning = false
-	_stove.burn_duration_h = 6.0
-	_stove.hours_per_fuel_unit = 2.0
-	_visual = StoveVisual.new()
-	_visual.name = "StoveVisual"
-	_stove.add_child(_visual)
-	_feed = HeatSourceFeed.new()
-	_feed.heat_source = _stove
-	_feed.interactive_mesh = MeshInstance3D.new()
-	_feed.add_child(_feed.interactive_mesh)
-	_stove.add_child(_feed)
-	root.add_child(_stove)
+func _run() -> void:
+	var player := CharacterBody3D.new()
+	player.add_to_group(&"player")
+	var inventory := InventoryComponent.new()
+	player.add_child(inventory)
+	root.add_child(player)
+	var stove := HeatSource.new()
+	stove.starts_burning = false
+	var visual := StoveVisual.new()
+	visual.name = "StoveVisual"
+	stove.add_child(visual)
+	var feed := HeatSourceFeed.new()
+	feed.heat_source = stove
+	stove.add_child(feed)
+	root.add_child(stove)
+	for _i: int in range(3):
+		inventory.try_add(ItemCatalog.get_item(&"firewood"))
+	_check(feed.begin_act() == HeatSourceFeed.Refusal.NONE, "door did not open")
+	await create_timer(0.4).timeout
+	_check(visual.is_door_open() and inventory.get_count(&"firewood") == 3, "opening spent logs")
+	_check(feed.begin_act() == HeatSourceFeed.Refusal.NONE, "cold loading refused")
+	_check(not stove.is_burning() and is_equal_approx(stove.get_remaining_hours(), 6), "loading ignited fuel")
+	_check(visual.get_visible_log_count() == 3 and inventory.get_count(&"firewood") == 0, "cold load is not visible")
+	_check(feed.begin_act() == HeatSourceFeed.Refusal.NO_LIGHTER, "cold stove did not require lighter")
+	_check(is_equal_approx(stove.get_remaining_hours(), 6), "refusal spent fuel")
+	inventory.try_add(ItemCatalog.get_item(&"lighter"))
+	_check(feed.begin_act() == HeatSourceFeed.Refusal.NONE and feed.is_acting(), "lighter did not start ignition")
+	_check(not feed.can_interact() and not stove.is_burning(), "fire took before ignition finished")
+	feed._process(HeatSourceFeed.LIGHT_SECONDS)
+	_check(stove.is_burning() and visual.is_glowing(), "ignition did not create heat and light")
+	_check(inventory.has_item(&"lighter"), "reusable lighter was consumed")
+	await create_timer(0.4).timeout
+	_check(not visual.is_door_open(), "door did not close after ignition")
+	stove.advance_fuel(2)
+	inventory.try_add(ItemCatalog.get_item(&"firewood"))
+	_check(feed.begin_act() == HeatSourceFeed.Refusal.NONE, "hot door did not open")
+	_check(feed.begin_act() == HeatSourceFeed.Refusal.NONE, "hot refuel failed")
+	_check(stove.is_burning() and is_equal_approx(stove.get_remaining_hours(), 6), "hot refuel failed")
+	var state := ShelterState.new()
+	root.add_child(state)
+	var zone := ThermalZone.new()
+	root.add_child(zone)
+	state.adopt_fire(zone, stove)
+	var key: String = "%s/%s" % [zone.name, stove.name]
+	stove.restore_fuel(4, false)
+	_check(not bool(state.get_save_data()["fires"][key]["burning"]), "cold state was not saved")
+	stove.restore_fuel(4, true)
+	_check(bool(state.get_save_data()["fires"][key]["burning"]), "ignited state was saved as cold")
+	print("test_stove_act: %s" % ("PASS" if _failures == 0 else "%d FAILED" % _failures))
+	quit(0 if _failures == 0 else 1)
 
 
 func _check(condition: bool, message: String) -> void:
 	if not condition:
 		_failures += 1
-		push_error("FAIL: " + message)
+		push_error("stove act: " + message)
