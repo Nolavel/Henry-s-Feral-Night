@@ -56,7 +56,7 @@ func _ready() -> void:
 	var carry := get_node_or_null(^"CarryComponent") as CarryComponent
 	if carry != null and animation_component != null:
 		carry.carry_changed.connect(animation_component.set_carried_item)
-		animation_component.set_carried_item(carry.get_carried_item())
+		animation_component.set_carried_item(carry.get_carried_item(), carry.get_carried_count())
 	if consumption_controller != null:
 		consumption_controller.consumed.connect(
 			func(_item_id: StringName, _item: ItemResource) -> void:

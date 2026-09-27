@@ -166,6 +166,7 @@ var _held_prop: Node3D
 var _hold_pose: float = 0.0
 var _current_action: StringName = &""
 var _carried: ItemResource = null
+var _carried_count: int = 0
 var _sitting: bool = false
 var _resolved_sit_enter: StringName = &""
 var _resolved_sit_loop: StringName = &""
@@ -280,13 +281,19 @@ func _has_sit_state() -> bool:
 	return _resolved_sit_loop != &""
 
 
-## Shows the carried item's prop and switches locomotion to the carry cycle;
-## null frees the hands. CarryComponent decides what is carried.
-func set_carried_item(item: ItemResource) -> void:
+## Shows exactly as many carried units as the inventory owns; null frees hands.
+func set_carried_item(item: ItemResource, count: int = 1) -> void:
 	_carried = item
+	_carried_count = clampi(count, 0, item.hand_carry_limit) if item != null else 0
 	var shown: StringName = item.attached_mesh_node_name if item != null else &""
 	for prop_name: StringName in _carry_props:
-		(_carry_props[prop_name] as Node3D).visible = prop_name == shown
+		var bundle := _carry_props[prop_name] as Node3D
+		var active: bool = prop_name == shown and _carried_count > 0
+		bundle.visible = active
+		for index: int in range(bundle.get_child_count()):
+			var unit := bundle.get_child(index) as Node3D
+			if unit != null:
+				unit.visible = active and index < _carried_count
 
 
 ## The shared held-item socket on the right hand, made on first use.
@@ -651,7 +658,7 @@ func _attach_garments() -> void:
 			_skin_parts[garment_name] = skin
 
 
-## An armful of logs across the forearms, hidden until firewood is carried.
+## Three visible slots for two-hand resources: logs and salvaged boards.
 func _attach_carry_props() -> void:
 	if skeleton == null:
 		return
@@ -664,15 +671,16 @@ func _attach_carry_props() -> void:
 	attachment.bone_name = carry_bone
 	skeleton.add_child(attachment)
 	var rest: Transform3D = skeleton.get_bone_global_rest(bone)
-	var bundle := Node3D.new()
-	bundle.name = "CarryFirewood"
-	bundle.transform = rest.affine_inverse() * Transform3D(Basis.IDENTITY, rest.origin + carry_offset)
-	bundle.visible = false
-	attachment.add_child(bundle)
+	var load_transform := rest.affine_inverse() * Transform3D(Basis.IDENTITY, rest.origin + carry_offset)
+
+	var firewood := Node3D.new()
+	firewood.name = "CarryFirewood"
+	firewood.transform = load_transform
+	firewood.visible = false
+	attachment.add_child(firewood)
 	var bark := StandardMaterial3D.new()
 	bark.albedo_color = Color(0.36, 0.26, 0.18)
 	bark.roughness = 1.0
-	## [centre, radius, length, roll] per log, lying across Henry's chest.
 	var logs: Array = [
 		[Vector3(-0.06, 0.0, 0.0), 0.055, 0.46, 4.0],
 		[Vector3(0.06, 0.0, 0.01), 0.05, 0.42, -6.0],
@@ -689,8 +697,33 @@ func _attach_carry_props() -> void:
 		log_mesh.mesh = cylinder
 		log_mesh.layers = portrait_render_layers
 		log_mesh.transform = Transform3D(Basis.from_euler(Vector3(0.0, deg_to_rad(spec[3]), PI * 0.5)), spec[0])
-		bundle.add_child(log_mesh)
-	_carry_props[&"CarryFirewood"] = bundle
+		firewood.add_child(log_mesh)
+	_carry_props[&"CarryFirewood"] = firewood
+
+	var boards := Node3D.new()
+	boards.name = "CarryBoards"
+	boards.transform = load_transform
+	boards.visible = false
+	attachment.add_child(boards)
+	var wood := StandardMaterial3D.new()
+	wood.albedo_color = Color(0.42, 0.3, 0.19)
+	wood.roughness = 0.95
+	var board_specs: Array = [
+		[Vector3(0.0, -0.02, 0.0), -4.0],
+		[Vector3(0.0, 0.045, 0.015), 5.0],
+		[Vector3(0.0, 0.11, -0.01), -2.0],
+	]
+	for spec: Array in board_specs:
+		var box := BoxMesh.new()
+		box.size = Vector3(0.52, 0.035, 0.095)
+		box.material = wood
+		var board := MeshInstance3D.new()
+		board.mesh = box
+		board.layers = portrait_render_layers
+		board.position = spec[0]
+		board.rotation.z = deg_to_rad(spec[1])
+		boards.add_child(board)
+	_carry_props[&"CarryBoards"] = boards
 
 
 ## Soaked clothing reads darker; 0 dry to 1 soaked.

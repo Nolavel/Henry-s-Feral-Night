@@ -189,7 +189,7 @@ func get_pack_items() -> Array[Dictionary]:
 		return out
 	for entry: Dictionary in inventory.get_entries():
 		var item: ItemResource = ItemCatalog.get_item(entry["id"])
-		if item == null:
+		if item == null or item.carried_in_hands:
 			continue
 		out.append({"id": item.id, "count": entry["count"], "name": item.display_name,
 			"weight": item.weight, "size": item.size_class})

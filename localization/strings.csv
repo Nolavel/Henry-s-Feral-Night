@@ -36,6 +36,8 @@ HOUSE_DOOR_OPEN,Open door,Открыть дверь
 HOUSE_DOOR_CLOSE,Close door,Закрыть дверь
 BREACH_REFUSED_NO_BOARDS,You need boards,Нужны доски
 PICKUP_REFUSED_TOO_HEAVY,Too heavy to carry,Слишком тяжело нести
+PICKUP_REFUSED_HANDS_FULL,You can carry at most three,Можно нести максимум три
+PICKUP_REFUSED_HANDS_OCCUPIED,Free your hands first,Сначала освободите руки
 CABINET_OPEN,Open the cabinet,Открыть шкаф
 CABINET_CLOSE,Close the cabinet,Закрыть шкаф
 SLEEP_PROMPT,Sleep,Спать
