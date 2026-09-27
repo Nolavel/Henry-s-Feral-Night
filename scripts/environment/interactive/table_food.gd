@@ -45,6 +45,6 @@ func _get_interaction_text() -> String:
 		set_description(item.get_status_text())
 		if item.water_capacity_ml > 0:
 			return "[%s] %s" % [_interact_key_label(), tr("FLASK_DRINK_ACTION")]
-		if item.consumable != null and item.consumable.required_tool_id == &"knife":
-			return "[%s] %s" % [_interact_key_label(), tr("PINEAPPLE_EAT_ACTION")]
+		if item.opens_into != &"":
+			return "[%s] %s" % [_interact_key_label(), tr("PINEAPPLE_OPEN_ACTION")]
 	return "[%s] %s" % [_interact_key_label(), item_name]

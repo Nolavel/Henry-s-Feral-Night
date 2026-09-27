@@ -887,6 +887,11 @@ crouch={
 )]
 }
 
+drop_carried={
+"deadzone": 0.5,
+"events": [Object(InputEventKey,"physical_keycode":71,"unicode":103,"script":null)]
+}
+
 [internationalization]
 
 locale/translations=PackedStringArray("res://localization/strings.en.translation", "res://localization/strings.ru.translation")

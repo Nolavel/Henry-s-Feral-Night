@@ -330,7 +330,9 @@ func use_from_zone(zone_path: StringName) -> bool:
 	if item_id == &"" or move_to_pack(zone_path) != &"":
 		return false
 	if use_item(item_id):
-		if item != null and item.water_capacity_ml > 0 and item.consumable != null:
+		if item != null and item.opens_into != &"":
+			move_to_zone(item.opens_into, zone_path)
+		elif item != null and item.water_capacity_ml > 0 and item.consumable != null:
 			move_to_zone(item.consumable.leaves_behind_id, zone_path)
 		return true
 	move_to_zone(item_id, zone_path)

@@ -50,7 +50,8 @@ func _ready() -> void:
 
 
 func can_interact() -> bool:
-	return super() and ItemCatalog.get_item(item_id) != null
+	var work: WoodWorkComponent = _wood_work()
+	return super() and ItemCatalog.get_item(item_id) != null and (work == null or not work.is_chopping(self))
 
 
 ## Adds every unit or none: a half-taken stack would leave the world lying.
@@ -82,7 +83,28 @@ func pick_up() -> bool:
 
 
 func _on_interaction_performed() -> void:
+	var work: WoodWorkComponent = _wood_work()
+	if item_id == &"boards" and work != null and work.axe_is_held():
+		work.begin_chop(self)
+		return
 	pick_up()
+
+
+func _get_interaction_text() -> String:
+	var work: WoodWorkComponent = _wood_work()
+	if item_id == &"boards" and work != null and work.axe_is_held():
+		player_animation_action = &"none"
+		set_description(tr("WOOD_CHOP_DETAIL") % count)
+		return "[%s] %s" % [_interact_key_label(), tr("WOOD_CHOP_ACTION")]
+	if item_id == &"boards" and description != "":
+		set_description("")
+	player_animation_action = &""
+	return super()
+
+
+func _wood_work() -> WoodWorkComponent:
+	var player: Node = get_tree().get_first_node_in_group(&"player") if is_inside_tree() else null
+	return player.get_node_or_null(^"WoodWorkComponent") as WoodWorkComponent if player != null else null
 
 
 static func _refusal_key(reason: StringName) -> String:
@@ -108,8 +130,10 @@ func _hand_visual_to_pack() -> void:
 
 ## A small crate until items have their own meshes.
 func _make_placeholder() -> MeshInstance3D:
-	if String(item_id).begins_with("water_flask") or item_id == &"knife" or item_id == &"tinned_pineapple" or item_id == &"tinned_stew":
+	if String(item_id).begins_with("water_flask") or String(item_id).begins_with("tinned_pineapple") or item_id in [&"knife", &"axe", &"tinned_stew"]:
 		var holder: Node3D = SurvivalItemVisual.make(item_id)
+		if item_id == &"axe":
+			holder.rotation.x = PI * 0.5
 		add_child(holder)
 		return holder.get_child(0) as MeshInstance3D
 	if item_id == ROAD_FLARE_ID:

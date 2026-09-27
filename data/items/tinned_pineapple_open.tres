@@ -8,14 +8,12 @@ script = ExtResource("consumable")
 calories = 300.0
 hydration = 8.0
 leaves_behind_id = &"empty_tin"
-required_tool_id = &"knife"
 
 [resource]
 script = ExtResource("item")
-id = &"tinned_pineapple"
-display_name = "Tinned pineapple"
+id = &"tinned_pineapple_open"
+display_name = "Open pineapple tin"
 weight = 0.45
 max_stack = 4
 size_class = 0
-opens_into = &"tinned_pineapple_open"
 consumable = SubResource("food")

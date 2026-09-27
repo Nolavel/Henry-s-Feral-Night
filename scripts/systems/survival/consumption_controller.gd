@@ -6,6 +6,7 @@ extends Node
 
 ## Emitted after an item was consumed, so the HUD and audio can react.
 signal consumed(item_id: StringName, item: ItemResource)
+signal opened(item_id: StringName, replacement_id: StringName)
 ## Emitted when an attempt was turned down, carrying why.
 signal consume_refused(item_id: StringName, reason: Refusal)
 
@@ -56,17 +57,35 @@ func use(item_id: StringName) -> bool:
 ## Consumes one of the item, wherever it is carried. Returns the refusal,
 ## or NONE when it was eaten.
 func consume(item_id: StringName) -> Refusal:
+	return _consume_from(item_id, _locate(item_id))
+
+
+## A held pocket item must use its own source, even if the pack has the same id.
+func consume_from_zone(zone_path: StringName) -> Refusal:
+	var parts: PackedStringArray = String(zone_path).split(EquipmentComponent.POCKET_SEPARATOR)
+	if equipment == null or parts.size() != 2:
+		return Refusal.NOT_CARRIED
+	var slot := StringName(parts[0])
+	var pocket := StringName(parts[1])
+	var id: StringName = equipment.get_pocket_item(slot, pocket)
+	return _consume_from(id, {"source": Source.POCKET, "body_slot": slot, "pocket": pocket})
+
+
+func _consume_from(item_id: StringName, found: Dictionary) -> Refusal:
 	var refusal: Refusal = can_consume(item_id)
 	if refusal != Refusal.NONE:
 		consume_refused.emit(item_id, refusal)
 		return refusal
 
 	var item: ItemResource = ItemCatalog.get_item(item_id)
-	var found: Dictionary = _locate(item_id)
-	if not _take(item_id):
+	if not _take(item_id, found):
 		consume_refused.emit(item_id, Refusal.NOT_CARRIED)
 		return Refusal.NOT_CARRIED
 
+	if item.opens_into != &"":
+		_leave_behind(item.opens_into, found)
+		opened.emit(item_id, item.opens_into)
+		return Refusal.NONE
 	_apply(item.consumable)
 	_leave_behind(item.consumable.leaves_behind_id, found if item.water_capacity_ml > 0 else {})
 	if item.water_capacity_ml > 0:
@@ -140,12 +159,13 @@ func _locate(item_id: StringName) -> Dictionary:
 
 
 ## Removes one of the item from wherever it was found.
-func _take(item_id: StringName) -> bool:
-	var found: Dictionary = _locate(item_id)
+func _take(item_id: StringName, found: Dictionary) -> bool:
 	match found["source"]:
 		Source.INVENTORY:
 			return inventory.try_remove(item_id)
 		Source.POCKET:
+			if equipment.get_pocket_item(found["body_slot"], found["pocket"]) != item_id:
+				return false
 			return equipment.take_from_pocket(found["body_slot"], found["pocket"]) == item_id
 		_:
 			return false

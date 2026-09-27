@@ -19,6 +19,8 @@
 [ext_resource type="Script" path="res://scripts/actors/player/henry/components/held_light_component.gd" id="97_light"]
 [ext_resource type="Script" path="res://scripts/actors/player/henry/components/bedroll_component.gd" id="98_bedroll"]
 [ext_resource type="Script" path="res://scripts/actors/player/henry/components/hammer_component.gd" id="98_hammer"]
+[ext_resource type="Script" path="res://scripts/actors/player/henry/components/held_item_component.gd" id="98_item"]
+[ext_resource type="Script" path="res://scripts/actors/player/henry/components/wood_work_component.gd" id="98_wood"]
 [ext_resource type="Script" uid="uid://0rnwid612a8i" path="res://scripts/systems/survival/consumption_controller.gd" id="92_consume"]
 [ext_resource type="Script" uid="uid://ddo2xkwqouann" path="res://scripts/actors/player/henry/components/foot_contact_sensor.gd" id="94_feet"]
 [ext_resource type="Resource" path="res://data/equipment/player_layout.tres" id="93_layout"]
@@ -105,6 +107,15 @@ inventory = NodePath("../InventoryComponent")
 script = ExtResource("96_carry")
 inventory = NodePath("../InventoryComponent")
 
+[node name="HeldItemComponent" type="Node" parent="." node_paths=PackedStringArray("inventory", "equipment", "consumption")]
+script = ExtResource("98_item")
+inventory = NodePath("../InventoryComponent")
+equipment = NodePath("../EquipmentComponent")
+consumption = NodePath("../ConsumptionController")
+
+[node name="WoodWorkComponent" type="Node" parent="."]
+script = ExtResource("98_wood")
+
 [node name="ConsumptionController" type="Node" parent="." node_paths=PackedStringArray("inventory", "equipment", "bio_monitor")]
 script = ExtResource("92_consume")
 inventory = NodePath("../InventoryComponent")
@@ -119,4 +130,3 @@ visual = NodePath("../HenryUALVisual")
 [node name="MouseCursorUI" parent="." instance=ExtResource("49_cursor")]
 
 [node name="VitalHUD" parent="." instance=ExtResource("51_vitals")]
-

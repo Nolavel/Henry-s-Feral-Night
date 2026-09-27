@@ -33,7 +33,7 @@ func _ready() -> void:
 
 func wants_break() -> bool:
 	var hammer: HammerComponent = _hammer()
-	return not _destroyed and hammer != null and hammer.is_holding()
+	return not table_owner is MealTable and not _destroyed and hammer != null and hammer.is_holding()
 
 
 func can_interact() -> bool:
@@ -72,9 +72,6 @@ func _destroy() -> void:
 	table_owner.visible = false
 	for body: Node in table_owner.find_children("*", "StaticBody3D", true, false):
 		(body as StaticBody3D).collision_layer = 0
-	if table_owner is MealTable:
-		(table_owner as MealTable).clear()
-		table_owner.remove_from_group(MealTable.GROUP)
 	var pile_id := StringName("%s:logs" % world_id)
 	var ledger: PickupLedger = PickupLedger.find(get_tree())
 	if ledger != null and ledger.is_taken(pile_id):
@@ -117,8 +114,6 @@ func load_save_data(data: Dictionary) -> void:
 		table_owner.visible = true
 		for body: StaticBody3D in _solid_layers:
 			body.collision_layer = int(_solid_layers[body])
-		if table_owner is MealTable:
-			table_owner.add_to_group(MealTable.GROUP)
 		if is_instance_valid(_logs):
 			_logs.queue_free()
 		_logs = null

@@ -47,7 +47,7 @@ func _run() -> void:
 
 
 func _test_tools() -> void:
-	for node_name: String in ["HammerShelter", "NailsShelter", "LighterShelterTest"]:
+	for node_name: String in ["HammerShelter", "NailsShelter", "LighterShelterTest", "AxeShelterTest"]:
 		var pickup: ItemPickup = _scene.get_node(NodePath(node_name)) as ItemPickup
 		_check(_house.to_local(pickup.global_position).y > 1.7, "%s is buried under the floor/bench" % node_name)
 		var id: StringName = pickup.item_id
@@ -210,7 +210,7 @@ func _test_dismantle() -> void:
 	await physics_frame
 	_check(work._logs == null or work._logs.is_queued_for_deletion(), "restoring collected salvage duplicated its pile")
 	breach._equip_hammer(hammer)
-	for path: NodePath in [^"SupplyBench/Dismantle", ^"ShelterZone/RestCrate/MealTable/Dismantle"]:
+	for path: NodePath in [^"SupplyBench/Dismantle"]:
 		var other: TableSalvage = _house.get_node(path) as TableSalvage
 		_check(other.get_save_key() != work.get_save_key(), "two tables share a furniture save key")
 		await _aim(other, other.focus_anchor.global_position + _house.global_basis.z * 0.8, other.focus_anchor.global_position)
@@ -219,9 +219,17 @@ func _test_dismantle() -> void:
 		_check(other._work_left > 0.0, "seat interaction intercepted table dismantling")
 		other._process(TableSalvage.WORK_SECONDS)
 		_check(other._destroyed and other._logs != null and other._logs.count == 3, "another wooden table did not yield logs")
-		if other.table_owner is MealTable:
-			_check(not other.table_owner.is_in_group(MealTable.GROUP), "destroyed meal table still offers food presentation")
-	hammer.put_away()
+	var meal: MealTable = _house.get_node(^"ShelterZone/RestCrate/MealTable") as MealTable
+	_check(not meal.has_node(^"Dismantle") and meal.visible and meal.is_in_group(MealTable.GROUP),
+		"ritual table still has a destructive action")
+	var sit: RestSpot = _house.get_node(^"ShelterZone/RestCrate/Sit") as RestSpot
+	await _aim(sit, sit.focus_anchor.global_position + _house.global_basis.z * 0.75 + Vector3.UP * 0.5,
+		sit.focus_anchor.global_position)
+	_check_target(sit, "protected meal ritual with a drawn hammer")
+	_press(&"interact")
+	_check((_player.get_node(^"RestComponent") as RestComponent).is_sitting() and meal.visible,
+		"drawn hammer intercepted or destroyed the meal ritual")
+	_press(&"move_forward")
 
 
 func _test_boards() -> void:
@@ -374,7 +382,7 @@ func _test_table() -> void:
 	if table.get_targets().is_empty():
 		return
 	_camera.global_position = _player.global_position + Vector3.UP * 0.3
-	for id: StringName in [&"water_flask_750", &"tinned_pineapple", &"tinned_stew"]:
+	for id: StringName in [&"water_flask_750", &"tinned_pineapple", &"tinned_pineapple_open", &"tinned_stew"]:
 		var food: TableFood = null
 		for target: TableFood in table.get_targets():
 			if target.item_id == id:
@@ -393,7 +401,8 @@ func _test_table() -> void:
 		_check(_inventory.get_count(id) == previous - 1, "seated F opened waiting instead of consuming food")
 		_check(_interact.current_target == null, "consumed table prop left its obsolete F target active")
 		var meal: ItemResource = ItemCatalog.get_item(id)
-		_check(is_equal_approx(eater.bio_monitor.current_calories, minf(eater.bio_monitor.max_calories, calories + meal.consumable.calories)),
+		var gained: float = meal.consumable.calories if meal.opens_into == &"" else 0.0
+		_check(is_equal_approx(eater.bio_monitor.current_calories, minf(eater.bio_monitor.max_calories, calories + gained)),
 			"table food did not restore the actual hunger track")
 		await physics_frame
 		await physics_frame

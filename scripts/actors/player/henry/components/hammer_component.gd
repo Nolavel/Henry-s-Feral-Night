@@ -143,7 +143,8 @@ func _other_hands_clear() -> bool:
 	if carry != null and carry.is_carrying():
 		return false
 	var light := player.get_node_or_null(^"HeldLightComponent") as HeldLightComponent
-	return light == null or not light.is_holding()
+	var held := player.get_node_or_null(^"HeldItemComponent") as HeldItemComponent
+	return (light == null or not light.is_holding()) and (held == null or not held.is_holding())
 
 
 func _restore_item() -> void:

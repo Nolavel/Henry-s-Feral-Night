@@ -1848,6 +1848,9 @@ radius = 0.6
 [sub_resource type="SphereShape3D" id="SphereShape3D_supplies_22557727_2"]
 radius = 0.6
 
+[sub_resource type="SphereShape3D" id="SphereShape3D_supplies_22557727_3"]
+radius = 0.6
+
 [node name="FirstExitBlockout" type="Node3D" unique_id=1206899588]
 
 [node name="Road_MainStreet" type="Node3D" parent="." unique_id=226046032]
@@ -6287,8 +6290,6 @@ texture = ExtResource("2_14ntb")
 [node name="MealTable" type="Node3D" parent="ShelterHouse/House/ShelterZone/RestCrate" unique_id=1386982313]
 transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 0.32, 0, -0.55)
 script = ExtResource("13_le8xu")
-world_id = &"shelter_meal_table"
-salvage_floor_y = 0.09999999999999998
 
 [node name="TableFocus" type="Marker3D" parent="ShelterHouse/House/ShelterZone/RestCrate" unique_id=1230447855]
 transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 0.32, 0.5, -0.55)
@@ -16575,6 +16576,21 @@ shape = SubResource("SphereShape3D_supplies_22557727_2")
 [node name="InfoLabel" type="Label3D" parent="KnifeShelterTest" unique_id=410271063]
 
 [node name="Sprite3D" type="Sprite3D" parent="KnifeShelterTest" unique_id=1604309922]
+transform = Transform3D(0.75, 0, 0, 0, 0.75, 0, 0, 0, 0.75, 0, 0, 0)
+texture = ExtResource("2_14ntb")
+
+[node name="AxeShelterTest" type="Area3D" parent="." unique_id=1191996284]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 1133.149, 7.1117625, -654.0918)
+script = ExtResource("16_yryj5")
+item_id = &"axe"
+world_id = &"axe_shelter_test"
+
+[node name="CollisionShape3D" type="CollisionShape3D" parent="AxeShelterTest" unique_id=1474776626]
+shape = SubResource("SphereShape3D_supplies_22557727_3")
+
+[node name="InfoLabel" type="Label3D" parent="AxeShelterTest" unique_id=1104483222]
+
+[node name="Sprite3D" type="Sprite3D" parent="AxeShelterTest" unique_id=1881755608]
 transform = Transform3D(0.75, 0, 0, 0, 0.75, 0, 0, 0, 0.75, 0, 0, 0)
 texture = ExtResource("2_14ntb")
 

@@ -119,7 +119,7 @@ Tinned pineapple,Tinned pineapple,Консервированные ананас�
 Tinned stew,Tinned stew,Тушёнка
 FLASK_STATUS,Drunk: %d ml · Left: %d / %d ml,Выпито: %d мл · Осталось: %d / %d мл
 FLASK_DRINK_ACTION,Drink 250 ml from flask,Выпить 250 мл из фляги
-PINEAPPLE_KNIFE_HINT,Pick up a knife to open the tin,Для открытия банки нужен нож
+PINEAPPLE_KNIFE_HINT,Carry a knife; first Use opens the tin and the next Use eats,Возьмите нож · первое использование открывает банку следующее позволяет есть
 KNIFE_PURPOSE,Reusable tool for opening tinned pineapple,Открывает консервированные ананасы · не расходуется
 PINEAPPLE_EAT_ACTION,Open with knife and eat pineapple,Открыть ножом и съесть ананасы
 CONSUME_REFUSED_NO_KNIFE,Pick up the knife from the tool bench first,Сначала возьмите нож со стола с инструментами
@@ -127,3 +127,19 @@ CONSUME_REFUSED_EMPTY_FLASK,The flask is empty,Фляга пуста
 TABLE_BREAK_ACTION,Dismantle wooden table,Разобрать деревянный стол
 TABLE_BREAK_WARNING,4 seconds → %d logs; the table will be lost,4 секунды → %d полена · стол будет разобран
 TABLE_CLEAR_FIRST,Pick up all supplies on the table first,Сначала заберите все предметы со стола
+Open pineapple tin,Open pineapple tin,Открытая банка ананасов
+Hatchet,Hatchet,Топор
+PINEAPPLE_OPEN_ACTION,Open tin with knife,Открыть банку ножом
+PINEAPPLE_OPEN_HINT,The tin is open; Use eats the pineapple,Банка открыта · используйте чтобы съесть ананасы
+FLASK_HELD_MARK,%d ml,%d мл
+HAND_EAT_ACTION,Eat contents,Съесть содержимое
+HAND_TOOL_HINT,Use this tool through a world interaction,Используйте предмет при взаимодействии с объектом
+EMPTY_TIN_HELD_HINT,Empty tin; change pocket or open the Hub to put it away,Пустая банка · смените карман или откройте рюкзак чтобы убрать
+AXE_BOARD_HINT,Aim at loose boards and press F to chop them,Наведите на лежащие доски и нажмите F чтобы расколоть
+WOOD_DROP_HINT,G · Put down %d × %s,G · Положить %d × %s
+WOOD_DROP_BLOCKED,No clear floor in front; move away from obstacles,Нет свободного пола впереди · отойдите от препятствия
+WOOD_DROPPED,Wood placed on the ground; F picks it back up,Дрова или доски лежат на земле · F чтобы поднять
+WOOD_CHOP_ACTION,Chop boards into firewood,Расколоть доски на дрова
+WOOD_CHOP_DETAIL,4 seconds · %d boards become the same number of firewood pieces,4 секунды · %d доски превратятся в столько же поленьев
+WOOD_CHOP_WORK,Chopping boards into firewood...,Раскалываем доски на дрова…
+WOOD_CHOP_DONE,Firewood ready; put the hatchet away and pick up with F,Дрова готовы · уберите топор и подберите через F

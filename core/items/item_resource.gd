@@ -46,6 +46,8 @@ extends Resource
 @export var consumable: ConsumableData = null
 ## What this becomes after warming on a stove top; empty means it does not warm.
 @export var warms_into: StringName = &""
+## Opening changes the catalog id without consuming food or the required tool.
+@export var opens_into: StringName = &""
 
 @export_group("Water")
 ## Authored fill states keep each physical container in the existing id-only save contract.
@@ -58,6 +60,8 @@ func get_status_text() -> String:
 		return tr("FLASK_STATUS") % [water_capacity_ml - water_remaining_ml, water_remaining_ml, water_capacity_ml]
 	if consumable != null and consumable.required_tool_id != &"":
 		return tr("PINEAPPLE_KNIFE_HINT")
+	if id == &"tinned_pineapple_open":
+		return tr("PINEAPPLE_OPEN_HINT")
 	if id == &"knife":
 		return tr("KNIFE_PURPOSE")
 	return ""

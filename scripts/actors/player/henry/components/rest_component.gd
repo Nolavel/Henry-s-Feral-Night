@@ -34,6 +34,10 @@ func sit(spot: Node3D) -> bool:
 		return false
 	if visual != null and visual.is_carrying():
 		return false
+	for child: Node in body.get_children():
+		if child.has_method(&"is_holding") and bool(child.call(&"is_holding")):
+			if not child.has_method(&"put_away_unlit") or not bool(child.call(&"put_away_unlit")):
+				return false
 	_spot = spot
 	body.velocity = Vector3.ZERO
 	var facing: Vector3 = -spot.global_transform.basis.z

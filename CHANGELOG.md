@@ -5,6 +5,49 @@ Maintained per branch; entries are added by whoever makes the change.
 
 ## [Unreleased] — `codex`
 
+### 2026-09-27 — Physical Quick Access supplies, G wood drops and protected meal ritual (codex)
+
+Fixed
+- Quick Access draws knives, flasks, tins, the new hatchet and other small supplies
+  into Henry's existing bone socket. Wheel-click draws first; LMB/next wheel-click
+  uses the held item. Source pockets remain authoritative, including when an
+  identical item is also in the pack. Slot changes, Hub entry and ownership loss
+  clear the hand prop without deleting the stored item.
+- Held flasks have readable volume marks on both sides and persistent consumed/
+  remaining amounts. Four 250 ml portions retain the same pocket and an empty
+  container; empty tins explain how to stow them. Upright grips are fitted to the
+  new supplies only, preserving the hammer and held/thrown flare transforms.
+- Pineapple now opens into a saved, visibly open tin on the first Use/F with an
+  owned reusable knife. The next Use/F eats it. Opening supplies no calories.
+- Author correction: the cloth-covered meal table is protected. Only the two
+  benches initially holding supplies offer timed hammer dismantling. A drawn
+  safely stowable tool no longer prevents the table's seated food ritual.
+
+Added
+- Author-requested G (`drop_carried`) puts a whole log/board armful on clear
+  ground in front of Henry, with a floor ray, path occlusion and full-pile volume
+  check. Walls, insufficient floor and blocked clearance preserve the load;
+  service trigger Areas do not intercept placement. F recovers all units.
+- A separately pickable hatchet on the generated shelter tool bench. Draw it,
+  aim at a loose board pile and F chops for four seconds: one board becomes one
+  log. Without the drawn hatchet boards remain ordinary pickups; interrupted
+  chopping preserves them. Loose wood uses primitive save data and the pickup
+  ledger, with deferred restoration supporting either participant order.
+- Updated controls and shelter walkthrough. Action prompts follow the selected
+  game locale; the author's Russian explanation is provided in chat.
+
+Validation
+- Fifteen related suites pass, including real-player/input/pocket/hand tests,
+  finite drinking, two-step pineapple, refusals, floor/wall/clearance checks,
+  axe conversion/cancellation, loose-pile save restoration, protected meal F,
+  and the existing stove/boarding/flare/entry workflows. New tests keep locomotion
+  fixed and skip action clips while exercising the actual interaction/storage path.
+- Headless editor import and input-overlap check pass. Local Compatibility
+  captures show held knife, flask (including walking pose), closed/open tins
+  and hatchet; they exposed and corrected grip direction and back-face markings.
+  An unrestricted island playthrough and Forward+ visual verification are not
+  claimed by these checks. Existing isolated-player fixture diagnostics remain.
+
 ### 2026-09-27 — Water, pineapple, knife, furniture salvage and closed roof (codex)
 
 Added

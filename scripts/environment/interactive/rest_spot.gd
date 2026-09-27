@@ -18,9 +18,6 @@ func _ready() -> void:
 
 ## Not a target while Henry sits on it, so F can reach what is in front of him.
 func can_interact() -> bool:
-	var table: MealTable = MealTable.near(get_tree(), global_position) if is_inside_tree() else null
-	if table != null and table.wants_dismantle():
-		return false
 	return super() and not _player_seated()
 
 

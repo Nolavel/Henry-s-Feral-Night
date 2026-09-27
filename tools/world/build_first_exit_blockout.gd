@@ -685,8 +685,6 @@ func _rest_crate(parent: Node3D, pos: Vector3, facing: Vector3) -> void:
 	var table := Node3D.new()  # the cloth-covered table the food is laid on
 	table.name = "MealTable"
 	table.set_script(load(MEAL_TABLE_SCRIPT))
-	table.set(&"world_id", &"shelter_meal_table")
-	table.set(&"salvage_floor_y", HOUSE_FLOOR_TOP_Y - HOUSE_FLOOR_Y)
 	table.position = Vector3(0.32, 0.0, -0.55)
 	_add(seat, table)
 	var table_rest: Node3D = _interactive_area()

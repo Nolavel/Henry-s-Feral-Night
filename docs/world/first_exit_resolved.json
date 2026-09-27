@@ -900,6 +900,14 @@
 			"kind": "pickup",
 			"x": 1133.6,
 			"z": -654.9
+		},
+		{
+			"count": 1,
+			"id": "axe_shelter_test",
+			"item_id": "axe",
+			"kind": "pickup",
+			"x": 1133.1,
+			"z": -654.1
 		}
 	],
 	"spawn": {
