@@ -67,6 +67,10 @@ func _test_the_catalog_resolves_the_shipped_items() -> void:
 			_check(item.garment != null, "'%s' is not a garment" % id)
 			_check(item.garment.insulation_c > 0.0, "'%s' insulates nothing" % id)
 
+	var hammer: ItemResource = ItemCatalog.get_item(&"hammer")
+	var nails: ItemResource = ItemCatalog.get_item(&"nails")
+	_check(hammer != null and hammer.prefer_quick_access, "the shelter hammer is not a Quick Access tool")
+	_check(nails != null and nails.max_stack >= 30, "the 30-nail shelter box cannot be represented")
 	var stew: ItemResource = ItemCatalog.get_item(&"tinned_stew")
 	_check(stew != null and stew.consumable != null, "tinned stew is not consumable")
 	if stew != null and stew.consumable != null:

@@ -39,6 +39,11 @@ func _ready() -> void:
 	if not Engine.is_editor_hint():
 		_ensure_visual_roots()
 		_rebuild_dynamic_visuals()
+		if get_node_or_null(^"Draft") == null:
+			var draft := BreachDraft.new()
+			draft.name = "Draft"
+			draft.breach = self
+			add_child(draft)
 	_announce()
 
 
