@@ -35,8 +35,16 @@ house without terrain edits.
 
 ![First Exit area](first_exit_area.png)
 
-Henry starts at **`FirstSpawner` (1420, 3, −943)** on the east peninsula, facing
-**yaw 132°**, toward the suburb and its water tower. The peninsula runs ~800 m
+For the current shelter test, the island starts at the generated
+**`FirstExitBlockout/SpawnPoint`**, 12 m along the shelter house's local +Z,
+beyond the veranda steps and facing the entrance. Its height comes from the
+heightmap. One extra packed bedroll and unlit road flare lie beside the approach,
+at local X ±0.8 m, Z 11.4 m. The original bunker supplies remain in place.
+The layout JSON and generator own this temporary placement; the island scene
+uses the generated marker rather than maintaining a second spawn transform.
+
+The intended opening remains the bunker at **(1420, 3, −943)** on the east
+peninsula, facing **yaw 132°**, toward the suburb and its water tower. The peninsula runs ~800 m
 south-west from the tip at Guards Beach and is **150–250 m wide**.
 
 The scene already names this sector (Label3D and streaming chunks):

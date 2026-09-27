@@ -5,6 +5,38 @@ Maintained per branch; entries are added by whoever makes the change.
 
 ## [Unreleased] — `codex`
 
+### 2026-09-27 — Shelter test start and visible-object interaction (codex)
+
+Changed
+- The island uses the generated shelter-facing spawn beyond the veranda steps.
+  Extra packed bedroll and road flare pickups sit separately beside the approach;
+  original bunker supplies remain. Heights and placement stay in the layout generator.
+- Only the held flare receives a 90-degree local correction, pointing the spark
+  jet forward and upward rather than at Henry's legs; shared tool sockets and
+  dropped-flare placement keep their existing transforms.
+
+Fixed
+- Generated interaction triggers are self-contained and preserve their box or
+  small sphere shapes after packing, instead of reverting to the 6 m template.
+- Explicit focus anchors and weak solid-owner bindings let the stove and cabinet
+  resolve to their actions without treating their own bodies as occluders.
+- Unfocused overlapping Areas no longer hide a valid target farther along the
+  centre ray. Walls still occlude selection, and consumed targets clear immediately.
+- Generated Areas establish their proximity signals once at runtime; mattress
+  focus sits above the floor rather than being occluded by its supporting slab.
+
+Validation
+- Coverage uses the saved shelter's stove body, door, cabinet, seat and mattress,
+  plus overlapping triggers, wall occlusion, lighting and pickup focus clearing.
+- Route coverage checks packed trigger sizes, spawn orientation and separated
+  test supplies; held-light coverage checks nozzle direction standing and walking.
+
+Branch integration
+- Merged current main into codex, retaining the current IslandTerrain baseline,
+  input map and survival UI instead of the obsolete Terrain3D compatibility changes.
+  Author edits to key hints were preserved; the edited spawn marker is replaced
+  by the shared generated marker as requested.
+
 ### 2026-09-25 — Bunker road flare made part of the opening (codex)
 
 Added

@@ -13,7 +13,6 @@ const SHOULDER_M: float = 1.0
 const DITCH_M: float = 1.2
 ## Length of one road piece; short enough to follow the ground.
 const ROAD_STEP_M: float = 3.0
-const INTERACTIVE_SCENE: String = "res://scenes/environment/interactive/InteractiveArea.tscn"
 const ZONE_SCRIPT: String = "res://scripts/systems/survival/thermal_zone.gd"
 const BREACH_SCRIPT: String = "res://scripts/systems/survival/shelter_breach.gd"
 const BOARD_SCRIPT: String = "res://scripts/environment/interactive/breach_board_up.gd"
@@ -91,10 +90,16 @@ func _initialize() -> void:
 	var spawn: Dictionary = layout["spawn"]
 	var marker := Marker3D.new()
 	marker.name = "SpawnPoint"
-	marker.position = _ground(float(spawn["x"]), float(spawn["z"])) + Vector3.UP * 0.2
-	marker.rotation.y = deg_to_rad(float(spawn["yaw_deg"]))
+	var spawn_position: Vector3 = _layout_position(spawn)
+	marker.position = _ground(spawn_position.x, spawn_position.z) + Vector3.UP * 0.2
+	if spawn.has("anchor"):
+		var origin_spec: Dictionary = spawn.duplicate()
+		origin_spec["local"] = [0.0, 0.0, 0.0]
+		var toward: Vector3 = _layout_position(origin_spec) - marker.position
+		marker.rotation.y = atan2(-toward.x, -toward.z)
+	else:
+		marker.rotation.y = deg_to_rad(float(spawn["yaw_deg"]))
 	_add(_root, marker)
-	_drop_instanced_connections(_root)
 	var packed := PackedScene.new()
 	packed.pack(_root)
 	var err: Error = ResourceSaver.save(packed, OUT_SCENE)
@@ -529,7 +534,7 @@ func _shelter_gameplay(house: Node3D, w: float, d: float, h: float,
 		breach.set(&"boarded_visual", boards)
 		if opening[0] == "Door" and entry_door != null:
 			entry_door.breach = breach
-		var prompt: Node3D = (load(INTERACTIVE_SCENE) as PackedScene).instantiate()
+		var prompt: Node3D = _interactive_area()
 		prompt.name = "BoardUp"
 		prompt.set_script(load(BOARD_SCRIPT))
 		prompt.set(&"interactable_scene", null)
@@ -571,11 +576,18 @@ func _shelter_gameplay(house: Node3D, w: float, d: float, h: float,
 	flame.position = Vector3(0, 1.1, 0)
 	_add(stove, flame)
 	stove.set(&"flame_light", flame)
-	var feed: Node3D = (load(INTERACTIVE_SCENE) as PackedScene).instantiate()
+	var feed: Node3D = _interactive_area()
 	feed.name = "Feed"
 	feed.set_script(load(FEED_SCRIPT))
 	feed.set(&"interactable_scene", null)
 	feed.position = Vector3(0.9, 0.0, 0.0)
+	var focus := Marker3D.new()
+	focus.name = "FeedFocus"
+	focus.position = Vector3(0.28, 0.4, 0.0)
+	_add(stove, focus)
+	feed.set(&"focus_anchor", focus)
+	var stove_bodies: Array[CollisionObject3D] = [body]
+	feed.set(&"focus_bodies", stove_bodies)
 	_add(stove, feed)
 	_prompt_shape(feed, Vector3(1.2, 1.4, 1.4))
 	_cabinet(zone, Vector3(w * 0.5 - 0.5, floor_y - zone.position.y, -d * 0.2))
@@ -592,7 +604,7 @@ func _rest_crate(parent: Node3D, pos: Vector3, facing: Vector3) -> void:
 	seat.rotation.y = atan2(-to_stove.x, -to_stove.z)
 	_add(parent, seat)
 	var crate: MeshInstance3D = _box(seat, Vector3(0.0, 0.22, 0.25), Vector3(0.5, 0.44, 0.4), _wood, false)
-	var prompt: Node3D = (load(INTERACTIVE_SCENE) as PackedScene).instantiate()
+	var prompt: Node3D = _interactive_area()
 	prompt.name = "Rest"
 	prompt.set_script(load(REST_SPOT_SCRIPT))
 	prompt.set(&"interactable_scene", null)
@@ -614,11 +626,16 @@ func _mattress(parent: Node3D, pos: Vector3) -> void:
 	_add(parent, bed)
 	var pad: MeshInstance3D = _box(bed, Vector3(0.0, 0.1, 0.0), Vector3(0.9, 0.2, 1.9), _paint, false)
 	_box(bed, Vector3(0.0, 0.24, -0.72), Vector3(0.6, 0.1, 0.32), _paint, false)
-	var prompt: Node3D = (load(INTERACTIVE_SCENE) as PackedScene).instantiate()
+	var prompt: Node3D = _interactive_area()
 	prompt.name = "Sleep"
 	prompt.set_script(load(SLEEP_SPOT_SCRIPT))
 	prompt.set(&"interactable_scene", null)
 	prompt.set(&"interactive_mesh", pad)
+	var sleep_focus := Marker3D.new()
+	sleep_focus.name = "SleepFocus"
+	sleep_focus.position = Vector3(0.0, 0.18, 0.0)
+	_add(bed, sleep_focus)
+	prompt.set(&"focus_anchor", sleep_focus)
 	prompt.position = Vector3(0.7, 0.0, 0.0)
 	_add(bed, prompt)
 	_prompt_shape(prompt, Vector3(1.2, 1.4, 2.0))
@@ -642,20 +659,25 @@ func _cabinet(parent: Node3D, pos: Vector3) -> void:
 	hinge.name = "DoorHinge"
 	hinge.position = Vector3(-0.39, 0.45, 0.225)
 	_add(cab, hinge)
-	_box(hinge, Vector3(0.39, 0.0, 0.012), Vector3(0.78, 0.84, 0.025), _board, false)
+	var door_panel: MeshInstance3D = _box(hinge, Vector3(0.39, 0.0, 0.012), Vector3(0.78, 0.84, 0.025), _board, false)
 	_box(hinge, Vector3(0.7, 0.05, 0.035), Vector3(0.03, 0.12, 0.03), _metal, false)
-	var prompt: Node3D = (load(INTERACTIVE_SCENE) as PackedScene).instantiate()
+	var prompt: Node3D = _interactive_area()
 	prompt.name = "Open"
 	prompt.set_script(load(CABINET_SCRIPT))
 	prompt.set(&"interactable_scene", null)
 	prompt.set(&"door_hinge", hinge)
-	prompt.set(&"interactive_mesh", body)
+	prompt.set(&"interactive_mesh", door_panel)
+	prompt.set(&"focus_anchor", door_panel)
+	var cabinet_bodies: Array[CollisionObject3D] = []
+	for solid: Node in cab.find_children("*", "StaticBody3D", true, false):
+		cabinet_bodies.append(solid as CollisionObject3D)
+	prompt.set(&"focus_bodies", cabinet_bodies)
 	prompt.position = Vector3(0.0, 0.0, 0.7)
 	_add(cab, prompt)
 	_prompt_shape(prompt, Vector3(1.0, 1.4, 1.0))
 
 
-## Gives an instanced InteractiveArea its own box trigger.
+## Gives a generated InteractiveArea its own box trigger.
 func _prompt_shape(prompt: Node3D, size: Vector3) -> void:
 	var box := BoxShape3D.new()
 	box.size = size
@@ -665,22 +687,28 @@ func _prompt_shape(prompt: Node3D, size: Vector3) -> void:
 
 
 ## An item on the ground, relative to a built anchor or at world x, z.
-func _build_pickup(spec: Dictionary) -> void:
+func _layout_position(spec: Dictionary) -> Vector3:
 	var world := Vector3.ZERO
 	if spec.has("anchor"):
 		var parts: PackedStringArray = String(spec["anchor"]).split("/", true, 1)
 		var anchor: Node3D = _anchors.get(parts[0])
 		if anchor == null:
-			push_warning("pickup %s: no anchor %s" % [spec["id"], spec["anchor"]])
-			return
+			push_warning("layout: no anchor %s" % spec["anchor"])
+			return Vector3.ZERO
 		var local := Vector3(float(spec["local"][0]), float(spec["local"][1]), float(spec["local"][2]))
 		var target: Node3D = anchor.get_node(parts[1]) as Node3D if parts.size() > 1 else anchor
 		world = anchor.transform * (target.transform * local if target != anchor else local)
 	else:
 		world = _ground(float(spec["x"]), float(spec["z"]))
+	return world
+
+
+## An item on the ground, relative to a built anchor or at world x, z.
+func _build_pickup(spec: Dictionary) -> void:
+	var world: Vector3 = _layout_position(spec)
 	if not bool(spec.get("keep_height", false)):
 		world.y = _ground(world.x, world.z).y + 0.15
-	var pickup: Node3D = (load(INTERACTIVE_SCENE) as PackedScene).instantiate()
+	var pickup: Node3D = _interactive_area()
 	pickup.name = String(spec["id"]).to_pascal_case()
 	pickup.set_script(load(PICKUP_SCRIPT))
 	pickup.set(&"interactable_scene", null)
@@ -1043,6 +1071,28 @@ func _add_body(inst: MeshInstance3D, shape: Shape3D) -> void:
 func _add(parent: Node, child: Node) -> void:
 	parent.add_child(child, true)
 	child.owner = _root
+	for descendant: Node in child.find_children("*", "", true, false):
+		descendant.owner = _root
+
+
+## Generated prompts own their UI and shape, so PackedScene cannot lose child overrides.
+func _interactive_area() -> InteractiveArea:
+	var area := InteractiveArea.new()
+	area.object_on_ground = false
+	var col := CollisionShape3D.new()
+	col.name = "CollisionShape3D"
+	area.add_child(col)
+	var info := Label3D.new()
+	info.name = "InfoLabel"
+	area.add_child(info)
+	area.info_label = info
+	var icon := Sprite3D.new()
+	icon.name = "Sprite3D"
+	icon.texture = load("res://assets/textures/environment/interactive/icons/usable_icon.png")
+	icon.scale = Vector3.ONE * 0.75
+	area.add_child(icon)
+	area.icon_sprite = icon
+	return area
 
 
 func _ground(x: float, z: float) -> Vector3:
@@ -1060,17 +1110,6 @@ func _footprint_min(x: float, z: float, w: float, d: float, yaw_deg: float) -> f
 			var p := Vector2(x + lx * cos(yaw) + lz * sin(yaw), z - lx * sin(yaw) + lz * cos(yaw))
 			lowest = minf(lowest, _ground(p.x, p.y).y)
 	return lowest
-
-
-## InteractiveArea.tscn wires its own body signals; packing would save them a
-## second time on each instance, so they are dropped and the instance restores them.
-func _drop_instanced_connections(node: Node) -> void:
-	if node.scene_file_path == INTERACTIVE_SCENE:
-		for signal_name: StringName in [&"body_entered", &"body_exited"]:
-			for c: Dictionary in node.get_signal_connection_list(signal_name):
-				node.disconnect(signal_name, c["callable"])
-	for child: Node in node.get_children():
-		_drop_instanced_connections(child)
 
 
 func _count(node: Node) -> int:

@@ -23,7 +23,7 @@ script = ExtResource("1_8hwqn")
 stream_container = NodePath("StreamContainer")
 player = NodePath("Player")
 camera = NodePath("PlayerCamera")
-first_spawner_marker = NodePath("FirstSpawner")
+first_spawner_marker = NodePath("FirstExitBlockout/SpawnPoint")
 metadata/_edit_group_ = true
 
 [node name="StartupTitleCard" parent="." unique_id=924374067 instance=ExtResource("9_startup")]
@@ -387,9 +387,6 @@ perfomance_visible_display = false
 visible = false
 
 [node name="FirstExitBlockout" parent="." unique_id=2023151356 instance=ExtResource("7_fexit")]
-
-[node name="FirstSpawner" type="Marker3D" parent="." unique_id=1448004314]
-transform = Transform3D(-0.669131, 0, -0.743145, 0, 1, 0, 0.743145, 0, -0.669131, 1420, 3, -943)
 
 [connection signal="body_entered" from="WorldStreamManager/Silvan Heights/Loc_SilvanHeights" to="WorldStreamManager" method="_on_loc_silvan_heights_body_entered"]
 [connection signal="body_exited" from="WorldStreamManager/Silvan Heights/Loc_SilvanHeights" to="WorldStreamManager" method="_on_loc_silvan_heights_body_exited"]

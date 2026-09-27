@@ -8,7 +8,7 @@ const VISUAL: String = "res://scenes/actors/player/HenryUALVisual.tscn"
 const BODY_SOURCE: String = """extends CharacterBody3D
 var animation_component: HenryUALAnimation
 func get_locomotion_speed_ratio() -> float:
-	return 0.0
+	return clampf(Vector2(velocity.x, velocity.z).length() / 2.2, 0.0, 1.0)
 func get_crouch_speed_ratio() -> float:
 	return 0.0
 func is_crouching() -> bool:
@@ -51,6 +51,13 @@ func _process(_delta: float) -> bool:
 			_check(_equipment_item(_pocket_path) == &"", "drawn flare still exists in its pocket")
 		10:
 			_visual.update_animation_blend(0.5)
+			_visual.animation_tree.advance(0.5)
+			_check_nozzle_direction("standing")
+			_body.velocity.z = -1.2
+			_visual.update_animation_blend(0.5)
+			_visual.animation_tree.advance(0.5)
+			_check_nozzle_direction("walking")
+			_body.velocity = Vector3.ZERO
 			_check(float(_visual.animation_tree.get("parameters/hold_pose/blend_amount")) > 0.9,
 				"the arm did not rise into the held pose")
 			_check(_light.use_held(), "Use did not ignite the drawn flare")
@@ -94,12 +101,21 @@ func _build() -> void:
 	_inventory.equipment = _equipment
 	_body.add_child(_inventory)
 	_visual = (load(VISUAL) as PackedScene).instantiate() as HenryUALAnimation
+	## Match the real player's model orientation, rather than the source GLB facing.
+	_visual.rotation.y = PI
 	_body.add_child(_visual)
 	_body.set(&"animation_component", _visual)
 	_light = HeldLightComponent.new()
 	_light.inventory = _inventory
 	_body.add_child(_light)
 	root.add_child(_body)
+
+
+func _check_nozzle_direction(context: String) -> void:
+	var flare: Node3D = _visual.get_held_prop()
+	var nozzle: Vector3 = (_body.global_basis.inverse() * flare.global_basis.y).normalized()
+	_check(nozzle.y > 0.1 and nozzle.dot((Vector3.LEFT + Vector3.FORWARD).normalized()) > 0.6,
+		"%s flare points towards Henry's legs/body: %s" % [context, nozzle])
 
 
 func _test_unlit_put_away() -> void:

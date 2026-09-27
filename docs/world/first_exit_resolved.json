@@ -654,20 +654,12 @@
 			"z": -858.0
 		},
 		{
-			"count": 1,
+			"count": 3,
 			"id": "boards_fort_1",
 			"item_id": "boards",
 			"kind": "pickup",
 			"x": 1296.2,
 			"z": -744.0
-		},
-		{
-			"count": 1,
-			"id": "boards_fort_2",
-			"item_id": "boards",
-			"kind": "pickup",
-			"x": 1297.6,
-			"z": -746.3
 		},
 		{
 			"count": 1,
@@ -694,7 +686,7 @@
 			"z": -733.1
 		},
 		{
-			"count": 1,
+			"count": 3,
 			"id": "boards_next_door",
 			"item_id": "boards",
 			"kind": "pickup",
@@ -727,11 +719,59 @@
 		},
 		{
 			"count": 1,
+			"id": "firewood_shelter_yard",
+			"item_id": "firewood",
+			"kind": "pickup",
+			"x": 1134.0,
+			"z": -648.8
+		},
+		{
+			"count": 1,
+			"id": "firewood_shelter_outbuilding",
+			"item_id": "firewood",
+			"kind": "pickup",
+			"x": 1134.8,
+			"z": -661.6
+		},
+		{
+			"count": 3,
+			"id": "boards_shelter_yard",
+			"item_id": "boards",
+			"kind": "pickup",
+			"x": 1128.5,
+			"z": -658.9
+		},
+		{
+			"count": 3,
+			"id": "boards_shelter_outbuilding",
+			"item_id": "boards",
+			"kind": "pickup",
+			"x": 1139.1,
+			"z": -653.1
+		},
+		{
+			"count": 1,
 			"id": "stew_beach_wreck",
 			"item_id": "tinned_stew",
 			"kind": "pickup",
 			"x": 1211.0,
 			"z": -868.3
+		},
+		{
+			"count": 1,
+			"id": "bedroll_shelter_test",
+			"item_id": "bedroll",
+			"kind": "pickup",
+			"x": 1130.4,
+			"z": -664.7
+		},
+		{
+			"count": 1,
+			"id": "road_flare_shelter_test",
+			"item_id": "road_flare",
+			"kind": "pickup",
+			"x": 1129.0,
+			"z": -663.8
 		},
 		{
 			"count": 1,
@@ -748,11 +788,38 @@
 			"kind": "pickup",
 			"x": 1419.3,
 			"z": -946.8
+		},
+		{
+			"count": 3,
+			"id": "boards_shelter_inside",
+			"item_id": "boards",
+			"kind": "pickup",
+			"x": 1132.9,
+			"z": -654.2
+		},
+		{
+			"count": 1,
+			"id": "hammer_shelter",
+			"item_id": "hammer",
+			"kind": "pickup",
+			"x": 1133.6,
+			"z": -654.7
+		},
+		{
+			"count": 30,
+			"id": "nails_shelter",
+			"item_id": "nails",
+			"kind": "pickup",
+			"x": 1133.3,
+			"z": -654.5
 		}
 	],
 	"spawn": {
-		"x": 1420.0,
-		"yaw_deg": 132.0,
-		"z": -943.0
+		"anchor": "shelter_house/House",
+		"local": [
+			0.0,
+			0.0,
+			12.0
+		]
 	}
 }

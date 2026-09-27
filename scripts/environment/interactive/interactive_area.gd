@@ -40,6 +40,14 @@ enum PickupSubtype {
 @export var info_label: Label3D
 @export var interactive_mesh: MeshInstance3D  # Меш под которым создаем круг
 
+@export_group("Focus")
+## Optional visible action point, independent of the proximity trigger origin.
+@export var focus_anchor: Node3D
+## Explicit solid owners when the object's bodies are siblings of this Area.
+@export var focus_bodies: Array[CollisionObject3D] = []
+
+const FOCUS_OWNER_META: StringName = &"interactive_focus_owner"
+
 # === НАСТРОЙКИ ОТОБРАЖЕНИЯ ===
 @export_group("Настройки отображения")
 @export var icon_height_offset: float = 1.5
@@ -85,6 +93,13 @@ const SHAKE_TIME: float = 2.0  # Длительность шейка
 const SHAKE_STRENGTH: float = 0.1  # Сила тряски
 
 func _ready() -> void:
+	if not body_entered.is_connected(_on_body_entered):
+		body_entered.connect(_on_body_entered)
+	if not body_exited.is_connected(_on_body_exited):
+		body_exited.connect(_on_body_exited)
+	for body: CollisionObject3D in focus_bodies:
+		if is_instance_valid(body):
+			body.set_meta(FOCUS_OWNER_META, weakref(self))
 	_load_interactable_scene()
 	_setup_initial_state()
 	_setup_ground_detection()

@@ -174,6 +174,8 @@ func _make_held_flare(animation: HenryUALAnimation) -> HeldFlare:
 	var flare := FLARE_SCENE.instantiate() as HeldFlare
 	flare.auto_ignite = false
 	animation.hold_in_hand(flare)
+	## The socket pose is shared with tools; only the flare needs this quarter turn.
+	flare.rotate_object_local(Vector3.BACK, PI * 0.5)
 	if _context != null:
 		flare.on_world_ready(_context)
 	flare.spent.connect(_on_spent.bind(flare))
