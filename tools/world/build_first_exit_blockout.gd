@@ -28,6 +28,7 @@ const REST_SPOT_SCRIPT: String = "res://scripts/environment/interactive/rest_spo
 const WEATHER_BEAT_SCRIPT: String = "res://scripts/world/weather_beat.gd"
 const PICKUP_LEDGER_SCRIPT: String = "res://scripts/environment/interactive/pickup_ledger.gd"
 const PICKUP_SCRIPT: String = "res://scripts/environment/interactive/item_pickup.gd"
+const SALVAGE_SCRIPT: String = "res://scripts/environment/interactive/table_salvage.gd"
 ## House openings shared by the walls and the breaches: [x, width, is_door].
 const WINDOW_GAPS: Array = [[-0.25, 2.0], [0.3, 1.6]]
 ## Henry's standing cylinder is 1 m wide and 2 m tall. These dimensions leave
@@ -398,6 +399,13 @@ func _bungalow(node: Node3D, w: float, d: float, h: float, state: String = "kept
 		var slope: MeshInstance3D = _box(node, Vector3(side * (w * 0.25 + 0.25), h + 0.1 + tan(pitch) * (w * 0.25 + 0.25), 0),
 			Vector3(half_span, 0.15, d + 0.8), _wood)
 		slope.rotation.z = -side * pitch
+	var eave_y: float = h + 0.1 + tan(pitch) * 0.5
+	var ridge_y: float = h + 0.1 + tan(pitch) * (w * 0.5 + 0.5)
+	var ridge: MeshInstance3D = _box(node, Vector3(0, ridge_y, 0), Vector3(0.18, 0.18, d + 0.8), _wood)
+	ridge.name = "RoofRidge"
+	for side: float in [-1.0, 1.0]:
+		_box(node, Vector3(side * w * 0.5, (h + eave_y) * 0.5, 0), Vector3(0.2, eave_y - h, d + 0.2), _wood)
+		_gable(node, w, side * d * 0.5, h, eave_y, ridge_y, "FrontGable" if side > 0 else "BackGable")
 	## The old lean-to sat below Henry's 2 m collider at its outer edge and
 	## physically capped the veranda. Keep its underside above the doorway.
 	var lean: MeshInstance3D = _box(node, Vector3(0, h + 0.25, d * 0.5 + 1.6), Vector3(w + 0.6, 0.12, 3.4), _wood)
@@ -406,6 +414,38 @@ func _bungalow(node: Node3D, w: float, d: float, h: float, state: String = "kept
 		_box(node, Vector3(x, (HOUSE_FLOOR_TOP_Y + h) * 0.5, d * 0.5 + 2.8),
 			Vector3(0.14, h - HOUSE_FLOOR_TOP_Y, 0.14), _wood)
 	return entry_door
+
+
+## A closed timber prism fills the actual roof profile, including the eave gap.
+func _gable(parent: Node3D, w: float, z: float, bottom: float, eave: float, ridge: float, node_name: String) -> void:
+	var profile := PackedVector2Array([Vector2(-w * 0.5, bottom), Vector2(-w * 0.5, eave),
+		Vector2(0, ridge), Vector2(w * 0.5, eave), Vector2(w * 0.5, bottom)])
+	var vertices := PackedVector3Array()
+	for depth: float in [-0.1, 0.1]:
+		for point: Vector2 in profile:
+			vertices.append(Vector3(point.x, point.y, depth))
+	var indices: Array[int] = []
+	for i: int in range(1, 4):
+		indices.append_array([0, i + 1, i, 5, 5 + i, 6 + i])
+	for i: int in range(5):
+		var next: int = (i + 1) % 5
+		indices.append_array([i, next, next + 5, i, next + 5, i + 5])
+	var surface := SurfaceTool.new()
+	surface.begin(Mesh.PRIMITIVE_TRIANGLES)
+	for index: int in indices:
+		surface.add_vertex(vertices[index])
+	surface.generate_normals()
+	var mesh := MeshInstance3D.new()
+	mesh.name = node_name
+	mesh.mesh = surface.commit()
+	var material := _wood.duplicate() as StandardMaterial3D
+	material.cull_mode = BaseMaterial3D.CULL_DISABLED
+	mesh.material_override = material
+	mesh.position.z = z
+	_add(parent, mesh)
+	var shape := ConvexPolygonShape3D.new()
+	shape.points = vertices
+	_add_body(mesh, shape)
 
 
 ## Three visible timber treads sit over one shallow invisible ramp collider.
@@ -600,14 +640,29 @@ func _shelter_gameplay(house: Node3D, w: float, d: float, h: float,
 	_cabinet(zone, Vector3(w * 0.5 - 0.5, floor_y - zone.position.y, -d * 0.2))
 	_mattress(zone, Vector3(-w * 0.5 + 0.8, floor_y - zone.position.y, d * 0.22))
 	_rest_crate(zone, Vector3(-w * 0.5 + 2.3, floor_y - zone.position.y, -d * 0.2 + 1.1), stove.position)
+	_supply_bench(house, "ToolBench", Vector3(2.0, HOUSE_FLOOR_TOP_Y, 1.2), "shelter_tool_bench")
+	_supply_bench(house, "SupplyBench", Vector3(2.0, HOUSE_FLOOR_TOP_Y, -0.8), "shelter_supply_bench")
+
+
+func _supply_bench(house: Node3D, node_name: String, at: Vector3, world_id: String) -> void:
 	var bench := Node3D.new()
-	bench.name = "ToolBench"
-	bench.position = Vector3(2.0, HOUSE_FLOOR_TOP_Y, 1.2)
+	bench.name = node_name
+	bench.position = at
 	_add(house, bench)
-	_box(bench, Vector3(0, 0.77, 0), Vector3(1.9, 0.06, 0.65), _wood)
+	var top: MeshInstance3D = _box(bench, Vector3(0, 0.77, 0), Vector3(1.9, 0.06, 0.65), _wood)
 	for x: float in [-0.8, 0.8]:
 		for z: float in [-0.22, 0.22]:
 			_box(bench, Vector3(x, 0.37, z), Vector3(0.06, 0.74, 0.06), _wood, false)
+	var salvage: InteractiveArea = _interactive_area()
+	salvage.name = "Dismantle"
+	salvage.set_script(load(SALVAGE_SCRIPT))
+	salvage.set(&"table_owner", bench)
+	salvage.set(&"world_id", StringName(world_id))
+	salvage.set(&"interactive_mesh", top)
+	salvage.set(&"focus_anchor", top)
+	salvage.position.y = 0.65
+	_add(bench, salvage)
+	_prompt_shape(salvage, Vector3(1.9, 0.8, 0.65))
 
 
 ## A crate to sit on by the stove, turned so Henry faces the fire (-Z).

@@ -18,8 +18,9 @@ fails the build when two actions share a key without an entry in
 | F | `interact` | Context action, see below |
 | Tab | `open hub` | Player Hub: pack on Henry, pockets, Use |
 | Wheel | `quick_next` / `quick_prev` | Pick a pocket (quick access) |
-| Wheel click | `quick_use` | Use the selected Quick Access item; also remains an alternate held-item Use |
-| 1–4 | `select item slot 1–4` | Direct Quick Access draw; held-capable items such as a road flare come into Henry's hand unlit |
+| Wheel click | `quick_use` | Draw the selected pocket item; use it on the next click once held |
+| 1–4 | `select item slot 1–4` | Draw from a physical pocket: flare, hammer, knife, flask, tin or other small supplies |
+| G | `drop_carried` | Put the whole log/board armful on clear ground in front of Henry; blocked placement keeps it in his arms |
 | Esc | `pause` | Context back-out, see below |
 | LMB | `fire` | In gameplay: Use the item already in Henry's hand; in the Hub: drag/drop |
 
@@ -33,8 +34,8 @@ fails the build when two actions share a key without an entry in
 3. Press **LMB**. Because the flare is already physically in Henry's hand, the
    existing `fire` input becomes contextual **Use held item** and strikes it.
 4. Press **LMB** again to drop the burning flare.
-5. Wheel-click (`quick_use`) remains available for using the selected Quick
-   Access item directly; the mouse wheel still selects pockets without drawing them.
+5. Wheel-click (`quick_use`) draws the selected item first and uses an already
+   held item next; the mouse wheel selects pockets without drawing them.
 
 It is a single-use pyrotechnic light, not an on/off electric torch. At the
 First Exit clock rate (a 24-hour day in 3600 real seconds), its 75 real seconds
@@ -73,7 +74,24 @@ Rules for new features:
 6. `LMB` nails that exact position. It spends one staged board and **2 nails**.
 7. Overlapping placements are legal: only actual covered height reduces the remaining wind/snow gap.
 
-The hammer and a 30-nail box are authored inside the First Exit shelter.
+The hammer and a 66-nail box are authored inside the First Exit shelter.
+
+### Water, tins and wood
+
+Place supplies into pockets through the Hub. `1`–`4` or wheel-click draws the
+selected item; `LMB` uses the item physically held. Changing pockets or opening
+the Hub stows it without losing it. A flask's physical mark and persistent readout
+show remaining water; each drink is 250 ml. Opening pineapple requires an owned
+knife and leaves an opened tin; the next Use eats it. Seated table F uses the same
+two steps. Game prompts follow the selected locale.
+
+`G` is the author's explicitly requested exception to the contextual F-only
+grammar for releasing two-hand loads. A floor ray, wall check and whole-pile
+clearance check prevent placement through walls or over deep drops. `F` picks
+the pile back up. Draw the hatchet from the tool bench, aim at loose boards and
+`F` starts four seconds of chopping: one board yields one log. Without a drawn
+hatchet the boards remain ordinary pickups. Only the two supply benches can be
+dismantled with the hammer; the cloth-covered ritual table remains available.
 
 ## Esc: always one step back
 

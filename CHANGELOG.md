@@ -5,6 +5,89 @@ Maintained per branch; entries are added by whoever makes the change.
 
 ## [Unreleased] — `codex`
 
+### 2026-09-27 — Physical Quick Access supplies, G wood drops and protected meal ritual (codex)
+
+Fixed
+- Quick Access draws knives, flasks, tins, the new hatchet and other small supplies
+  into Henry's existing bone socket. Wheel-click draws first; LMB/next wheel-click
+  uses the held item. Source pockets remain authoritative, including when an
+  identical item is also in the pack. Slot changes, Hub entry and ownership loss
+  clear the hand prop without deleting the stored item.
+- Held flasks have readable volume marks on both sides and persistent consumed/
+  remaining amounts. Four 250 ml portions retain the same pocket and an empty
+  container; empty tins explain how to stow them. Upright grips are fitted to the
+  new supplies only, preserving the hammer and held/thrown flare transforms.
+- Pineapple now opens into a saved, visibly open tin on the first Use/F with an
+  owned reusable knife. The next Use/F eats it. Opening supplies no calories.
+- Author correction: the cloth-covered meal table is protected. Only the two
+  benches initially holding supplies offer timed hammer dismantling. A drawn
+  safely stowable tool no longer prevents the table's seated food ritual.
+
+Added
+- Author-requested G (`drop_carried`) puts a whole log/board armful on clear
+  ground in front of Henry, with a floor ray, path occlusion and full-pile volume
+  check. Walls, insufficient floor and blocked clearance preserve the load;
+  service trigger Areas do not intercept placement. F recovers all units.
+- A separately pickable hatchet on the generated shelter tool bench. Draw it,
+  aim at a loose board pile and F chops for four seconds: one board becomes one
+  log. Without the drawn hatchet boards remain ordinary pickups; interrupted
+  chopping preserves them. Loose wood uses primitive save data and the pickup
+  ledger, with deferred restoration supporting either participant order.
+- Updated controls and shelter walkthrough. Action prompts follow the selected
+  game locale; the author's Russian explanation is provided in chat.
+
+Validation
+- Fifteen related suites pass, including real-player/input/pocket/hand tests,
+  finite drinking, two-step pineapple, refusals, floor/wall/clearance checks,
+  axe conversion/cancellation, loose-pile save restoration, protected meal F,
+  and the existing stove/boarding/flare/entry workflows. New tests keep locomotion
+  fixed and skip action clips while exercising the actual interaction/storage path.
+- Headless editor import and input-overlap check pass. Local Compatibility
+  captures show held knife, flask (including walking pose), closed/open tins
+  and hatchet; they exposed and corrected grip direction and back-face markings.
+  An unrestricted island playthrough and Forward+ visual verification are not
+  claimed by these checks. Existing isolated-player fixture diagnostics remain.
+
+### 2026-09-27 — Water, pineapple, knife, furniture salvage and closed roof (codex)
+
+Added
+- Read all 25 GitHub issue bodies, including 13 closed issues, before implementation;
+  applied the inventory, Use, survival and pickup-save decisions. Dated inventory:
+  `docs/audits/2026-09-27-shelter-supplies-issue-review.md`.
+- A second visible supply bench holds a one-litre flask, two pineapple tins and
+  two stew tins. A reusable knife sits beside the hammer/nails/lighter. All are
+  separate F pickups retained by the scene generator and explicit test layout.
+- Flask Use drinks 250 ml, restores hydration and leaves the partly filled or empty
+  container. Pack/pocket rows show remaining volume; selection and drink feedback
+  show drunk/remaining/capacity. Catalog fill-state IDs retain the existing save
+  format and keep other flasks independent; pocket Use restores the same pocket.
+- Pineapple Use/F explicitly opens and eats one tin only when Henry carries the
+  knife. It supplies 300 calories and eight hydration points, leaves an empty tin,
+  and retains the knife. Missing-knife and empty-flask refusals explain the next step.
+- With the hammer drawn, F deliberately dismantles the tool bench, supply bench
+  or meal table over four seconds into three floor logs. Uncollected supplies block
+  the action. Saved destruction and the pickup ledger prevent duplicated salvage;
+  restoration handles either participant order and earlier uncollected saves.
+
+Fixed
+- Intact bungalow roof apertures now have front/back timber gables, side eave
+  closure and a ridge cap with solid collision shapes; damaged variants retain damage.
+- Supply pickup prompts retain item names alongside their water/tool information.
+- The meal cloth presents each carried kind before filling spare slots with
+  duplicates, so a stack of tins cannot hide the flask or pineapple.
+- The recovery fixture now checks changed trends within their sampling window and
+  confirms they clear in the next steady window, avoiding expired-marker assertions.
+
+Validation
+- Real-player/TPS/F workflow passes pickup, nutrition/tool refusal, four drinks,
+  container save round-trip/pocket replacement, roof rays and all three tables,
+  plus the previous boarding/stove/table/flare sequence. Twelve other related
+  suites pass; headless editor import reports no script/import errors.
+- Local Compatibility captures show the benches, closed roof, meal props and
+  readable partially filled flask status. A continuous human island playthrough
+  and Forward+ verification remain separate from these automated checks.
+- Updated scenario and finite-supply limits: `docs/gameplay/shelter_test_walkthrough.md`.
+
 ### 2026-09-27 — Playable shelter supply and work rituals (codex)
 
 Fixed

@@ -40,4 +40,11 @@ func can_interact() -> bool:
 
 
 func _get_interaction_text() -> String:
+	var item: ItemResource = ItemCatalog.get_item(item_id)
+	if item != null:
+		set_description(item.get_status_text())
+		if item.water_capacity_ml > 0:
+			return "[%s] %s" % [_interact_key_label(), tr("FLASK_DRINK_ACTION")]
+		if item.opens_into != &"":
+			return "[%s] %s" % [_interact_key_label(), tr("PINEAPPLE_OPEN_ACTION")]
 	return "[%s] %s" % [_interact_key_label(), item_name]

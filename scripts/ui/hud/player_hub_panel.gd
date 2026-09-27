@@ -54,11 +54,13 @@ func _build() -> void:
 	panel.add_child(column)
 	column.add_child(_label(tr("HUB_PACK")))
 	_pack_list = _list()
+	_pack_list.item_selected.connect(_show_item_status)
 	column.add_child(_pack_list)
 	_weight = _label("")
 	column.add_child(_weight)
 	column.add_child(_label(tr("HUB_QUICK_ACCESS")))
 	_zone_list = _list()
+	_zone_list.item_selected.connect(_show_zone_status)
 	column.add_child(_zone_list)
 	var buttons := HBoxContainer.new()
 	column.add_child(buttons)
@@ -230,16 +232,32 @@ func _refresh() -> void:
 		var count: String = " ×%d" % item["count"] if int(item["count"]) > 1 else ""
 		_pack_list.add_item("%s%s  ·  %s  ·  %.1f kg" % [tr(item["name"]), count, tr(SIZE_KEYS[item["size"]]), item["weight"]])
 		_pack_ids.append(item["id"])
+		var resource: ItemResource = ItemCatalog.get_item(item["id"])
+		_pack_list.set_item_tooltip(_pack_list.item_count - 1, resource.get_status_text())
+		if resource.water_capacity_ml > 0:
+			_pack_list.set_item_text(_pack_list.item_count - 1, "%s · %s" % [tr(resource.display_name), tr("FLASK_SHORT_STATUS") % [resource.water_remaining_ml, resource.water_capacity_ml]])
 	_zone_list.clear()
 	_zone_paths.clear()
 	_zone_item_ids.clear()
 	for zone: Dictionary in hub.get_quick_access_zones():
 		var held: ItemResource = ItemCatalog.get_item(zone["item_id"]) if zone["item_id"] != &"" else null
 		var content: String = tr(held.display_name) if held != null else tr("HUB_EMPTY")
+		if held != null and held.water_capacity_ml > 0:
+			content += " · " + tr("FLASK_SHORT_STATUS") % [held.water_remaining_ml, held.water_capacity_ml]
 		_zone_list.add_item("%s (%s): %s" % [tr(zone["name"]), tr(SIZE_KEYS[zone["max_size"]]), content])
 		_zone_paths.append(zone["path"])
 		_zone_item_ids.append(zone["item_id"])
 	_weight.text = tr("HUB_WEIGHT") % [hub.get_weight(), hub.get_max_weight()]
+
+
+func _show_item_status(index: int) -> void:
+	var item: ItemResource = ItemCatalog.get_item(_pack_ids[index])
+	_status.text = item.get_status_text() if item != null else ""
+
+
+func _show_zone_status(index: int) -> void:
+	var item: ItemResource = ItemCatalog.get_item(_zone_item_ids[index]) if _zone_item_ids[index] != &"" else null
+	_status.text = item.get_status_text() if item != null else ""
 
 
 ## Selected pack item into the selected zone, or the first free one it fits.
@@ -266,6 +284,11 @@ func _on_use() -> void:
 		return
 	if not hub.use_item(_pack_ids[picked[0]]):
 		_status.text = tr("HUB_CANNOT_USE")
+		var eater := hub.get_parent().get_node_or_null(^"ConsumptionController") as ConsumptionController
+		if eater != null:
+			var refusal: ConsumptionController.Refusal = eater.can_consume(_pack_ids[picked[0]])
+			if refusal == ConsumptionController.Refusal.NO_TOOL or refusal == ConsumptionController.Refusal.EMPTY_FLASK:
+				_status.text = tr(ConsumptionController.describe_refusal(refusal))
 
 
 func _on_to_pack() -> void:

@@ -24,3 +24,5 @@ extends Resource
 @export_group("Result")
 ## Item left behind after consuming, such as an empty tin. Empty leaves none.
 @export var leaves_behind_id: StringName = &""
+## A reusable carried tool required to open this food; it is never consumed.
+@export var required_tool_id: StringName = &""

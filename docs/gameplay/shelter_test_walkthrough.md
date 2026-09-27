@@ -14,11 +14,69 @@ already consumed supplies. No existing save is deleted or rewritten by this pass
 3. The log piles are on the left side of the entrance approach. Each pile gives
    three visible logs, matching the stove's capacity. There are nine logs nearby.
 4. Inside, find the separate wooden tool bench on the right: hammer, nail box
-   (66 nails), and orange lighter, spaced apart. Aim at each item and tap F.
+   (66 nails), orange lighter, silver-bladed knife and hatchet, spaced apart. Aim at each item and tap F.
    These props stand above the bench and floor, not inside the slab. The hammer
    automatically enters a fitting Quick Access pocket after the stow animation.
 5. Spare boards are inside near the tool bench. Extra test stacks remain explicit
    `shelter_test` entries in the layout; the generator retains this arrangement.
+6. A second bench beside the tools holds a teal one-litre flask, two yellow-label
+   pineapple tins and two red-label stew tins. Pick them up separately with F.
+   The food is visible above the tabletop, not hidden in a cabinet or floor.
+
+## Drink water and open pineapple
+
+1. Pick up the flask and knife before going to the cloth-covered meal table by
+   the stove. The knife stays in the pack or a pocket; it need not be drawn.
+2. In the Hub, move the flask/tin into a fitting Quick Access pocket. Close the
+   Hub and press its `1`–`4` slot, or select with the wheel and wheel-click. The
+   owned item appears in the hand; drawing alone does not consume anything.
+   `LMB` uses the held item. Switching pockets or opening the Hub safely stows it.
+3. Flask Use drinks 250 ml. The flask goes through 1000,
+   750, 500, 250 and 0 ml, restoring 12 hydration points per drink. It remains a
+   container after the fourth drink; using it empty explains that it is empty.
+4. Select the flask in the pack or pocket list: the detail line shows total drunk
+   and remaining/capacity in millilitres. The row also shows remaining/capacity,
+   and the held flask has a volume mark on both faces plus a persistent drunk/
+   remaining readout. A pocketed flask returns
+   to the same pocket. Saving retains its current fill; other flasks are unaffected.
+5. Sitting presents carried food and drink on the cloth. Aim at the flask and F
+   drinks one 250 ml portion through the same consumption system. The old target
+   disappears and the remaining flask becomes the next target.
+   Different kinds are placed before duplicate tins, so the six cloth slots do
+   not hide water or pineapple behind a larger stack of stew.
+6. Aim at a pineapple tin: F says **Open pineapple tin with knife**.
+   Without the knife, the tin is preserved and the refusal points to the tool
+   bench. With the knife, the first action leaves an opened tin with visible
+   fruit and no nutrition change. Aim at the opened tin and F again to eat it,
+   add 300 calories and eight hydration points, and leave an empty tin. Standing,
+   the held tin uses the same two actions through LMB. The knife is reusable and
+   the opened tin can be saved in the pack/pocket between opening and eating.
+7. These are finite test supplies. The empty flask is retained; refilling,
+   water purification and knife combat are not
+   implemented by this pass.
+
+## Turn a wooden table into logs
+
+1. First collect all supplies from the bench you intend to dismantle. A table
+   with uncollected world items refuses dismantling and explains what to do.
+2. Draw the owned hammer through Quick Access/Use. Only while Henry stands with
+   the hammer in hand does aiming at the tool bench or supply bench
+   offer **Dismantle wooden table**. The prompt warns: four seconds, three logs,
+   table lost. The cloth-covered meal table is protected: F always enters its
+   seated ritual, including when a safely stowable tool is drawn.
+3. Tap F once; Henry works for four seconds. The tabletop/legs and their solid
+   collisions are removed, and three visible logs lie on the interior floor.
+4. Pick up the pile with F, carry it to the stove and use the existing open,
+   load, light sequence below. The ritual table remains available for meals.
+5. Saves retain the destruction and collection separately. Reloading cannot
+   grow the table back or duplicate an already collected salvage pile.
+
+## Roof closure
+
+The shelter and other intact generated bungalow variants now have solid wooden
+front/back gables, a ridge cap and strips between side walls and roof eaves. The formerly open
+upper holes are closed with matching collision geometry. Windows remain the
+intended boarding work; deliberately ruined/roofless houses keep their damage.
 
 ## Board a window
 
@@ -43,6 +101,19 @@ already consumed supplies. No existing save is deleted or rewritten by this pass
 
 There are 33 boards across the test route, 27 at/inside the shelter, and 66 nails.
 The wider route still contains supplies; opening overlap still wastes coverage.
+
+## Put wood down or chop boards
+
+`G` places the entire carried log/board pile on the ground 1.35 m in front of
+Henry. It checks the floor height/slope, the path and room for the whole pile;
+obstructed or missing ground leaves the load in his arms. Interaction trigger
+Areas do not block the placement. `F` recovers all units from the floor.
+
+To turn boards into fuel, put them down with G, draw the hatchet from a Quick
+Access pocket, aim at that loose board pile and tap F. Four seconds of work
+turn each board into one firewood log. Stowing the hatchet before completion
+keeps the boards intact. Without a drawn hatchet F picks the boards up normally.
+Loose piles and collected source IDs follow the existing save/ledger contract.
 
 ## Light the stove
 
@@ -90,12 +161,24 @@ It keeps burning after landing. Held-item rotation remains specific to the flare
 a TPS camera with the production 0.51 m lens offset, and generated house
 collisions. It tests tool and floor pickup, both board trips, five LMB placements,
 cancel/obstruction, cold three-log loading, missing lighter, ignition, progressive
-warmth/readout, table eating/standing, and a flare settling on the floor.
+warmth/readout, table eating/standing, and a flare settling on the floor. It also
+checks real F pickups of the new supplies, missing-knife refusal, pineapple
+nutrition, four water portions, fill-state save round trips, independent flasks,
+same-pocket replacement, roof occlusion and timed table salvage/ledger restoration.
+
+`test_held_supplies.gd` additionally checks real hand sockets and pocket/input
+routing, wheel-click draw before Use, finite water marks, duplicate pack items,
+two-step pineapple, missing knife, hand invalidation, blocked G drops, axe
+conversion/cancellation and loose-wood restore order. The workflow test confirms
+that a drawn hammer cannot replace the protected meal ritual with dismantling.
 
 Player/camera locomotion is held fixed by the harness while testing aiming and
 actions; outdoor heightmap traversal and an unrestricted manual island playthrough
 remain the author's gameplay test. Local compatibility-renderer captures verify
 visible bench tools, board preview/control text, stove flame and room readout.
+The supplies pass adds captures of both benches, the closed gable, meal props,
+drink feedback and the partly filled flask's Hub details. Its issue-reading
+record is `docs/audits/2026-09-27-shelter-supplies-issue-review.md`.
 
 The old instantaneous `HeatSourceFeed.feed()` remains a legacy test/tool seam;
 runtime player input exclusively follows `begin_act()`'s staged steps.

@@ -270,4 +270,5 @@ func _other_hands_clear() -> bool:
 	if carry != null and carry.is_carrying():
 		return false
 	var hammer := player.get_node_or_null(^"HammerComponent") as HammerComponent
-	return hammer == null or not hammer.is_holding()
+	var held := player.get_node_or_null(^"HeldItemComponent") as HeldItemComponent
+	return (hammer == null or not hammer.is_holding()) and (held == null or not held.is_holding())

@@ -1158,13 +1158,65 @@
    "count": 2,
    "anchor": "shelter_house/House",
    "local": [
-    3.5,
-    1.72,
-    -2.0
+    2.65,
+    1.71,
+    -0.8
+   ],
+   "keep_height": true,
+   "route": "shelter_test"
+  },
+  {
+   "id": "flask_shelter_test",
+   "item_id": "water_flask",
+   "count": 1,
+   "anchor": "shelter_house/House",
+   "local": [
+    1.35,
+    1.71,
+    -0.8
+   ],
+   "keep_height": true,
+   "route": "shelter_test"
+  },
+  {
+   "id": "pineapple_shelter_test",
+   "item_id": "tinned_pineapple",
+   "count": 2,
+   "anchor": "shelter_house/House",
+   "local": [
+    2.0,
+    1.71,
+    -0.8
+   ],
+   "keep_height": true,
+   "route": "shelter_test"
+  },
+  {
+   "id": "knife_shelter_test",
+   "item_id": "knife",
+   "count": 1,
+   "anchor": "shelter_house/House",
+   "local": [
+    1.6,
+    1.71,
+    1.45
+   ],
+   "keep_height": true,
+   "route": "shelter_test"
+  },
+  {
+   "id": "axe_shelter_test",
+   "item_id": "axe",
+   "count": 1,
+   "anchor": "shelter_house/House",
+   "local": [
+    2.4,
+    1.715,
+    0.96
    ],
    "keep_height": true,
    "route": "shelter_test"
   }
  ],
- "_scarcity": "Temporary shelter test supplies: 33 boards and 66 nails across the route, 9 logs at the entrance, hammer/nails/lighter on the tool bench. Three logs fit the stove. Remove the explicitly labelled shelter_test extras when restoring route scarcity."
+ "_scarcity": "Temporary shelter test supplies: 33 boards and 66 nails across the route, 9 logs at the entrance, hammer/nails/lighter on the tool bench. Three logs fit the stove. Remove the explicitly labelled shelter_test extras when restoring route scarcity. The same test start adds one 1000 ml flask, two pineapple tins, two stew tins and a reusable knife on separate benches. A hatchet on the tool bench converts loose boards into firewood; the meal table is protected."
 }

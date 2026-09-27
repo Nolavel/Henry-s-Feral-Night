@@ -1,9 +1,8 @@
 class_name QuickAccessComponent
 extends Node
 
-## Reaching into a pocket without the Hub: the wheel picks a pocket and wheel click
-## uses it. 1–4 are direct physical draws: a flare appears unlit in Henry's hand,
-## then the existing Use Selected Item action lights it; Use again drops it.
+## The wheel selects a pocket; wheel-click or 1–4 draws its item into the hand.
+## LMB or another wheel-click uses the physically held item.
 
 signal selection_changed(index: int, zone: Dictionary)
 
@@ -81,8 +80,7 @@ func select(index: int) -> void:
 	selection_changed.emit(_index, zones[_index])
 
 
-## Use has priority over storage: an unlit held flare is struck; a burning one
-## is dropped. Only when nothing is held do we use the selected pocket item.
+## Held-item Use has priority. Empty hands draw the selected pocket item first.
 func use_selected() -> bool:
 	if hub == null:
 		return false
@@ -95,6 +93,12 @@ func use_selected() -> bool:
 	var item_id: StringName = zone["item_id"]
 	if item_id == &"":
 		_show_readout(zone)
+		return false
+	if _equip_selected():
+		_hide_readout_if_generic()
+		return true
+	var drawer := get_parent().get_node_or_null(^"HeldItemComponent") as HeldItemComponent
+	if drawer != null and drawer.supports_item(item_id):
 		return false
 	var used: bool = hub.use_from_zone(zone["path"])
 	if used:
@@ -120,6 +124,8 @@ func _equip_selected() -> bool:
 		if child.has_method(&"equip_from_zone") and bool(child.call(&"equip_from_zone", item_id, zone["path"])):
 			if item_id == ROAD_FLARE_ID:
 				_show_held_flare_readout(false)
+			else:
+				_hide_readout_if_generic()
 			return true
 	return false
 
@@ -201,6 +207,12 @@ func _hide_readout() -> void:
 	_readout_left = 0.0
 	if is_instance_valid(_readout):
 		_readout.visible = false
+
+
+func _hide_readout_if_generic() -> void:
+	var held := get_parent().get_node_or_null(^"HeldItemComponent") as HeldItemComponent
+	if held != null and held.is_holding():
+		_hide_readout()
 
 
 func _flare_is_burning() -> bool:

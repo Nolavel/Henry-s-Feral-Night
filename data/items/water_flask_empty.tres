@@ -1,0 +1,13 @@
+[gd_resource type="Resource" script_class="ItemResource" load_steps=2 format=3]
+
+[ext_resource type="Script" path="res://core/items/item_resource.gd" id="item"]
+
+[resource]
+script = ExtResource("item")
+id = &"water_flask_empty"
+display_name = "Water flask"
+weight = 0.20
+max_stack = 1
+size_class = 0
+water_capacity_ml = 1000
+water_remaining_ml = 0

@@ -6,16 +6,14 @@ extends SceneTree
 
 var _failures: int = 0
 var _frame: int = 0
-var _time: float = 0.0
 var _cluster: VitalCluster
 var _steam: DryingSteamComponent
 var _thermal: ThermalManager
 var _stove: HeatSource
 
 
-func _process(delta: float) -> bool:
+func _process(_delta: float) -> bool:
 	_frame += 1
-	_time += delta
 	if _frame == 1:
 		_test_rest()
 		_start_trend_and_steam()
@@ -27,15 +25,8 @@ func _process(delta: float) -> bool:
 		_stove.ignite()
 	elif _frame == 7:
 		_check(_steam.is_steaming(), "wet clothes by a burning stove do not steam")
-		_cluster.set_vital(&"warmth", 0.5)
-		_cluster.set_wetness(0.6)
-	elif _frame == 8:
-		_cluster.set_vital(&"warmth", 0.7)
-		_cluster.set_wetness(0.3)
-	elif _time > _cluster.trend_window * 2.5:
-		_check(_cluster.get_trend(&"warmth") == 1, "rising warmth shows no up mark")
-		_check(_cluster.get_trend(&"wetness") == -1, "drying clothes show no down mark")
-		_check(_cluster.get_trend(&"hunger") == 0, "a steady vital shows a trend")
+	elif _frame == 9:
+		_test_trends()
 		_test_wait()
 		_test_table()
 		print("test_shelter_recovery: %s" % ("PASS" if _failures == 0 else "%d FAILED" % _failures))
@@ -75,6 +66,7 @@ func _start_trend_and_steam() -> void:
 	_cluster = VitalCluster.new()
 	_cluster.trend_window = 0.2
 	root.add_child(_cluster)
+	_cluster.set_process(false)
 	_cluster.set_vital(&"hunger", 0.8)
 	_thermal = ThermalManager.new()
 	root.add_child(_thermal)
@@ -85,6 +77,22 @@ func _start_trend_and_steam() -> void:
 	_steam.position = Vector3(1.0, 0.0, 0.0)
 	root.add_child(_steam)
 	_steam.set_thermal(_thermal)
+
+
+## Observe the changed window before advancing into the next, steady window.
+func _test_trends() -> void:
+	_cluster.set_vital(&"warmth", 0.5)
+	_cluster.set_wetness(0.6)
+	_cluster._process(_cluster.trend_window + 0.01)
+	_cluster.set_vital(&"warmth", 0.7)
+	_cluster.set_wetness(0.3)
+	_cluster._process(_cluster.trend_window + 0.01)
+	_check(_cluster.get_trend(&"warmth") == 1, "rising warmth shows no up mark")
+	_check(_cluster.get_trend(&"wetness") == -1, "drying clothes show no down mark")
+	_check(_cluster.get_trend(&"hunger") == 0, "a steady vital shows a trend")
+	_cluster._process(_cluster.trend_window + 0.01)
+	_check(_cluster.get_trend(&"warmth") == 0 and _cluster.get_trend(&"wetness") == 0,
+		"trend marks remained after a steady window")
 
 
 ## Sitting by a MealTable lays out the carried food; eating takes it off; standing clears it.
@@ -113,6 +121,15 @@ func _test_table() -> void:
 	_check(table.get_laid_ids().size() == 1, "an eaten tin stayed on the table")
 	rest.stand()
 	_check(table.get_laid_ids().is_empty(), "the table kept the food after Henry stood up")
+	for _i: int in range(5):
+		inventory.try_add(ItemCatalog.get_item(&"tinned_stew"))
+	inventory.try_add(ItemCatalog.get_item(&"tinned_pineapple"))
+	inventory.try_add(ItemCatalog.get_item(&"water_flask"))
+	rest.sit(seat)
+	_check(table.get_laid_ids().has(&"water_flask") and table.get_laid_ids().has(&"tinned_pineapple"),
+		"duplicate tins hid the carried water/pineapple beyond the six cloth slots")
+	_check(table.get_targets().size() == 3, "the crowded table does not offer all three carried kinds")
+	rest.stand()
 
 
 ## Waiting advances the clock without sleep; it stops at once when no fire warms Henry.

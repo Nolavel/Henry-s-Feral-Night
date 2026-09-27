@@ -874,8 +874,40 @@
 			"id": "stew_shelter_test",
 			"item_id": "tinned_stew",
 			"kind": "pickup",
-			"x": 1133.8,
-			"z": -651.0
+			"x": 1133.9,
+			"z": -652.5
+		},
+		{
+			"count": 1,
+			"id": "flask_shelter_test",
+			"item_id": "water_flask",
+			"kind": "pickup",
+			"x": 1135.0,
+			"z": -653.1
+		},
+		{
+			"count": 2,
+			"id": "pineapple_shelter_test",
+			"item_id": "tinned_pineapple",
+			"kind": "pickup",
+			"x": 1134.4,
+			"z": -652.8
+		},
+		{
+			"count": 1,
+			"id": "knife_shelter_test",
+			"item_id": "knife",
+			"kind": "pickup",
+			"x": 1133.6,
+			"z": -654.9
+		},
+		{
+			"count": 1,
+			"id": "axe_shelter_test",
+			"item_id": "axe",
+			"kind": "pickup",
+			"x": 1133.1,
+			"z": -654.1
 		}
 	],
 	"spawn": {
