@@ -13,14 +13,35 @@ const CLOTH: Vector2 = Vector2(0.46, 0.34)
 const ROW: int = 3
 const INTERACTIVE_SCENE: String = "res://scenes/environment/interactive/InteractiveArea.tscn"
 
+@export var world_id: StringName = &""
+@export var salvage_floor_y: float = 0.0
+
 var _inventory: InventoryComponent
 var _equipment: EquipmentComponent
 var _props: Node3D
+var _salvage: TableSalvage
 
 
 func _ready() -> void:
 	add_to_group(GROUP)
 	_build()
+	_salvage = TableSalvage.new()
+	_salvage.name = "Dismantle"
+	_salvage.table_owner = self
+	_salvage.world_id = world_id
+	_salvage.floor_y = salvage_floor_y
+	_salvage.interactive_mesh = get_child(0) as MeshInstance3D
+	_salvage.focus_anchor = _salvage.interactive_mesh
+	var collision := CollisionShape3D.new()
+	var shape := BoxShape3D.new()
+	shape.size = Vector3(0.5, 0.6, 0.4)
+	collision.shape = shape
+	_salvage.add_child(collision)
+	add_child(_salvage)
+
+
+func wants_dismantle() -> bool:
+	return _salvage != null and _salvage.wants_break()
 
 
 ## The table nearest a seat within reach, or null.
@@ -92,15 +113,24 @@ func _refresh() -> void:
 			if pocketed != null and pocketed.consumable != null:
 				foods.append(pocketed.id)
 	var step := Vector2(CLOTH.x / float(ROW), CLOTH.y / 2.0)
+	var presented: Array[StringName] = []
+	for item_id: StringName in foods:
+		if not presented.has(item_id) and presented.size() < ROW * 2:
+			presented.append(item_id)
+	for item_id: StringName in foods:
+		if presented.size() >= ROW * 2:
+			break
+		if presented.count(item_id) < foods.count(item_id):
+			presented.append(item_id)
 	var first_of: Dictionary = {}  # item id -> the prop that carries its F target
-	for i: int in range(mini(foods.size(), ROW * 2)):
-		var prop: Node3D = _food_prop(foods[i])
-		prop.set_meta(&"item_id", foods[i])
+	for i: int in range(presented.size()):
+		var prop: Node3D = _food_prop(presented[i])
+		prop.set_meta(&"item_id", presented[i])
 		prop.position = Vector3(-CLOTH.x * 0.5 + step.x * (float(i % ROW) + 0.5), TOP_Y + 0.012,
 			-CLOTH.y * 0.5 + step.y * (float(i / ROW) + 0.5))
 		_props.add_child(prop)
-		if not first_of.has(foods[i]):
-			first_of[foods[i]] = prop
+		if not first_of.has(presented[i]):
+			first_of[presented[i]] = prop
 	## One F target per kind of food, sitting on its first prop: "Eat: Tinned stew ×2".
 	for item_id: StringName in first_of:
 		_add_target(first_of[item_id], item_id, foods.count(item_id))
@@ -137,6 +167,8 @@ func get_targets() -> Array[TableFood]:
 
 ## A tin for stew, a snowball for snow, a small parcel for anything else.
 func _food_prop(item_id: StringName) -> Node3D:
+	if String(item_id).begins_with("water_flask") or item_id == &"tinned_pineapple":
+		return SurvivalItemVisual.make(item_id)
 	var node := MeshInstance3D.new()
 	match item_id:
 		&"tinned_stew":

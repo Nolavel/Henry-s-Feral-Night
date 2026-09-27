@@ -45,7 +45,8 @@ func _ready() -> void:
 	if item != null:
 		var label: String = tr(item.display_name) if count == 1 else "%s ×%d" % [tr(item.display_name), count]
 		set_item_name(label)
-	set_description("")
+	var status: String = item.get_status_text() if item != null else ""
+	set_description("%s · %s" % [item_name, status] if status != "" else "")
 
 
 func can_interact() -> bool:
@@ -107,6 +108,10 @@ func _hand_visual_to_pack() -> void:
 
 ## A small crate until items have their own meshes.
 func _make_placeholder() -> MeshInstance3D:
+	if String(item_id).begins_with("water_flask") or item_id == &"knife" or item_id == &"tinned_pineapple" or item_id == &"tinned_stew":
+		var holder: Node3D = SurvivalItemVisual.make(item_id)
+		add_child(holder)
+		return holder.get_child(0) as MeshInstance3D
 	if item_id == ROAD_FLARE_ID:
 		return _make_road_flare()
 	if item_id == HAMMER_ID:

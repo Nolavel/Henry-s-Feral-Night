@@ -5,6 +5,46 @@ Maintained per branch; entries are added by whoever makes the change.
 
 ## [Unreleased] — `codex`
 
+### 2026-09-27 — Water, pineapple, knife, furniture salvage and closed roof (codex)
+
+Added
+- Read all 25 GitHub issue bodies, including 13 closed issues, before implementation;
+  applied the inventory, Use, survival and pickup-save decisions. Dated inventory:
+  `docs/audits/2026-09-27-shelter-supplies-issue-review.md`.
+- A second visible supply bench holds a one-litre flask, two pineapple tins and
+  two stew tins. A reusable knife sits beside the hammer/nails/lighter. All are
+  separate F pickups retained by the scene generator and explicit test layout.
+- Flask Use drinks 250 ml, restores hydration and leaves the partly filled or empty
+  container. Pack/pocket rows show remaining volume; selection and drink feedback
+  show drunk/remaining/capacity. Catalog fill-state IDs retain the existing save
+  format and keep other flasks independent; pocket Use restores the same pocket.
+- Pineapple Use/F explicitly opens and eats one tin only when Henry carries the
+  knife. It supplies 300 calories and eight hydration points, leaves an empty tin,
+  and retains the knife. Missing-knife and empty-flask refusals explain the next step.
+- With the hammer drawn, F deliberately dismantles the tool bench, supply bench
+  or meal table over four seconds into three floor logs. Uncollected supplies block
+  the action. Saved destruction and the pickup ledger prevent duplicated salvage;
+  restoration handles either participant order and earlier uncollected saves.
+
+Fixed
+- Intact bungalow roof apertures now have front/back timber gables, side eave
+  closure and a ridge cap with solid collision shapes; damaged variants retain damage.
+- Supply pickup prompts retain item names alongside their water/tool information.
+- The meal cloth presents each carried kind before filling spare slots with
+  duplicates, so a stack of tins cannot hide the flask or pineapple.
+- The recovery fixture now checks changed trends within their sampling window and
+  confirms they clear in the next steady window, avoiding expired-marker assertions.
+
+Validation
+- Real-player/TPS/F workflow passes pickup, nutrition/tool refusal, four drinks,
+  container save round-trip/pocket replacement, roof rays and all three tables,
+  plus the previous boarding/stove/table/flare sequence. Twelve other related
+  suites pass; headless editor import reports no script/import errors.
+- Local Compatibility captures show the benches, closed roof, meal props and
+  readable partially filled flask status. A continuous human island playthrough
+  and Forward+ verification remain separate from these automated checks.
+- Updated scenario and finite-supply limits: `docs/gameplay/shelter_test_walkthrough.md`.
+
 ### 2026-09-27 — Playable shelter supply and work rituals (codex)
 
 Fixed

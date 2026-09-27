@@ -35,10 +35,13 @@ func _run() -> void:
 	await physics_frame
 	await physics_frame
 	await _test_tools()
+	await _test_supplies()
+	_test_roof()
 	await _test_boards()
 	await _test_stove()
 	await _test_table()
 	await _test_drop()
+	await _test_dismantle()
 	print("test_shelter_workflow: %s" % ("PASS" if _failures == 0 else "%d FAILED" % _failures))
 	quit(0 if _failures == 0 else 1)
 
@@ -73,6 +76,152 @@ func _test_tools() -> void:
 	_press(&"interact")
 	_check(floor_item.is_queued_for_deletion() and _inventory.get_count(&"lighter") == lighter_count + 1,
 		"F did not pick up a floor item through the real camera projection")
+
+
+func _test_supplies() -> void:
+	for node_name: String in ["FlaskShelterTest", "PineappleShelterTest", "StewShelterTest"]:
+		var pickup: ItemPickup = _scene.get_node(NodePath(node_name)) as ItemPickup
+		_check(String(pickup.get_interaction_prompt_data()["detail"]).contains(pickup.item_name),
+			"supply pickup prompt hides the item name behind its status")
+		await _aim(pickup, pickup.global_position + _house.global_basis.z * 0.8, _interact._focus_point(pickup))
+		_check_target(pickup, "supply bench " + node_name)
+		_press(&"interact")
+		_check(pickup.is_queued_for_deletion(), "food/water could not be picked up with F")
+		await physics_frame
+	var eater: ConsumptionController = _player.get_node(^"ConsumptionController") as ConsumptionController
+	var bio: BioMonitorManager = eater.bio_monitor
+	bio.current_hydration = 20.0
+	bio.current_calories = 1000.0
+	_check(eater.consume(&"tinned_pineapple") == ConsumptionController.Refusal.NO_TOOL,
+		"sealed pineapple did not require a knife")
+	_check(_inventory.get_count(&"tinned_pineapple") == 2, "missing knife spent pineapple")
+	var knife: ItemPickup = _scene.get_node(^"KnifeShelterTest") as ItemPickup
+	await _aim(knife, knife.global_position + _house.global_basis.z * 0.8, _interact._focus_point(knife))
+	_check_target(knife, "knife on tool bench")
+	_press(&"interact")
+	_check(_inventory.has_item(&"knife"), "F did not pick up the knife")
+	var hub: PlayerHubComponent = _player.get_node(^"PlayerHubComponent") as PlayerHubComponent
+	_check(hub.use_item(&"water_flask"), "Hub Use did not drink from a carried flask")
+	_check(is_equal_approx(bio.current_hydration, 32.0), "250 ml did not restore hydration")
+	_check(_inventory.get_count(&"water_flask_750") == 1 and not _inventory.has_item(&"water_flask"),
+		"one sip did not leave exactly 750 ml in one flask")
+	_check(eater._feedback.visible and eater._feedback.text.contains("750"), "drinking has no remaining-water feedback")
+	var saved: Dictionary = JSON.parse_string(JSON.stringify(_inventory.get_save_data()))
+	_inventory.load_save_data(saved)
+	_check(_inventory.get_count(&"water_flask_750") == 1, "partial flask was refilled/lost by save restore")
+	_check(ItemCatalog.get_item(&"water_flask_750").water_remaining_ml == 750, "restored flask does not retain water volume")
+	var zone: StringName = &""
+	_inventory.try_add(ItemCatalog.get_item(&"water_flask"))
+	for pocket: Dictionary in hub.get_quick_access_zones():
+		if pocket["item_id"] == &"" and hub.move_to_zone(&"water_flask", pocket["path"]) == EquipmentComponent.Refusal.NONE:
+			zone = pocket["path"]
+			break
+	_check(zone != &"", "second flask could not enter a fitting physical pocket")
+	if zone != &"":
+		var parts: PackedStringArray = String(zone).split(EquipmentComponent.POCKET_SEPARATOR)
+		for next: StringName in [&"water_flask_750", &"water_flask_500", &"water_flask_250", &"water_flask_empty"]:
+			_check(hub.use_from_zone(zone), "pocket flask could not be used")
+			_check(eater.equipment.get_pocket_item(StringName(parts[0]), StringName(parts[1])) == next,
+				"partial/empty flask did not return to the same physical pocket")
+		_check(not hub.use_from_zone(zone), "empty flask supplied infinite water")
+		_check(_inventory.get_count(&"water_flask_750") == 1, "using another flask modified the first one")
+		_check(eater.equipment.take_from_pocket(StringName(parts[0]), StringName(parts[1])) == &"water_flask_empty",
+			"empty flask vanished instead of remaining a container")
+	await physics_frame
+
+
+func _test_roof() -> void:
+	var gable: MeshInstance3D = _house.get_node(^"FrontGable") as MeshInstance3D
+	var width: float = gable.mesh.get_aabb().size.x
+	var depth: float = absf(gable.position.z) * 2.0
+	_check(gable.mesh != null and _house.has_node(^"BackGable"), "house gables remain open")
+	var ridge_y: float = gable.mesh.get_aabb().end.y
+	var roof_ray := PhysicsRayQueryParameters3D.create(_house.to_global(Vector3(0, ridge_y - 0.3, 0)),
+		_house.to_global(Vector3(0, ridge_y + 0.3, 0)))
+	_check(not _house.get_world_3d().direct_space_state.intersect_ray(roof_ray).is_empty(), "roof ridge remains open")
+	var height: float = gable.mesh.get_aabb().get_center().y
+	for direction: Vector3 in [Vector3.FORWARD, Vector3.BACK]:
+		var from: Vector3 = _house.to_global(Vector3(0, height, 0))
+		var to: Vector3 = _house.to_global(Vector3(0, height, direction.z * (depth * 0.5 + 0.5)))
+		var ray := PhysicsRayQueryParameters3D.create(from, to)
+		_check(not _house.get_world_3d().direct_space_state.intersect_ray(ray).is_empty(), "front/back roof aperture has no solid closure")
+	for side: float in [-1.0, 1.0]:
+		var from: Vector3 = _house.to_global(Vector3(0, gable.mesh.get_aabb().position.y + 0.1, 0))
+		var to: Vector3 = _house.to_global(Vector3(side * (width * 0.5 + 0.5), gable.mesh.get_aabb().position.y + 0.1, 0))
+		_check(not _house.get_world_3d().direct_space_state.intersect_ray(PhysicsRayQueryParameters3D.create(from, to)).is_empty(),
+			"side eave remains open")
+
+
+func _test_dismantle() -> void:
+	var hammer: HammerComponent = _player.get_node(^"HammerComponent") as HammerComponent
+	var work: TableSalvage = _house.get_node(^"ToolBench/Dismantle") as TableSalvage
+	_check(not work.can_interact(), "ordinary table aiming destructively replaces interaction without a drawn hammer")
+	var breach: BreachBoardUp = _house.get_node(^"ShelterZone/FrontWindow1/BoardUp") as BreachBoardUp
+	breach._equip_hammer(hammer)
+	_check(hammer.is_holding(), "could not draw owned hammer for dismantling")
+	var supply := ItemPickup.new()
+	supply.item_id = &"lighter"
+	supply.world_id = &"dismantle_test_supply"
+	_scene.add_child(supply)
+	supply.global_position = work.table_owner.to_global(Vector3(0, 0.81, 0))
+	await _aim(work, work.focus_anchor.global_position + _house.global_basis.z * 0.8, work.focus_anchor.global_position)
+	_check_target(work, "wooden table with real tabletop collision")
+	_press(&"interact")
+	_check(work._work_left == 0.0 and not work._destroyed, "table with an uncollected supply was broken")
+	for node: Node in _scene.get_children():
+		if node is ItemPickup and not node.is_queued_for_deletion():
+			var local: Vector3 = work.table_owner.to_local((node as ItemPickup).global_position)
+			if absf(local.x) < 1.0 and absf(local.z) < 0.4 and local.y > 0.4:
+				node.queue_free()
+	await physics_frame
+	await _aim(work, work.focus_anchor.global_position + _house.global_basis.z * 0.8, work.focus_anchor.global_position)
+	_press(&"interact")
+	_check(work._work_left > 0.0 and not work._destroyed, "F did not start an explicit timed dismantle")
+	work._process(TableSalvage.WORK_SECONDS)
+	_check(work._destroyed and not work.table_owner.visible, "finished dismantle did not remove the table")
+	var logs: ItemPickup = work._logs
+	_check(logs != null and logs.count == 3, "table did not yield three physical logs")
+	_check(absf(_house.to_local(logs.global_position).y - 0.925) < 0.01, "salvaged logs are not above the real floor")
+	var state: Dictionary = work.get_save_data()
+	work.load_save_data(state)
+	_check(work._logs == logs, "repeated restore duplicated salvaged logs")
+	hammer.put_away()
+	await _aim(logs, logs.global_position + _house.global_basis.z * 0.8 + Vector3.UP, _interact._focus_point(logs))
+	_check_target(logs, "salvaged logs")
+	_press(&"interact")
+	_check(logs.is_queued_for_deletion() and _inventory.get_count(&"firewood") == 3, "F could not carry the salvaged logs")
+	var ledger: PickupLedger = PickupLedger.find(root.get_tree())
+	_check(ledger.is_taken(logs.world_id), "salvaged log pickup was not persisted")
+	for _i: int in range(3):
+		_inventory.try_remove(&"firewood")
+	work.load_save_data({"destroyed": false})
+	_check(work.table_owner.visible and not work._destroyed, "loading an older intact table state did not restore its geometry")
+	work.load_save_data(state)
+	_check(work._logs == null, "consumed salvage pile respawned from a broken table save")
+	await physics_frame
+	var collected_state: Dictionary = ledger.get_save_data()
+	work.load_save_data(state)
+	ledger.load_save_data({"taken": []})
+	await physics_frame
+	_check(is_instance_valid(work._logs) and not work._logs.is_queued_for_deletion(),
+		"loading an earlier uncollected salvage save lost its pile when the ledger restored last")
+	work.load_save_data(state)
+	ledger.load_save_data(collected_state)
+	await physics_frame
+	_check(work._logs == null or work._logs.is_queued_for_deletion(), "restoring collected salvage duplicated its pile")
+	breach._equip_hammer(hammer)
+	for path: NodePath in [^"SupplyBench/Dismantle", ^"ShelterZone/RestCrate/MealTable/Dismantle"]:
+		var other: TableSalvage = _house.get_node(path) as TableSalvage
+		_check(other.get_save_key() != work.get_save_key(), "two tables share a furniture save key")
+		await _aim(other, other.focus_anchor.global_position + _house.global_basis.z * 0.8, other.focus_anchor.global_position)
+		_check_target(other, "dismantle " + String(path))
+		_press(&"interact")
+		_check(other._work_left > 0.0, "seat interaction intercepted table dismantling")
+		other._process(TableSalvage.WORK_SECONDS)
+		_check(other._destroyed and other._logs != null and other._logs.count == 3, "another wooden table did not yield logs")
+		if other.table_owner is MealTable:
+			_check(not other.table_owner.is_in_group(MealTable.GROUP), "destroyed meal table still offers food presentation")
+	hammer.put_away()
 
 
 func _test_boards() -> void:
@@ -224,17 +373,32 @@ func _test_table() -> void:
 	_check(not table.get_targets().is_empty(), "sitting did not lay carried food on the cloth")
 	if table.get_targets().is_empty():
 		return
-	var food: TableFood = table.get_targets()[0]
 	_camera.global_position = _player.global_position + Vector3.UP * 0.3
-	_point_camera(_interact._focus_point(food))
-	await physics_frame
-	_interact.detect_target()
-	_check_target(food, "seated food with real projection")
-	var id: StringName = food.item_id
-	var previous: int = _inventory.get_count(id)
-	_press(&"interact")
-	_check(_inventory.get_count(id) == previous - 1, "seated F opened waiting instead of consuming food")
-	_check(_interact.current_target == null, "consumed table prop left its obsolete F target active")
+	for id: StringName in [&"water_flask_750", &"tinned_pineapple", &"tinned_stew"]:
+		var food: TableFood = null
+		for target: TableFood in table.get_targets():
+			if target.item_id == id:
+				food = target
+		_check(food != null, "carried food/water was not presented on the meal table: %s" % id)
+		if food == null:
+			continue
+		_point_camera(_interact._focus_point(food))
+		await physics_frame
+		_interact.detect_target()
+		_check_target(food, "seated food with real projection")
+		var previous: int = _inventory.get_count(id)
+		var eater: ConsumptionController = _player.get_node(^"ConsumptionController") as ConsumptionController
+		var calories: float = eater.bio_monitor.current_calories
+		_press(&"interact")
+		_check(_inventory.get_count(id) == previous - 1, "seated F opened waiting instead of consuming food")
+		_check(_interact.current_target == null, "consumed table prop left its obsolete F target active")
+		var meal: ItemResource = ItemCatalog.get_item(id)
+		_check(is_equal_approx(eater.bio_monitor.current_calories, minf(eater.bio_monitor.max_calories, calories + meal.consumable.calories)),
+			"table food did not restore the actual hunger track")
+		await physics_frame
+		await physics_frame
+	_check(_inventory.get_count(&"water_flask_500") == 1 and _inventory.has_item(&"knife"),
+		"table drink lost its flask or eating consumed the reusable knife")
 	_press(&"move_forward")
 	_check(not component.is_sitting() and table.get_laid_ids().is_empty(), "standing left food/seat ritual active")
 

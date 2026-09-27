@@ -326,9 +326,12 @@ func use_from_zone(zone_path: StringName) -> bool:
 	if equipment == null or parts.size() != 2:
 		return false
 	var item_id: StringName = equipment.get_pocket_item(StringName(parts[0]), StringName(parts[1]))
+	var item: ItemResource = ItemCatalog.get_item(item_id) if item_id != &"" else null
 	if item_id == &"" or move_to_pack(zone_path) != &"":
 		return false
 	if use_item(item_id):
+		if item != null and item.water_capacity_ml > 0 and item.consumable != null:
+			move_to_zone(item.consumable.leaves_behind_id, zone_path)
 		return true
 	move_to_zone(item_id, zone_path)
 	return false

@@ -112,3 +112,18 @@ Hammer,Hammer,Молоток
 Nails,Nails,Гвозди
 Firewood,Firewood,Дрова
 Salvaged boards,Salvaged boards,Доски
+Water flask,Water flask,Фляга
+FLASK_SHORT_STATUS,%d / %d ml,%d / %d мл
+Pocket knife,Pocket knife,Нож
+Tinned pineapple,Tinned pineapple,Консервированные ананасы
+Tinned stew,Tinned stew,Тушёнка
+FLASK_STATUS,Drunk: %d ml · Left: %d / %d ml,Выпито: %d мл · Осталось: %d / %d мл
+FLASK_DRINK_ACTION,Drink 250 ml from flask,Выпить 250 мл из фляги
+PINEAPPLE_KNIFE_HINT,Pick up a knife to open the tin,Для открытия банки нужен нож
+KNIFE_PURPOSE,Reusable tool for opening tinned pineapple,Открывает консервированные ананасы · не расходуется
+PINEAPPLE_EAT_ACTION,Open with knife and eat pineapple,Открыть ножом и съесть ананасы
+CONSUME_REFUSED_NO_KNIFE,Pick up the knife from the tool bench first,Сначала возьмите нож со стола с инструментами
+CONSUME_REFUSED_EMPTY_FLASK,The flask is empty,Фляга пуста
+TABLE_BREAK_ACTION,Dismantle wooden table,Разобрать деревянный стол
+TABLE_BREAK_WARNING,4 seconds → %d logs; the table will be lost,4 секунды → %d полена · стол будет разобран
+TABLE_CLEAR_FIRST,Pick up all supplies on the table first,Сначала заберите все предметы со стола
