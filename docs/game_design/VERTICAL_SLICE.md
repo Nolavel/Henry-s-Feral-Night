@@ -1,6 +1,6 @@
 # Vertical slice — First Exit A: One Land Night
 
-Status: **current production target**, updated 2026-09-25.
+Status: **current production target; live candidate awaiting a stranger run**, updated 2026-09-28.
 Reference: *The Long Dark* for survival decision pressure; *The Road* for tone.
 
 This document is the current scope contract for the first playable slice.
@@ -21,13 +21,19 @@ bunker exit
   -> collect scarce boards, tinder, fuel and food
   -> weather worsens and changes the return decision
   -> reach the suburb shelter
-  -> choose which breaches to board (15 boards / 30 nails / 5 openings; placement quality matters)
+  -> choose which breaches to board (5 openings; placement quality matters)
   -> light and feed the stove
   -> recover / dry
   -> sleep -> save
 ```
 
 There is **no inland lagoon and no thin-ice route in A**.
+
+The historical scarcity target is 15 boards / 30 nails. For the current live
+candidate the author explicitly retains all existing supplies: 33 boards,
+66 nails, 12 logs, both starter kits and the shelter bonus stacks. This run
+checks the complete interaction loop; it does not validate the reduced-stock
+balance. Do not silently remove these supplies when regenerating the scene.
 
 ### B — Coast / Thin Ice
 
@@ -58,8 +64,9 @@ active abilities; his weight is part of what Henry chooses to keep carrying.
 - Thermal model: ambient cold, wind chill, shelter, wetness and heat.
 - Weather profiles: calm, snowfall, windy and blizzard.
 - Hunger, thirst, energy and carry-weight pressure.
-- First Exit shelter: five breaches, three available boards, stove, mattress.
-- Scarce route pickups are authored and tested.
+- First Exit shelter: five breaches, carried-board placement, stove and mattress.
+- Route and shelter pickups are authored and tested; current quantities are
+  recorded above and in FIRST_EXIT.
 - Shelter state persists boarded breaches and stove fuel.
 - Sleep is contextual through `F` and sleeping saves.
 - Field bedroll exists and persists while laid out.
@@ -70,26 +77,31 @@ active abilities; his weight is part of what Henry chooses to keep carrying.
 - Held road flare is integrated with hand pose, light, sparks, smoke and wind.
 - Player Hub foundation exists: pack opens on Henry; real garment pockets are
   Quick Access zones; items can move pack <-> pocket without duplication.
+- Quick Access draws physical tools, a finite flask and food tins. Pineapple
+  opens with an owned knife before eating; carried wood can be put down with G.
+- WeatherBeat requests the existing WeatherController's blizzard transition
+  after 200 m from the bunker or a 300-second fallback. Shelter defers the beat;
+  after the 180-second blizzard the route becomes windy. The beat state saves.
+- The pickup ledger preserves consumed authored loot across save/load; loose
+  wood and its contents restore without duplication.
 
 ## 4. Remaining A blockers
 
-### P0 — authored weather turn
+### Implemented — authored weather turn; live decision pressure unverified
 
-The weather system is functional, but First Exit still lacks an authored beat
-that reliably changes the player's route decision. The slice needs a narrow,
-data-driven trigger/condition that asks WeatherController to transition through
-its existing API; it must not introduce a second weather authority.
+WeatherBeat already uses WeatherController as the sole weather authority.
+Focused tests cover its triggers and persistence. The remaining proof is whether
+the actual route/weather timing changes a new player's decision.
 
 Acceptance: during a normal 10–15 minute run, worsening wind/snow makes the
 return leg materially colder and forces the player to reconsider time, route
 or supplies.
 
-### P0 — save closure for world pickups
+### Implemented — save closure for world pickups; continuous run unverified
 
-Inventory, equipment, weather, shelter and laid bedroll state persist.
-World `ItemPickup` currently removes itself with `queue_free()` and has no
-persistent world-consumption record. A sleep/load must not respawn boards,
-tinder, fuel or food that Henry already picked up.
+Inventory, equipment, weather, shelter, laid bedroll and consumed world pickups
+persist. Focused tests cover the pickup ledger; the stranger run must still
+confirm the complete sleep/save/reload sequence in the actual island scene.
 
 Acceptance: pick up authored First Exit loot -> sleep/save -> reload -> the
 same world pickup stays gone while the inventory result remains correct.
@@ -101,7 +113,7 @@ The proof is the real Graciosa scene, not TestScene and not debug teleporting.
 Required path:
 1. start at the bunker;
 2. understand at least two route choices without a map;
-3. obtain enough useful material to continue, but not enough to erase choice;
+3. find, carry and use supplies; record whether the retained stock erases choice;
 4. experience the weather turn;
 5. reach the shelter;
 6. board a subset of the five breaches;

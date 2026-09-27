@@ -86,7 +86,7 @@ func _check_building_access() -> void:
 			"%s outbuilding has an empty doorway" % shed_node.get_parent().name)
 
 
-## Every pickup is a real item, and the route stays short of an easy answer.
+## Keep the author's retained stock and bunker start through scene regeneration.
 func _check_pickups() -> void:
 	var totals: Dictionary = {}
 	for node: Node in _scene.find_children("*", "Area3D", true, false):
@@ -100,28 +100,30 @@ func _check_pickups() -> void:
 		_check(pickup.get_signal_connection_list(&"body_entered").size() == 1,
 			"pickup %s has %d body_entered connections, expected 1" % [pickup.name, pickup.get_signal_connection_list(&"body_entered").size()])
 		totals[pickup.item_id] = int(totals.get(pickup.item_id, 0)) + pickup.count
-	_check(int(totals.get(&"boards", 0)) == 33, "First Exit carries %d physical boards, expected 33" % int(totals.get(&"boards", 0)))
+	_check(int(totals.get(&"boards", 0)) == 33, "author-retained board stock must remain 33")
 	_check(int(totals.get(&"hammer", 0)) == 1, "the shelter needs exactly one hammer")
-	_check(int(totals.get(&"nails", 0)) == 66, "the test shelter needs 66 nails")
-	_check(int(totals.get(&"tinder", 0)) >= 1, "no tinder anywhere: the stove can never be lit")
-	_check(int(totals.get(&"firewood", 0)) >= 2, "not enough firewood for a night")
-	_check(int(totals.get(&"road_flare", 0)) == 2, "bunker and shelter test start need one flare each")
+	_check(int(totals.get(&"nails", 0)) == 66, "author-retained nail stock must remain 66")
+	_check(int(totals.get(&"tinder", 0)) >= 1, "retained tinder supplies disappeared")
+	_check(int(totals.get(&"firewood", 0)) == 12, "author-retained log stock must remain 12 across route and shelter")
+	_check(int(totals.get(&"road_flare", 0)) == 2 and int(totals.get(&"bedroll", 0)) == 2,
+		"author asked to retain the second shelter starting kit")
+	for id: StringName in [&"water_flask", &"knife", &"axe", &"lighter"]:
+		_check(int(totals.get(id, 0)) == 1, "retained shelter needs exactly one %s" % id)
+	_check(int(totals.get(&"tinned_pineapple", 0)) == 2 and int(totals.get(&"tinned_stew", 0)) == 4,
+		"author-retained food stock was reduced")
 	var test_bedroll: ItemPickup = _scene.get_node(^"BedrollShelterTest") as ItemPickup
 	var test_flare: ItemPickup = _scene.get_node(^"RoadFlareShelterTest") as ItemPickup
-	var spawn: Marker3D = _scene.get_node(^"SpawnPoint") as Marker3D
-	var house: Node3D = _scene.get_node(^"ShelterHouse/House") as Node3D
-	_check(house.to_local(spawn.global_position).z > 10.0, "test spawn is not beyond the veranda steps")
 	_check(test_bedroll.global_position.distance_to(test_flare.global_position) >= 1.4,
-		"shelter supplies overlap under the crosshair")
-	for supply: ItemPickup in [test_bedroll, test_flare]:
-		_check(spawn.global_position.distance_to(supply.global_position) < 2.0, "test supply is too far from spawn")
-	var to_door: Vector3 = house.global_position - spawn.global_position
-	to_door.y = 0.0
-	_check((-spawn.global_basis.z).dot(to_door.normalized()) > 0.99, "test spawn faces away from shelter")
+		"retained shelter supplies overlap under the crosshair")
+	var spawn: Marker3D = _scene.get_node(^"SpawnPoint") as Marker3D
+	_check(Vector2(spawn.global_position.x, spawn.global_position.z).distance_to(Vector2(1420, -943)) < 0.01,
+		"normal start bypasses the bunker-to-shelter route")
+	_check(absf(rad_to_deg(spawn.rotation.y) - 132.0) < 0.01, "bunker start does not face the water tower")
 	var bedroll := _scene.get_node_or_null(^"BedrollBunker") as ItemPickup
 	var flare := _scene.get_node_or_null(^"RoadFlareBunker") as ItemPickup
 	_check(bedroll != null and flare != null, "bedroll or road flare is missing from the bunker start")
 	if bedroll != null and flare != null:
+		_check(spawn.global_position.distance_to(bedroll.global_position) < 5.0, "bunker bedroll is too far from the production start")
 		_check(bedroll.global_position.distance_to(flare.global_position) <= 1.0,
 			"the road flare is not beside the bedroll")
 		_check(flare.interactive_mesh != null and flare.interactive_mesh.name == &"RoadFlareVisual",

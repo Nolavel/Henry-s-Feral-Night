@@ -130,6 +130,9 @@ func _place_player() -> void:
 		first_spawner_marker.global_position + Vector3(0.0, SPAWN_CLEARANCE, 0.0)
 	)
 	player.global_rotation.y = first_spawner_marker.global_rotation.y
+	var follow_camera := camera as TpsCamera
+	if follow_camera != null:
+		follow_camera.set_look(player.global_rotation.y, follow_camera.start_pitch_deg)
 	first_spawner_marker.queue_free()
 	first_spawner_marker = null
 
