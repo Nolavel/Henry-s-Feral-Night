@@ -235,7 +235,13 @@ func _first_interactive_area_on_ray(from: Vector3, to: Vector3) -> Dictionary:
 		var hit: Dictionary = _player.get_world_3d().direct_space_state.intersect_ray(ray)
 		if hit.is_empty():
 			return {}
-		if _area_from(hit.get("collider")) != null:
+		var area: InteractiveArea = _area_from(hit.get("collider"))
+		if (
+			area != null and _flat_distance_to(area) <= intent_radius
+			and _is_focus_aligned(from, (to - from).normalized(), area)
+			and _focus_hit_is_visible(from, hit.get("position", area.global_position), area)
+			and _has_focus_line(get_viewport().get_camera_3d(), area)
+		):
 			return hit
 		var collider := hit.get("collider") as CollisionObject3D
 		if collider == null:
@@ -287,6 +293,8 @@ func _has_focus_line(camera: Camera3D, area: InteractiveArea) -> bool:
 func _focus_point(area: InteractiveArea) -> Vector3:
 	if area == null:
 		return Vector3.ZERO
+	if is_instance_valid(area.focus_anchor):
+		return area.focus_anchor.global_position
 	var mesh: MeshInstance3D = area.interactive_mesh
 	if is_instance_valid(mesh) and mesh.mesh != null:
 		var bounds: AABB = mesh.get_aabb()
@@ -386,13 +394,18 @@ func _is_ahead(area: Node3D) -> bool:
 func _area_from(collider: Variant) -> InteractiveArea:
 	if not is_instance_valid(collider):
 		return null
+	var owner_ref: WeakRef = null
+	if collider.has_meta(InteractiveArea.FOCUS_OWNER_META):
+		owner_ref = collider.get_meta(InteractiveArea.FOCUS_OWNER_META) as WeakRef
+	if owner_ref != null:
+		var target: InteractiveArea = owner_ref.get_ref() as InteractiveArea
+		if is_instance_valid(target) and not target.is_queued_for_deletion() and target.can_interact():
+			return target
 	var node := collider as Node
-	for i: int in range(4):
-		if node == null:
-			return null
+	while node != null:
 		if node is InteractiveArea:
 			var area := node as InteractiveArea
-			return area if area.can_interact() else null
+			return area if not area.is_queued_for_deletion() and area.can_interact() else null
 		node = node.get_parent()
 	return null
 

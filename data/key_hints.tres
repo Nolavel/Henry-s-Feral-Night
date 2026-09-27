@@ -1,7 +1,7 @@
-[gd_resource type="Resource" script_class="KeyHintsCatalog" format=3]
+[gd_resource type="Resource" script_class="KeyHintsCatalog" format=3 uid="uid://074m1rq1x68t"]
 
-[ext_resource type="Script" path="res://scripts/ui/hud/input_hints/key_hint_entry.gd" id="1_entry"]
-[ext_resource type="Script" path="res://scripts/ui/hud/input_hints/key_hints_catalog.gd" id="2_catalog"]
+[ext_resource type="Script" uid="uid://cbbp2vs466a7c" path="res://scripts/ui/hud/input_hints/key_hint_entry.gd" id="1_entry"]
+[ext_resource type="Script" uid="uid://c6bwhwva17g0y" path="res://scripts/ui/hud/input_hints/key_hints_catalog.gd" id="2_catalog"]
 
 [sub_resource type="Resource" id="move"]
 script = ExtResource("1_entry")
@@ -139,9 +139,4 @@ sort_order = 30
 
 [resource]
 script = ExtResource("2_catalog")
-entries = Array[ExtResource("1_entry")]([
-	SubResource("move"), SubResource("sprint"), SubResource("jump"), SubResource("crouch"),
-	SubResource("lean"), SubResource("interact"), SubResource("hub"), SubResource("quick_cycle"),
-	SubResource("quick_use"), SubResource("shoulder"), SubResource("hub_drag"), SubResource("hub_close"),
-	SubResource("sit_move"), SubResource("sit_interact"), SubResource("sit_hub"), SubResource("sit_escape")
-])
+entries = Array[ExtResource("1_entry")]([SubResource("move"), SubResource("sprint"), SubResource("jump"), SubResource("crouch"), SubResource("lean"), SubResource("interact"), SubResource("hub"), SubResource("quick_cycle"), SubResource("quick_use"), SubResource("shoulder"), SubResource("hub_drag"), SubResource("hub_close"), SubResource("sit_move"), SubResource("sit_interact"), SubResource("sit_hub"), SubResource("sit_escape")])

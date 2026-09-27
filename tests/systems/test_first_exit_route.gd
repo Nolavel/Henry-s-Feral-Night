@@ -94,6 +94,9 @@ func _check_pickups() -> void:
 		if pickup == null:
 			continue
 		_check(ItemCatalog.get_item(pickup.item_id) != null, "pickup %s holds unknown item %s" % [pickup.name, pickup.item_id])
+		var trigger: CollisionShape3D = pickup.get_node(^"CollisionShape3D") as CollisionShape3D
+		_check(trigger.shape is SphereShape3D and is_equal_approx((trigger.shape as SphereShape3D).radius, 0.6),
+			"pickup %s lost its generated 0.6 m trigger" % pickup.name)
 		_check(pickup.get_signal_connection_list(&"body_entered").size() == 1,
 			"pickup %s has %d body_entered connections, expected 1" % [pickup.name, pickup.get_signal_connection_list(&"body_entered").size()])
 		totals[pickup.item_id] = int(totals.get(pickup.item_id, 0)) + pickup.count
@@ -102,7 +105,19 @@ func _check_pickups() -> void:
 	_check(int(totals.get(&"nails", 0)) == 30, "the shelter nail box should contain 30 nails")
 	_check(int(totals.get(&"tinder", 0)) >= 1, "no tinder anywhere: the stove can never be lit")
 	_check(int(totals.get(&"firewood", 0)) >= 2, "not enough firewood for a night")
-	_check(int(totals.get(&"road_flare", 0)) == 1, "the bunker start needs exactly one road flare")
+	_check(int(totals.get(&"road_flare", 0)) == 2, "bunker and shelter test start need one flare each")
+	var test_bedroll: ItemPickup = _scene.get_node(^"BedrollShelterTest") as ItemPickup
+	var test_flare: ItemPickup = _scene.get_node(^"RoadFlareShelterTest") as ItemPickup
+	var spawn: Marker3D = _scene.get_node(^"SpawnPoint") as Marker3D
+	var house: Node3D = _scene.get_node(^"ShelterHouse/House") as Node3D
+	_check(house.to_local(spawn.global_position).z > 10.0, "test spawn is not beyond the veranda steps")
+	_check(test_bedroll.global_position.distance_to(test_flare.global_position) >= 1.4,
+		"shelter supplies overlap under the crosshair")
+	for supply: ItemPickup in [test_bedroll, test_flare]:
+		_check(spawn.global_position.distance_to(supply.global_position) < 2.0, "test supply is too far from spawn")
+	var to_door: Vector3 = house.global_position - spawn.global_position
+	to_door.y = 0.0
+	_check((-spawn.global_basis.z).dot(to_door.normalized()) > 0.99, "test spawn faces away from shelter")
 	var bedroll := _scene.get_node_or_null(^"BedrollBunker") as ItemPickup
 	var flare := _scene.get_node_or_null(^"RoadFlareBunker") as ItemPickup
 	_check(bedroll != null and flare != null, "bedroll or road flare is missing from the bunker start")

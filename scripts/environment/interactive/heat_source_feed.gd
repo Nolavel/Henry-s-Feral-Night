@@ -46,6 +46,15 @@ func _ready() -> void:
 		heat_source = _find_source()
 	if interactive_mesh == null and heat_source != null:
 		interactive_mesh = _first_mesh(heat_source)
+	if heat_source != null and focus_bodies.is_empty():
+		for solid: Node in heat_source.find_children("*", "StaticBody3D", true, false):
+			focus_bodies.append(solid as CollisionObject3D)
+	if heat_source != null and focus_anchor == null and not focus_bodies.is_empty():
+		var anchor := Marker3D.new()
+		anchor.name = "FeedFocus"
+		anchor.position = Vector3(0.28, 0.4, 0.0) - position
+		add_child(anchor)
+		focus_anchor = anchor
 	if player_animation_action == &"":
 		player_animation_action = &"none"  # the staged act plays its own clip
 	super()
@@ -199,6 +208,9 @@ func _get_inventory() -> InventoryComponent:
 static func _first_mesh(node: Node) -> MeshInstance3D:
 	for child: Node in node.get_children():
 		var mesh := child as MeshInstance3D
+		if mesh != null:
+			return mesh
+		mesh = _first_mesh(child)
 		if mesh != null:
 			return mesh
 	return null
