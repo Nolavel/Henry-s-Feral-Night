@@ -43,13 +43,30 @@ func _ready() -> void:
 			try_add(item)
 
 
-## Adds one item, stacking where the item allows it. Returns false and emits
-## add_rejected when the weight limit refuses it.
+## Checks a whole pickup before anything is moved. Empty means accepted.
+func get_add_refusal(item: ItemResource, count: int = 1) -> StringName:
+	if item == null or count <= 0:
+		return &"invalid"
+	if item.carried_in_hands:
+		for entry: Dictionary in _entries:
+			var held: ItemResource = entry["item"]
+			if held.carried_in_hands and held.id != item.id and int(entry["count"]) > 0:
+				return &"hands_occupied"
+		if get_count(item.id) + count > item.hand_carry_limit:
+			return &"hands_full"
+	if get_total_weight() + item.weight * float(count) > max_carry_weight:
+		return &"overweight"
+	return &""
+
+
+## Adds one item, stacking where the item allows it. Hands-only loads obey their
+## visible carry limit and never coexist with a different two-hand load.
 func try_add(item: ItemResource) -> bool:
 	if item == null:
 		return false
-	if get_total_weight() + item.weight > max_carry_weight:
-		add_rejected.emit(item, &"overweight")
+	var refusal: StringName = get_add_refusal(item)
+	if refusal != &"":
+		add_rejected.emit(item, refusal)
 		return false
 
 	for entry: Dictionary in _entries:
@@ -153,11 +170,18 @@ func get_save_data() -> Dictionary:
 ## an item deleted since the save is dropped instead of resurrected as null.
 func load_save_data(data: Dictionary) -> void:
 	_entries.clear()
+	var carried_id: StringName = &""
 	for stack: Variant in data.get("stacks", []):
 		if typeof(stack) != TYPE_DICTIONARY:
 			continue
 		var item: ItemResource = ItemCatalog.get_item(StringName(stack.get("id", "")))
 		if item == null:
 			continue
-		_entries.append({"item": item, "count": maxi(1, int(stack.get("count", 1)))})
+		var count: int = maxi(1, int(stack.get("count", 1)))
+		if item.carried_in_hands:
+			if carried_id != &"" and carried_id != item.id:
+				continue
+			carried_id = item.id
+			count = mini(count, item.hand_carry_limit)
+		_entries.append({"item": item, "count": count})
 	weight_changed.emit(get_total_weight(), max_carry_weight)

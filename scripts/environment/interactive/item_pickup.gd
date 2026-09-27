@@ -1,8 +1,8 @@
 class_name ItemPickup
 extends InteractiveArea
 
-## An item lying in the world. F puts it in the pack and flies its mesh into the
-## top flap; too heavy to carry, and it stays where it is.
+## An item lying in the world. Ordinary items stow in the pack; two-hand loads
+## stay visibly in Henry's arms. Refused pickups stay where they are.
 
 ## Emitted after the item went into the pack.
 signal picked_up(item_id: StringName, count: int)
@@ -55,9 +55,10 @@ func pick_up() -> bool:
 	if item == null or inventory == null:
 		pickup_refused.emit(item_id)
 		return false
-	if inventory.get_total_weight() + item.weight * float(count) > inventory.max_carry_weight:
+	var refusal: StringName = inventory.get_add_refusal(item, count)
+	if refusal != &"":
 		pickup_refused.emit(item_id)
-		show_message(tr(TOO_HEAVY_KEY))
+		show_message(tr(_refusal_key(refusal)))
 		return false
 	for i: int in range(count):
 		inventory.try_add(item)
@@ -73,6 +74,16 @@ func pick_up() -> bool:
 
 func _on_interaction_performed() -> void:
 	pick_up()
+
+
+static func _refusal_key(reason: StringName) -> String:
+	match reason:
+		&"hands_full":
+			return "PICKUP_REFUSED_HANDS_FULL"
+		&"hands_occupied":
+			return "PICKUP_REFUSED_HANDS_OCCUPIED"
+		_:
+			return TOO_HEAVY_KEY
 
 
 ## Passes the item's mesh to the player's Hub, which flies it into the pack.
