@@ -200,9 +200,9 @@ func confirm() -> bool:
 		refused.emit(SleepController.describe_refusal(refusal))
 		close()
 		return false
-	var slept: bool = sleep_controller.try_sleep(float(_hours))
+	var hours: int = _hours
 	close()
-	return slept
+	return sleep_controller.try_sleep(float(hours))
 
 
 ## PlayerState is an autoload, but this scene is also driven directly by tests
