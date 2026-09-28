@@ -1,0 +1,13 @@
+[gd_resource type="Resource" script_class="AfflictionDefinition" load_steps=2 format=3]
+
+[ext_resource type="Script" path="res://core/status/affliction_definition.gd" id="1_def"]
+
+[resource]
+script = ExtResource("1_def")
+id = &"dehydration"
+display_key = "AFFLICTION_DEHYDRATION"
+max_severity = 1.0
+modifiers = {
+"fatigue_rate_multiplier": 1.2,
+"work_duration_multiplier": 1.1
+}
