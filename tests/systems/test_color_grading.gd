@@ -2,27 +2,30 @@ extends SceneTree
 
 ## Run: godot --headless --script tests/systems/test_color_grading.gd
 
+const DAY_PATH: String = "res://resources/environment/color_grading/HFN_ColdAsh_Day.tres"
+const DUSK_PATH: String = "res://resources/environment/color_grading/HFN_ColdAsh_Dusk.tres"
 const NIGHT_PATH: String = "res://resources/environment/color_grading/HFN_ColdAsh_Night.tres"
 const SHELTER_PATH: String = "res://resources/environment/color_grading/HFN_ColdAsh_Shelter.tres"
 const LUT_SIZE: int = 33
 
 var _failures: int = 0
 
-
 func _initialize() -> void:
+	var day := load(DAY_PATH) as ColorGradeProfile
+	var dusk := load(DUSK_PATH) as ColorGradeProfile
 	var night := load(NIGHT_PATH) as ColorGradeProfile
 	var shelter := load(SHELTER_PATH) as ColorGradeProfile
-	_check_profile(night, ColorGradeController.OUTDOOR_PROFILE_ID)
+	_check_profile(day, ColorGradeController.DAY_PROFILE_ID)
+	_check_profile(dusk, ColorGradeController.DUSK_PROFILE_ID)
+	_check_profile(night, ColorGradeController.NIGHT_PROFILE_ID)
 	_check_profile(shelter, ColorGradeController.SHELTER_PROFILE_ID)
-	_check_switching(night, shelter)
-
+	_check_switching(day, dusk, night, shelter)
 	if _failures > 0:
 		push_error("color grading: %d check(s) failed" % _failures)
 		quit(1)
 		return
-	print("color grading: both 33^3 LUT profiles and switching passed")
+	print("color grading: four 33^3 LUT profiles and time/shelter switching passed")
 	quit(0)
-
 
 func _check_profile(profile: ColorGradeProfile, expected_id: StringName) -> void:
 	_check(profile != null, "%s did not load" % expected_id)
@@ -36,44 +39,34 @@ func _check_profile(profile: ColorGradeProfile, expected_id: StringName) -> void
 	_check(profile.lut.get_height() == LUT_SIZE, "%s height is not 33" % expected_id)
 	_check(profile.lut.get_depth() == LUT_SIZE, "%s depth is not 33" % expected_id)
 
-
-func _check_switching(night: ColorGradeProfile, shelter: ColorGradeProfile) -> void:
-	if night == null or shelter == null or night.lut == null or shelter.lut == null:
+func _check_switching(day: ColorGradeProfile, dusk: ColorGradeProfile, night: ColorGradeProfile, shelter: ColorGradeProfile) -> void:
+	if day == null or dusk == null or night == null or shelter == null:
 		return
 	var world_environment := WorldEnvironment.new()
 	world_environment.environment = Environment.new()
 	var controller := ColorGradeController.new()
 	controller.world_environment = world_environment
-	controller.outdoor_profile = night
+	controller.day_profile = day
+	controller.dusk_profile = dusk
+	controller.night_profile = night
 	controller.shelter_profile = shelter
 	root.add_child(world_environment)
-	# SceneTree scripts run their assertions before a newly attached Node gets its
-	# normal ready notification, so drive the same startup entry point directly.
 	controller._ready()
-
-	_check(
-		controller.get_current_profile_id() == ColorGradeController.OUTDOOR_PROFILE_ID,
-		"outdoor LUT was not selected by default"
-	)
-	_check(
-		world_environment.environment.adjustment_color_correction == night.lut,
-		"Environment did not receive the outdoor LUT"
-	)
+	_check(controller.get_current_profile_id() == ColorGradeController.DAY_PROFILE_ID, "day LUT was not selected by default")
+	controller.update_for_time(18.5)
+	_check(controller.get_current_profile_id() == ColorGradeController.DUSK_PROFILE_ID, "dusk LUT did not activate")
+	controller.update_for_time(22.5)
+	_check(controller.get_current_profile_id() == ColorGradeController.NIGHT_PROFILE_ID, "night LUT did not activate")
 	controller.initialize_for_interior(true)
-	_check(
-		controller.get_current_profile_id() == ColorGradeController.SHELTER_PROFILE_ID,
-		"interior initialization did not select the shelter LUT"
-	)
-	_check(
-		world_environment.environment.adjustment_color_correction == shelter.lut,
-		"Environment did not receive the shelter LUT"
-	)
+	_check(controller.get_current_profile_id() == ColorGradeController.SHELTER_PROFILE_ID, "shelter LUT did not override outdoor")
+	controller.update_for_time(12.0)
+	_check(controller.get_current_profile_id() == ColorGradeController.SHELTER_PROFILE_ID, "time changed the LUT while inside")
+	controller.initialize_for_interior(false)
+	_check(controller.get_current_profile_id() == ColorGradeController.DAY_PROFILE_ID, "leaving shelter did not restore current outdoor LUT")
 	_check(world_environment.environment.adjustment_enabled, "Environment adjustments are disabled")
-
 	controller.free()
 	root.remove_child(world_environment)
 	world_environment.free()
-
 
 func _check(condition: bool, message: String) -> void:
 	if condition:
