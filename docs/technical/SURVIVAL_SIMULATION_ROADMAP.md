@@ -411,6 +411,11 @@ Required:
 
 # 5. Phase 3 — Split BioMonitorManager
 
+> **Implementation status (codex, 2026-09-28): complete.** Runtime state is owned by
+> `HungerComponent`, `HydrationComponent` and `FatigueComponent`. `BioMonitorManager` remains
+> the `bio` save adapter and legacy API/signal facade, with SimulationClock as the only production
+> ticking source. The old DayNight metabolism callback has been removed.
+
 ## 5.1 Current problem
 
 `BioMonitorManager` currently owns:
