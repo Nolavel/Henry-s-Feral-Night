@@ -93,12 +93,6 @@ func _ready():
 	previous_hydration = current_hydration
 	previous_energy = current_energy
 	
-	if dn_manager:
-		dn_manager.time_changed.connect(_on_time_changed)
-	else:
-		print("ОШИБКА: DayNightManager не назначен в BioMonitorManager!")
-
-
 	# Инициализация начального прогресса и состояний
 	call_deferred("emit_initial_progress")
 
@@ -113,6 +107,7 @@ func emit_initial_progress():
 	is_currently_critically_thirsty = (current_hydration <= max_hydration * (critical_thirst_threshold / 100.0))
 	is_currently_critically_tired = (current_energy <= max_energy * (critical_energy_threshold / 100.0))
 
+## Compatibility seam for legacy tests/scenes. Production ticking is owned by SimulationClock.
 func _on_time_changed(_formatted_time: String, _is_day: bool, _day_number: int, _period_description: String):
 	var current_game_hour = int(dn_manager.get_current_hour_float()) 
 
@@ -141,6 +136,26 @@ func _on_time_changed(_formatted_time: String, _is_day: bool, _day_number: int, 
 		# === ПРОВЕРКА КРИТИЧЕСКИХ СОСТОЯНИЙ ===
 		check_critical_states()
 		
+
+func get_simulation_priority() -> int:
+	return 400
+
+
+func advance_simulation(hours: float, context: SimulationStepContext) -> void:
+	if hours <= 0.0:
+		return
+	if floori(context.end_total_hours) > floori(context.start_total_hours):
+		has_recently_eaten = false
+		has_recently_drunk = false
+		has_recently_rested = false
+	previous_calories = current_calories
+	previous_hydration = current_hydration
+	previous_energy = current_energy
+	if context.reason == &"sleep":
+		rest_sleep(hours)
+	else:
+		pass_awake_hours(hours)
+
 
 ## Applies the hourly drain of every vital; `fraction` bills part of an hour.
 func process_hourly_consumption(fraction: float = 1.0):
