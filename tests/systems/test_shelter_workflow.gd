@@ -10,6 +10,9 @@ var _player: Player
 var _camera: TpsCamera
 var _interact: InteractComponent
 var _inventory: InventoryComponent
+var _clock: SimulationClock
+var _actions: TimeCostedActionSystem
+var _board_started_in_working: bool = false
 
 
 func _initialize() -> void:
@@ -17,6 +20,14 @@ func _initialize() -> void:
 
 
 func _run() -> void:
+	_clock = SimulationClock.new()
+	root.add_child(_clock)
+	_clock.set_total_hours(12.0, &"test_seed")
+	_actions = TimeCostedActionSystem.new()
+	_actions.simulation_clock = _clock
+	root.add_child(_actions)
+	_actions.action_started.connect(_on_action_started)
+
 	_scene = (load("res://scenes/world/first_exit/first_exit_blockout.tscn") as PackedScene).instantiate() as Node3D
 	root.add_child(_scene)
 	_house = _scene.get_node(^"ShelterHouse/House") as Node3D
@@ -253,6 +264,7 @@ func _test_boards() -> void:
 		return
 	_check(String(area.get_interaction_prompt_data()["key"]) == "LMB", "placement still asks for F")
 	var previous_nails: int = _inventory.get_count(&"nails")
+	var before_board_time: float = _clock.get_total_hours()
 	_point_camera(breach.to_global(Vector3(0, -0.43, 0)))
 	area._update_preview()
 	_check(area._preview_valid, "camera-centre ghost could not be placed at the real window")
@@ -260,6 +272,8 @@ func _test_boards() -> void:
 	_press(&"fire")
 	_check(breach.get_placed_board_positions().is_empty() and _inventory.get_count(&"nails") == previous_nails,
 		"same-frame camera turn committed a stale board preview")
+	_check(is_equal_approx(_clock.get_total_hours(), before_board_time),
+		"invalid stale board placement billed game time")
 	_point_camera(breach.to_global(Vector3(0, -0.43, 0)))
 	var wall := StaticBody3D.new()
 	var wall_collision := CollisionShape3D.new()
@@ -275,6 +289,8 @@ func _test_boards() -> void:
 	_press(&"fire")
 	_check(breach.get_placed_board_positions().is_empty() and _inventory.get_count(&"nails") == previous_nails,
 		"LMB placed/spent materials through an obstruction")
+	_check(is_equal_approx(_clock.get_total_hours(), before_board_time),
+		"obstructed board placement billed game time")
 	wall.queue_free()
 	await physics_frame
 	await physics_frame
@@ -283,6 +299,14 @@ func _test_boards() -> void:
 	_check(breach.get_placed_board_positions().size() == 1 and breach.get_staged_boards() == 2,
 		"LMB did not move one staged board onto the window")
 	_check(_inventory.get_count(&"nails") == previous_nails - 2, "one placement did not consume exactly two nails")
+	_check(
+		is_equal_approx(
+			_clock.get_total_hours() - before_board_time,
+			area.board_time_cost_minutes / 60.0
+		),
+		"one fitted board billed the wrong game time"
+	)
+	_check(_board_started_in_working, "board_window action did not enter WORKING mode")
 	await physics_frame
 	_interact.detect_target()
 	_press(&"interact")
@@ -474,6 +498,13 @@ func _press(action: StringName) -> void:
 	event.action = action
 	event.pressed = false
 	root.push_input(event)
+
+
+func _on_action_started(action_id: StringName, _duration_h: float) -> void:
+	if not String(action_id).begins_with("board_window:"):
+		return
+	var state: Node = root.get_node_or_null(^"PlayerState")
+	_board_started_in_working = state != null and String(state.get("mode")) == String(state.Mode.WORKING)
 
 
 func _check_target(target: InteractiveArea, context: String) -> void:
