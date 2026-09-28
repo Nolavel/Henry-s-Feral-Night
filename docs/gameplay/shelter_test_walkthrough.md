@@ -141,7 +141,12 @@ boards, hammer placement and nails. Old boarded-door saves do not lock it.
    with the hand at the firebox instead of the torch pose. No extra F or Quick
    Access selection is needed. Missing lighter/tinder never prevents loading:
    the cold logs remain inside and the prompt names the missing item. Once it is
-   acquired, **F prepares ignition** in an already loaded stove.
+   acquired, **F lights the stove** by starting the same kneeling preparation.
+   Lighter and tinder ownership includes the pack and worn pockets. An already
+   drawn lighter is stowed before the stove draws its strike prop; it does not
+   block the action. Missing-item prompts name the prerequisite directly, with
+   no F ignition offer. A completed load remains clearly reported even if the
+   next ignition step cannot start.
 6. Once Henry has settled into the pose, **press and hold LMB for three seconds**.
    Each accepted press gives a guaranteed audible strike, visible sparks and
    lighter flame. Pressing before the pose is ready does not start a flame; release

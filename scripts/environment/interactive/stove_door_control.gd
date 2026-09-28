@@ -22,13 +22,19 @@ func _get_interaction_text() -> String:
 
 
 func is_aim_on_door(from: Vector3, direction: Vector3) -> bool:
+	return is_finite(get_aim_distance(from, direction))
+
+
+func get_aim_distance(from: Vector3, direction: Vector3) -> float:
 	var local_from: Vector3 = to_local(from)
 	var local_direction: Vector3 = global_basis.inverse() * direction
 	if absf(local_direction.x) < 0.0001:
-		return false
+		return INF
 	var distance: float = -local_from.x / local_direction.x
 	var hit: Vector3 = local_from + local_direction * distance
-	return distance >= 0.0 and absf(hit.y) <= StoveVisual.DOOR_H * 0.5 and absf(hit.z) <= StoveVisual.DOOR_W * 0.5
+	if distance < 0.0 or absf(hit.y) > StoveVisual.DOOR_H * 0.5 or absf(hit.z) > StoveVisual.DOOR_W * 0.5:
+		return INF
+	return distance
 
 
 func _input(event: InputEvent) -> void:

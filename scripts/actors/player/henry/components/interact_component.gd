@@ -91,7 +91,7 @@ func detect_target() -> void:
 
 
 func is_target_in_reach() -> bool:
-	return _last_in_reach
+	return is_instance_valid(current_target) and _flat_distance_to(current_target) <= _reach()
 
 
 ## Clears the authoritative focus state, not just its visuals. This is used when
@@ -166,6 +166,11 @@ func _find_crosshair_target() -> InteractiveArea:
 			var hit_position: Vector3 = area_hit.get("position", direct.global_position)
 			if _focus_hit_is_visible(from, hit_position, direct):
 				return direct
+
+	## Keep the selected stove authoritative while the ray stays on its body or moving door.
+	if current_target is HeatSourceFeed and (current_target as HeatSourceFeed).is_acting() \
+		and _flat_distance_to(current_target) <= intent_radius and _is_focus_aligned(from, direction, current_target):
+		return current_target
 
 	# Solid geometry still counts when it belongs to the InteractiveArea itself.
 	# This keeps small/legacy Areas usable without allowing focus through walls.
@@ -273,6 +278,11 @@ func _focus_hit_is_visible(from: Vector3, hit_position: Vector3, target: Interac
 
 func _is_focus_aligned(from: Vector3, direction: Vector3, area: InteractiveArea) -> bool:
 	if area is HeatSourceFeed and (area as HeatSourceFeed).is_acting():
+		var door: StoveDoorControl = (area as HeatSourceFeed).door_control
+		if is_instance_valid(door):
+			var door_distance: float = door.get_aim_distance(from, direction)
+			if is_finite(door_distance) and door_distance <= focus_length:
+				return _focus_hit_is_visible(from, from + direction * door_distance, area)
 		var ray := PhysicsRayQueryParameters3D.create(from, from + direction * focus_length)
 		ray.collide_with_areas = false
 		ray.collide_with_bodies = true
@@ -280,8 +290,7 @@ func _is_focus_aligned(from: Vector3, direction: Vector3, area: InteractiveArea)
 		var hit: Dictionary = _player.get_world_3d().direct_space_state.intersect_ray(ray)
 		if not hit.is_empty():
 			return _owns_focus_body(_area_from(hit.get("collider")), area)
-		var door: StoveDoorControl = (area as HeatSourceFeed).door_control
-		return is_instance_valid(door) and door.is_aim_on_door(from, direction)
+		return false
 	if area is StoveDoorControl:
 		return (area as StoveDoorControl).is_aim_on_door(from, direction)
 	if area is BreachBoardUp:
@@ -462,7 +471,7 @@ func _update_approach(delta: float) -> void:
 	if not is_instance_valid(_pending) or not _pending.can_interact():
 		_stop_approach()
 		return
-	if _flat_distance_to(_pending) <= pickup_distance + 0.05:
+	if _pending == current_target and is_target_in_reach():
 		var target: InteractiveArea = _pending
 		_stop_approach()
 		_perform(target)

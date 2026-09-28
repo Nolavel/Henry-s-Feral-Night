@@ -5,6 +5,25 @@ Maintained per branch; entries are added by whoever makes the change.
 
 ## [Unreleased] — `codex`
 
+### 2026-09-28 - Stove loading and ignition refusal fixes (codex)
+
+Fixed
+- Count tinder in worn pockets as well as the pack, and consume it from its owning
+  storage exactly once when ignition succeeds. A drawn owned lighter no longer
+  blocks stove loading/preparation; stow it before attaching the stove strike prop.
+- Missing prerequisites appear as the main prompt without an unusable F offer.
+  Idle loaded stoves offer "Light stove"; active preparation shows its progress
+  and F cancellation. A missing ignition item cannot hide the successful log load.
+- Bind player storage/animation even when the stove becomes ready before Henry.
+  Use live reach checks and start approached actions only inside actual reach.
+- Keep the selected stove authoritative across its body and moving door; check
+  door visibility up to its plane, so a wall behind an open door does not cancel work.
+
+Validation
+- Reviewed loading/ignition branches, hand ownership, pocket resource commits,
+  action cancellation and prompt transitions. git diff --check only; no Godot,
+  rendering or test-suite execution, as requested by the author.
+
 ### 2026-09-28 - Intuitive stove flow and shelter test start (codex)
 
 Changed

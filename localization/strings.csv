@@ -94,7 +94,7 @@ PROMPT_DETAIL_OBJECT,Object,Объект
 STOVE_OPEN,Open stove door,Открыть дверцу печки
 STOVE_LOAD,Put carried logs inside,Положить дрова из рук в печку
 STOVE_CLOSE,Close stove door,Закрыть дверцу печки
-STOVE_IGNITE,Prepare ignition,Подготовиться к розжигу
+STOVE_IGNITE,Light stove,Разжечь печку
 STOVE_NEED_LIGHTER,Pick up the lighter from the tool bench,Возьмите зажигалку со стола с инструментами
 STOVE_LIGHTER_READY,Lighter ready · hold LMB to ignite,Зажигалка готова · держите ЛКМ для розжига
 STOVE_LIGHTER_STRIKE,Hold LMB for 3 seconds to light the tinder,Держите ЛКМ 3 секунды для розжига

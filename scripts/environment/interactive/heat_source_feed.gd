@@ -31,6 +31,8 @@ var guaranteed_success_strike: int = 1
 var _inventory: InventoryComponent
 var _player: Node3D
 var _animation: HenryUALAnimation
+var _equipment: EquipmentComponent
+var _held_item: HeldItemComponent
 var _actions_cache: TimeCostedActionSystem
 var _act_left: float = 0.0
 var _act_lighting: bool = false
@@ -62,15 +64,7 @@ func _ready() -> void:
 		add_child(anchor)
 		focus_anchor = anchor
 	player_animation_action = &"none"
-	_player = get_tree().get_first_node_in_group(&"player") as Node3D
-	if _inventory == null:
-		_inventory = InventoryComponent.find_in(_player)
-	if _player != null:
-		_animation = _player.find_child("HenryUALAnimation", true, false) as HenryUALAnimation
-		if _animation == null:
-			for child: Node in _player.get_children():
-				if child is HenryUALAnimation:
-					_animation = child as HenryUALAnimation
+	_get_inventory()
 	_actions_cache = TimeCostedActionSystem.find(get_tree())
 	super()
 	var state: Node = get_node_or_null(^"/root/PlayerState")
@@ -208,6 +202,8 @@ func transfer_logs(requested: int, removing: bool = false) -> Refusal:
 
 
 func _start_action(lighting: bool, count: int, removing: bool) -> Refusal:
+	if is_instance_valid(_held_item) and _held_item.get_item_id() == &"lighter":
+		_held_item.put_away()
 	_feedback_until_ms = 0
 	_act_lighting = lighting
 	_transfer_count = count
@@ -325,8 +321,7 @@ func _finish_ignition() -> void:
 		if _visual() != null:
 			_visual().end_act(_door_open)
 		return
-	var inventory: InventoryComponent = _get_inventory()
-	if tinder_item_id != &"" and not inventory.try_remove(tinder_item_id):
+	if tinder_item_id != &"" and not _consume_owned_item(tinder_item_id):
 		_clear_act()
 		return
 	var manager := get_tree().root.find_child("DayNightManager", true, false) as DayNightManager
@@ -365,10 +360,14 @@ func _finish_transfer() -> void:
 	fuel_added.emit(heat_source, heat_source.get_remaining_hours())
 	show_message(tr("STOVE_TAKEN" if removing else "STOVE_LOADED") % count)
 	if not removing:
+		var refusal: Refusal = Refusal.NONE
 		if not _put_down_overflow():
-			_report(Refusal.NO_DROP_SPACE)
+			refusal = Refusal.NO_DROP_SPACE
 		elif not heat_source.is_burning():
-			_report(_prepare_ignition())
+			refusal = _prepare_ignition()
+		if refusal != Refusal.NONE:
+			feed_refused.emit(refusal)
+			show_message(tr("STOVE_LOADED") % count + " · " + tr(describe_refusal(refusal)))
 
 
 func _light_stop_reason() -> StringName:
@@ -379,8 +378,7 @@ func _light_stop_reason() -> StringName:
 		return &"target_lost"
 	if not _has_lighter() or not _hands_free():
 		return &"tool_lost"
-	var inventory: InventoryComponent = _get_inventory()
-	if tinder_item_id != &"" and (inventory == null or not inventory.has_item(tinder_item_id)):
+	if tinder_item_id != &"" and not _has_owned_item(tinder_item_id):
 		return &"resource_lost"
 	return &""
 
@@ -442,18 +440,37 @@ func _hands_free(allow_logs: bool = false) -> bool:
 		var item: ItemResource = ItemCatalog.get_item(entry["id"])
 		if item != null and item.carried_in_hands and (not allow_logs or item.id != fuel_item_id):
 			return false
-	return _animation == null or _animation.get_held_prop() == null or _animation.get_held_prop() == _lighter
+	var prop: Node3D = _animation.get_held_prop() if is_instance_valid(_animation) else null
+	if prop == null or prop == _lighter:
+		return true
+	return is_instance_valid(_held_item) and _held_item.get_item_id() == &"lighter" \
+		and _held_item.get_held_prop() == prop
 
 
 func _has_lighter() -> bool:
+	return _has_owned_item(&"lighter")
+
+
+func _has_owned_item(item_id: StringName) -> bool:
 	var inventory: InventoryComponent = _get_inventory()
-	if inventory != null and inventory.has_item(&"lighter"):
+	if inventory != null and inventory.has_item(item_id):
 		return true
-	var equipment: EquipmentComponent = _player.get_node_or_null(^"EquipmentComponent") as EquipmentComponent if _player != null else null
-	if equipment != null:
-		for pocket: Dictionary in equipment.get_available_pockets():
-			if pocket["item_id"] == &"lighter":
+	if is_instance_valid(_equipment):
+		for pocket: Dictionary in _equipment.get_available_pockets():
+			if pocket["item_id"] == item_id:
 				return true
+	return false
+
+
+## Consume from the owning storage only when the held flame has caught.
+func _consume_owned_item(item_id: StringName) -> bool:
+	var inventory: InventoryComponent = _get_inventory()
+	if inventory != null and inventory.try_remove(item_id):
+		return true
+	if is_instance_valid(_equipment):
+		for pocket: Dictionary in _equipment.get_available_pockets():
+			if pocket["item_id"] == item_id:
+				return _equipment.take_from_pocket(pocket["body_slot"], pocket["pocket"]) == item_id
 	return false
 
 
@@ -468,9 +485,19 @@ func _in_reach() -> bool:
 
 
 func _get_inventory() -> InventoryComponent:
-	if not is_instance_valid(_inventory) and is_inside_tree():
+	if not is_instance_valid(_player) and is_inside_tree():
 		_player = get_tree().get_first_node_in_group(&"player") as Node3D
+	if not is_instance_valid(_inventory):
 		_inventory = InventoryComponent.find_in(_player)
+	if is_instance_valid(_player):
+		if not is_instance_valid(_equipment):
+			_equipment = _player.get_node_or_null(^"EquipmentComponent") as EquipmentComponent
+		if not is_instance_valid(_held_item):
+			_held_item = _player.get_node_or_null(^"HeldItemComponent") as HeldItemComponent
+		if not is_instance_valid(_animation):
+			for child: Node in _player.get_children():
+				if child is HenryUALAnimation:
+					_animation = child as HenryUALAnimation
 	return _inventory
 
 
@@ -521,8 +548,8 @@ func _get_interaction_text() -> String:
 		set_description("")
 		return "[%s] %s" % [_interact_key_label(), tr("STOVE_OPEN")]
 	if _is_lighting():
-		set_description(tr("STOVE_PREPARING" if _stage == Stage.PREPARING else "STOVE_LIGHTER_HOLD"))
-		return "[%s] %s" % [_interact_key_label(), tr("STOVE_CANCEL_LIGHTER")]
+		set_description("[%s] %s" % [_interact_key_label(), tr("STOVE_CANCEL_LIGHTER")])
+		return tr("STOVE_PREPARING" if _stage == Stage.PREPARING else "STOVE_LIGHTER_HOLD")
 	if is_acting():
 		set_description(tr("STOVE_TRANSFER") % _transfer_count)
 		return "[%s] %s" % [_interact_key_label(), tr("STOVE_CANCEL_TRANSFER")]
@@ -533,9 +560,9 @@ func _get_interaction_text() -> String:
 		return "[%s] %s" % [_interact_key_label(), tr("STOVE_LOAD_COUNT") % count]
 	if not heat_source.is_burning() and heat_source.get_remaining_hours() > 0.0:
 		var refusal: Refusal = _ignition_refusal()
-		if refusal != Refusal.NONE:
-			detail = tr(describe_refusal(refusal))
 		set_description(detail)
+		if refusal != Refusal.NONE:
+			return tr(describe_refusal(refusal))
 		return "[%s] %s" % [_interact_key_label(), tr("STOVE_IGNITE")]
 	if heat_source.is_burning():
 		set_description(tr("FEED_REFUSED_ALREADY_FULL") if heat_source.get_log_room() <= 0 else detail)
@@ -546,14 +573,16 @@ func _get_interaction_text() -> String:
 
 func get_interaction_prompt_data() -> Dictionary:
 	var data: Dictionary = super()
-	if _is_lighting() and _stage != Stage.PREPARING:
+	if _stage == Stage.PREPARING:
+		data["key"] = ""
+	elif _is_lighting():
 		data["key"] = tr("STOVE_MOUSE_KEY")
 		data["action"] = tr("STOVE_LIGHTER_HOLD")
 		data["detail"] = "[%s] %s" % [_interact_key_label(), tr("STOVE_CANCEL_LIGHTER")]
 		if _available_logs(true) > 0:
 			data["detail"] += " · " + tr("STOVE_MOUSE_TAKE")
 	elif _door_open and not is_acting() and _available_logs(false) <= 0 \
-		and (heat_source.is_burning() or heat_source.get_remaining_hours() <= 0.0):
+		and (heat_source.is_burning() or heat_source.get_remaining_hours() <= 0.0 or _ignition_refusal() != Refusal.NONE):
 		data["key"] = ""
 	return data
 
@@ -576,8 +605,7 @@ func _ignition_refusal() -> Refusal:
 		return Refusal.HANDS_OCCUPIED
 	if not _has_lighter():
 		return Refusal.NO_LIGHTER
-	var inventory: InventoryComponent = _get_inventory()
-	if tinder_item_id != &"" and (inventory == null or not inventory.has_item(tinder_item_id)):
+	if tinder_item_id != &"" and not _has_owned_item(tinder_item_id):
 		return Refusal.NO_TINDER
 	return Refusal.NONE
 

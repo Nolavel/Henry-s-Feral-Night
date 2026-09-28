@@ -60,6 +60,10 @@ func get_item_id() -> StringName:
 	return _item_id if is_holding() else &""
 
 
+func get_held_prop() -> Node3D:
+	return _prop if is_holding() else null
+
+
 func use_held() -> bool:
 	if not is_holding():
 		return false
