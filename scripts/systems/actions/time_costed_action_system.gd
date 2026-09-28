@@ -169,8 +169,12 @@ func get_effective_presentation_seconds() -> float:
 func _work_duration_multiplier(request: TimeActionRequest) -> float:
 	if request == null or request.actor == null:
 		return 1.0
-	var provider := request.actor.get_node_or_null(^"AfflictionComponent") as AfflictionComponent
-	return provider.get_multiplier(&"work_duration_multiplier") if provider != null else 1.0
+	## The action layer depends only on the modifier contract. Afflictions may
+	## implement it later, but phase 2 does not compile against that subsystem.
+	var provider: Node = request.actor.get_node_or_null(^"AfflictionComponent")
+	if provider == null or not provider.has_method(&"get_multiplier"):
+		return 1.0
+	return maxf(float(provider.call(&"get_multiplier", &"work_duration_multiplier")), 0.0)
 
 
 func _stop_reason() -> StringName:
