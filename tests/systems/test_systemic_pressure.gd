@@ -31,9 +31,11 @@ func _test_load_pressure() -> void:
 	body.add_child(inventory)
 
 	var movement := MovementController.new()
+	movement.name = "MovementController"
 	body.add_child(movement)
 
 	var bio := BioMonitorManager.new()
+	bio.name = "BioMonitorManager"
 	bio.carry_inventory = inventory
 	body.add_child(bio)
 
