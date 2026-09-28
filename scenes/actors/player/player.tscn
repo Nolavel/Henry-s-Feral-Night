@@ -8,6 +8,9 @@
 [ext_resource type="Script" uid="uid://rd1kyphwhfvi" path="res://scripts/actors/player/henry/Managers/StaminaManager.gd" id="6_oh6um"]
 [ext_resource type="Script" uid="uid://ddfmb4kv6sg0l" path="res://scripts/actors/player/henry/Managers/PlayerHealthManager.gd" id="8_re6ll"]
 [ext_resource type="Script" uid="uid://djgsya3tmwfqa" path="res://scripts/actors/player/henry/Managers/BioMonitorManager.gd" id="10_mvyhi"]
+[ext_resource type="Script" path="res://scripts/actors/player/henry/components/hunger_component.gd" id="10_hunger"]
+[ext_resource type="Script" path="res://scripts/actors/player/henry/components/hydration_component.gd" id="10_hydration"]
+[ext_resource type="Script" path="res://scripts/actors/player/henry/components/fatigue_component.gd" id="10_fatigue"]
 [ext_resource type="Script" uid="uid://buc8iltj8gtn0" path="res://scripts/actors/player/henry/components/equipment_component.gd" id="90_equip"]
 [ext_resource type="Script" uid="uid://jwbyt4ch7e7l" path="res://scripts/actors/player/henry/components/inventory_component.gd" id="91_inv"]
 [ext_resource type="Script" path="res://scripts/actors/player/henry/components/player_hub_component.gd" id="99_hub"]
@@ -55,6 +58,15 @@ debug_label_path = NodePath("../DebugLBL")
 
 [node name="PlayerHealthSystem" type="Node3D" parent="."]
 script = ExtResource("8_re6ll")
+
+[node name="HungerComponent" type="Node" parent="."]
+script = ExtResource("10_hunger")
+
+[node name="HydrationComponent" type="Node" parent="."]
+script = ExtResource("10_hydration")
+
+[node name="FatigueComponent" type="Node" parent="."]
+script = ExtResource("10_fatigue")
 
 [node name="BioMonitorManager" type="Node3D" parent="."]
 script = ExtResource("10_mvyhi")
