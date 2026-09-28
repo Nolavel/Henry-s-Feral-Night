@@ -16,6 +16,8 @@ var simulation_clock: SimulationClock
 var _active: TimeActionRequest
 var _elapsed_hours: float = 0.0
 var _elapsed_seconds: float = 0.0
+var _effective_duration_hours: float = 0.0
+var _effective_presentation_seconds: float = 0.0
 var _previous_player_mode: int = -1
 var _owns_realtime_block: bool = false
 
@@ -43,9 +45,9 @@ func get_active_action_id() -> StringName:
 func get_progress() -> float:
 	if _active == null:
 		return 0.0
-	if _active.presentation_seconds > 0.0:
-		return clampf(_elapsed_seconds / _active.presentation_seconds, 0.0, 1.0)
-	return clampf(_elapsed_hours / _active.duration_hours, 0.0, 1.0)
+	if _effective_presentation_seconds > 0.0:
+		return clampf(_elapsed_seconds / _effective_presentation_seconds, 0.0, 1.0)
+	return clampf(_elapsed_hours / maxf(_effective_duration_hours, 0.000001), 0.0, 1.0)
 
 
 ## Starts a staged action whose presentation consumes real seconds.
@@ -62,8 +64,8 @@ func run_to_completion(request: TimeActionRequest) -> Dictionary:
 	if not _can_start(request):
 		return {"started": false, "completed": false, "elapsed_hours": 0.0, "reason": &"busy"}
 	_begin(request)
-	while _active != null and _elapsed_hours < request.duration_hours - 0.000001:
-		var slice: float = minf(request.simulation_step_hours, request.duration_hours - _elapsed_hours)
+	while _active != null and _elapsed_hours < _effective_duration_hours - 0.000001:
+		var slice: float = minf(request.simulation_step_hours, _effective_duration_hours - _elapsed_hours)
 		if not _bill(slice):
 			_cancel_internal(&"clock_refused")
 			break
@@ -89,15 +91,15 @@ func cancel(reason: StringName = &"cancelled") -> bool:
 
 
 func _process(delta: float) -> void:
-	if _active == null or _active.presentation_seconds <= 0.0:
+	if _active == null or _effective_presentation_seconds <= 0.0:
 		return
 	var stop_reason: StringName = _stop_reason()
 	if stop_reason != &"":
 		_cancel_internal(stop_reason)
 		return
 
-	_elapsed_seconds = minf(_active.presentation_seconds, _elapsed_seconds + maxf(delta, 0.0))
-	var target_hours: float = _active.duration_hours * get_progress()
+	_elapsed_seconds = minf(_effective_presentation_seconds, _elapsed_seconds + maxf(delta, 0.0))
+	var target_hours: float = _effective_duration_hours * get_progress()
 	var owed: float = target_hours - _elapsed_hours
 	while owed >= _active.simulation_step_hours - 0.000001:
 		if not _bill(_active.simulation_step_hours):
@@ -110,8 +112,8 @@ func _process(delta: float) -> void:
 			return
 
 	action_progress.emit(_active.action_id, get_progress())
-	if _elapsed_seconds >= _active.presentation_seconds - 0.000001:
-		var remainder: float = _active.duration_hours - _elapsed_hours
+	if _elapsed_seconds >= _effective_presentation_seconds - 0.000001:
+		var remainder: float = _effective_duration_hours - _elapsed_hours
 		if remainder > 0.000001 and not _bill(remainder):
 			_cancel_internal(&"clock_refused")
 			return
@@ -134,12 +136,15 @@ func _begin(request: TimeActionRequest) -> void:
 	_active = request
 	_elapsed_hours = 0.0
 	_elapsed_seconds = 0.0
+	var duration_multiplier: float = _work_duration_multiplier(request)
+	_effective_duration_hours = request.duration_hours * duration_multiplier
+	_effective_presentation_seconds = request.presentation_seconds * duration_multiplier
 	_last_elapsed_hours = 0.0
 	_last_end_reason = &""
 	simulation_clock.push_realtime_block()
 	_owns_realtime_block = true
 	_enter_player_mode(request.player_mode)
-	action_started.emit(request.action_id, request.duration_hours)
+	action_started.emit(request.action_id, _effective_duration_hours)
 	action_progress.emit(request.action_id, 0.0)
 
 
@@ -149,8 +154,23 @@ func _bill(hours: float) -> bool:
 	if not simulation_clock.advance_hours(hours, _active.reason):
 		return false
 	_elapsed_hours += hours
-	action_progress.emit(_active.action_id, clampf(_elapsed_hours / _active.duration_hours, 0.0, 1.0))
+	action_progress.emit(_active.action_id, clampf(_elapsed_hours / maxf(_effective_duration_hours, 0.000001), 0.0, 1.0))
 	return true
+
+
+func get_effective_duration_hours() -> float:
+	return _effective_duration_hours if _active != null else 0.0
+
+
+func get_effective_presentation_seconds() -> float:
+	return _effective_presentation_seconds if _active != null else 0.0
+
+
+func _work_duration_multiplier(request: TimeActionRequest) -> float:
+	if request == null or request.actor == null:
+		return 1.0
+	var provider := request.actor.get_node_or_null(^"AfflictionComponent") as AfflictionComponent
+	return provider.get_multiplier(&"work_duration_multiplier") if provider != null else 1.0
 
 
 func _stop_reason() -> StringName:
