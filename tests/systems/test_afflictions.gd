@@ -13,6 +13,8 @@ func _process(_delta: float) -> bool:
 	_test_edges_are_idempotent()
 	_test_save_round_trip()
 	_test_modifier_order_is_deterministic()
+	_test_severity_interpolation()
+	_test_world_context_binds_thermal()
 	_test_real_threshold_bindings()
 	_test_named_modifier_consumers()
 	if _failures > 0:
@@ -95,6 +97,37 @@ func _test_modifier_order_is_deterministic() -> void:
 	_check(a.get_active_ids().size() == 3, "three non-stackable conditions did not remain unique")
 	_dispose(a)
 	_dispose(b)
+
+
+func _test_severity_interpolation() -> void:
+	var aff := _make_afflictions()
+	aff.set_condition(&"hypothermia", true, 1.0, &"test")
+	var half: float = aff.get_multiplier(&"movement_speed_multiplier")
+	aff.set_condition(&"hypothermia", true, 2.0, &"test")
+	var full: float = aff.get_multiplier(&"movement_speed_multiplier")
+	_check(is_equal_approx(half, 0.9), "severity 1/2 did not interpolate movement modifier to 0.9")
+	_check(is_equal_approx(full, 0.8), "max hypothermia severity did not apply full movement modifier")
+	_check(full < half and half < 1.0, "severity does not scale consequence monotonically")
+	_dispose(aff)
+
+
+func _test_world_context_binds_thermal() -> void:
+	var player := Node3D.new()
+	root.add_child(player)
+	var aff := _make_afflictions(player)
+	var thermal := ThermalManager.new()
+	root.add_child(thermal)
+	thermal.initialize()
+	var context := WorldContext.new()
+	context.player = player
+	context.systems = [thermal]
+	aff.on_world_ready(context)
+	thermal.apply_body_temperature_delta(-4.0)
+	_check(aff.has_affliction(&"hypothermia"), "world context did not bind ThermalManager to afflictions")
+	thermal.apply_body_temperature_delta(10.0)
+	_check(not aff.has_affliction(&"hypothermia"), "context-bound hypothermia did not recover")
+	_dispose(thermal)
+	_dispose(player)
 
 
 func _test_real_threshold_bindings() -> void:
