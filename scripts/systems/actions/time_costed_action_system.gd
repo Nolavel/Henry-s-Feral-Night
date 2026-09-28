@@ -10,6 +10,7 @@ signal action_completed(action_id: StringName, elapsed_h: float)
 signal action_cancelled(action_id: StringName, elapsed_h: float, reason: StringName)
 
 const CLOCK_SCRIPT: GDScript = preload("res://scripts/systems/time/simulation_clock.gd")
+const GROUP: StringName = &"time_costed_actions"
 
 var simulation_clock: SimulationClock
 var _active: TimeActionRequest
@@ -19,8 +20,16 @@ var _previous_player_mode: int = -1
 var _owns_realtime_block: bool = false
 
 
+func _ready() -> void:
+	add_to_group(GROUP)
+
+
 func on_world_ready(context: WorldContext) -> void:
 	simulation_clock = context.get_system(CLOCK_SCRIPT) as SimulationClock
+
+
+static func find(tree: SceneTree) -> TimeCostedActionSystem:
+	return tree.get_first_node_in_group(GROUP) as TimeCostedActionSystem if tree != null else null
 
 
 func is_active() -> bool:
