@@ -11,6 +11,13 @@ func _initialize() -> void:
 
 
 func _run() -> void:
+	var clock := SimulationClock.new()
+	root.add_child(clock)
+	clock.set_total_hours(12.0, &"test_seed")
+	var actions := TimeCostedActionSystem.new()
+	actions.simulation_clock = clock
+	root.add_child(actions)
+
 	var player := CharacterBody3D.new()
 	player.add_to_group(&"player")
 	var inventory := InventoryComponent.new()
@@ -36,10 +43,14 @@ func _run() -> void:
 	_check(feed.begin_act() == HeatSourceFeed.Refusal.NO_LIGHTER, "cold stove did not require lighter")
 	_check(is_equal_approx(stove.get_remaining_hours(), 6), "refusal spent fuel")
 	inventory.try_add(ItemCatalog.get_item(&"lighter"))
+	var before_light: float = clock.get_total_hours()
 	_check(feed.begin_act() == HeatSourceFeed.Refusal.NONE and feed.is_acting(), "lighter did not start ignition")
+	_check(actions.get_active_action_id().begins_with("light_stove:"), "stove bypassed TimeCostedActionSystem")
 	_check(not feed.can_interact() and not stove.is_burning(), "fire took before ignition finished")
-	feed._process(HeatSourceFeed.LIGHT_SECONDS)
+	actions._process(HeatSourceFeed.LIGHT_SECONDS)
 	_check(stove.is_burning() and visual.is_glowing(), "ignition did not create heat and light")
+	_check(is_equal_approx(clock.get_total_hours() - before_light, feed.light_time_cost_minutes / 60.0),
+		"stove ignition billed the wrong game time")
 	_check(inventory.has_item(&"lighter"), "reusable lighter was consumed")
 	await create_timer(0.4).timeout
 	_check(not visual.is_door_open(), "door did not close after ignition")
