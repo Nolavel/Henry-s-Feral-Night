@@ -157,7 +157,7 @@ func _find_crosshair_target() -> InteractiveArea:
 	# Physical bodies are checked separately below for honest occlusion.
 	var area_hit := _first_interactive_area_on_ray(from, to)
 	if not area_hit.is_empty():
-		var direct := _area_from(area_hit.get("collider"))
+		var direct := _resolve_focus(_area_from(area_hit.get("collider")), from, direction)
 		if (
 			direct != null
 			and _flat_distance_to(direct) <= intent_radius
@@ -175,7 +175,7 @@ func _find_crosshair_target() -> InteractiveArea:
 	body_ray.exclude = [_player.get_rid()]
 	var body_hit: Dictionary = _player.get_world_3d().direct_space_state.intersect_ray(body_ray)
 	if not body_hit.is_empty():
-		var body_target := _area_from(body_hit.get("collider"))
+		var body_target := _resolve_focus(_area_from(body_hit.get("collider")), from, direction)
 		if body_target != null and _flat_distance_to(body_target) <= intent_radius:
 			return body_target
 		# Do not abort on terrain/walls here. A pickup has no physics body of its
@@ -196,7 +196,7 @@ func _find_crosshair_target() -> InteractiveArea:
 	var best_angle := deg_to_rad(focus_angle_deg * 0.5)
 	var best_distance := INF
 	for result: Dictionary in get_world_3d().direct_space_state.intersect_shape(query, 32):
-		var area := _area_from(result.get("collider"))
+		var area := _resolve_focus(_area_from(result.get("collider")), from, direction)
 		if area == null:
 			continue
 		var flat_distance := _flat_distance_to(area)
@@ -239,7 +239,7 @@ func _first_interactive_area_on_ray(from: Vector3, to: Vector3) -> Dictionary:
 		var hit: Dictionary = _player.get_world_3d().direct_space_state.intersect_ray(ray)
 		if hit.is_empty():
 			return {}
-		var area: InteractiveArea = _area_from(hit.get("collider"))
+		var area: InteractiveArea = _resolve_focus(_area_from(hit.get("collider")), from, (to - from).normalized())
 		if (
 			area != null and _flat_distance_to(area) <= intent_radius
 			and _is_focus_aligned(from, (to - from).normalized(), area)
@@ -268,10 +268,12 @@ func _focus_hit_is_visible(from: Vector3, hit_position: Vector3, target: Interac
 	var hit: Dictionary = _player.get_world_3d().direct_space_state.intersect_ray(ray)
 	if hit.is_empty():
 		return true
-	return _area_from(hit.get("collider")) == target
+	return _owns_focus_body(_area_from(hit.get("collider")), target)
 
 
 func _is_focus_aligned(from: Vector3, direction: Vector3, area: InteractiveArea) -> bool:
+	if area is StoveDoorControl:
+		return (area as StoveDoorControl).is_aim_on_door(from, direction)
 	if area is BreachBoardUp:
 		return (area as BreachBoardUp).is_aim_on_opening(from, direction)
 	var toward: Vector3 = _focus_point(area) - from
@@ -290,7 +292,7 @@ func _has_focus_line(camera: Camera3D, area: InteractiveArea) -> bool:
 	var hit := _player.get_world_3d().direct_space_state.intersect_ray(ray)
 	if hit.is_empty():
 		return true
-	return _area_from(hit.get("collider")) == area
+	return _owns_focus_body(_area_from(hit.get("collider")), area)
 
 
 ## A focus anchor should represent what the player can actually see. Many old
@@ -487,3 +489,11 @@ func _is_blocked() -> bool:
 
 func is_crosshair_focused() -> bool:
 	return is_instance_valid(current_target)
+
+
+func _resolve_focus(area: InteractiveArea, from: Vector3, direction: Vector3) -> InteractiveArea:
+	return (area as HeatSourceFeed).resolve_focus(from, direction) if area is HeatSourceFeed else area
+
+
+func _owns_focus_body(owner_area: InteractiveArea, target: InteractiveArea) -> bool:
+	return owner_area == target or (target is StoveDoorControl and (target as StoveDoorControl).feed == owner_area)

@@ -36,6 +36,7 @@ signal protection_changed(sealed_fraction: float)
 var _heated_offset_c: float = 0.0
 var _active_heat_sources: int = 0
 var _breaches: Array[ShelterBreach] = []
+var _heat_sources: Array[HeatSource] = []
 
 
 func _ready() -> void:
@@ -63,7 +64,7 @@ func get_breaches() -> Array[ShelterBreach]:
 func get_sealed_fraction() -> float:
 	var open: float = 0.0
 	for breach: ShelterBreach in _breaches:
-		open += breach.severity * breach.get_open_fraction()
+		open += breach.severity * breach.get_open_fraction() * breach.get_exposure_multiplier()
 	return clampf(1.0 - open, 0.0, 1.0)
 
 
@@ -93,13 +94,16 @@ func get_total_offset_c() -> float:
 
 
 ## Registers a burning heat source so the zone starts accumulating warmth.
-func add_heat_source() -> void:
+func add_heat_source(source: HeatSource = null) -> void:
 	_active_heat_sources += 1
+	if source != null and not _heat_sources.has(source):
+		_heat_sources.append(source)
 
 
 ## Unregisters a heat source; the zone cools once the count reaches zero.
-func remove_heat_source() -> void:
+func remove_heat_source(source: HeatSource = null) -> void:
 	_active_heat_sources = maxi(0, _active_heat_sources - 1)
+	_heat_sources.erase(source)
 
 
 ## Advances the zone's stored warmth. Called by ThermalManager with game hours.
@@ -108,9 +112,13 @@ func advance_heating(delta_hours: float) -> void:
 		return
 	var previous: float = _heated_offset_c
 	var ceiling: float = get_heat_ceiling_c()
-	if _active_heat_sources > 0:
+	var intensity: float = 1.0 if _active_heat_sources > _heat_sources.size() else 0.0
+	for source: HeatSource in HeatSource.get_all():
+		if source.heats_zone == self:
+			intensity = minf(1.0, intensity + source.get_step_intensity())
+	if intensity > 0.0:
 		_heated_offset_c = minf(
-			ceiling, _heated_offset_c + heating_rate_c_per_hour * delta_hours
+			ceiling, _heated_offset_c + heating_rate_c_per_hour * delta_hours * intensity
 		)
 	else:
 		_heated_offset_c = maxf(0.0, _heated_offset_c - cooling_rate_c_per_hour * delta_hours)

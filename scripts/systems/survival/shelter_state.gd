@@ -54,7 +54,7 @@ func adopt_fire(zone: ThermalZone, fire: HeatSource) -> void:
 	var key: String = _fire_key(zone, fire)
 	if _fires.has(key):
 		var stored: Dictionary = _fires[key]
-		fire.restore_fuel(float(stored.get("remaining_h", 0.0)), bool(stored.get("burning", false)))
+		fire.restore_fire_save_data(stored)
 	else:
 		_remember_fire(key, fire)
 	if not fire.fuel_changed.is_connected(_on_fuel_changed):
@@ -82,7 +82,7 @@ func load_save_data(data: Dictionary) -> void:
 			if not _fires.has(fire_key):
 				continue
 			var stored: Dictionary = _fires[fire_key]
-			fire.restore_fuel(float(stored.get("remaining_h", 0.0)), bool(stored.get("burning", false)))
+			fire.restore_fire_save_data(stored)
 
 
 func _apply_saved_breach(breach: ShelterBreach, saved: Variant) -> void:
@@ -112,7 +112,7 @@ func _on_fuel_changed(_fraction: float, key: String, fire: HeatSource) -> void:
 
 
 func _remember_fire(key: String, fire: HeatSource) -> void:
-	_fires[key] = {"remaining_h": fire.get_remaining_hours(), "burning": fire.is_burning()}
+	_fires[key] = fire.get_fire_save_data()
 
 
 func _fire_key(zone: ThermalZone, fire: HeatSource) -> String:

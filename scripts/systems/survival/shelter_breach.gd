@@ -15,6 +15,8 @@ signal staged_boards_changed(count: int)
 		severity = clampf(value, 0.0, 1.0)
 		_announce()
 @export var starts_boarded: bool = false
+@export var boardable: bool = true
+var closure: HingedDoor
 
 @export_group("Repair")
 @export var repair_item_id: StringName = &"boards"
@@ -40,7 +42,7 @@ var _staged_root: Node3D
 
 
 func _ready() -> void:
-	_forced_boarded = starts_boarded
+	_forced_boarded = starts_boarded and boardable
 	if not Engine.is_editor_hint():
 		_ensure_visual_roots()
 		_rebuild_dynamic_visuals()
@@ -53,10 +55,14 @@ func _ready() -> void:
 
 
 func is_boarded() -> bool:
+	if not boardable:
+		return false
 	return _forced_boarded or get_coverage_fraction() >= seal_threshold
 
 
 func get_open_fraction() -> float:
+	if not boardable:
+		return 1.0
 	return 0.0 if _forced_boarded else clampf(1.0 - get_coverage_fraction(), 0.0, 1.0)
 
 
@@ -121,7 +127,7 @@ func get_staged_boards() -> int:
 
 
 func stage_boards(count: int) -> void:
-	if count <= 0:
+	if not boardable or count <= 0:
 		return
 	_staged_boards += count
 	_refresh_staged_visual()
@@ -142,6 +148,8 @@ func return_staged_board() -> void:
 
 
 func place_board(local_y: float) -> bool:
+	if not boardable:
+		return false
 	if opening_height_m <= board_height_m:
 		local_y = 0.0
 	else:
@@ -160,7 +168,7 @@ func place_board(local_y: float) -> bool:
 
 ## Legacy seam for old tests/tools. Gameplay places boards individually.
 func board_up() -> bool:
-	if is_boarded():
+	if not boardable or is_boarded():
 		return false
 	var was_boarded: bool = is_boarded()
 	_forced_boarded = true
@@ -211,6 +219,11 @@ func get_save_data() -> Dictionary:
 
 
 func load_save_data(data: Dictionary) -> void:
+	if not boardable:
+		tear_open()
+		_staged_boards = 0
+		_refresh_staged_visual()
+		return
 	var was_boarded: bool = is_boarded()
 	_forced_boarded = bool(data.get("forced", data.get("boarded", false)))
 	_staged_boards = maxi(0, int(data.get("staged", 0)))

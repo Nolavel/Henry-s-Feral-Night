@@ -22,6 +22,11 @@ var _participants: Array[Dictionary] = []
 var _next_order: int = 0
 var _world_context: WorldContext
 var _realtime_blockers: int = 0
+var _realtime_step_requests: Dictionary = {}
+
+
+func _ready() -> void:
+	add_to_group(&"simulation_clock")
 
 
 func on_world_ready(context: WorldContext) -> void:
@@ -75,7 +80,7 @@ func advance_hours(hours: float, reason: StringName) -> bool:
 	_total_hours += hours
 	clock_changed.emit(_total_hours, reason)
 
-	var quantum: float = maxf(max_step_hours, 0.001)
+	var quantum: float = _realtime_quantum() if reason == REALTIME_REASON else maxf(max_step_hours, 0.001)
 	while _total_hours - _simulated_total_hours >= quantum - 0.000001:
 		_dispatch_step(quantum, reason)
 
@@ -171,3 +176,23 @@ func _participant_before(a: Dictionary, b: Dictionary) -> bool:
 	if ap != bp:
 		return ap < bp
 	return int(a["order"]) < int(b["order"])
+
+
+## Short visible stages can refine realtime slices without multiplying sleep/action steps.
+func request_realtime_step(owner_node: Node, hours: float) -> void:
+	_realtime_step_requests[owner_node.get_instance_id()] = {"owner": weakref(owner_node), "hours": maxf(hours, 0.000001)}
+
+
+func release_realtime_step(owner_node: Node) -> void:
+	_realtime_step_requests.erase(owner_node.get_instance_id())
+
+
+func _realtime_quantum() -> float:
+	var quantum: float = maxf(max_step_hours, 0.001)
+	for key: int in _realtime_step_requests.keys():
+		var request: Dictionary = _realtime_step_requests[key]
+		if (request["owner"] as WeakRef).get_ref() == null:
+			_realtime_step_requests.erase(key)
+		else:
+			quantum = minf(quantum, float(request["hours"]))
+	return quantum

@@ -31,6 +31,8 @@ var _flames: Array[MeshInstance3D] = []
 var _kindle: float = 0.0
 var _acting: bool = false
 var _act_log: bool = false
+var _pending_logs: int = 0
+var _door_tween: Tween
 
 
 func _ready() -> void:
@@ -40,6 +42,8 @@ func _ready() -> void:
 	if source != null:
 		source.fuel_changed.connect(func(_f: float) -> void: _refresh())
 		source.burning_changed.connect(func(_b: bool) -> void: _refresh())
+		source.intensity_changed.connect(func(_v: float) -> void: _refresh())
+	_build_door_control()
 	_refresh()
 
 
@@ -52,9 +56,10 @@ func get_capacity_logs() -> int:
 
 ## A staged act at the stove: the door opens, a log goes in; lighting also grows
 ## a weak flame over `seconds` before the fire itself takes.
-func begin_act(lighting: bool, seconds: float) -> void:
+func begin_act(lighting: bool, seconds: float, count: int = 1, removing: bool = false) -> void:
 	_acting = true
-	_act_log = not lighting
+	_act_log = not lighting and not removing
+	_pending_logs = count if _act_log else 0
 	_swing_door(true)
 	if lighting:
 		## Manual lighter interaction owns the pre-ignition feedback. The stove
@@ -66,6 +71,7 @@ func begin_act(lighting: bool, seconds: float) -> void:
 func end_act(keep_door_open: bool = false) -> void:
 	_acting = false
 	_act_log = false
+	_pending_logs = 0
 	_kindle = 0.0
 	_swing_door(keep_door_open)
 	_refresh()
@@ -86,7 +92,10 @@ func _swing_door(open: bool) -> void:
 	if not is_inside_tree():
 		_door.rotation.y = angle
 		return
-	create_tween().set_trans(Tween.TRANS_SINE).tween_property(_door, ^"rotation:y", angle, 0.35)
+	if _door_tween != null:
+		_door_tween.kill()
+	_door_tween = create_tween()
+	_door_tween.set_trans(Tween.TRANS_SINE).tween_property(_door, ^"rotation:y", angle, 0.35)
 
 
 func get_visible_log_count() -> int:
@@ -109,13 +118,13 @@ func _process(delta: float) -> void:
 		return
 	_flicker_t += delta
 	var flicker: float = 0.8 + 0.2 * sin(_flicker_t * 7.3) * sin(_flicker_t * 3.1 + 1.7)
-	var strength: float = _kindle if _acting and _kindle > 0.0 and not _burning() else 1.0
+	var strength: float = _kindle if _acting and _kindle > 0.0 and not _burning() else source.get_intensity() if source != null else 0.0
 	_glow.light_energy = 1.4 * flicker * strength
 	_embers.emission_energy_multiplier = 2.2 * flicker * strength
 	for flame: MeshInstance3D in _flames:
 		flame.scale.y = (0.7 + 0.3 * flicker) * strength
 	if source != null and source.flame_light != null and source.flame_light.visible:
-		source.flame_light.light_energy = 2.5 * (0.85 + 0.15 * flicker)
+		source.flame_light.light_energy = 2.5 * (0.85 + 0.15 * flicker) * strength
 
 
 func _burning() -> bool:
@@ -128,7 +137,7 @@ func _refresh() -> void:
 	if source != null and source.hours_per_fuel_unit > 0.0:
 		units = ceili(source.get_remaining_hours() / source.hours_per_fuel_unit - 0.001)
 	if _act_log:
-		units += 1  # the log going in shows before the fire takes it
+		units += _pending_logs
 	for i: int in range(_logs.size()):
 		_logs[i].visible = i < clampi(units, 0, get_capacity_logs())
 	_glow.visible = burning or (_acting and _kindle > 0.0)
@@ -256,3 +265,26 @@ func _material(albedo: Color, roughness: float, metallic: float) -> StandardMate
 	material.roughness = roughness
 	material.metallic = metallic
 	return material
+
+
+func _build_door_control() -> void:
+	var feed: HeatSourceFeed = source.find_child("Feed", true, false) as HeatSourceFeed if source != null else null
+	if feed == null:
+		return
+	var control := StoveDoorControl.new()
+	control.name = "DoorControl"
+	control.feed = feed
+	control.auto_detect_ground = false
+	control.object_on_ground = false
+	control.player_animation_action = &"none"
+	control.position = Vector3(0.02, DOOR_H * 0.5, DOOR_W * 0.5)
+	feed.door_control = control
+	_door.add_child(control)
+	var collider := CollisionShape3D.new()
+	var box := BoxShape3D.new()
+	box.size = Vector3(0.10, DOOR_H, DOOR_W)
+	collider.shape = box
+	control.add_child(collider)
+	var anchor := Marker3D.new()
+	control.add_child(anchor)
+	control.focus_anchor = anchor

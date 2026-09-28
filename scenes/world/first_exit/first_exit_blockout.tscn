@@ -5909,47 +5909,15 @@ minimum_heated_offset_c = 2.0
 [node name="CollisionShape3D" type="CollisionShape3D" parent="ShelterHouse/House/ShelterZone" unique_id=1571842153]
 shape = SubResource("BoxShape3D_ww6k8")
 
-[node name="Door" type="Node3D" parent="ShelterHouse/House/ShelterZone" unique_id=687106848 node_paths=PackedStringArray("boarded_visual")]
-transform = Transform3D(-1, 0, -8.742278e-08, 0, 1, 0, 8.742278e-08, 0, -1, 0, -0.27500004, 5)
+[node name="Door" type="Node3D" parent="ShelterHouse/House/ShelterZone" unique_id=687106848]
+transform = Transform3D(-1, 0, -8.742278e-08, 0, 1, 0, 8.742278e-08, 0, -1, 0, -0.14999998, 5.02)
 script = ExtResource("4_iw5uy")
+boardable = false
 severity = 0.3
 name_key = "BREACH_DOOR"
-opening_width_m = 1.1
-opening_height_m = 2.0
-boarded_visual = NodePath("Boards")
+opening_width_m = 1.5
+opening_height_m = 2.25
 staging_floor_y = -0.9
-
-[node name="Boards" type="Node3D" parent="ShelterHouse/House/ShelterZone/Door" unique_id=1446862701]
-visible = false
-
-[node name="MeshInstance3D" type="MeshInstance3D" parent="ShelterHouse/House/ShelterZone/Door/Boards" unique_id=281345394]
-transform = Transform3D(0.9945219, 0.104528464, 0, -0.104528464, 0.9945219, 0, 0, 0, 1, 0, -0.7, 0.12)
-mesh = SubResource("BoxMesh_aoej7")
-
-[node name="MeshInstance3D2" type="MeshInstance3D" parent="ShelterHouse/House/ShelterZone/Door/Boards" unique_id=2085782921]
-transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 0, 0, 0.12)
-mesh = SubResource("BoxMesh_aoej7")
-
-[node name="MeshInstance3D3" type="MeshInstance3D" parent="ShelterHouse/House/ShelterZone/Door/Boards" unique_id=1498186120]
-transform = Transform3D(0.9945219, -0.104528464, 0, 0.104528464, 0.9945219, 0, 0, 0, 1, 0, 0.7, 0.12)
-mesh = SubResource("BoxMesh_aoej7")
-
-[node name="BoardFocus" type="Marker3D" parent="ShelterHouse/House/ShelterZone/Door" unique_id=1352638223]
-transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 0, 0, 0.14)
-
-[node name="BoardUp" type="Area3D" parent="ShelterHouse/House/ShelterZone/Door" unique_id=1653534983 node_paths=PackedStringArray("focus_anchor")]
-transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 0, -0.4, 0.9)
-script = ExtResource("5_k1cjx")
-focus_anchor = NodePath("../BoardFocus")
-
-[node name="CollisionShape3D" type="CollisionShape3D" parent="ShelterHouse/House/ShelterZone/Door/BoardUp" unique_id=726929784]
-shape = SubResource("BoxShape3D_05hxk")
-
-[node name="InfoLabel" type="Label3D" parent="ShelterHouse/House/ShelterZone/Door/BoardUp" unique_id=1648709331]
-
-[node name="Sprite3D" type="Sprite3D" parent="ShelterHouse/House/ShelterZone/Door/BoardUp" unique_id=143189642]
-transform = Transform3D(0.75, 0, 0, 0, 0.75, 0, 0, 0, 0.75, 0, 0, 0)
-texture = ExtResource("2_14ntb")
 
 [node name="FrontWindow1" type="Node3D" parent="ShelterHouse/House/ShelterZone" unique_id=1416307771 node_paths=PackedStringArray("boarded_visual")]
 transform = Transform3D(-1, 0, -8.742278e-08, 0, 1, 0, 8.742278e-08, 0, -1, -2, 0.17499995, 5)
@@ -6117,6 +6085,7 @@ script = ExtResource("6_2bj3x")
 heats_zone = NodePath("..")
 flame_light = NodePath("Flame")
 starts_burning = false
+warmup_seconds = 20.0
 
 [node name="StoveVisual" type="Node3D" parent="ShelterHouse/House/ShelterZone/Stove" unique_id=1791832887]
 transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 0, -0.1, 0)
