@@ -96,7 +96,11 @@ STOVE_LOAD,Put carried logs inside,Положить дрова из рук в п
 STOVE_CLOSE,Close stove door,Закрыть дверцу печки
 STOVE_IGNITE,Light with lighter,Зажечь зажигалкой
 STOVE_NEED_LIGHTER,Pick up the lighter from the tool bench,Возьмите зажигалку со стола с инструментами
-STOVE_LIGHTER_READY,Lighter ready; wood catches in 5 seconds,Зажигалка есть · дрова разгорятся за 5 секунд
+STOVE_LIGHTER_READY,Lighter ready · LMB to strike,Зажигалка готова · ЛКМ — чиркнуть
+STOVE_LIGHTER_STRIKE,LMB · Strike lighter,ЛКМ · Чиркнуть зажигалкой
+STOVE_LIGHTER_MISS,Spark · no flame,Искра · пламени нет
+STOVE_LIGHTER_LOCKED,Lighter does not respond · %.1f s,Зажигалка не откликается · %.1f с
+STOVE_LIGHTER_FLAME,Flame caught,Пламя появилось
 STOVE_LOADED,Logs placed inside: %d,Положено поленьев: %d
 STOVE_FUEL_DETAIL,Stove: %d / %d logs · %.1f h,Печка: %d / %d поленьев · %.1f ч
 BREACH_STAGE_ACTION,Lay boards beside window,Сложить доски рядом с проёмом

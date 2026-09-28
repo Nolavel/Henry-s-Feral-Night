@@ -57,8 +57,9 @@ func begin_act(lighting: bool, seconds: float) -> void:
 	_act_log = not lighting
 	_swing_door(true)
 	if lighting:
-		_kindle = 0.05
-		create_tween().tween_property(self, ^"_kindle", 1.0, seconds * 0.9).set_delay(seconds * 0.1)
+		## Manual lighter interaction owns the pre-ignition feedback. The stove
+		## itself stays dark until a successful strike actually catches.
+		_kindle = 0.0
 	_refresh()
 
 

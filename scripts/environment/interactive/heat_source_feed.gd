@@ -10,18 +10,23 @@ signal act_started(lighting: bool)
 signal fuel_added(source: HeatSource, remaining_hours: float)
 ## Emitted when the player has nothing to feed it with, or it is already full.
 signal feed_refused(reason: Refusal)
+## One valid wheel strike happened. Lockout clicks deliberately do not emit it.
+signal lighter_struck(success: bool, strike_index: int)
+signal lighter_lockout_started(seconds: float)
 
 ## Why a feed attempt was turned down.
 enum Refusal { NONE, NO_SOURCE, ALREADY_FULL, NO_FUEL, NO_TINDER, NO_INVENTORY, NO_LIGHTER, BUSY }
+enum StrikeResult { IGNORED, LOCKED, SPARK, IGNITED }
 
 ## Label shown over the fire, resolved through localisation.
 const PROMPT_KEY: String = "FEED_PROMPT"
 const LIGHT_KEY: String = "LIGHT_PROMPT"
 const LIGHT_REQUIREMENTS_KEY: String = "LIGHT_REQUIREMENTS"
-## Real seconds of the staged acts: kneel, door, tinder, log, strike, catch.
+## Lighting is now event-driven; this is only the held-pose/reference duration.
 const LIGHT_SECONDS: float = 5.0
 ## Door, log, door on a fire that already burns.
 const ADD_SECONDS: float = 2.0
+const STRIKE_ACTION: StringName = &"fire"
 
 @export_group("Fire")
 ## The fire this prompt feeds. Defaults to a HeatSource sibling or parent.
@@ -42,6 +47,16 @@ const ADD_SECONDS: float = 2.0
 ## a second log if the stove still has room.
 @export_range(0.1, 60.0, 0.1) var add_time_cost_minutes: float = 0.5
 
+@export_group("Lighter interaction")
+## A second click inside this real-time window is treated as an accidental double-click.
+@export_range(0.05, 0.5, 0.01) var double_click_window_seconds: float = 0.22
+## During lockout LMB produces no strike animation, spark or light.
+@export_range(0.5, 10.0, 0.1) var lighter_lockout_seconds: float = 5.0
+@export_range(0.0, 1.0, 0.05) var first_strike_success_chance: float = 0.35
+@export_range(0.0, 1.0, 0.05) var second_strike_success_chance: float = 0.65
+## Normal rhythm is guaranteed to catch by this strike even if earlier rolls miss.
+@export_range(1, 5, 1) var guaranteed_success_strike: int = 3
+
 var _inventory: InventoryComponent
 var _act_left: float = 0.0
 var _act_lighting: bool = false
@@ -49,6 +64,11 @@ var _door_open: bool = false
 var _action_managed: bool = false
 var _action_id: StringName = &""
 var _feed_was_burning: bool = false
+var _ignition_session: bool = false
+var _strike_count: int = 0
+var _last_strike_seconds: float = -1000.0
+var _lockout_until_seconds: float = 0.0
+var _strike_rng := RandomNumberGenerator.new()
 
 
 func _ready() -> void:
@@ -69,6 +89,7 @@ func _ready() -> void:
 	if player_animation_action == &"":
 		player_animation_action = &"none"  # the staged act plays its own clip
 	super()
+	_strike_rng.randomize()
 	_update_label()
 	if heat_source != null:
 		heat_source.burning_changed.connect(func(_b: bool) -> void: _update_label())
@@ -120,15 +141,27 @@ func begin_act() -> Refusal:
 	return Refusal.NO_FUEL
 
 
+func _unhandled_input(event: InputEvent) -> void:
+	if not _ignition_session or not event.is_action_pressed(STRIKE_ACTION):
+		return
+	var mouse := event as InputEventMouseButton
+	attempt_lighter_strike(-1.0, mouse != null and mouse.double_click)
+	get_viewport().set_input_as_handled()
+
+
 func _process(delta: float) -> void:
 	if _act_left <= 0.0:
 		return
 	if _action_managed:
 		var actions: TimeCostedActionSystem = _actions()
 		if actions != null and actions.get_active_action_id() == _action_id:
+			if _act_lighting and _ignition_session:
+				return
 			_act_left = _act_duration_seconds() * (1.0 - actions.get_progress())
 			return
 		_action_managed = false
+	if _act_lighting and _ignition_session:
+		return
 	_act_left -= delta
 	if _act_left <= 0.0:
 		if _act_lighting:
@@ -140,6 +173,7 @@ func _process(delta: float) -> void:
 func _start_light_action() -> Refusal:
 	_act_lighting = true
 	_act_left = LIGHT_SECONDS
+	_begin_ignition_session()
 	var player: Node = get_tree().get_first_node_in_group(&"player") if is_inside_tree() else null
 	var actions: TimeCostedActionSystem = _actions()
 	if actions != null:
@@ -147,7 +181,6 @@ func _start_light_action() -> Refusal:
 		_action_id = StringName("light_stove:%d" % get_instance_id())
 		request.action_id = _action_id
 		request.duration_hours = light_time_cost_minutes / 60.0
-		request.presentation_seconds = LIGHT_SECONDS
 		request.reason = &"light_stove"
 		request.actor = player
 		request.target = heat_source
@@ -155,11 +188,12 @@ func _start_light_action() -> Refusal:
 		request.stop_check = _light_stop_reason
 		request.on_complete = _light_action_completed
 		request.on_cancel = _light_action_cancelled
-		_action_managed = actions.start_action(request)
+		_action_managed = actions.start_manual_action(request)
 		if not _action_managed:
 			_clear_act()
 			return Refusal.BUSY
 	_begin_visual_act(player)
+	show_message(tr("STOVE_LIGHTER_STRIKE"))
 	return Refusal.NONE
 
 
@@ -197,13 +231,95 @@ func _begin_visual_act(player: Node) -> void:
 	if player != null:
 		if player.has_method(&"hold_still"):
 			player.call(&"hold_still", _act_left)
-		if player.has_method(&"play_action_animation"):
-			player.call(&"play_action_animation", &"fix" if _act_lighting else &"interact")
+		if not _act_lighting and player.has_method(&"play_action_animation"):
+			player.call(&"play_action_animation", &"interact")
 	act_started.emit(_act_lighting)
 
 
 func _act_duration_seconds() -> float:
 	return LIGHT_SECONDS if _act_lighting else ADD_SECONDS
+
+
+func _begin_ignition_session() -> void:
+	_ignition_session = true
+	_strike_count = 0
+	_last_strike_seconds = -1000.0
+	_lockout_until_seconds = 0.0
+
+
+## Testable gameplay seam used by LMB input. Double-click lockout intentionally
+## produces no spark/VFX and resets the normal strike rhythm.
+func attempt_lighter_strike(now_seconds: float = -1.0, force_double_click: bool = false) -> int:
+	if not _ignition_session or heat_source == null or heat_source.is_burning():
+		return StrikeResult.IGNORED
+	var now: float = _strike_now_seconds() if now_seconds < 0.0 else now_seconds
+	if now < _lockout_until_seconds:
+		show_message(tr("STOVE_LIGHTER_LOCKED") % maxf(_lockout_until_seconds - now, 0.0))
+		return StrikeResult.LOCKED
+	if force_double_click or now - _last_strike_seconds <= double_click_window_seconds:
+		_lockout_until_seconds = now + lighter_lockout_seconds
+		_last_strike_seconds = -1000.0
+		_strike_count = 0
+		lighter_lockout_started.emit(lighter_lockout_seconds)
+		show_message(tr("STOVE_LIGHTER_LOCKED") % lighter_lockout_seconds)
+		return StrikeResult.LOCKED
+
+	_last_strike_seconds = now
+	_strike_count += 1
+	var success: bool = _roll_lighter_success()
+	_play_lighter_strike(success)
+	lighter_struck.emit(success, _strike_count)
+	if not success:
+		show_message(tr("STOVE_LIGHTER_MISS"))
+		return StrikeResult.SPARK
+
+	_ignition_session = false
+	show_message(tr("STOVE_LIGHTER_FLAME"))
+	var actions: TimeCostedActionSystem = _actions()
+	if _action_managed and actions != null and actions.get_active_action_id() == _action_id:
+		if not actions.complete_active():
+			return StrikeResult.IGNORED
+	else:
+		_finish_light_act()
+	return StrikeResult.IGNITED
+
+
+func get_lighter_lockout_remaining(now_seconds: float = -1.0) -> float:
+	var now: float = _strike_now_seconds() if now_seconds < 0.0 else now_seconds
+	return maxf(_lockout_until_seconds - now, 0.0)
+
+
+func _roll_lighter_success() -> bool:
+	if _strike_count >= guaranteed_success_strike:
+		return true
+	var chance: float = first_strike_success_chance if _strike_count <= 1 else second_strike_success_chance
+	return _strike_rng.randf() <= chance
+
+
+func _play_lighter_strike(success: bool) -> void:
+	var anchor: Node3D = _lighter_vfx_anchor()
+	if anchor != null:
+		LighterStrikeVFX.spawn(anchor, success)
+	var player: Node = get_tree().get_first_node_in_group(&"player") if is_inside_tree() else null
+	if player != null and player.has_method(&"play_action_animation"):
+		player.call(&"play_action_animation", &"fix")
+
+
+func _lighter_vfx_anchor() -> Node3D:
+	var player: Node = get_tree().get_first_node_in_group(&"player") if is_inside_tree() else null
+	if player != null:
+		for child: Node in player.get_children():
+			if child.has_method(&"get_hand_socket"):
+				var socket: Variant = child.call(&"get_hand_socket")
+				if socket is Node3D:
+					return socket as Node3D
+	if focus_anchor is Node3D:
+		return focus_anchor as Node3D
+	return self
+
+
+func _strike_now_seconds() -> float:
+	return float(Time.get_ticks_msec()) / 1000.0
 
 
 func _light_stop_reason() -> StringName:
@@ -261,6 +377,7 @@ func _actions() -> TimeCostedActionSystem:
 
 ## The fire catches only after the ignition action completes.
 func _finish_light_act() -> void:
+	_ignition_session = false
 	_act_left = 0.0
 	heat_source.restore_fuel(heat_source.get_remaining_hours(), true)
 	_close_door()
@@ -297,6 +414,9 @@ func _finish_feed_act() -> void:
 
 func _cancel_act() -> void:
 	var keep_door_open: bool = not _act_lighting
+	_ignition_session = false
+	_strike_count = 0
+	_lockout_until_seconds = 0.0
 	_action_managed = false
 	_act_left = 0.0
 	_act_lighting = false
@@ -308,6 +428,9 @@ func _cancel_act() -> void:
 
 
 func _clear_act() -> void:
+	_ignition_session = false
+	_strike_count = 0
+	_lockout_until_seconds = 0.0
 	_action_managed = false
 	_act_left = 0.0
 	_act_lighting = false

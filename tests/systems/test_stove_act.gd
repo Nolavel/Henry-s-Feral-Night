@@ -89,17 +89,44 @@ func _run() -> void:
 	_check(inventory.get_count(&"firewood") == 2, "failed ignition consumed another log")
 
 	inventory.try_add(ItemCatalog.get_item(&"lighter"))
+	feed.first_strike_success_chance = 0.0
+	feed.second_strike_success_chance = 0.0
+	feed.guaranteed_success_strike = 3
+	feed.double_click_window_seconds = 0.22
+	feed.lighter_lockout_seconds = 5.0
+	var strike_events: Array[bool] = []
+	var lockout_events: Array[float] = []
+	feed.lighter_struck.connect(func(success: bool, _index: int) -> void: strike_events.append(success))
+	feed.lighter_lockout_started.connect(func(seconds: float) -> void: lockout_events.append(seconds))
+
 	var before_light: float = clock.get_total_hours()
-	_check(feed.begin_act() == HeatSourceFeed.Refusal.NONE and feed.is_acting(), "lighter did not start ignition")
+	_check(feed.begin_act() == HeatSourceFeed.Refusal.NONE and feed.is_acting(), "lighter did not start ignition session")
 	_check(actions.get_active_action_id().begins_with("light_stove:"), "stove ignition bypassed TimeCostedActionSystem")
 	if player_state != null:
 		_check(player_state.mode == player_state.Mode.WORKING, "stove ignition did not enter WORKING mode")
-	actions._process(HeatSourceFeed.LIGHT_SECONDS)
+	actions._process(10.0)
+	_check(actions.is_active() and not stove.is_burning(), "manual ignition auto-completed without LMB")
+	_check(is_equal_approx(clock.get_total_hours(), before_light), "manual ignition billed before a successful strike")
+
+	_check(feed.attempt_lighter_strike(10.0) == HeatSourceFeed.StrikeResult.SPARK, "first deliberate strike did not spark")
+	_check(strike_events.size() == 1 and not strike_events[0], "first strike VFX/signal contract is wrong")
+	_check(feed.attempt_lighter_strike(10.1, true) == HeatSourceFeed.StrikeResult.LOCKED, "double-click did not start lockout")
+	_check(lockout_events.size() == 1 and is_equal_approx(lockout_events[0], 5.0), "lockout duration is not five seconds")
+	_check(strike_events.size() == 1, "double-click incorrectly emitted another strike effect")
+	_check(feed.attempt_lighter_strike(12.0) == HeatSourceFeed.StrikeResult.LOCKED, "click during lockout was accepted")
+	_check(strike_events.size() == 1, "lockout click produced spark/VFX")
+	_check(feed.get_lighter_lockout_remaining(12.0) > 2.9, "lockout remaining time is wrong")
+
+	_check(feed.attempt_lighter_strike(15.2) == HeatSourceFeed.StrikeResult.SPARK, "first post-lockout strike did not spark")
+	_check(feed.attempt_lighter_strike(15.6) == HeatSourceFeed.StrikeResult.SPARK, "second post-lockout strike did not spark")
+	_check(feed.attempt_lighter_strike(16.0) == HeatSourceFeed.StrikeResult.IGNITED, "third normal strike did not guarantee ignition")
+	_check(strike_events.size() == 4 and strike_events.back(), "successful strike did not emit flame result")
+	_check(not actions.is_active(), "successful strike left manual action active")
 	if player_state != null:
-		_check(player_state.mode == player_state.Mode.ON_FOOT, "stove ignition did not restore PlayerState")
-	_check(stove.is_burning() and visual.is_glowing(), "ignition did not create heat and light")
+		_check(player_state.mode == player_state.Mode.ON_FOOT, "successful ignition did not restore PlayerState")
+	_check(stove.is_burning() and visual.is_glowing(), "successful lighter flame did not ignite the stove")
 	_check(is_equal_approx(clock.get_total_hours() - before_light, feed.light_time_cost_minutes / 60.0),
-		"stove ignition billed the wrong game time")
+		"successful manual ignition billed the wrong game time")
 	_check(inventory.has_item(&"lighter"), "reusable lighter was consumed")
 	await create_timer(0.4).timeout
 	_check(not visual.is_door_open(), "door did not close after ignition")

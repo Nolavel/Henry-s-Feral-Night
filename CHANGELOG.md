@@ -5,6 +5,29 @@ Maintained per branch; entries are added by whoever makes the change.
 
 ## [Unreleased] — `codex`
 
+### 2026-09-28 — Manual lighter ignition ritual (codex)
+
+Changed
+- Stove ignition is now event-driven: F prepares the lighter and each deliberate LMB press performs
+  one strike instead of the old automatic five-second catch.
+- A rapid accidental double-click starts a five-second input lockout. During lockout clicks produce
+  no strike animation, spark or light and cannot ignite the stove.
+- Normal strikes have authored first/second-attempt chances and are guaranteed by the third clean
+  strike by default, keeping occasional third-attempt catches without allowing endless bad luck.
+- Every accepted strike produces a short local spark/light VFX at Henry's hand socket when available,
+  with the stove interaction anchor as a fallback. A successful strike adds a slightly stronger,
+  longer lighter-flame flash before the stove takes over.
+- `TimeCostedActionSystem` now supports event-driven actions through `start_manual_action()` and
+  `complete_active()`; the declared game-time cost is billed only when gameplay reports success.
+- Stove visuals no longer grow a fake pre-ignition flame on a timer.
+
+Tests
+- manual actions do not complete or bill from elapsed real time and bill exactly once on explicit completion;
+- stove ignition stays in WORKING until a successful lighter strike;
+- double-click lockout lasts five seconds and emits no strike effect;
+- lockout clicks cannot ignite; three clean post-lockout strikes guarantee the configured catch;
+- successful ignition restores PlayerState and bills the existing authored ignition time.
+
 ### 2026-09-28 — Staged one-log stove refueling (#131 PR D follow-up) (codex)
 
 Changed

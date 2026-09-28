@@ -58,6 +58,15 @@ func start_action(request: TimeActionRequest) -> bool:
 	return true
 
 
+## Starts an event-driven action. It owns PlayerState/realtime blocking like any
+## other action, but gameplay decides when the action succeeds.
+func start_manual_action(request: TimeActionRequest) -> bool:
+	if not _can_start(request) or request.presentation_seconds > 0.0:
+		return false
+	_begin(request)
+	return true
+
+
 ## Runs an action entirely in simulation time. Sleep/wait use this so eight
 ## hours never require eight hours of real-time presentation.
 func run_to_completion(request: TimeActionRequest) -> Dictionary:
@@ -90,12 +99,37 @@ func cancel(reason: StringName = &"cancelled") -> bool:
 	return true
 
 
+## Completes the current event-driven action and bills its remaining declared
+## game-time cost through the same deterministic clock path.
+func complete_active() -> bool:
+	if _active == null:
+		return false
+	var stop_reason: StringName = _stop_reason()
+	if stop_reason != &"":
+		_cancel_internal(stop_reason)
+		return false
+	while _active != null and _elapsed_hours < _effective_duration_hours - 0.000001:
+		var slice: float = minf(_active.simulation_step_hours, _effective_duration_hours - _elapsed_hours)
+		if not _bill(slice):
+			_cancel_internal(&"clock_refused")
+			return false
+		stop_reason = _stop_reason()
+		if stop_reason != &"":
+			_cancel_internal(stop_reason)
+			return false
+	if _active != null:
+		_complete_internal()
+	return _last_end_reason == &""
+
+
 func _process(delta: float) -> void:
-	if _active == null or _effective_presentation_seconds <= 0.0:
+	if _active == null:
 		return
 	var stop_reason: StringName = _stop_reason()
 	if stop_reason != &"":
 		_cancel_internal(stop_reason)
+		return
+	if _effective_presentation_seconds <= 0.0:
 		return
 
 	_elapsed_seconds = minf(_effective_presentation_seconds, _elapsed_seconds + maxf(delta, 0.0))

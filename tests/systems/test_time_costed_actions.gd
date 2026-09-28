@@ -23,6 +23,7 @@ func _process(_delta: float) -> bool:
 	_test_instant_exact_time()
 	_test_early_stop()
 	_test_staged_action_blocks_realtime()
+	_test_manual_action_completion()
 	_test_cancel_releases_clock()
 	_test_player_mode_and_callbacks()
 	_test_non_interruptible_action()
@@ -107,6 +108,37 @@ func _test_staged_action_blocks_realtime() -> void:
 	_check(not actions.is_active(), "staged action did not complete")
 	_check(is_equal_approx(clock.get_total_hours(), before + 0.5), "staged action did not bill declared duration")
 	_check(not clock.is_realtime_blocked(), "staged completion left realtime blocked")
+	_dispose_rig(rig)
+
+
+func _test_manual_action_completion() -> void:
+	var state: Node = root.get_node_or_null(^"PlayerState")
+	if state != null:
+		state.set_mode(state.Mode.ON_FOOT)
+	var rig: Dictionary = _rig()
+	var clock := rig["clock"] as SimulationClock
+	var actions := rig["actions"] as TimeCostedActionSystem
+	var completed: Array[float] = []
+	var request := TimeActionRequest.new()
+	request.action_id = &"ignite"
+	request.duration_hours = 0.05
+	request.reason = &"ignite"
+	request.simulation_step_hours = 0.01
+	request.player_mode = state.Mode.WORKING if state != null else -1
+	request.on_complete = func(elapsed: float) -> void: completed.append(elapsed)
+	var before: float = clock.get_total_hours()
+	_check(actions.start_manual_action(request), "manual action refused to start")
+	actions._process(10.0)
+	_check(actions.is_active(), "manual action completed from elapsed real time")
+	_check(is_equal_approx(clock.get_total_hours(), before), "manual action billed before gameplay completion")
+	if state != null:
+		_check(state.mode == state.Mode.WORKING, "manual action did not enter WORKING")
+	_check(actions.complete_active(), "manual action refused gameplay completion")
+	_check(not actions.is_active(), "completed manual action stayed active")
+	_check(is_equal_approx(clock.get_total_hours(), before + 0.05), "manual completion did not bill declared duration")
+	_check(completed.size() == 1 and is_equal_approx(completed[0], 0.05), "manual completion callback was wrong")
+	if state != null:
+		_check(state.mode == state.Mode.ON_FOOT, "manual completion did not restore PlayerState")
 	_dispose_rig(rig)
 
 
