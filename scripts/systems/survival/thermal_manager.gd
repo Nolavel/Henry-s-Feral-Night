@@ -176,7 +176,7 @@ func _connect_probe() -> void:
 ## the exported fallback otherwise.
 func get_insulation_c() -> float:
 	if equipment != null:
-		return equipment.get_total_insulation_c()
+		return equipment.get_effective_insulation_c()
 	return clothing_insulation_c
 
 
@@ -213,27 +213,34 @@ func get_stage() -> Stage:
 
 
 func get_wetness() -> float:
+	if equipment != null:
+		return equipment.get_average_wetness()
 	return _wetness
 
 
 func get_wetness_stage() -> WetnessStage:
-	if _wetness < 0.05:
+	var wetness: float = get_wetness()
+	if wetness < 0.05:
 		return WetnessStage.DRY
-	if _wetness < 0.35:
+	if wetness < 0.35:
 		return WetnessStage.DAMP
-	if _wetness < 0.75:
+	if wetness < 0.75:
 		return WetnessStage.WET
 	return WetnessStage.SOAKED
 
 
 ## Fraction of dry insulation still working at the current global clothing wetness.
 func get_wetness_insulation_multiplier() -> float:
+	if equipment != null:
+		var dry: float = equipment.get_total_insulation_c()
+		return clampf(equipment.get_effective_insulation_c() / dry, 0.0, 1.0) if dry > 0.001 else 1.0
 	return clampf(1.0 - _wetness * wetness_insulation_penalty, 0.0, 1.0)
 
 
 ## True only when the next wetness step would actually dry clothing.
 func is_clothing_drying() -> bool:
-	if _wetness <= 0.01 or get_drying_rate_per_hour() <= 0.001:
+	var wet: bool = equipment.has_wet_garments() if equipment != null else _wetness > 0.01
+	if not wet or _drying_warmth() <= 0.001:
 		return false
 	if not is_sheltered() and weather_controller != null and weather_controller.get_wetness_rate_per_hour() > 0.0:
 		return false
@@ -255,6 +262,10 @@ func set_exertion(value: float) -> void:
 
 ## Soaks clothing, for falling through ice or standing in heavy snowfall.
 func add_wetness(amount: float) -> void:
+	if equipment != null:
+		equipment.add_wetness_all(amount)
+		_set_wetness(equipment.get_average_wetness())
+		return
 	_set_wetness(_wetness + amount)
 
 
@@ -358,7 +369,8 @@ func _compute_felt_temperature(current_hour: float) -> float:
 	felt += zone_offset
 
 	var capped_wind: float = minf(wind, wind_chill_cap_mps)
-	felt -= capped_wind * wind_chill_per_mps * exposure
+	var clothing_wind_factor: float = 1.0 - (equipment.get_wind_protection() if equipment != null else 0.0)
+	felt -= capped_wind * wind_chill_per_mps * exposure * clothing_wind_factor
 
 	for source: HeatSource in HeatSource.get_all():
 		felt += source.get_offset_at(global_position)
@@ -369,7 +381,9 @@ func _compute_felt_temperature(current_hour: float) -> float:
 
 ## Moves body temperature toward the felt temperature through insulation.
 func _integrate_body_temperature(hours: float) -> void:
-	var insulation: float = get_insulation_c() * (1.0 - _wetness * wetness_insulation_penalty)
+	var insulation: float = get_insulation_c()
+	if equipment == null:
+		insulation *= 1.0 - _wetness * wetness_insulation_penalty
 	var effective: float = _felt_temp_c + insulation + basal_heat_c
 	var deficit: float = comfort_temp_c - effective
 	var previous: float = _body_temp_c
@@ -393,20 +407,28 @@ func _integrate_body_temperature(hours: float) -> void:
 ## Soaks clothing in exposed snowfall, dries it in warm shelter.
 func _update_wetness(hours: float, _current_hour: float) -> void:
 	var sheltered: bool = is_sheltered()
+	var exposure_rate: float = 0.0
 	if not sheltered and weather_controller != null:
-		var rate: float = weather_controller.get_wetness_rate_per_hour()
-		if rate > 0.0:
-			_set_wetness(_wetness + rate * hours)
-			return
-	## Out of the precipitation, clothes dry as fast as the warmth allows: a
-	## stove dries them, a cold boarded room barely does, frost never does.
+		exposure_rate = maxf(weather_controller.get_wetness_rate_per_hour(), 0.0)
+
+	if equipment != null:
+		equipment.advance_garment_moisture(hours, exposure_rate, _drying_warmth())
+		_set_wetness(equipment.get_average_wetness())
+		return
+
+	if exposure_rate > 0.0:
+		_set_wetness(_wetness + exposure_rate * hours)
+		return
 	_set_wetness(_wetness - get_drying_rate_per_hour() * hours)
 
 
 ## Wetness shed per game hour at the current felt temperature.
 func get_drying_rate_per_hour() -> float:
-	var warmth: float = clampf(inverse_lerp(drying_starts_c, drying_full_c, _felt_temp_c), 0.0, 1.0)
-	return drying_rate_per_hour * warmth
+	return drying_rate_per_hour * _drying_warmth()
+
+
+func _drying_warmth() -> float:
+	return clampf(inverse_lerp(drying_starts_c, drying_full_c, _felt_temp_c), 0.0, 1.0)
 
 
 ## Reads the ambient air temperature curve for the given hour of day.
