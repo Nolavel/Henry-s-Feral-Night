@@ -61,6 +61,12 @@ func get_add_refusal(item: ItemResource, count: int = 1) -> StringName:
 ## Adds one item, stacking where the item allows it. Hands-only loads obey their
 ## visible carry limit and never coexist with a different two-hand load.
 func try_add(item: ItemResource) -> bool:
+	return try_add_instance(item)
+
+
+## Adds one physical non-stackable item with optional runtime state. Stackable
+## items ignore instance state by design because one stack is not one instance.
+func try_add_instance(item: ItemResource, instance_state: Dictionary = {}) -> bool:
 	if item == null:
 		return false
 	var refusal: StringName = get_add_refusal(item)
@@ -76,7 +82,10 @@ func try_add(item: ItemResource) -> bool:
 			weight_changed.emit(get_total_weight(), max_carry_weight)
 			return true
 
-	_entries.append({"item": item, "count": 1})
+	var entry: Dictionary = {"item": item, "count": 1}
+	if item.max_stack == 1 and not instance_state.is_empty():
+		entry["instance_state"] = instance_state.duplicate(true)
+	_entries.append(entry)
 	item_added.emit(item, 1)
 	weight_changed.emit(get_total_weight(), max_carry_weight)
 	return true
@@ -97,6 +106,25 @@ func try_remove(item_id: StringName) -> bool:
 		weight_changed.emit(get_total_weight(), max_carry_weight)
 		return true
 	return false
+
+
+## Removes one physical item and returns its optional runtime state.
+## Used by equipment transfers so garment wetness/condition travel with it.
+func take_instance(item_id: StringName) -> Dictionary:
+	for index: int in range(_entries.size()):
+		var entry: Dictionary = _entries[index]
+		var stored: ItemResource = entry["item"]
+		if stored.id != item_id:
+			continue
+		var state: Dictionary = (entry.get("instance_state", {}) as Dictionary).duplicate(true)
+		entry["count"] = int(entry["count"]) - 1
+		var remaining: int = int(entry["count"])
+		if remaining <= 0:
+			_entries.remove_at(index)
+		item_removed.emit(stored, maxi(0, remaining))
+		weight_changed.emit(get_total_weight(), max_carry_weight)
+		return {"item": stored, "instance_state": state}
+	return {}
 
 
 func get_count(item_id: StringName) -> int:
@@ -145,12 +173,16 @@ func get_load_fraction() -> float:
 	return clampf(get_total_weight() / max_carry_weight, 0.0, 1.0)
 
 
-## Carried items as {id, count} pairs, for a HUD or a debug readout.
+## Carried items as {id, count} pairs; non-stackable entries may also expose
+## instance_state for equipment transfer/debug presentation.
 func get_entries() -> Array[Dictionary]:
 	var out: Array[Dictionary] = []
 	for entry: Dictionary in _entries:
 		var stored: ItemResource = entry["item"]
-		out.append({"id": stored.id, "count": entry["count"]})
+		var data: Dictionary = {"id": stored.id, "count": entry["count"]}
+		if entry.has("instance_state"):
+			data["instance_state"] = (entry["instance_state"] as Dictionary).duplicate(true)
+		out.append(data)
 	return out
 
 
@@ -162,7 +194,10 @@ func get_save_data() -> Dictionary:
 	var stacks: Array = []
 	for entry: Dictionary in _entries:
 		var stored: ItemResource = entry["item"]
-		stacks.append({"id": String(stored.id), "count": int(entry["count"])})
+		var stack: Dictionary = {"id": String(stored.id), "count": int(entry["count"])}
+		if entry.has("instance_state"):
+			stack["instance_state"] = (entry["instance_state"] as Dictionary).duplicate(true)
+		stacks.append(stack)
 	return {"stacks": stacks}
 
 
@@ -183,5 +218,9 @@ func load_save_data(data: Dictionary) -> void:
 				continue
 			carried_id = item.id
 			count = mini(count, item.hand_carry_limit)
-		_entries.append({"item": item, "count": count})
+		var entry: Dictionary = {"item": item, "count": count}
+		var saved_state: Variant = stack.get("instance_state", {})
+		if item.max_stack == 1 and typeof(saved_state) == TYPE_DICTIONARY and not (saved_state as Dictionary).is_empty():
+			entry["instance_state"] = (saved_state as Dictionary).duplicate(true)
+		_entries.append(entry)
 	weight_changed.emit(get_total_weight(), max_carry_weight)
