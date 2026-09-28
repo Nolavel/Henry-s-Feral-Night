@@ -689,6 +689,13 @@ Required:
 
 # 7. Phase 5 — Clothing layers and per-instance garment state
 
+> **Implementation status (codex, 2026-09-28): complete foundation.** Henry's live layout now
+> supports layered body regions; static garment protection remains immutable definition data;
+> wetness/condition are per-instance and survive equipment/inventory save transfers; moisture
+> propagates outside-in; EquipmentComponent exposes effective insulation/wind/water protection and
+> ThermalManager consumes those aggregates. Existing `equipment` / `inventory` save keys remain
+> compatible through additive fields and explicit legacy slot migration.
+
 ## 7.1 Current base
 
 Current `GarmentData` already defines:
