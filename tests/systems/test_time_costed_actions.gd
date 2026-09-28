@@ -24,6 +24,8 @@ func _process(_delta: float) -> bool:
 	_test_early_stop()
 	_test_staged_action_blocks_realtime()
 	_test_cancel_releases_clock()
+	_test_player_mode_and_callbacks()
+	_test_non_interruptible_action()
 	if _failures > 0:
 		push_error("time-costed actions: %d check(s) failed" % _failures)
 		quit(1)
@@ -108,21 +110,92 @@ func _test_staged_action_blocks_realtime() -> void:
 	_dispose_rig(rig)
 
 
+func _test_player_mode_and_callbacks() -> void:
+	var state: Node = root.get_node_or_null(^"PlayerState")
+	_check(state != null, "PlayerState autoload missing")
+	if state == null:
+		return
+	state.set_mode(state.Mode.ON_FOOT)
+
+	var rig: Dictionary = _rig()
+	var actions := rig["actions"] as TimeCostedActionSystem
+	var completed: Array[float] = []
+	var seen_modes: Array[int] = []
+	var progress: Array[float] = []
+	actions.action_started.connect(
+		func(_id: StringName, _duration: float) -> void: seen_modes.append(int(state.mode))
+	)
+	actions.action_progress.connect(
+		func(_id: StringName, value: float) -> void: progress.append(value)
+	)
+
+	var request := TimeActionRequest.new()
+	request.action_id = &"sleep"
+	request.duration_hours = 1.0
+	request.reason = &"sleep"
+	request.player_mode = state.Mode.SLEEPING
+	request.interruptible = false
+	request.on_complete = func(elapsed: float) -> void: completed.append(elapsed)
+
+	var result: Dictionary = actions.run_to_completion(request)
+	_check(bool(result["completed"]), "sleep action did not complete")
+	_check(seen_modes.size() == 1 and seen_modes[0] == state.Mode.SLEEPING, "action_started did not observe SLEEPING mode")
+	_check(state.mode == state.Mode.ON_FOOT, "completed action did not restore prior PlayerState")
+	_check(completed.size() == 1 and is_equal_approx(completed[0], 1.0), "on_complete did not run exactly once")
+	_check(not progress.is_empty() and is_equal_approx(progress.back(), 1.0), "progress did not finish at 1.0")
+	_dispose_rig(rig)
+
+
+func _test_non_interruptible_action() -> void:
+	var state: Node = root.get_node_or_null(^"PlayerState")
+	if state == null:
+		return
+	state.set_mode(state.Mode.ON_FOOT)
+
+	var rig: Dictionary = _rig()
+	var actions := rig["actions"] as TimeCostedActionSystem
+	var request := TimeActionRequest.new()
+	request.action_id = &"sleep"
+	request.duration_hours = 1.0
+	request.presentation_seconds = 4.0
+	request.reason = &"sleep"
+	request.player_mode = state.Mode.SLEEPING
+	request.interruptible = false
+	_check(actions.start_action(request), "non-interruptible staged action refused to start")
+	_check(state.mode == state.Mode.SLEEPING, "staged sleep did not enter SLEEPING")
+	_check(not actions.cancel(&"user_cancel"), "non-interruptible sleep accepted cancellation")
+	actions._process(4.0)
+	_check(not actions.is_active(), "non-interruptible sleep did not finish")
+	_check(state.mode == state.Mode.ON_FOOT, "non-interruptible completion did not restore PlayerState")
+	_dispose_rig(rig)
+
+
 func _test_cancel_releases_clock() -> void:
 	var rig: Dictionary = _rig()
 	var clock := rig["clock"] as SimulationClock
 	var actions := rig["actions"] as TimeCostedActionSystem
+	var state: Node = root.get_node_or_null(^"PlayerState")
+	if state != null:
+		state.set_mode(state.Mode.ON_FOOT)
+	var cancelled: Array[StringName] = []
 	var request := TimeActionRequest.new()
 	request.action_id = &"chop"
 	request.duration_hours = 0.5
 	request.presentation_seconds = 4.0
 	request.reason = &"chop"
 	request.simulation_step_hours = 0.25
+	request.player_mode = state.Mode.WORKING if state != null else -1
+	request.on_cancel = func(_elapsed: float, why: StringName) -> void: cancelled.append(why)
 	actions.start_action(request)
+	if state != null:
+		_check(state.mode == state.Mode.WORKING, "working action did not enter WORKING mode")
 	actions._process(1.0)
 	_check(actions.cancel(&"moved"), "interruptible action refused cancellation")
 	_check(not actions.is_active(), "cancelled action stayed active")
 	_check(not clock.is_realtime_blocked(), "cancelled action left realtime blocked")
+	_check(cancelled.size() == 1 and cancelled[0] == &"moved", "on_cancel did not run exactly once with reason")
+	if state != null:
+		_check(state.mode == state.Mode.ON_FOOT, "cancelled action did not restore PlayerState")
 	_check(clock.advance_hours(0.25, SimulationClock.REALTIME_REASON), "realtime did not resume after cancel")
 	_dispose_rig(rig)
 
