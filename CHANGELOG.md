@@ -5,6 +5,32 @@ Maintained per branch; entries are added by whoever makes the change.
 
 ## [Unreleased] — `codex`
 
+### 2026-09-28 — Split BioMonitor into Hunger / Hydration / Fatigue (#131 phase 3) (codex)
+
+Changed
+- `HungerComponent`, `HydrationComponent` and `FatigueComponent` are the only owners of their
+  runtime values, previous values, critical state and per-track drain/recovery rules.
+- `BioMonitorManager` is now a compatibility facade / SimulationClock coordinator / save adapter:
+  legacy properties, methods and HUD signals proxy the three components instead of storing a second copy.
+- Production metabolism has exactly one ticking path: `SimulationClock → BioMonitorManager.advance_simulation()`.
+  The old DayNight `dn_manager/_on_time_changed` path and scene overrides were removed.
+- Fatigue reads an optional status-modifier contract without compiling against the Affliction layer,
+  keeping phase 3 independent from phase 4.
+
+Compatibility
+- Save key remains `bio`.
+- Save payload remains exactly `{ calories, hydration, energy }`; old payloads load into the new
+  components without a save-version bump.
+- Existing HUD and gameplay callers can continue using BioMonitorManager's legacy properties/signals.
+
+Tests
+- Real player composition proves the facade resolves the three sibling components.
+- Legacy save shape/round-trip is unchanged.
+- 24 × 1 h and 96 × 0.25 h metabolism are equivalent.
+- Carry load affects Fatigue only; adding calories does not mutate Hydration.
+- Sleep still bills Hunger/Hydration while restoring Fatigue.
+- One SimulationClock hour produces exactly four quarter-hour updates and no legacy DayNight tick exists.
+
 ### 2026-09-28 — Time-costed Action System (#131 phase 2) (codex)
 
 Added
