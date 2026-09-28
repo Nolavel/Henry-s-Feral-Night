@@ -57,7 +57,7 @@ var _debug_label: Label = null
 var _was_on_floor_last_frame: bool = false
 var _crouching: bool = false
 var _carry_inventory: InventoryComponent
-var _afflictions: AfflictionComponent
+var _status_provider: Node
 
 func _ready() -> void:
 	if walk_speed <= 0.0:
@@ -217,9 +217,13 @@ func get_load_speed_multiplier() -> float:
 
 
 func get_status_speed_multiplier() -> float:
-	if _afflictions == null and get_parent() != null:
-		_afflictions = get_parent().get_node_or_null(^"AfflictionComponent") as AfflictionComponent
-	return _afflictions.get_multiplier(&"movement_speed_multiplier") if _afflictions != null else 1.0
+	if _status_provider == null and get_parent() != null:
+		var candidate: Node = get_parent().get_node_or_null(^"AfflictionComponent")
+		if candidate != null and candidate.has_method(&"get_multiplier"):
+			_status_provider = candidate
+	if _status_provider == null:
+		return 1.0
+	return maxf(float(_status_provider.call(&"get_multiplier", &"movement_speed_multiplier")), 0.0)
 
 
 func get_load_accel_multiplier() -> float:
