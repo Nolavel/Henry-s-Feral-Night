@@ -118,6 +118,7 @@ func try_wait(hours: float) -> float:
 		request.duration_hours = hours
 		request.reason = &"wait"
 		request.simulation_step_hours = 0.25
+		request.player_mode = _resolve_player_mode(&"WORKING")
 		request.stop_check = _wait_stop_reason
 		var result: Dictionary = action_system.run_to_completion(request)
 		var elapsed: float = float(result.get("elapsed_hours", 0.0))
@@ -188,6 +189,7 @@ func _run_sleep_action(hours: float) -> bool:
 		request.reason = &"sleep"
 		request.interruptible = false
 		request.simulation_step_hours = 0.25
+		request.player_mode = _resolve_player_mode(&"SLEEPING")
 		var result: Dictionary = action_system.run_to_completion(request)
 		return bool(result.get("completed", false)) 			and is_equal_approx(float(result.get("elapsed_hours", 0.0)), hours)
 	_advance_world(hours)
@@ -231,6 +233,20 @@ func _advance_wait_legacy(hours: float) -> void:
 		thermal_manager._on_time_update(start)
 		thermal_manager._on_time_update(_current_hour())
 		thermal_manager.reset_clock()
+
+
+## Resolves the authoritative PlayerState enum without defining a parallel enum
+## in the action/sleep systems.
+func _resolve_player_mode(mode_name: StringName) -> int:
+	var state: Node = get_node_or_null(^"/root/PlayerState")
+	if state == null:
+		return -1
+	var script: Script = state.get_script() as Script
+	if script == null:
+		return -1
+	var constants: Dictionary = script.get_script_constant_map()
+	var modes: Dictionary = constants.get("Mode", {})
+	return int(modes.get(String(mode_name), -1))
 
 
 func _current_hour() -> float:
