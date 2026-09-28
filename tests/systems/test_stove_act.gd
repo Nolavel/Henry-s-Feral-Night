@@ -11,9 +11,9 @@ func _initialize() -> void:
 
 
 func _run() -> void:
-	var state: Node = root.get_node_or_null(^"PlayerState")
-	if state != null:
-		state.set_mode(state.Mode.ON_FOOT)
+	var player_state: Node = root.get_node_or_null(^"PlayerState")
+	if player_state != null:
+		player_state.set_mode(player_state.Mode.ON_FOOT)
 
 	var clock := SimulationClock.new()
 	root.add_child(clock)
@@ -50,12 +50,12 @@ func _run() -> void:
 	var before_light: float = clock.get_total_hours()
 	_check(feed.begin_act() == HeatSourceFeed.Refusal.NONE and feed.is_acting(), "lighter did not start ignition")
 	_check(actions.get_active_action_id().begins_with("light_stove:"), "stove bypassed TimeCostedActionSystem")
-	if state != null:
-		_check(state.mode == state.Mode.WORKING, "stove ignition did not enter WORKING mode")
+	if player_state != null:
+		_check(player_state.mode == player_state.Mode.WORKING, "stove ignition did not enter WORKING mode")
 	_check(not feed.can_interact() and not stove.is_burning(), "fire took before ignition finished")
 	actions._process(HeatSourceFeed.LIGHT_SECONDS)
-	if state != null:
-		_check(state.mode == state.Mode.ON_FOOT, "stove ignition did not restore PlayerState")
+	if player_state != null:
+		_check(player_state.mode == player_state.Mode.ON_FOOT, "stove ignition did not restore PlayerState")
 	_check(stove.is_burning() and visual.is_glowing(), "ignition did not create heat and light")
 	_check(is_equal_approx(clock.get_total_hours() - before_light, feed.light_time_cost_minutes / 60.0),
 		"stove ignition billed the wrong game time")
