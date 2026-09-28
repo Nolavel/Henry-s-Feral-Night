@@ -353,9 +353,14 @@ func _test_stove() -> void:
 	_check_target(feed, "stove with solid hull")
 	_press(&"interact")
 	_check(not source.is_burning() and _inventory.get_count(&"firewood") == 3, "opening consumed logs or ignited stove")
+
 	_press(&"interact")
-	_check(not source.is_burning() and is_equal_approx(source.get_remaining_hours(), 6), "cold load did not store three logs")
-	_check(_inventory.get_count(&"firewood") == 0 and stove_visual.get_visible_log_count() == 3, "logs did not move from hands into firebox")
+	_check(feed.is_acting(), "cold one-log load did not start")
+	_actions._process(HeatSourceFeed.ADD_SECONDS)
+	_check(not source.is_burning() and is_equal_approx(source.get_remaining_hours(), 2), "cold one-log load stored wrong fuel")
+	_check(_inventory.get_count(&"firewood") == 2 and stove_visual.get_visible_log_count() == 1,
+		"cold one-log load did not move exactly one log into firebox")
+
 	while _inventory.has_item(&"lighter"):
 		_inventory.try_remove(&"lighter")
 	var before: float = source.get_remaining_hours()
@@ -363,11 +368,23 @@ func _test_stove() -> void:
 	_check(not feed.is_acting() and is_equal_approx(source.get_remaining_hours(), before), "missing lighter spent loaded fuel")
 	var feedback: String = String(feed.get_interaction_prompt_data()["detail"])
 	_check(feedback == feed.tr("STOVE_NEED_LIGHTER"), "refusal did not reach the central prompt")
+
 	_inventory.try_add(ItemCatalog.get_item(&"lighter"))
 	_press(&"interact")
 	_check(feed.is_acting() and not source.is_burning(), "ignition skipped the lighting act")
 	_actions._process(HeatSourceFeed.LIGHT_SECONDS)
 	_check(source.is_burning() and stove_visual.is_glowing(), "lighting finished without flame and heat")
+
+	_press(&"interact") # reopen hot stove
+	_press(&"interact") # second log
+	_check(feed.is_acting(), "first hot top-up did not start")
+	_actions._process(HeatSourceFeed.ADD_SECONDS)
+	_check(_inventory.get_count(&"firewood") == 1, "first hot top-up consumed wrong number of logs")
+	_press(&"interact") # third log
+	_check(feed.is_acting(), "second hot top-up did not start")
+	_actions._process(HeatSourceFeed.ADD_SECONDS)
+	_check(_inventory.get_count(&"firewood") == 0 and stove_visual.get_visible_log_count() == 3,
+		"two hot top-ups did not fill the stove one log at a time")
 	var zone: ThermalZone = _house.get_node(^"ShelterZone") as ThermalZone
 	var temp: float = zone.get_total_offset_c()
 	zone.advance_heating(1.0 / 60.0)
