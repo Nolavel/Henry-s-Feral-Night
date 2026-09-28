@@ -939,6 +939,7 @@ Do not implement the epic as one PR.
 - [ ] repair — waiting for a real gameplay owner/tool/material contract;
 - [x] boarding;
 - [x] stove ignition (existing shelter work consumer);
+- [x] shelter furniture dismantling (existing shelter work consumer);
 - one action at a time.
 
 ### PR E — Metabolism split
