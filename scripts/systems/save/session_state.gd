@@ -6,20 +6,17 @@ extends Node
 
 ## Looked up through the world context, never by node path.
 const DAY_NIGHT_SCRIPT: GDScript = preload("res://scripts/systems/world/DayNightManager.gd")
-const THERMAL_SCRIPT: GDScript = preload("res://scripts/systems/survival/thermal_manager.gd")
-const WEATHER_SCRIPT: GDScript = preload("res://scripts/systems/world/WeatherController.gd")
+const SIMULATION_CLOCK_SCRIPT: GDScript = preload("res://scripts/systems/time/simulation_clock.gd")
 
 var _player: Node3D
-var _clock: DayNightManager
-var _thermal: ThermalManager
-var _weather: WeatherController
+var _clock: SimulationClock
+var _day_night: DayNightManager
 
 
 func on_world_ready(context: WorldContext) -> void:
 	_player = context.player
-	_clock = context.find_in_scene(DAY_NIGHT_SCRIPT) as DayNightManager
-	_thermal = context.get_system(THERMAL_SCRIPT) as ThermalManager
-	_weather = context.get_system(WEATHER_SCRIPT) as WeatherController
+	_clock = context.get_system(SIMULATION_CLOCK_SCRIPT) as SimulationClock
+	_day_night = context.find_in_scene(DAY_NIGHT_SCRIPT) as DayNightManager
 
 
 ## Key this system owns in a save file, stated explicitly so renaming the
@@ -31,7 +28,9 @@ func get_save_key() -> StringName:
 func get_save_data() -> Dictionary:
 	var data: Dictionary = {}
 	if _clock != null:
-		data["game_hours"] = _clock.total_game_time_hours
+		data["game_hours"] = _clock.get_total_hours()
+	elif _day_night != null:
+		data["game_hours"] = _day_night.total_game_time_hours
 	if _player != null and _player.is_inside_tree():
 		var at: Vector3 = _player.global_position
 		data["player_position"] = [at.x, at.y, at.z]
@@ -40,13 +39,12 @@ func get_save_data() -> Dictionary:
 
 
 func load_save_data(data: Dictionary) -> void:
-	if _clock != null and data.has("game_hours"):
-		_clock.total_game_time_hours = float(data["game_hours"])
-		## The clock jumped; the hour trackers must not bill the jump as elapsed.
-		if _thermal != null:
-			_thermal.reset_clock()
-		if _weather != null:
-			_weather.reset_clock()
+	if data.has("game_hours"):
+		var hours: float = float(data["game_hours"])
+		if _clock != null:
+			_clock.set_total_hours(hours, &"load")
+		elif _day_night != null:
+			_day_night.total_game_time_hours = hours
 	if _player != null and _player.is_inside_tree() and data.has("player_position"):
 		var at: Array = data["player_position"]
 		if at.size() == 3:
