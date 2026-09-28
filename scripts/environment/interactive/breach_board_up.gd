@@ -259,6 +259,7 @@ func _commit_board() -> void:
 		request.reason = &"board_window"
 		request.actor = get_tree().get_first_node_in_group(&"player")
 		request.target = breach
+		request.player_mode = _resolve_player_mode(&"WORKING")
 		request.interruptible = false
 		var result: Dictionary = actions.run_to_completion(request)
 		paid = bool(result.get("completed", false))
@@ -341,6 +342,18 @@ func _make_hand_board() -> Node3D:
 	mesh_instance.mesh = mesh
 	root.add_child(mesh_instance)
 	return root
+
+
+func _resolve_player_mode(mode_name: StringName) -> int:
+	var state: Node = get_node_or_null(^"/root/PlayerState")
+	if state == null:
+		return -1
+	var script: Script = state.get_script() as Script
+	if script == null:
+		return -1
+	var constants: Dictionary = script.get_script_constant_map()
+	var modes: Dictionary = constants.get("Mode", {})
+	return int(modes.get(String(mode_name), -1))
 
 
 func _actions() -> TimeCostedActionSystem:
