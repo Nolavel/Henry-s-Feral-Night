@@ -128,6 +128,7 @@ func _run() -> void:
 	_check(not feed.is_acting(), "full stove incorrectly started another feed action")
 	_check(inventory.get_count(&"firewood") == 1, "full stove wasted a log")
 	_check(is_equal_approx(stove.get_remaining_hours(), near_full), "closing full stove changed fuel")
+	await create_timer(0.4).timeout
 	_check(not visual.is_door_open(), "full stove interaction did not close door")
 
 	## After roughly one log burns, exactly one carried log can be added.
