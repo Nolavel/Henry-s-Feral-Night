@@ -555,6 +555,12 @@ Required:
 
 # 6. Phase 4 — Status / Affliction layer
 
+> **Implementation status (codex, 2026-09-28): complete foundation.** Hypothermia,
+> dehydration and exhaustion are persistent player-owned states driven by factual source-system
+> thresholds. Definitions remain immutable Resources; runtime state is saveable under `afflictions`;
+> consumers read named modifiers instead of afflictions mutating other systems. Starvation remains
+> intentionally deferred until playtest evidence says it adds a useful consequence.
+
 ## 6.1 Goal
 
 Convert survival threshold crossings into durable gameplay consequences without hard-wiring every system to every other system.
