@@ -12,7 +12,7 @@ signal fuel_added(source: HeatSource, remaining_hours: float)
 signal feed_refused(reason: Refusal)
 
 ## Why a feed attempt was turned down.
-enum Refusal { NONE, NO_SOURCE, ALREADY_FULL, NO_FUEL, NO_TINDER, NO_INVENTORY, NO_LIGHTER }
+enum Refusal { NONE, NO_SOURCE, ALREADY_FULL, NO_FUEL, NO_TINDER, NO_INVENTORY, NO_LIGHTER, BUSY }
 
 ## Label shown over the fire, resolved through localisation.
 const PROMPT_KEY: String = "FEED_PROMPT"
@@ -35,10 +35,16 @@ const ADD_SECONDS: float = 2.0
 ## Units of fuel one item is worth, through HeatSource.hours_per_fuel_unit.
 @export var units_per_item: float = 1.0
 
+@export_group("Work time")
+## Lighting keeps the existing five-second animation; this is its game-time cost.
+@export_range(0.1, 60.0, 0.1) var light_time_cost_minutes: float = 2.0
+
 var _inventory: InventoryComponent
 var _act_left: float = 0.0
 var _act_lighting: bool = false
 var _door_open: bool = false
+var _action_managed: bool = false
+var _action_id: StringName = &""
 
 
 func _ready() -> void:
@@ -108,10 +114,29 @@ func begin_act() -> Refusal:
 		return Refusal.NO_LIGHTER
 	_act_lighting = true
 	_act_left = LIGHT_SECONDS
+	var player: Node = get_tree().get_first_node_in_group(&"player") if is_inside_tree() else null
+	var actions: TimeCostedActionSystem = _actions()
+	if actions != null:
+		var request := TimeActionRequest.new()
+		_action_id = StringName("light_stove:%d" % get_instance_id())
+		request.action_id = _action_id
+		request.duration_hours = light_time_cost_minutes / 60.0
+		request.presentation_seconds = LIGHT_SECONDS
+		request.reason = &"light_stove"
+		request.actor = player
+		request.target = heat_source
+		request.stop_check = _light_stop_reason
+		request.on_complete = _light_action_completed
+		request.on_cancel = _light_action_cancelled
+		_action_managed = actions.start_action(request)
+		if not _action_managed:
+			_act_lighting = false
+			_act_left = 0.0
+			return Refusal.BUSY
+
 	var visual: StoveVisual = _visual()
 	if visual != null:
 		visual.begin_act(_act_lighting, _act_left)
-	var player: Node = get_tree().get_first_node_in_group(&"player") if is_inside_tree() else null
 	if player != null:
 		if player.has_method(&"hold_still"):
 			player.call(&"hold_still", _act_left)
@@ -124,9 +149,42 @@ func begin_act() -> Refusal:
 func _process(delta: float) -> void:
 	if _act_left <= 0.0:
 		return
+	if _action_managed:
+		var actions: TimeCostedActionSystem = _actions()
+		if actions != null and actions.get_active_action_id() == _action_id:
+			_act_left = LIGHT_SECONDS * (1.0 - actions.get_progress())
+			return
+		_action_managed = false
 	_act_left -= delta
 	if _act_left <= 0.0:
 		_finish_act()
+
+
+func _light_stop_reason() -> StringName:
+	if heat_source == null:
+		return &"target_lost"
+	if not _has_lighter():
+		return &"tool_lost"
+	return &""
+
+
+func _light_action_completed(_elapsed_h: float) -> void:
+	_action_managed = false
+	_finish_act()
+
+
+func _light_action_cancelled(_elapsed_h: float, _reason: StringName) -> void:
+	_action_managed = false
+	_act_lighting = false
+	_act_left = 0.0
+	var visual: StoveVisual = _visual()
+	if visual != null:
+		visual.end_act()
+	_update_label()
+
+
+func _actions() -> TimeCostedActionSystem:
+	return TimeCostedActionSystem.find(get_tree()) if is_inside_tree() else null
 
 
 ## The fire catches (or takes the log): only now does it burn and give heat.
@@ -247,6 +305,8 @@ static func describe_refusal(refusal: Refusal) -> String:
 			return "FEED_REFUSED_NO_INVENTORY"
 		Refusal.NO_LIGHTER:
 			return "STOVE_NEED_LIGHTER"
+		Refusal.BUSY:
+			return "ACTION_REFUSED_BUSY"
 		_:
 			return ""
 
