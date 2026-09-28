@@ -112,6 +112,7 @@ func _run() -> void:
 	_check(inventory.get_count(&"firewood") == 1, "first hot action consumed more than one log")
 	_check(is_equal_approx(clock.get_total_hours() - before_hot_one, feed.add_time_cost_minutes / 60.0),
 		"first hot log billed wrong time")
+	await create_timer(0.4).timeout
 	_check(visual.is_door_open(), "door closed before player could add a second log")
 
 	_check(feed.begin_act() == HeatSourceFeed.Refusal.NONE and feed.is_acting(), "second hot log did not start")
