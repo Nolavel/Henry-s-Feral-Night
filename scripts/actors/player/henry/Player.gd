@@ -232,6 +232,8 @@ func on_world_ready(context: WorldContext) -> void:
 	if steam != null:
 		steam.set_thermal(context.get_system(THERMAL_SCRIPT) as ThermalManager)
 	var thermal := context.get_system(THERMAL_SCRIPT) as ThermalManager
+	if is_instance_valid(hub):
+		hub.set_thermal_manager(thermal)
 	if thermal == null or animation_component == null:
 		return
 	thermal.wetness_changed.connect(animation_component.set_wetness)

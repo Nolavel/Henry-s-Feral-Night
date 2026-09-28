@@ -34,6 +34,13 @@ class_name MovementController
 @export var slope_speed_multiplier: float = 1.3  # ИЗМЕНЕНО: множитель скорости на спуске
 @export var slope_slowdown_multiplier: float = 0.7  # НОВОЕ: замедление при подъёме
 
+@export_group("Carry load")
+## A partly loaded pack still feels normal. Above this fraction weight begins
+## changing gait; at the hard limit Henry is slower but never immobilised.
+@export_range(0.0, 0.95, 0.05) var load_penalty_starts: float = 0.40
+@export_range(0.5, 1.0, 0.01) var full_load_speed_multiplier: float = 0.78
+@export_range(0.5, 1.0, 0.01) var full_load_accel_multiplier: float = 0.82
+
 # === DEBUG ===
 @export_group("Debug")
 @export var debug_show_speed: bool = false
@@ -49,6 +56,7 @@ var _sprint_allowed: bool = true
 var _debug_label: Label = null
 var _was_on_floor_last_frame: bool = false
 var _crouching: bool = false
+var _carry_inventory: InventoryComponent
 
 func _ready() -> void:
 	if walk_speed <= 0.0:
@@ -170,12 +178,12 @@ func process_movement(
 
 	# === 7) Целевая скорость С учётом уклона ===
 	var base_speed: float = crouch_speed if _crouching else walk_speed
-	var target_speed: float = base_speed * (_sprint_blend if not _crouching else 1.0) * slope_modifier
+	var target_speed: float = base_speed * (_sprint_blend if not _crouching else 1.0) * slope_modifier * get_load_speed_multiplier()
 	var target_vel: Vector3 = planar_dir * target_speed
 
 	# === 8) Разгон / торможение ===
 	var current_planar_speed: float = Vector3(player.velocity.x, 0.0, player.velocity.z).length()
-	var rate: float = accel_rate if target_vel.length() > current_planar_speed else decel_rate
+	var rate: float = accel_rate * get_load_accel_multiplier() if target_vel.length() > current_planar_speed else decel_rate
 
 	# ВАЖНО: используем move_toward для более точного контроля
 	var current_planar_vel = Vector3(player.velocity.x, 0.0, player.velocity.z)
@@ -196,6 +204,30 @@ func process_movement(
 		if on_floor_now:
 			floor_angle = rad_to_deg(acos(clamp(player.get_floor_normal().y, 0.0, 1.0)))
 		_debug_label.text = "Speed: %.2f | Angle: %.1f° | Slope: %.2fx" % [speed, floor_angle, slope_modifier]
+
+## Smooth physical cost of carried weight. The hard pickup limit remains the
+## final boundary; this makes the approach to it readable before refusal.
+func get_load_speed_multiplier() -> float:
+	var load: float = _carry_load_fraction()
+	if load <= load_penalty_starts:
+		return 1.0
+	var t: float = smoothstep(load_penalty_starts, 1.0, load)
+	return lerpf(1.0, full_load_speed_multiplier, t)
+
+
+func get_load_accel_multiplier() -> float:
+	var load: float = _carry_load_fraction()
+	if load <= load_penalty_starts:
+		return 1.0
+	var t: float = smoothstep(load_penalty_starts, 1.0, load)
+	return lerpf(1.0, full_load_accel_multiplier, t)
+
+
+func _carry_load_fraction() -> float:
+	if _carry_inventory == null and get_parent() != null:
+		_carry_inventory = InventoryComponent.find_in(get_parent())
+	return _carry_inventory.get_load_fraction() if _carry_inventory != null else 0.0
+
 
 func set_crouching(active: bool) -> void:
 	_crouching = active

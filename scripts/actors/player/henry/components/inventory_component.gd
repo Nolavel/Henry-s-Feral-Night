@@ -6,9 +6,8 @@
 # for this game: total weight. Kenny is dead weight for a whole act, and that
 # has to cost something.
 #
-# Weight gates acceptance today; it does not yet slow movement. That is a
-# deliberate order — a limit the player can feel before a penalty they cannot
-# see the shape of.
+# Weight gates acceptance and feeds movement/fatigue through the shared load
+# fraction. Inventory still owns only mass; consumers decide its gameplay cost.
 #
 # Ported from ADT.
 # =============================================================================

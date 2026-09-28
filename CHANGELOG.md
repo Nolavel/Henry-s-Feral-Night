@@ -5,6 +5,28 @@ Maintained per branch; entries are added by whoever makes the change.
 
 ## [Unreleased] — `codex`
 
+### 2026-09-28 — First Exit systemic-pressure pass (#134) (codex)
+
+Changed
+- Carried weight now has a readable physical cost before the 30 kg hard limit: movement begins
+  slowing above 40% load and reaches 78% speed / 82% acceleration at full load. The existing
+  BioMonitor fatigue multiplier remains authoritative above half load.
+- The shelter door and doorway now share one exposure value. Open = full draft, a closed damaged
+  door = 20% draft, and fully boarded = zero. ThermalZone and snow-draft particles therefore agree.
+- A closed damaged door explicitly says that the frame still leaks instead of looking like a particle bug.
+- Player Hub now reports load state, movement/fatigue cost, clothing wetness stage, whether clothing
+  is currently drying, and the percentage of dry insulation still working.
+
+Added
+- Public wetness state/drying/insulation readback on ThermalManager and energy-drain explanation on
+  BioMonitorManager; presentation reads these values instead of copying simulation formulas.
+- Headless #134 regression coverage for heavy-load movement/fatigue, wetness readability and Hub
+  readback; hinged-door tests now assert closed/open/boarded exposure.
+
+Validation
+- Pending pull-request CI. This pass deliberately does not claim a human 10–15 minute run while the
+  owner has no local PC access; automated checks cover the new contracts only.
+
 ### 2026-09-28 — Time-aware ColdAsh grading and weather-driven clouds (codex)
 
 Added

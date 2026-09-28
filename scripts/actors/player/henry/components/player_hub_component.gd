@@ -54,6 +54,7 @@ var _inspecting: bool = false
 var _took_pack_off: bool = false
 ## Restore the gameplay mouse mode exactly when leaving the Hub.
 var _previous_mouse_mode: int = Input.MOUSE_MODE_CAPTURED
+var _thermal_manager: ThermalManager
 
 
 func _ready() -> void:
@@ -372,6 +373,35 @@ func get_camera_target() -> Transform3D:
 	var side: Vector3 = Vector3.UP.cross(outward).normalized()
 	var eye: Vector3 = centre + outward * camera_back + side * camera_side + Vector3(0.0, camera_height, 0.0)
 	return Transform3D(Basis.IDENTITY, eye).looking_at(centre, Vector3.UP)
+
+
+func set_thermal_manager(thermal: ThermalManager) -> void:
+	_thermal_manager = thermal
+
+
+## Detailed Hub readout, sourced from the systems that own the formulas.
+func get_survival_readout() -> Dictionary:
+	var body: Node = get_parent()
+	var movement := body.get_node_or_null(^"MovementController") as MovementController if body != null else null
+	var bio := body.get_node_or_null(^"BioMonitorManager") as BioMonitorManager if body != null else null
+	var result := {
+		"weight": get_weight(),
+		"max_weight": get_max_weight(),
+		"load_fraction": inventory.get_load_fraction() if inventory != null else 0.0,
+		"move_multiplier": movement.get_load_speed_multiplier() if movement != null else 1.0,
+		"energy_multiplier": bio.get_energy_drain_multiplier() if bio != null else 1.0,
+		"energy_reason": bio.get_energy_drain_reason() if bio != null else &"normal",
+		"wetness": -1.0,
+		"wetness_stage": -1,
+		"drying": false,
+		"insulation_multiplier": 1.0,
+	}
+	if _thermal_manager != null:
+		result["wetness"] = _thermal_manager.get_wetness()
+		result["wetness_stage"] = int(_thermal_manager.get_wetness_stage())
+		result["drying"] = _thermal_manager.is_clothing_drying()
+		result["insulation_multiplier"] = _thermal_manager.get_wetness_insulation_multiplier()
+	return result
 
 
 func get_weight() -> float:

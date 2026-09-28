@@ -15,6 +15,7 @@ var hub: PlayerHubComponent
 var _pack_list: ItemList
 var _zone_list: ItemList
 var _weight: Label
+var _survival: Label
 var _status: Label
 var _pack_ids: Array[StringName] = []
 ## Hold-F placement: the item being dragged, its ghost and the drop targets.
@@ -58,6 +59,9 @@ func _build() -> void:
 	column.add_child(_pack_list)
 	_weight = _label("")
 	column.add_child(_weight)
+	_survival = _label("")
+	_survival.autowrap_mode = TextServer.AUTOWRAP_WORD
+	column.add_child(_survival)
 	column.add_child(_label(tr("HUB_QUICK_ACCESS")))
 	_zone_list = _list()
 	_zone_list.item_selected.connect(_show_zone_status)
@@ -248,6 +252,47 @@ func _refresh() -> void:
 		_zone_paths.append(zone["path"])
 		_zone_item_ids.append(zone["item_id"])
 	_weight.text = tr("HUB_WEIGHT") % [hub.get_weight(), hub.get_max_weight()]
+	_survival.text = _format_survival_readout(hub.get_survival_readout())
+
+
+func _format_survival_readout(readout: Dictionary) -> String:
+	var load: float = float(readout.get("load_fraction", 0.0))
+	var load_key: String = "HUB_LOAD_LIGHT"
+	if load >= 0.75:
+		load_key = "HUB_LOAD_HEAVY"
+	elif load >= 0.40:
+		load_key = "HUB_LOAD_LOADED"
+
+	var lines: PackedStringArray = [
+		tr("HUB_LOAD_STATUS") % [
+			tr(load_key),
+			float(readout.get("move_multiplier", 1.0)) * 100.0,
+			float(readout.get("energy_multiplier", 1.0)),
+		]
+	]
+	lines.append(
+		tr("HUB_ENERGY_DRAIN_LOAD")
+		if StringName(readout.get("energy_reason", &"normal")) == &"load"
+		else tr("HUB_ENERGY_DRAIN_NORMAL")
+	)
+
+	var wetness: float = float(readout.get("wetness", -1.0))
+	if wetness >= 0.0:
+		var wet_keys: Array[String] = [
+			"HUB_CLOTHING_DRY",
+			"HUB_CLOTHING_DAMP",
+			"HUB_CLOTHING_WET",
+			"HUB_CLOTHING_SOAKED",
+		]
+		var stage: int = clampi(int(readout.get("wetness_stage", 0)), 0, wet_keys.size() - 1)
+		var drying_key: String = "HUB_DRYING" if bool(readout.get("drying", false)) else "HUB_NOT_DRYING"
+		lines.append(tr("HUB_CLOTHING_STATUS") % [
+			tr(wet_keys[stage]),
+			wetness * 100.0,
+			tr(drying_key),
+			float(readout.get("insulation_multiplier", 1.0)) * 100.0,
+		])
+	return "\n".join(lines)
 
 
 func _show_item_status(index: int) -> void:

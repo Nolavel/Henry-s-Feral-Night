@@ -15,6 +15,9 @@ const CLOSE_KEY: String = "HOUSE_DOOR_CLOSE"
 @export_range(0.0, 1.0, 0.05) var hand_delay: float = 0.2
 @export_range(0.1, 1.5, 0.05) var swing_time: float = 0.45
 @export var starts_open: bool = false
+## A shut damaged door still leaks around its frame, but much less than an open
+## doorway. One multiplier drives both ThermalZone exposure and BreachDraft VFX.
+@export_range(0.0, 1.0, 0.05) var closed_breach_multiplier: float = 0.20
 ## The shelter's damaged doorway can still leak while the leaf is closed. Once
 ## it is boarded, the door closes and stops offering an interaction.
 @export var breach: ShelterBreach
@@ -32,6 +35,7 @@ func _ready() -> void:
 	if breach != null and not breach.boarded_changed.is_connected(_on_breach_boarded_changed):
 		breach.boarded_changed.connect(_on_breach_boarded_changed)
 	super()
+	_sync_breach_exposure()
 	_refresh_prompt()
 	call_deferred("_sync_breach")
 
@@ -60,6 +64,7 @@ func _on_interaction_performed() -> void:
 	_tween.tween_interval(hand_delay)
 	_tween.tween_property(door_hinge, ^"rotation:y", target, swing_time) \
 		.set_trans(Tween.TRANS_SINE).set_ease(Tween.EASE_OUT if _open else Tween.EASE_IN_OUT)
+	_sync_breach_exposure()
 	_refresh_prompt()
 	door_toggled.emit(_open)
 
@@ -73,6 +78,7 @@ func _on_breach_boarded_changed(_boarded: bool) -> void:
 
 
 func _sync_breach() -> void:
+	_sync_breach_exposure()
 	if breach == null or not breach.is_boarded():
 		_refresh_prompt()
 		return
@@ -84,9 +90,15 @@ func _sync_breach() -> void:
 	_refresh_prompt()
 
 
+func _sync_breach_exposure() -> void:
+	if breach != null:
+		breach.set_exposure_multiplier(1.0 if _open else closed_breach_multiplier)
+
+
 func _refresh_prompt() -> void:
 	set_item_name(tr(CLOSE_KEY if _open else OPEN_KEY))
-	set_description("")
+	var damaged_and_closed: bool = breach != null and not _open and not breach.is_boarded()
+	set_description(tr("HOUSE_DOOR_DRAFTING") if damaged_and_closed else "")
 	if info_label != null and info_label.visible:
 		info_label.text = _get_interaction_text()
 

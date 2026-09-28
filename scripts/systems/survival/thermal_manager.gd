@@ -27,6 +27,7 @@ signal sheltered_changed(is_sheltered: bool)
 
 ## Hypothermia stages, ordered from safe to lethal.
 enum Stage { NORMAL, CHILLED, COLD, HYPOTHERMIC, CRITICAL }
+enum WetnessStage { DRY, DAMP, WET, SOAKED }
 
 const HOURS_PER_DAY: float = 24.0
 
@@ -224,6 +225,30 @@ func get_stage() -> Stage:
 
 func get_wetness() -> float:
 	return _wetness
+
+
+func get_wetness_stage() -> WetnessStage:
+	if _wetness < 0.05:
+		return WetnessStage.DRY
+	if _wetness < 0.35:
+		return WetnessStage.DAMP
+	if _wetness < 0.75:
+		return WetnessStage.WET
+	return WetnessStage.SOAKED
+
+
+## Fraction of dry insulation still working at the current global clothing wetness.
+func get_wetness_insulation_multiplier() -> float:
+	return clampf(1.0 - _wetness * wetness_insulation_penalty, 0.0, 1.0)
+
+
+## True only when the next wetness step would actually dry clothing.
+func is_clothing_drying() -> bool:
+	if _wetness <= 0.01 or get_drying_rate_per_hour() <= 0.001:
+		return false
+	if not is_sheltered() and weather_controller != null and weather_controller.get_wetness_rate_per_hour() > 0.0:
+		return false
+	return true
 
 
 ## True while the player is inside any zone flagged as an interior.

@@ -315,6 +315,16 @@ func apply_energy_modifiers(base_rate: float) -> float:
 	return base_rate * (1.0 + over_half * carry_fatigue_factor)
 
 
+## Public readback for detailed UI. The biomonitor remains the owner of the
+## fatigue formula; presentation does not duplicate its thresholds.
+func get_energy_drain_multiplier() -> float:
+	return apply_energy_modifiers(1.0)
+
+
+func get_energy_drain_reason() -> StringName:
+	return &"load" if _carry_load_fraction() > 0.5 else &"normal"
+
+
 func _carry_load_fraction() -> float:
 	## Only Henry's own pack: search from the player, never from the scene root.
 	if carry_inventory == null and get_parent() != null and get_parent().is_in_group(&"player"):

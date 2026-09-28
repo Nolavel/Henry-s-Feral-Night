@@ -143,3 +143,17 @@ WOOD_CHOP_ACTION,Chop boards into firewood,Расколоть доски на д
 WOOD_CHOP_DETAIL,4 seconds · %d boards become the same number of firewood pieces,4 секунды · %d доски превратятся в столько же поленьев
 WOOD_CHOP_WORK,Chopping boards into firewood...,Раскалываем доски на дрова…
 WOOD_CHOP_DONE,Firewood ready; put the hatchet away and pick up with F,Дрова готовы · уберите топор и подберите через F
+HOUSE_DOOR_DRAFTING,Damaged frame — draft remains,Повреждённая рама — всё ещё сквозит
+HUB_LOAD_STATUS,Load: %s · movement %.0f%% · fatigue ×%.2f,Нагрузка: %s · движение %.0f%% · усталость ×%.2f
+HUB_LOAD_LIGHT,Light,Лёгкая
+HUB_LOAD_LOADED,Loaded,Средняя
+HUB_LOAD_HEAVY,Heavy,Тяжёлая
+HUB_ENERGY_DRAIN_NORMAL,Energy drain: normal,Расход энергии: обычный
+HUB_ENERGY_DRAIN_LOAD,Energy drain: ↑ carried weight,Расход энергии: ↑ из-за веса
+HUB_CLOTHING_STATUS,Clothes: %s %.0f%% · %s · warmth %.0f%%,Одежда: %s %.0f%% · %s · тепло %.0f%%
+HUB_CLOTHING_DRY,Dry,Сухая
+HUB_CLOTHING_DAMP,Damp,Сыроватая
+HUB_CLOTHING_WET,Wet,Мокрая
+HUB_CLOTHING_SOAKED,Soaked,Промокла
+HUB_DRYING,Drying,Сохнет
+HUB_NOT_DRYING,Not drying,Не сохнет
