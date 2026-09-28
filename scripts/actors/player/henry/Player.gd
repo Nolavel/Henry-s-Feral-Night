@@ -232,9 +232,6 @@ func on_world_ready(context: WorldContext) -> void:
 	if steam != null:
 		steam.set_thermal(context.get_system(THERMAL_SCRIPT) as ThermalManager)
 	var thermal := context.get_system(THERMAL_SCRIPT) as ThermalManager
-	var afflictions := get_node_or_null(^"AfflictionComponent") as AfflictionComponent
-	if afflictions != null:
-		afflictions.bind_thermal(thermal)
 	if is_instance_valid(hub):
 		hub.set_thermal_manager(thermal)
 	if thermal == null or animation_component == null:
