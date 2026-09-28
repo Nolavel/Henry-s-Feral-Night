@@ -29,6 +29,7 @@ const SAVE_SCRIPT: GDScript = preload("res://scripts/systems/save/save_manager.g
 const DAY_NIGHT_SCRIPT: GDScript = preload("res://scripts/systems/world/DayNightManager.gd")
 const BIO_MONITOR_SCRIPT: GDScript = preload("res://scripts/actors/player/henry/Managers/BioMonitorManager.gd")
 const SIMULATION_CLOCK_SCRIPT: GDScript = preload("res://scripts/systems/time/simulation_clock.gd")
+const ACTION_SYSTEM_SCRIPT: GDScript = preload("res://scripts/systems/actions/time_costed_action_system.gd")
 
 @export_group("Conditions")
 ## Minimum felt temperature, in Celsius, required to risk sleeping.
@@ -51,6 +52,7 @@ const SIMULATION_CLOCK_SCRIPT: GDScript = preload("res://scripts/systems/time/si
 @export var day_night_manager: DayNightManager
 @export var save_manager: SaveManager
 var simulation_clock: SimulationClock
+var action_system: TimeCostedActionSystem
 
 var _is_sleeping: bool = false
 
@@ -68,6 +70,8 @@ func on_world_ready(context: WorldContext) -> void:
 		bio_monitor = context.find_in_scene(BIO_MONITOR_SCRIPT) as BioMonitorManager
 	if simulation_clock == null:
 		simulation_clock = context.get_system(SIMULATION_CLOCK_SCRIPT) as SimulationClock
+	if action_system == null:
+		action_system = context.get_system(ACTION_SYSTEM_SCRIPT) as TimeCostedActionSystem
 
 
 ## Whether sleeping is possible right now, without attempting it.
@@ -96,11 +100,11 @@ func try_sleep(hours: float = -1.0) -> bool:
 
 	_is_sleeping = true
 	sleep_started.emit(duration)
-	_advance_world(duration)
-	var saved: bool = _autosave(duration)
+	var advanced: bool = _run_sleep_action(duration)
+	var saved: bool = _autosave(duration) if advanced else false
 	_is_sleeping = false
 	sleep_completed.emit(duration, saved)
-	return true
+	return advanced
 
 
 ## Waits awake, seated by the stove: no rest, no save. Stops early once Henry is
@@ -108,6 +112,19 @@ func try_sleep(hours: float = -1.0) -> bool:
 func try_wait(hours: float) -> float:
 	if _is_sleeping or hours <= 0.0:
 		return 0.0
+	if action_system != null:
+		var request := TimeActionRequest.new()
+		request.action_id = &"wait"
+		request.duration_hours = hours
+		request.reason = &"wait"
+		request.simulation_step_hours = 0.25
+		request.stop_check = _wait_stop_reason
+		var result: Dictionary = action_system.run_to_completion(request)
+		var elapsed: float = float(result.get("elapsed_hours", 0.0))
+		var reason: String = String(result.get("reason", &""))
+		wait_completed.emit(elapsed, reason if elapsed < hours else "")
+		return elapsed
+
 	var step: float = 0.25
 	var elapsed: float = 0.0
 	var reason: String = ""
@@ -118,15 +135,22 @@ func try_wait(hours: float) -> float:
 		else:
 			_advance_wait_legacy(slice)
 		elapsed += slice
-		if thermal_manager != null:
-			if _recovered():
-				reason = WAIT_ENDED_RECOVERED_KEY
-			elif not _fire_warms_henry():
-				reason = WAIT_ENDED_FIRE_OUT_KEY
-			if reason != "":
-				break
+		var stop_reason: StringName = _wait_stop_reason()
+		if stop_reason != &"":
+			reason = String(stop_reason)
+			break
 	wait_completed.emit(elapsed, reason if elapsed < hours else "")
 	return elapsed
+
+
+func _wait_stop_reason() -> StringName:
+	if thermal_manager == null:
+		return &""
+	if _recovered():
+		return StringName(WAIT_ENDED_RECOVERED_KEY)
+	if not _fire_warms_henry():
+		return StringName(WAIT_ENDED_FIRE_OUT_KEY)
+	return &""
 
 
 func _recovered() -> bool:
@@ -154,6 +178,20 @@ static func describe_refusal(refusal: Refusal) -> String:
 			return "SLEEP_REFUSED_ALREADY_SLEEPING"
 		_:
 			return ""
+
+
+func _run_sleep_action(hours: float) -> bool:
+	if action_system != null:
+		var request := TimeActionRequest.new()
+		request.action_id = &"sleep"
+		request.duration_hours = hours
+		request.reason = &"sleep"
+		request.interruptible = false
+		request.simulation_step_hours = 0.25
+		var result: Dictionary = action_system.run_to_completion(request)
+		return bool(result.get("completed", false)) 			and is_equal_approx(float(result.get("elapsed_hours", 0.0)), hours)
+	_advance_world(hours)
+	return true
 
 
 ## Pushes time through the one world clock. Compatibility fallback exists only
