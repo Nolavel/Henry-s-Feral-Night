@@ -81,7 +81,8 @@ layout = ExtResource("93_layout")
 starter_garment_ids = Array[StringName]([&"worn_coat", &"knit_hat", &"work_trousers", &"worn_boots", &"backpack"])
 starter_slot_items = Dictionary[StringName, StringName]({
 &"back_fixture": &"kenny",
-&"torso_outer/coat_right": &"lighter"
+&"torso_outer/coat_right": &"lighter",
+&"legs_outer/thigh_left": &"tinder"
 })
 
 [node name="InventoryComponent" type="Node" parent="." node_paths=PackedStringArray("equipment")]

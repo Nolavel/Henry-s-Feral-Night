@@ -5,6 +5,18 @@ Maintained per branch; entries are added by whoever makes the change.
 
 ## [Unreleased] — `codex`
 
+### 2026-09-29 - Start with both ignition supplies in Quick Access (codex)
+
+Changed
+- Keep the starter lighter in Quick Access slot 2 and add one tinder portion to
+  slot 3 (left thigh pocket), as requested by the author. The stove already draws
+  the lighter and consumes tinder directly from their owning pockets.
+- Update the walkthroughs; Continue retains saved equipment without refilling it.
+
+Validation
+- Reviewed pocket ids, capacity and Quick Access ordering. git diff --check passed;
+  Godot and test suites were not launched, as requested by the author.
+
 ### 2026-09-29 - Correct Quick Access starter item to the lighter (codex)
 
 Fixed
