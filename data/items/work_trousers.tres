@@ -14,9 +14,16 @@ excluded_from_auto_stow = false
 
 [sub_resource type="Resource" id="G_work_trousers"]
 script = ExtResource("garment")
-body_slot_id = &"legs"
+body_slot_id = &"legs_outer"
+body_region = &"legs"
+layer = 2
 pockets = [SubResource("P_thigh_left")]
 insulation_c = 2.2
+base_insulation_c = 2.2
+windproof = 0.45
+waterproof = 0.25
+drying_rate = 0.30
+max_condition = 1.0
 mesh_node_name = &"Trousers"
 
 [resource]
