@@ -18,8 +18,8 @@ Changed
   interacting with the ring resumes only the remaining heat/time.
 - HeatSource now emits `heat_elapsed` for the time fuel actually burned, so a coarse simulation
   slice cannot grant more cooking/warming than the remaining fuel.
-- Stove ignition and window boarding explicitly enter `PlayerState.WORKING` through their existing
-  TimeCostedAction requests and restore the previous mode afterward.
+- Stove ignition, window boarding and shelter-table dismantling explicitly enter
+  `PlayerState.WORKING` through their existing TimeCostedAction requests and restore the previous mode afterward.
 - The real shelter workflow test now owns a SimulationClock + TimeCostedActionSystem, so boarding
   no longer passes through the legacy no-action fallback during integration tests.
 
@@ -27,7 +27,8 @@ Validated consumers
 - stove ignition → TimeCostedAction;
 - cooking / hot stew → TimeCostedAction;
 - snow → warm water → TimeCostedAction;
-- board placement → TimeCostedAction.
+- board placement → TimeCostedAction;
+- shelter furniture dismantling → TimeCostedAction.
 
 Deferred
 - Generic garment/item repair is not marked adopted because RIMEWATCH currently has no real repair
