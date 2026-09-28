@@ -360,6 +360,9 @@ func _test_stove() -> void:
 	_check(not source.is_burning() and is_equal_approx(source.get_remaining_hours(), 2), "cold one-log load stored wrong fuel")
 	_check(_inventory.get_count(&"firewood") == 2 and stove_visual.get_visible_log_count() == 1,
 		"cold one-log load did not move exactly one log into firebox")
+	await physics_frame
+	_interact.detect_target()
+	_check_target(feed, "stove after cold log load")
 
 	while _inventory.has_item(&"lighter"):
 		_inventory.try_remove(&"lighter")
@@ -374,12 +377,18 @@ func _test_stove() -> void:
 	_check(feed.is_acting() and not source.is_burning(), "ignition skipped the lighting act")
 	_actions._process(HeatSourceFeed.LIGHT_SECONDS)
 	_check(source.is_burning() and stove_visual.is_glowing(), "lighting finished without flame and heat")
+	await physics_frame
+	_interact.detect_target()
+	_check_target(feed, "stove after ignition")
 
 	_press(&"interact") # reopen hot stove
 	_press(&"interact") # second log
 	_check(feed.is_acting(), "first hot top-up did not start")
 	_actions._process(HeatSourceFeed.ADD_SECONDS)
 	_check(_inventory.get_count(&"firewood") == 1, "first hot top-up consumed wrong number of logs")
+	await physics_frame
+	_interact.detect_target()
+	_check_target(feed, "stove after first hot top-up")
 	_press(&"interact") # third log
 	_check(feed.is_acting(), "second hot top-up did not start")
 	_actions._process(HeatSourceFeed.ADD_SECONDS)
