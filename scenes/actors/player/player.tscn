@@ -11,6 +11,7 @@
 [ext_resource type="Script" path="res://scripts/actors/player/henry/components/hunger_component.gd" id="10_hunger"]
 [ext_resource type="Script" path="res://scripts/actors/player/henry/components/hydration_component.gd" id="10_hydration"]
 [ext_resource type="Script" path="res://scripts/actors/player/henry/components/fatigue_component.gd" id="10_fatigue"]
+[ext_resource type="Script" path="res://scripts/actors/player/henry/components/affliction_component.gd" id="10_afflict"]
 [ext_resource type="Script" uid="uid://buc8iltj8gtn0" path="res://scripts/actors/player/henry/components/equipment_component.gd" id="90_equip"]
 [ext_resource type="Script" uid="uid://jwbyt4ch7e7l" path="res://scripts/actors/player/henry/components/inventory_component.gd" id="91_inv"]
 [ext_resource type="Script" path="res://scripts/actors/player/henry/components/player_hub_component.gd" id="99_hub"]
@@ -70,6 +71,9 @@ script = ExtResource("10_fatigue")
 
 [node name="BioMonitorManager" type="Node3D" parent="."]
 script = ExtResource("10_mvyhi")
+
+[node name="AfflictionComponent" type="Node" parent="."]
+script = ExtResource("10_afflict")
 
 [node name="EquipmentComponent" type="Node" parent="."]
 script = ExtResource("90_equip")
