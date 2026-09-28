@@ -129,15 +129,21 @@ func _test_instance_state_survives_inventory_transfer() -> void:
 		_check(is_equal_approx(float(state.get("wetness", 0.0)), 0.62), "inventory lost garment wetness")
 		_check(is_equal_approx(float(state.get("condition", 1.0)), 0.77), "inventory lost garment condition")
 
+	var inventory_payload: Dictionary = inventory.get_save_data()
+	var restored_inventory := InventoryComponent.new()
+	restored_inventory.equipment = equipment
+	root.add_child(restored_inventory)
+	restored_inventory.load_save_data(inventory_payload)
 	_check(
-		equipment.equip_from_inventory(&"torso_outer", &"worn_coat", inventory)
+		equipment.equip_from_inventory(&"torso_outer", &"worn_coat", restored_inventory)
 			== EquipmentComponent.Refusal.NONE,
-		"stateful re-equip failed"
+		"stateful re-equip after inventory save/load failed"
 	)
 	var restored: Dictionary = equipment.get_garment_state(&"torso_outer")
 	_check(is_equal_approx(float(restored.get("wetness", 0.0)), 0.62), "re-equip reset wetness")
 	_check(is_equal_approx(float(restored.get("condition", 1.0)), 0.77), "re-equip reset condition")
-	_check(inventory.get_count(&"worn_coat") == 0, "re-equipped coat duplicated in inventory")
+	_check(restored_inventory.get_count(&"worn_coat") == 0, "re-equipped coat duplicated in restored inventory")
+	_dispose(restored_inventory)
 	_dispose(inventory)
 	_dispose(equipment)
 
