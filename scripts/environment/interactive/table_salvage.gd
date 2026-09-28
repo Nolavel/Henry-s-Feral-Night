@@ -72,6 +72,7 @@ func _on_interaction_performed() -> void:
 		request.reason = &"dismantle"
 		request.actor = player
 		request.target = self
+		request.player_mode = _resolve_player_mode(&"WORKING")
 		request.stop_check = _work_stop_reason
 		request.on_complete = _work_action_completed
 		request.on_cancel = _work_action_cancelled
@@ -111,6 +112,18 @@ func _work_action_completed(_elapsed_h: float) -> void:
 func _work_action_cancelled(_elapsed_h: float, _reason: StringName) -> void:
 	_action_managed = false
 	_work_left = 0.0
+
+
+func _resolve_player_mode(mode_name: StringName) -> int:
+	var state: Node = get_node_or_null(^"/root/PlayerState")
+	if state == null:
+		return -1
+	var script: Script = state.get_script() as Script
+	if script == null:
+		return -1
+	var constants: Dictionary = script.get_script_constant_map()
+	var modes: Dictionary = constants.get("Mode", {})
+	return int(modes.get(String(mode_name), -1))
 
 
 func _actions() -> TimeCostedActionSystem:
