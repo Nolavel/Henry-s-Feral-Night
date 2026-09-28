@@ -410,7 +410,9 @@ func is_action_locking() -> bool:
 		return true
 	if animation_tree == null or not LOCKING_ACTIONS.has(_current_action):
 		return false
-	return bool(animation_tree.get("parameters/actions/active"))
+	## FIRE has not necessarily been evaluated when F arrives before a physics tick.
+	return bool(animation_tree.get("parameters/actions/active")) \
+		or int(animation_tree.get("parameters/actions/request")) == AnimationNodeOneShot.ONE_SHOT_REQUEST_FIRE
 
 
 func _has_carry_state() -> bool:

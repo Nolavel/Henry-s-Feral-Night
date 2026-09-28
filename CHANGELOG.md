@@ -5,6 +5,23 @@ Maintained per branch; entries are added by whoever makes the change.
 
 ## [Unreleased] — `codex`
 
+### 2026-09-29 - Keep Henry still during successful pickups (codex)
+
+Fixed
+- Play the pickup action only after the item has entered the inventory. Refusals
+  retain their message and world item without playing a misleading success clip.
+- Stop a scripted approach before acting at arm's reach. Clear horizontal velocity
+  when a stationary action starts, and lock movement from the OneShot FIRE request
+  through the active clip instead of waiting for the AnimationTree's next update.
+- The movement controller clears inertia, sprint and armed jump release while
+  rooted, preserving gravity. Repeated F cannot replace a locking action.
+- Consumed or disabled approach targets also stop Henry's scripted walk.
+
+Validation
+- Reviewed pickup acceptance/refusal, chopping ownership, approach teardown and
+  pending/active animation locks. Pickup root translation is zero in the source GLB.
+  git diff --check passed; Godot and test suites were not launched, as requested.
+
 ### 2026-09-29 - Guard freed interaction targets (codex)
 
 Fixed

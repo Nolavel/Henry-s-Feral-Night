@@ -105,9 +105,12 @@ func _physics_process(delta: float) -> void:
 		or Time.get_ticks_msec() < _hold_until_ms
 	var state: Node = get_node_or_null(^"/root/PlayerState")
 	var mode_locked: bool = state != null and bool(state.call(&"is_movement_blocked"))
-	if in_hub or mode_locked or (is_instance_valid(animation_component) and animation_component.is_action_locking()):
+	var movement_locked: bool = in_hub or mode_locked or is_action_locking()
+	if movement_locked:
 		world_dir = Vector3.ZERO
 		jump_just_pressed = false
+		jump_is_pressed = false
+		jump_just_released = false
 		sprint_is_pressed = false
 	_face_towards(world_dir, delta)
 	input_dir = global_transform.basis.orthonormalized().inverse() * world_dir
@@ -124,7 +127,8 @@ func _physics_process(delta: float) -> void:
 		jump_is_pressed,
 		jump_just_released,
 		sprint_is_pressed,
-		sprint_just_released
+		sprint_just_released,
+		movement_locked
 	)
 	
 	move_and_slide()
@@ -225,7 +229,17 @@ func face_work_target(target: Vector3) -> void:
 
 
 func play_action_animation(action: StringName) -> bool:
-	return animation_component.play_action(action) if animation_component != null else false
+	if not is_instance_valid(animation_component) or not animation_component.play_action(action):
+		return false
+	if is_action_locking():
+		stop_moving()
+		velocity.x = 0.0
+		velocity.z = 0.0
+	return true
+
+
+func is_action_locking() -> bool:
+	return is_instance_valid(animation_component) and animation_component.is_action_locking()
 
 
 ## Flat direction the active camera looks, for the head look; Henry's facing

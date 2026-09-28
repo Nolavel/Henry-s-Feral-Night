@@ -105,7 +105,7 @@ func _clear_current_target(update_target_state: bool = true) -> void:
 	_last_in_reach = false
 	_last_in_prompt = false
 	if _pending == previous:
-		_cancel_approach()
+		_stop_approach()
 	interact_target_changed.emit(null, false)
 
 
@@ -120,7 +120,7 @@ func try_interact() -> void:
 		_clear_current_target()
 		return
 	if _flat_distance_to(current_target) <= _reach():
-		_cancel_approach()
+		_stop_approach()
 		_perform(current_target)
 		return
 	if not _is_seated():
@@ -130,15 +130,11 @@ func try_interact() -> void:
 func _perform(target: InteractiveArea) -> void:
 	if not is_instance_valid(target):
 		return
-	if _player != null and _player.has_method(&"play_action_animation"):
+	## Pickups request their animation only after inventory acceptance.
+	if not (target is ItemPickup) and _player != null and _player.has_method(&"play_action_animation"):
 		var action: StringName = target.player_animation_action
 		if action == &"":
-			if target is ItemPickup:
-				action = &"pickup"
-			elif target is BreachBoardUp:
-				action = &"interact"
-			else:
-				action = &"interact"
+			action = &"interact"
 		_player.call(&"play_action_animation", action)
 	target.interact()
 	# A consumed/deactivated target stops being authoritative before UI observers
@@ -514,6 +510,9 @@ func _on_player_movement_stopped() -> void:
 
 
 func _is_blocked() -> bool:
+	if is_instance_valid(_player) and _player.has_method(&"is_action_locking") \
+		and bool(_player.call(&"is_action_locking")):
+		return true
 	var state: Node = get_node_or_null(^"/root/PlayerState")
 	return state != null and bool(state.call(&"is_movement_blocked"))
 

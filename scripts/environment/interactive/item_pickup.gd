@@ -56,6 +56,8 @@ func can_interact() -> bool:
 
 ## Adds every unit or none: a half-taken stack would leave the world lying.
 func pick_up() -> bool:
+	if is_queued_for_deletion():
+		return false
 	var item: ItemResource = ItemCatalog.get_item(item_id)
 	var inventory: InventoryComponent = _get_inventory()
 	if item == null or inventory == null:
@@ -87,7 +89,13 @@ func _on_interaction_performed() -> void:
 	if item_id == &"boards" and work != null and work.axe_is_held():
 		work.begin_chop(self)
 		return
-	pick_up()
+	if not pick_up():
+		return
+	## Ownership is settled now; camera movement during the clip cannot undo it.
+	var player: Node = get_tree().get_first_node_in_group(&"player")
+	if player != null and player.has_method(&"play_action_animation"):
+		var action: StringName = player_animation_action if player_animation_action != &"" else &"pickup"
+		player.call(&"play_action_animation", action)
 
 
 func _get_interaction_text() -> String:
