@@ -57,6 +57,7 @@ var _debug_label: Label = null
 var _was_on_floor_last_frame: bool = false
 var _crouching: bool = false
 var _carry_inventory: InventoryComponent
+var _afflictions: AfflictionComponent
 
 func _ready() -> void:
 	if walk_speed <= 0.0:
@@ -178,7 +179,7 @@ func process_movement(
 
 	# === 7) Целевая скорость С учётом уклона ===
 	var base_speed: float = crouch_speed if _crouching else walk_speed
-	var target_speed: float = base_speed * (_sprint_blend if not _crouching else 1.0) * slope_modifier * get_load_speed_multiplier()
+	var target_speed: float = base_speed * (_sprint_blend if not _crouching else 1.0) * slope_modifier * get_load_speed_multiplier() * get_status_speed_multiplier()
 	var target_vel: Vector3 = planar_dir * target_speed
 
 	# === 8) Разгон / торможение ===
@@ -213,6 +214,12 @@ func get_load_speed_multiplier() -> float:
 		return 1.0
 	var t: float = smoothstep(load_penalty_starts, 1.0, load)
 	return lerpf(1.0, full_load_speed_multiplier, t)
+
+
+func get_status_speed_multiplier() -> float:
+	if _afflictions == null and get_parent() != null:
+		_afflictions = get_parent().get_node_or_null(^"AfflictionComponent") as AfflictionComponent
+	return _afflictions.get_multiplier(&"movement_speed_multiplier") if _afflictions != null else 1.0
 
 
 func get_load_accel_multiplier() -> float:
