@@ -54,7 +54,7 @@ func get_capacity_logs() -> int:
 ## a weak flame over `seconds` before the fire itself takes.
 func begin_act(lighting: bool, seconds: float) -> void:
 	_acting = true
-	_act_log = false
+	_act_log = not lighting
 	_swing_door(true)
 	if lighting:
 		_kindle = 0.05
