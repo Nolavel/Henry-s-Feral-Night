@@ -277,6 +277,8 @@ func _activate(profile: WeatherProfile, instant: bool) -> void:
 	_remaining_h = randf_range(profile.min_duration_h, profile.max_duration_h)
 	_sample_conditions()
 	weather_changed.emit(profile)
+	if day_night_manager != null:
+		day_night_manager.apply_weather_visual_profile(profile)
 
 
 func _find_profile(id: StringName) -> WeatherProfile:

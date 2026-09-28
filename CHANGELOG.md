@@ -5,6 +5,32 @@ Maintained per branch; entries are added by whoever makes the change.
 
 ## [Unreleased] — `codex`
 
+### 2026-09-28 — Time-aware ColdAsh grading and weather-driven clouds (codex)
+
+Added
+- Added dedicated 33³ `HFN_ColdAsh_Day` and `HFN_ColdAsh_Dusk` LUTs alongside the existing
+  `HFN_ColdAsh_Night` and `HFN_ColdAsh_Shelter` profiles.
+- Added a production colour-grade capture path that renders the real Graciosa main scene at the
+  First Exit shelter: Day/Dusk/Night share one exterior camera, Shelter uses an interior camera.
+- Added a narrow codex-only CI preview job that imports once, captures all four PNGs in one Godot
+  process and uploads one short-lived artifact instead of running the full checks job for preview pushes.
+
+Changed
+- `ColorGradeController` now selects Day / Dusk / Night by game hour while Shelter remains a temporary
+  interior override; leaving the shelter restores the outdoor LUT appropriate for the current time.
+- Weather state changes now adjust outdoor grade and cloud presentation without forwarding gust noise
+  into the sky every frame.
+- Cloud drift is slower and derived from sustained `WeatherProfile` wind direction/speed; snowfall
+  adjusts coverage/density/opacity only when the active weather profile changes.
+- Noon lighting was lifted from the previous permanently dark Night-LUT presentation, and default
+  cloud coverage/opacity were reduced for a more readable overcast day.
+- Updated grading/shelter tests to cover all four LUTs and the Day ↔ Dusk ↔ Night ↔ Shelter transitions.
+
+Validation
+- GitHub Actions run #36362626414 passed the clean import gate, production-scene capture and artifact
+  upload. Final review frames use calm weather, no UI/debug overlays, one fixed exterior shelter angle
+  for Day/Dusk/Night, and a separate interior Shelter angle.
+
 ### 2026-09-28 — Restore history and bunker start; retain the author's supplies (codex)
 
 Fixed

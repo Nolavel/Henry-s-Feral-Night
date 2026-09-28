@@ -6,7 +6,7 @@ class_name DayNightSettings
 @export var night_duration: float = 720.0
 
 @export_group("Light Settings")
-@export var day_light_energy: float = 1.0
+@export var day_light_energy: float = 1.12
 @export var night_light_energy: float = 0.1
 
 @export_group("Sun")
@@ -22,7 +22,7 @@ class_name DayNightSettings
 @export_group("Ambient")
 @export var day_ambient_color: Color = Color(0.58, 0.64, 0.70)
 @export var night_ambient_color: Color = Color(0.055, 0.065, 0.09)
-@export var day_sky_energy: float = 0.75
+@export var day_sky_energy: float = 0.92
 @export var night_sky_energy: float = 0.18
 @export var day_ground_color: Color = Color(0.22, 0.21, 0.20)
 @export var night_ground_color: Color = Color(0.018, 0.021, 0.028)
@@ -32,13 +32,16 @@ class_name DayNightSettings
 @export var dawn_cloud_color: Color = Color(0.34, 0.30, 0.31)
 @export var dusk_cloud_color: Color = Color(0.30, 0.24, 0.27)
 @export var night_cloud_color: Color = Color(0.035, 0.050, 0.075)
-@export_range(0.0, 128.0, 0.05) var day_overcast_exposure: float = 0.82
+@export_range(0.0, 128.0, 0.05) var day_overcast_exposure: float = 1.05
 @export_range(0.0, 128.0, 0.05) var night_overcast_exposure: float = 0.24
 @export_range(0.1, 12.0, 0.1) var cloud_density: float = 4.8
 @export_range(0.0, 6.0, 0.05) var cloud_depth: float = 2.35
 @export_range(0.25, 6.0, 0.05) var cloud_sag: float = 2.0
 @export var cloud_tiling: Vector2 = Vector2(1.0, 1.0)
-@export var cloud_wind_speed: Vector2 = Vector2(0.24, 0.08)
+@export var cloud_wind_speed: Vector2 = Vector2(0.08, 0.025)
+## Slow sky drift range. WeatherController selects between these only when the weather state changes.
+@export_range(0.0, 1.0, 0.005) var cloud_calm_drift_speed: float = 0.025
+@export_range(0.0, 1.0, 0.005) var cloud_storm_drift_speed: float = 0.14
 @export_range(0.0, 1.0, 0.01) var cloud_parallax_strength: float = 0.22
 @export_range(0.0, 1.0, 0.01) var cloud_parallax_layer_separation: float = 0.35
 @export_range(0.0, 1.0, 0.01) var cloud_parallax_detail_weight: float = 0.45

@@ -57,6 +57,7 @@ const DUSK_END_HOUR: float = 22.0
 @export var directional_light: DirectionalLight3D
 @export var world_environment_node: WorldEnvironment
 @export var time_accelerator: TimeAccelerator
+@export var color_grade_controller: ColorGradeController
 
 @export_group("Debug-Visual Component")
 @export var time_label: Label
@@ -194,6 +195,8 @@ func _force_update_visuals() -> void:
 	var hour: float = get_current_hour_float()
 	is_day = _is_day(hour)
 	_update_environment_visuals(hour)
+	if is_instance_valid(color_grade_controller):
+		color_grade_controller.update_for_time(hour)
 	_emit_time_signals(hour)
 	_update_time_display()
 
@@ -214,6 +217,8 @@ func _on_game_minute_changed(game_hour: float) -> void:
 		day_started.emit(current_day)
 
 	_update_environment_visuals(game_hour)
+	if is_instance_valid(color_grade_controller):
+		color_grade_controller.update_for_time(game_hour)
 	_emit_time_signals(game_hour)
 	_update_time_display()
 	time_update.emit(game_hour)
@@ -480,6 +485,42 @@ func is_night_time() -> bool:
 
 func is_critical_night() -> bool:
 	return current_day == settings.critical_night_day and not is_day
+
+
+## WeatherController calls this only when the active weather profile changes.
+## Sustained wind drives sky drift; gust noise remains in gameplay/VFX and is
+## deliberately not copied into shader uniforms every frame.
+func apply_weather_visual_profile(profile: WeatherProfile) -> void:
+	if profile == null:
+		return
+	if is_instance_valid(color_grade_controller):
+		color_grade_controller.set_weather_profile(profile)
+	if sky_material == null:
+		return
+
+	var wind_t: float = clampf(profile.wind_speed_mps / 17.0, 0.0, 1.0)
+	var drift: float = lerpf(
+		settings.cloud_calm_drift_speed,
+		settings.cloud_storm_drift_speed,
+		smoothstep(0.0, 1.0, wind_t)
+	)
+	var bearing: float = deg_to_rad(profile.wind_direction_deg)
+	var direction := Vector2(sin(bearing), -cos(bearing)).normalized()
+	sky_material.set_shader_parameter("cloud_wind_speed", direction * drift)
+
+	var snow: float = clampf(profile.snowfall_density, 0.0, 1.0)
+	sky_material.set_shader_parameter(
+		"cloud_coverage",
+		clampf(settings.cloud_coverage + snow * 0.28, 0.22, 0.68)
+	)
+	sky_material.set_shader_parameter(
+		"cloud_density",
+		settings.cloud_density * lerpf(0.88, 1.18, snow)
+	)
+	sky_material.set_shader_parameter(
+		"cloud_opacity",
+		clampf(settings.cloud_opacity + snow * 0.08, 0.72, 0.98)
+	)
 
 
 func force_update_lighting() -> void:

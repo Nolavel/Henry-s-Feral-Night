@@ -3,6 +3,17 @@ name: checks
 ## Cheap gate for main: import, filename hygiene, headless test suites.
 ## No rendering here; render locally with tools/ci/render.sh.
 on:
+  push:
+    branches: [codex]
+    paths:
+      - "scripts/systems/world/ColorGradeController.gd"
+      - "scripts/systems/world/DayNightManager.gd"
+      - "scripts/systems/world/DayNightSettings.gd"
+      - "scripts/systems/world/WeatherController.gd"
+      - "scenes/game/systems/world/WorldEnvironmentSystem.tscn"
+      - "resources/environment/color_grading/**"
+      - "assets/textures/color_grading/**"
+      - "tools/runtime/capture_color_grading.gd"
   pull_request:
     branches: [main]
     paths-ignore:
@@ -16,6 +27,7 @@ concurrency:
 
 jobs:
   checks:
+    if: github.event_name != 'push'
     runs-on: ubuntu-latest
     timeout-minutes: 15
     steps:
@@ -42,3 +54,43 @@ jobs:
 
       - name: Run headless test suites
         run: tools/ci/run_tests.sh
+
+  color-grade-preview:
+    if: github.event_name == 'push'
+    runs-on: ubuntu-latest
+    timeout-minutes: 12
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Cache Godot
+        uses: actions/cache@v4
+        with:
+          path: |
+            ~/.local/opt/godot-mono
+          key: godot-4.8-dev6-v2
+
+      - name: Provision Godot
+        run: SKIP_APT=1 tools/ci/setup_env.sh
+
+      - name: Import gate
+        run: tools/ci/import_gate.sh
+
+      - name: Capture four colour grades
+        run: |
+          export VK_DRIVER_FILES=/usr/share/vulkan/icd.d/lvp_icd.json
+          export XDG_RUNTIME_DIR=/tmp/xdg
+          mkdir -p "$XDG_RUNTIME_DIR"
+          xvfb-run -a "$HOME/.local/bin/godot" \
+            --path . \
+            --rendering-driver vulkan \
+            --rendering-method forward_plus \
+            --audio-driver Dummy \
+            --script tools/runtime/capture_color_grading.gd
+
+      - name: Upload colour grade previews
+        uses: actions/upload-artifact@v4
+        with:
+          name: rimewatch-color-grades
+          path: docs/runtime_previews/color_grading/*.png
+          if-no-files-found: error
+          retention-days: 3
