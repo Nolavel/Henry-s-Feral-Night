@@ -349,12 +349,13 @@ func _test_stove() -> void:
 	var feed: HeatSourceFeed = _house.get_node(^"ShelterZone/Stove/Feed") as HeatSourceFeed
 	var source: HeatSource = feed.heat_source
 	var stove_visual: StoveVisual = source.get_node(^"StoveVisual") as StoveVisual
+	feed.toggle_door()
+	await create_timer(0.4).timeout
 	await _aim(feed, source.to_global(Vector3(1.2, 0.9, 0)), feed.focus_anchor.global_position)
 	_check_target(feed, "stove with solid hull")
-	_press(&"interact")
 	_check(not source.is_burning() and _inventory.get_count(&"firewood") == 3, "opening consumed logs or ignited stove")
 
-	_press(&"interact")
+	_click(MOUSE_BUTTON_LEFT)
 	_check(feed.is_acting(), "cold one-log load did not start")
 	_actions._process(HeatSourceFeed.ADD_SECONDS)
 	_check(not source.is_burning() and is_equal_approx(source.get_remaining_hours(), 2), "cold one-log load stored wrong fuel")
@@ -364,6 +365,8 @@ func _test_stove() -> void:
 	_interact.detect_target()
 	_check_target(feed, "stove after cold log load")
 
+	while _inventory.has_item(&"firewood"):
+		_inventory.try_remove(&"firewood")
 	while _inventory.has_item(&"lighter"):
 		_inventory.try_remove(&"lighter")
 	var before: float = source.get_remaining_hours()
@@ -373,28 +376,30 @@ func _test_stove() -> void:
 	_check(feedback == feed.tr("STOVE_NEED_LIGHTER"), "refusal did not reach the central prompt")
 
 	_inventory.try_add(ItemCatalog.get_item(&"lighter"))
-	feed.first_strike_success_chance = 0.0
-	feed.second_strike_success_chance = 0.0
+	_inventory.try_add(ItemCatalog.get_item(&"tinder"))
+	feed.strike_success_chance = 0.0
 	feed.guaranteed_success_strike = 3
 	_press(&"interact")
 	_check(feed.is_acting() and not source.is_burning(), "ignition skipped the lighting act")
 	_check(feed.attempt_lighter_strike(20.0) == HeatSourceFeed.StrikeResult.SPARK, "first shelter LMB strike did not spark")
 	_check(feed.attempt_lighter_strike(20.4) == HeatSourceFeed.StrikeResult.SPARK, "second shelter LMB strike did not spark")
-	_check(feed.attempt_lighter_strike(20.8) == HeatSourceFeed.StrikeResult.IGNITED, "third shelter LMB strike did not ignite")
+	_check(feed.attempt_lighter_strike(20.8) == HeatSourceFeed.StrikeResult.FLAME, "third shelter LMB strike did not ignite")
+	feed.advance_lighter_hold(3.0)
 	_check(source.is_burning() and stove_visual.is_glowing(), "lighting finished without flame and heat")
 	await physics_frame
 	_interact.detect_target()
 	_check_target(feed, "stove after ignition")
 
-	_press(&"interact") # reopen hot stove
-	_press(&"interact") # second log
+	_inventory.try_add(ItemCatalog.get_item(&"firewood"))
+	_inventory.try_add(ItemCatalog.get_item(&"firewood"))
+	_click(MOUSE_BUTTON_LEFT) # second log
 	_check(feed.is_acting(), "first hot top-up did not start")
 	_actions._process(HeatSourceFeed.ADD_SECONDS)
 	_check(_inventory.get_count(&"firewood") == 1, "first hot top-up consumed wrong number of logs")
 	await physics_frame
 	_interact.detect_target()
 	_check_target(feed, "stove after first hot top-up")
-	_press(&"interact") # third log
+	_click(MOUSE_BUTTON_RIGHT) # third log
 	_check(feed.is_acting(), "second hot top-up did not start")
 	_actions._process(HeatSourceFeed.ADD_SECONDS)
 	_check(_inventory.get_count(&"firewood") == 0 and stove_visual.get_visible_log_count() == 3,
@@ -547,3 +552,14 @@ func _check(condition: bool, message: String) -> void:
 	if not condition:
 		_failures += 1
 		push_error("shelter workflow: " + message)
+
+
+func _click(button: MouseButton) -> void:
+	var event := InputEventMouseButton.new()
+	event.button_index = button
+	event.pressed = true
+	root.push_input(event)
+	event = InputEventMouseButton.new()
+	event.button_index = button
+	event.pressed = false
+	root.push_input(event)

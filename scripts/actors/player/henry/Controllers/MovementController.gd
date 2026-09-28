@@ -83,7 +83,8 @@ func process_movement(
 	jump_is_pressed: bool,
 	jump_just_released: bool,
 	sprint_is_pressed: bool,
-	sprint_just_released: bool
+	sprint_just_released: bool,
+	movement_locked: bool = false
 ) -> void:
 	_jump_release_fired_this_frame = false
 	
@@ -104,6 +105,18 @@ func process_movement(
 		# На полу - обнуляем вертикальную скорость (кроме прыжка)
 		if player.velocity.y < 0:
 			player.velocity.y = 0.0
+
+	## Stationary actions stop inertia and pending jump release, but keep gravity.
+	if movement_locked:
+		player.velocity.x = 0.0
+		player.velocity.z = 0.0
+		_jump_hold_armed = false
+		_sprint_blend = 1.0
+		_sprint_inertia_timer = 0.0
+		_was_idle = true
+		if stamina_manager != null and stamina_manager.is_consuming_stamina:
+			stamina_manager.stop_consuming_stamina()
+		return
 
 	# === 3) Прыжок на удержание ===
 	if on_floor_now:

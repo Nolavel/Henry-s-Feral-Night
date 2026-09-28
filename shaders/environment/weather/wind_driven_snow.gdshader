@@ -9,6 +9,8 @@
 shader_type particles;
 render_mode keep_data, collision_use_scale;
 
+#include "res://shaders/environment/weather/snow_door_barrier.gdshaderinc"
+
 uniform vec4 color : source_color = vec4(0.94, 0.97, 1.0, 0.96);
 uniform vec3 box_emit_size = vec3(24.0, 1.8, 18.0);
 uniform vec3 wind_velocity = vec3(0.0);
@@ -85,6 +87,7 @@ void start() {
 		VELOCITY.y = -USERDATA1.y;
 	}
 
+	USERDATA2 = vec4(TRANSFORM[3].xyz, 1.0);
 	if (RESTART_COLOR) {
 		COLOR = color;
 	}
@@ -93,9 +96,11 @@ void start() {
 void process() {
 	// Particle colliders are the weather-VFX contact authority. Snow does not
 	// bounce or rest on the floor: it disappears on first contact.
-	if (COLLIDED) {
+	if (COLLIDED || snow_door_hit(USERDATA2.xyz, TRANSFORM[3].xyz)
+		|| snow_door_hit(TRANSFORM[3].xyz, TRANSFORM[3].xyz + VELOCITY * DELTA)) {
 		ACTIVE = false;
 	} else {
+		USERDATA2 = vec4(TRANSFORM[3].xyz, 1.0);
 		USERDATA1.x += DELTA;
 		float normalized_age = clamp(USERDATA1.x / max(LIFETIME, 0.001), 0.0, 1.0);
 

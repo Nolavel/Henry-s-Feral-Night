@@ -1,10 +1,8 @@
 class_name InteractComponent
 extends Node3D
 
-## Crosshair-authoritative interaction selection.
-## Proximity only grants permission; the camera-centre ray decides which
-## InteractiveArea Henry is actually addressing. F acts at arm's length or
-## walks over first, but never on an unfocused nearby object.
+## The crosshair chooses the target when F is pressed.
+## A requested pickup stays selected for arrival even as the walking camera moves.
 
 ## What is targeted and whether it is already within arm's reach.
 signal interact_target_changed(target: InteractiveArea, in_reach: bool)
@@ -65,11 +63,12 @@ func _physics_process(delta: float) -> void:
 
 ## Re-picks the target now; normally run every physics frame.
 func detect_target() -> void:
-	if current_target != null:
-		if not is_instance_valid(current_target):
+	if not is_instance_valid(current_target):
+		if _last_in_reach or _last_in_prompt:
 			_clear_current_target(false)
-		elif current_target.is_queued_for_deletion() or not current_target.can_interact():
-			_clear_current_target()
+		current_target = null
+	elif current_target.is_queued_for_deletion() or not current_target.can_interact():
+		_clear_current_target()
 	var seated: bool = _is_seated()
 	var found: InteractiveArea = _find_seated_target() if seated else _find_crosshair_target()
 	var distance: float = _flat_distance_to(found) if found != null else INF
@@ -91,7 +90,7 @@ func detect_target() -> void:
 
 
 func is_target_in_reach() -> bool:
-	return _last_in_reach
+	return is_instance_valid(current_target) and _flat_distance_to(current_target) <= _reach()
 
 
 ## Clears the authoritative focus state, not just its visuals. This is used when
@@ -104,16 +103,22 @@ func _clear_current_target(update_target_state: bool = true) -> void:
 	_last_in_reach = false
 	_last_in_prompt = false
 	if _pending == previous:
-		_cancel_approach()
+		_stop_approach()
 	interact_target_changed.emit(null, false)
 
 
 ## F states an intent: act now at arm's length, or walk over and act on arrival.
 func try_interact() -> void:
-	if _is_blocked() or current_target == null:
+	if _is_blocked():
+		return
+	if not is_instance_valid(current_target):
+		_clear_current_target(false)
+		return
+	if current_target.is_queued_for_deletion() or not current_target.can_interact():
+		_clear_current_target()
 		return
 	if _flat_distance_to(current_target) <= _reach():
-		_cancel_approach()
+		_stop_approach()
 		_perform(current_target)
 		return
 	if not _is_seated():
@@ -123,15 +128,11 @@ func try_interact() -> void:
 func _perform(target: InteractiveArea) -> void:
 	if not is_instance_valid(target):
 		return
-	if _player != null and _player.has_method(&"play_action_animation"):
+	## Pickups request their animation only after inventory acceptance.
+	if not (target is ItemPickup) and _player != null and _player.has_method(&"play_action_animation"):
 		var action: StringName = target.player_animation_action
 		if action == &"":
-			if target is ItemPickup:
-				action = &"pickup"
-			elif target is BreachBoardUp:
-				action = &"interact"
-			else:
-				action = &"interact"
+			action = &"interact"
 		_player.call(&"play_action_animation", action)
 	target.interact()
 	# A consumed/deactivated target stops being authoritative before UI observers
@@ -157,7 +158,7 @@ func _find_crosshair_target() -> InteractiveArea:
 	# Physical bodies are checked separately below for honest occlusion.
 	var area_hit := _first_interactive_area_on_ray(from, to)
 	if not area_hit.is_empty():
-		var direct := _area_from(area_hit.get("collider"))
+		var direct := _resolve_focus(_area_from(area_hit.get("collider")), from, direction)
 		if (
 			direct != null
 			and _flat_distance_to(direct) <= intent_radius
@@ -167,6 +168,12 @@ func _find_crosshair_target() -> InteractiveArea:
 			if _focus_hit_is_visible(from, hit_position, direct):
 				return direct
 
+	## Keep the selected stove authoritative while the ray stays on its body or moving door.
+	if is_instance_valid(current_target) and current_target is HeatSourceFeed \
+		and (current_target as HeatSourceFeed).is_acting() \
+		and _flat_distance_to(current_target) <= intent_radius and _is_focus_aligned(from, direction, current_target):
+		return current_target
+
 	# Solid geometry still counts when it belongs to the InteractiveArea itself.
 	# This keeps small/legacy Areas usable without allowing focus through walls.
 	var body_ray := PhysicsRayQueryParameters3D.create(from, to)
@@ -175,7 +182,7 @@ func _find_crosshair_target() -> InteractiveArea:
 	body_ray.exclude = [_player.get_rid()]
 	var body_hit: Dictionary = _player.get_world_3d().direct_space_state.intersect_ray(body_ray)
 	if not body_hit.is_empty():
-		var body_target := _area_from(body_hit.get("collider"))
+		var body_target := _resolve_focus(_area_from(body_hit.get("collider")), from, direction)
 		if body_target != null and _flat_distance_to(body_target) <= intent_radius:
 			return body_target
 		# Do not abort on terrain/walls here. A pickup has no physics body of its
@@ -196,7 +203,7 @@ func _find_crosshair_target() -> InteractiveArea:
 	var best_angle := deg_to_rad(focus_angle_deg * 0.5)
 	var best_distance := INF
 	for result: Dictionary in get_world_3d().direct_space_state.intersect_shape(query, 32):
-		var area := _area_from(result.get("collider"))
+		var area := _resolve_focus(_area_from(result.get("collider")), from, direction)
 		if area == null:
 			continue
 		var flat_distance := _flat_distance_to(area)
@@ -239,7 +246,7 @@ func _first_interactive_area_on_ray(from: Vector3, to: Vector3) -> Dictionary:
 		var hit: Dictionary = _player.get_world_3d().direct_space_state.intersect_ray(ray)
 		if hit.is_empty():
 			return {}
-		var area: InteractiveArea = _area_from(hit.get("collider"))
+		var area: InteractiveArea = _resolve_focus(_area_from(hit.get("collider")), from, (to - from).normalized())
 		if (
 			area != null and _flat_distance_to(area) <= intent_radius
 			and _is_focus_aligned(from, (to - from).normalized(), area)
@@ -268,10 +275,28 @@ func _focus_hit_is_visible(from: Vector3, hit_position: Vector3, target: Interac
 	var hit: Dictionary = _player.get_world_3d().direct_space_state.intersect_ray(ray)
 	if hit.is_empty():
 		return true
-	return _area_from(hit.get("collider")) == target
+	return _owns_focus_body(_area_from(hit.get("collider")), target)
 
 
 func _is_focus_aligned(from: Vector3, direction: Vector3, area: InteractiveArea) -> bool:
+	if not is_instance_valid(area) or area.is_queued_for_deletion():
+		return false
+	if area is HeatSourceFeed and (area as HeatSourceFeed).is_acting():
+		var door: StoveDoorControl = (area as HeatSourceFeed).door_control
+		if is_instance_valid(door):
+			var door_distance: float = door.get_aim_distance(from, direction)
+			if is_finite(door_distance) and door_distance <= focus_length:
+				return _focus_hit_is_visible(from, from + direction * door_distance, area)
+		var ray := PhysicsRayQueryParameters3D.create(from, from + direction * focus_length)
+		ray.collide_with_areas = false
+		ray.collide_with_bodies = true
+		ray.exclude = [_player.get_rid()]
+		var hit: Dictionary = _player.get_world_3d().direct_space_state.intersect_ray(ray)
+		if not hit.is_empty():
+			return _owns_focus_body(_area_from(hit.get("collider")), area)
+		return false
+	if area is StoveDoorControl:
+		return (area as StoveDoorControl).is_aim_on_door(from, direction)
 	if area is BreachBoardUp:
 		return (area as BreachBoardUp).is_aim_on_opening(from, direction)
 	var toward: Vector3 = _focus_point(area) - from
@@ -281,6 +306,8 @@ func _is_focus_aligned(from: Vector3, direction: Vector3, area: InteractiveArea)
 
 
 func _has_focus_line(camera: Camera3D, area: InteractiveArea) -> bool:
+	if not is_instance_valid(camera) or not is_instance_valid(area):
+		return false
 	var from: Vector3 = camera.project_ray_origin(get_viewport().get_visible_rect().size * 0.5)
 	var to := _focus_point(area)
 	var ray := PhysicsRayQueryParameters3D.create(from, to)
@@ -290,14 +317,14 @@ func _has_focus_line(camera: Camera3D, area: InteractiveArea) -> bool:
 	var hit := _player.get_world_3d().direct_space_state.intersect_ray(ray)
 	if hit.is_empty():
 		return true
-	return _area_from(hit.get("collider")) == area
+	return _owns_focus_body(_area_from(hit.get("collider")), area)
 
 
 ## A focus anchor should represent what the player can actually see. Many old
 ## pickup Areas have their origin on the floor and a 6 m trigger sphere; using
 ## that origin for line-of-sight makes the terrain occlude the pickup itself.
 func _focus_point(area: InteractiveArea) -> Vector3:
-	if area == null:
+	if not is_instance_valid(area):
 		return Vector3.ZERO
 	if is_instance_valid(area.focus_anchor):
 		return area.focus_anchor.global_position
@@ -422,6 +449,8 @@ func _area_from(collider: Variant) -> InteractiveArea:
 
 
 func _flat_distance_to(target: Node3D) -> float:
+	if not is_instance_valid(target) or not is_instance_valid(_player):
+		return INF
 	var offset: Vector3 = target.global_position - _player.global_position
 	offset.y = 0.0
 	return offset.length()
@@ -443,14 +472,25 @@ func _begin_approach(target: InteractiveArea) -> void:
 	_player.call(&"move_to_position", stop_point)
 
 
-## Arrival is distance to the target, never "the walk ended".
+## Pickup arrival uses the item requested by F, not the moving camera's focus.
+## Other interactions keep their live focus requirement.
 func _update_approach(delta: float) -> void:
 	if _pending == null:
 		return
-	if not is_instance_valid(_pending) or not _pending.can_interact():
+	if not is_instance_valid(_pending) or _pending.is_queued_for_deletion() \
+		or not _pending.can_interact() or _is_blocked():
 		_stop_approach()
 		return
-	if _flat_distance_to(_pending) <= pickup_distance + 0.05:
+	var pickup_requested: bool = _pending is ItemPickup
+	## WASD taking over cancels the pickup intent before any arrival is processed.
+	if pickup_requested and _approach_stopped:
+		_stop_approach()
+		return
+	var distance: float = _flat_distance_to(_pending)
+	if pickup_requested and distance > intent_radius:
+		_stop_approach()
+		return
+	if (pickup_requested or _pending == current_target) and distance <= _reach():
 		var target: InteractiveArea = _pending
 		_stop_approach()
 		_perform(target)
@@ -479,6 +519,9 @@ func _on_player_movement_stopped() -> void:
 
 
 func _is_blocked() -> bool:
+	if is_instance_valid(_player) and _player.has_method(&"is_action_locking") \
+		and bool(_player.call(&"is_action_locking")):
+		return true
 	var state: Node = get_node_or_null(^"/root/PlayerState")
 	return state != null and bool(state.call(&"is_movement_blocked"))
 
@@ -487,3 +530,23 @@ func _is_blocked() -> bool:
 
 func is_crosshair_focused() -> bool:
 	return is_instance_valid(current_target)
+
+
+func _resolve_focus(area: InteractiveArea, from: Vector3, direction: Vector3) -> InteractiveArea:
+	if not is_instance_valid(area) or area.is_queued_for_deletion():
+		return null
+	if area is HeatSourceFeed:
+		return (area as HeatSourceFeed).resolve_focus(from, direction)
+	if area is StoveDoorControl:
+		var feed: HeatSourceFeed = (area as StoveDoorControl).feed
+		if is_instance_valid(feed) and feed.is_acting():
+			return feed
+	return area
+
+
+func _owns_focus_body(owner_area: InteractiveArea, target: InteractiveArea) -> bool:
+	if not is_instance_valid(owner_area) or not is_instance_valid(target):
+		return false
+	return owner_area == target \
+		or (target is StoveDoorControl and (target as StoveDoorControl).feed == owner_area) \
+		or (owner_area is StoveDoorControl and (owner_area as StoveDoorControl).feed == target)

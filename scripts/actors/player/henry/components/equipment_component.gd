@@ -50,7 +50,7 @@ const LEGACY_SLOT_MIGRATION: Dictionary = {
 @export var layout: EquipmentLayout
 ## Worn from the start, by item id.
 @export var starter_garment_ids: Array[StringName] = []
-## Non-garments placed from the start, body slot id to item id: Kenny on his fixture.
+## Starter items by body slot or worn-pocket path (body_slot/pocket).
 @export var starter_slot_items: Dictionary[StringName, StringName] = {}
 
 @export_group("Survival")
@@ -80,7 +80,11 @@ func initialize() -> void:
 			continue
 		equip(item.garment.body_slot_id, item_id)
 	for slot_id: StringName in starter_slot_items:
-		equip(slot_id, starter_slot_items[slot_id])
+		var parts: PackedStringArray = String(slot_id).split(POCKET_SEPARATOR)
+		if parts.size() == 2:
+			stow(StringName(parts[0]), StringName(parts[1]), starter_slot_items[slot_id])
+		else:
+			equip(slot_id, starter_slot_items[slot_id])
 
 
 ## Kilograms of non-garments riding in body slots and pockets. Clothes are

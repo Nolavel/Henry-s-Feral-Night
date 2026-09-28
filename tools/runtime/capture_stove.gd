@@ -70,14 +70,19 @@ func _process(delta: float) -> bool:
 			_stove.restore_fuel(0.0, false)
 			var player := root.find_child("Player", true, false) as Player
 			var bag: InventoryComponent = InventoryComponent.find_in(player)
-			for id: String in ["tinder", "firewood"]:
+			for id: String in ["tinder", "lighter"]:
 				bag.try_add(load("res://data/items/%s.tres" % id) as ItemResource)
 			player.global_position = _stove.global_position + Vector3(1.05, 0.9, 0.0)
 			player.rotation.y = PI * 0.5  # face the stove door (-X)
 			var cam := _stove.get_node(^"Camera3D") as Camera3D
 			cam.position = Vector3(1.3, 1.2, 1.9)
 			cam.look_at(_stove.global_position + Vector3(0.5, 0.4, 0.0), Vector3.UP)
-			print("[stove] act=", (_stove.find_child("Feed", true, false) as HeatSourceFeed).begin_act())
+			_stove.add_logs(1)
+			var feed := _stove.get_node(^"Feed") as HeatSourceFeed
+			feed.toggle_door()
+			feed.strike_success_chance = 1.0
+			print("[stove] act=", feed.begin_act())
+			feed.attempt_lighter_strike()
 			_next()
 		6:
 			_shot("06_lighting_kindling")

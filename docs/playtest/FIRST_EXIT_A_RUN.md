@@ -32,12 +32,13 @@ sitting, the stove ring, the table, or sleep = save.
 | 2:00–5:30 | Resources | Do they read boards / tinder / firewood as future decisions? Do they leave something behind? | "What did you not take, and why?" |
 | When 200 m from the start, or after 5 min; deferred while sheltered | Weather turn | Did the plan change: faster, less looting, a sheltered path, no going back? | "What changed when the storm came?" |
 | 5:30–7:30 | Finding the shelter among 11 lots | Did they pick it by looking (breaches, stove, mattress), or by a prompt? | "How did you know which house?" |
-| 7:00–9:00 | 5 breaches, boards carried three at a time | Do they discover staging, hammer/nails and camera-aimed LMB placement? Which holes do they choose first? | "Which windows did you close, and why those?" |
-| 8:00–12:00 | Stove and recovery | Light the stove (5 s act), sit, wait, dry (steam, trend marks), warm food on the ring, eat from the table. Did it read as a ritual or as a chain of F prompts? | "What were you doing by the stove?" |
+| 7:00–9:00 | 4 repairable windows + operable door, boards carried three at a time | Do they discover staging, hammer/nails and camera-aimed LMB placement? Which holes do they choose first? | "Which windows did you close, and why those?" |
+| 8:00–12:00 | Stove and recovery | Light the stove (3 s held catch, 20 s development), sit, wait, dry (steam, trend marks), warm food on the ring, eat from the table. Did it read as a ritual or as a chain of F prompts? | "What were you doing by the stove?" |
 | 11:00–15:00 | Sleep → save → reload | Sleep through the mattress/bedroll. Reload the slot: picked-up loot must not return (#79), shelter, fuel, weather, bedroll and inventory must hold. | — |
 
-Use the existing stove sequence: F open, F load cold, F light with the owned
-lighter. Observe hand item visibility, water remaining, knife refusal and separate
+Use F on the stove handle to open; aim inside and use LMB/RMB to load 1/up to 2
+logs. With free hands, F prepares the lighter; press LMB to strike and hold a
+successful flame for 3 seconds. The fire then develops over 20 seconds. Observe hand item visibility, water remaining, knife refusal and separate
 pineapple opening/eating, G drop recovery and the protected seated meal ritual.
 Do not give these steps to the tester in advance. If they need help, record the
 timestamp, intended action, visible prompt and intervention as a failed link.

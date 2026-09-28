@@ -489,6 +489,7 @@ func _hinged_door(parent: Node3D, opening_width: float, opening_height: float,
 	door.set_script(load(HINGED_DOOR_SCRIPT))
 	door.set(&"auto_detect_ground", false)
 	door.set(&"object_on_ground", false)
+	door.set(&"opening_size", Vector2(opening_width, opening_height))
 	door.position = Vector3(0.0, bottom_y + opening_height * 0.5, z)
 	_add(parent, door)
 	var prompt_collision := CollisionShape3D.new()
@@ -522,8 +523,7 @@ func _hinged_door(parent: Node3D, opening_width: float, opening_height: float,
 # --- Shelter gameplay -------------------------------------------------------
 
 ## The working shelter from TestScene, fitted to the bungalow: an interior
-## ThermalZone, one ShelterBreach per opening with a board-up prompt, and a
-## stove that heats the zone. Sleep and save need nothing more.
+## ThermalZone, four repairable windows, one operable doorway and a stove.
 func _shelter_gameplay(house: Node3D, w: float, d: float, h: float,
 		entry_door: InteractiveArea = null) -> void:
 	var floor_y: float = HOUSE_FLOOR_Y
@@ -556,6 +556,7 @@ func _shelter_gameplay(house: Node3D, w: float, d: float, h: float,
 		breach.name = opening[0]
 		breach.set_script(load(BREACH_SCRIPT))
 		breach.set(&"severity", opening[4])
+		breach.set(&"boardable", opening[0] != "Door")
 		breach.set(&"name_key", "BREACH_DOOR" if opening[0] == "Door" else "BREACH_WINDOW")
 		breach.set(&"opening_width_m", float(opening[2]))
 		breach.set(&"opening_height_m", 2.0 if opening[0] == "Door" else 1.1)
@@ -564,6 +565,12 @@ func _shelter_gameplay(house: Node3D, w: float, d: float, h: float,
 		breach.position = Vector3(float(opening[1]), float(opening[3]) + floor_y - zone.position.y, side * d * 0.5)
 		breach.rotation.y = PI if side > 0.0 else 0.0
 		_add(zone, breach)
+		if opening[0] == "Door" and entry_door != null:
+			entry_door.breach = breach
+			breach.set(&"opening_width_m", HOUSE_DOOR_WIDTH_M)
+			breach.set(&"opening_height_m", HOUSE_DOOR_HEIGHT_M)
+			breach.transform = zone.transform.affine_inverse() * entry_door.transform * Transform3D(Basis(Vector3.UP, PI), Vector3.ZERO)
+			continue
 		var boards := Node3D.new()
 		boards.name = "Boards"
 		boards.visible = false
@@ -574,8 +581,6 @@ func _shelter_gameplay(house: Node3D, w: float, d: float, h: float,
 				Vector3(float(opening[2]) + 0.3, 0.2, 0.05), _board, false)
 			plank.rotation.z = deg_to_rad(float(k - 1) * 6.0)
 		breach.set(&"boarded_visual", boards)
-		if opening[0] == "Door" and entry_door != null:
-			entry_door.breach = breach
 		var prompt: Node3D = _interactive_area()
 		prompt.name = "BoardUp"
 		prompt.set_script(load(BOARD_SCRIPT))
@@ -592,6 +597,7 @@ func _shelter_gameplay(house: Node3D, w: float, d: float, h: float,
 	stove.name = "Stove"
 	stove.set_script(load(HEAT_SCRIPT))
 	stove.set(&"starts_burning", false)
+	stove.set(&"warmup_seconds", 20.0)
 	stove.position = Vector3(-w * 0.5 + 0.9, floor_y + 0.1 - zone.position.y, -d * 0.2)
 	_add(zone, stove)
 	stove.set(&"heats_zone", zone)

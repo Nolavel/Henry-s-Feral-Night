@@ -5,6 +5,211 @@ Maintained per branch; entries are added by whoever makes the change.
 
 ## [Unreleased] — `codex`
 
+### 2026-09-29 - Complete the pickup requested before walking (codex)
+
+Fixed
+- Use the ItemPickup captured by F to complete an approach at arm's reach. Camera
+  movement can change live crosshair focus without discarding the requested item.
+  Other interaction types retain their live focus requirement.
+- Cancel a pending pickup when WASD takes over, the target is removed/disabled,
+  it leaves the intent radius, movement becomes blocked, or the approach times out.
+- The previous pickup fix covered animation and inertia, but left the arrival
+  condition dependent on current crosshair focus; this addresses that condition.
+
+Validation
+- Statically traced F selection, approach, focus loss, arrival and cancellation
+  against Player's movement loop and ItemPickup's inventory acceptance path.
+  git diff --check passed; Godot and test suites were not launched, as requested.
+
+### 2026-09-29 - Keep Henry still during successful pickups (codex)
+
+Fixed
+- Play the pickup action only after the item has entered the inventory. Refusals
+  retain their message and world item without playing a misleading success clip.
+- Stop a scripted approach before acting at arm's reach. Clear horizontal velocity
+  when a stationary action starts, and lock movement from the OneShot FIRE request
+  through the active clip instead of waiting for the AnimationTree's next update.
+- The movement controller clears inertia, sprint and armed jump release while
+  rooted, preserving gravity. Repeated F cannot replace a locking action.
+- Consumed or disabled approach targets also stop Henry's scripted walk.
+
+Validation
+- Reviewed pickup acceptance/refusal, chopping ownership, approach teardown and
+  pending/active animation locks. Pickup root translation is zero in the source GLB.
+  git diff --check passed; Godot and test suites were not launched, as requested.
+
+### 2026-09-29 - Guard freed interaction targets (codex)
+
+Fixed
+- Clear invalid focus references before target selection, and check instance validity
+  before the active-stove type test. A removed target can no longer reach `is` through
+  the stove focus latch or its neighboring focus/ownership helpers.
+- Reject removed/queued targets on F and return no reach/focus for dead nodes.
+- Reviewed target clearing, lookup and input paths; git diff --check passed. Godot
+  and test suites were not launched, as requested by the author.
+
+### 2026-09-29 - Start with both ignition supplies in Quick Access (codex)
+
+Changed
+- Keep the starter lighter in Quick Access slot 2 and add one tinder portion to
+  slot 3 (left thigh pocket), as requested by the author. The stove already draws
+  the lighter and consumes tinder directly from their owning pockets.
+- Update the walkthroughs; Continue retains saved equipment without refilling it.
+
+Validation
+- Reviewed pocket ids, capacity and Quick Access ordering. git diff --check passed;
+  Godot and test suites were not launched, as requested by the author.
+
+### 2026-09-29 - Correct Quick Access starter item to the lighter (codex)
+
+Fixed
+- Correct the earlier misinterpretation: the author requested the lighter, not
+  tinder. Replace the right coat pocket starter item with `lighter`, Quick Access
+  slot 2, and update the walkthroughs. Continue keeps saved pocket contents.
+- Checked the catalog item and pocket mapping; git diff --check passed. Godot
+  and tests were not launched, as requested by the author.
+
+### 2026-09-28 - Start with tinder in Quick Access (codex)
+
+Changed
+- Per the author's instruction, new games start with one tinder portion already in
+  the right coat pocket, Quick Access slot 2. Stove preparation uses that owned
+  pocket item directly; it need not be drawn or moved through the Hub.
+- Starter equipment accepts worn-pocket paths after equipping the starter garments,
+  using normal fit/occupancy checks and slot signals. Pocket save/load remains the
+  authority; Continue does not refill the starter tinder.
+- Localize the tinder item name and update the shelter/route walkthroughs to show
+  the current F-load, automatic kneel and held-LMB controls.
+
+Validation
+- Reviewed starter initialization order, right coat pocket capacity, Quick Access
+  ordering and stove pocket consumption. git diff --check passed. Godot and test
+  suites were not launched, as requested by the author.
+
+### 2026-09-28 - Resolve stalled stove transfer presentation (codex)
+
+Fixed
+- Stove loading explicitly enables its presenter and advances the transfer through
+  TimeCostedActionSystem each frame, rather than only polling another node's timer.
+  External presentation skips the system's automatic tick, preserving one clock,
+  completion callback, partial cancellation cost and resource commit owner.
+- A lost/replaced action clears the stove's busy state and offers retry; it can no
+  longer wait indefinitely for an action that is absent. Zero-duration work modifiers
+  complete staged actions instead of turning them into endless manual actions.
+- Loading shows its log count and percentage as the main prompt, with F cancellation
+  below it. Logs remain owned by the hands until the completion callback commits them.
+- Guard PlayerState lookup when cancellation occurs after scene teardown; the author's
+  existing runtime log showed this error while returning from the game to the title.
+
+Validation
+- Reviewed external versus automatic ticking, completion into ignition, cancellation,
+  missing-action recovery and item commits. git diff --check passed. Godot and test
+  suites were not launched. The cause of the shared timer's runtime stall could not
+  be confirmed from the screenshot/log alone; the new explicit tick still needs the
+  author's gameplay confirmation.
+
+### 2026-09-28 - Stove loading and ignition refusal fixes (codex)
+
+Fixed
+- Count tinder in worn pockets as well as the pack, and consume it from its owning
+  storage exactly once when ignition succeeds. A drawn owned lighter no longer
+  blocks stove loading/preparation; stow it before attaching the stove strike prop.
+- Missing prerequisites appear as the main prompt without an unusable F offer.
+  Idle loaded stoves offer "Light stove"; active preparation shows its progress
+  and F cancellation. A missing ignition item cannot hide the successful log load.
+- Bind player storage/animation even when the stove becomes ready before Henry.
+  Use live reach checks and start approached actions only inside actual reach.
+- Keep the selected stove authoritative across its body and moving door; check
+  door visibility up to its plane, so a wall behind an open door does not cancel work.
+
+Validation
+- Reviewed loading/ignition branches, hand ownership, pocket resource commits,
+  action cancellation and prompt transitions. git diff --check only; no Godot,
+  rendering or test-suite execution, as requested by the author.
+
+### 2026-09-28 - Intuitive stove flow and shelter test start (codex)
+
+Changed
+- New games temporarily start outside the shelter entrance, facing the house,
+  for the author's interaction tests. Layout, saved scene, initial player transform
+  and resolved metadata agree; existing saves retain their player positions.
+- F in an open firebox loads the complete armful that fits, showing the count in
+  advance. Transfers commit wood at completion; uncommitted logs no longer appear
+  in the firebox while still held.
+- Surplus wood automatically becomes an ordinary saveable pile, checking clear
+  floor ahead and on both sides. Blocked placement preserves the surplus in hands
+  and explains how to put it down; already loaded fuel remains in the stove.
+- Cold loading automatically draws the owned lighter and enters Fixing_Kneeling.
+  AnimationTree plays to 2.6 seconds, holds the work pose and resumes the remaining
+  clip on completion/cancellation. The torch pose and repeated full-body strike
+  animations no longer compete with the kneeling pose.
+- LMB is enabled after the pose settles and always produces a strike, sound,
+  sparks and flame. Three uninterrupted held seconds ignite tinder exactly once.
+  Release/pause resets the hold; F cancels. Hot refueling never prepares ignition.
+- Body, firebox and door keep the same stove focus during work. Other targets,
+  lost reach and removed sources cancel. RMB explicitly returns up to two intact
+  cold logs, cancelling ignition first; mouse loading and implicit return mode are removed.
+- Player movement obeys the action system's WORKING mode for the entire transfer,
+  including multi-log loading after its short presentation clip ends.
+- English/Russian prompts and the shelter walkthrough describe the new sequence.
+  Missing tools preserve the cold load; fuel saves and gradual warmup keep their
+  existing HeatSource ownership.
+
+Validation
+- Static review covers input ownership, staged transitions, resource commits,
+  hand/pose cleanup and overflow persistence. git diff --check is the only command check.
+- Per the author's request, Godot, renders and test suites were not run. Existing
+  automated stove assertions describe the previous controls; this revision's
+  visual/gameplay acceptance remains the author's manual run.
+
+### 2026-09-28 - Door gap snow and staged stove controls (codex)
+
+Changed
+- The shelter door is an operable opening with 5% closed leakage, rather than a fifth
+  repairable breach. Four windows retain boarding; door boards/prompts are removed
+  from the scene and generator, and old boarded-door saves no longer lock it.
+- Snow drafts subtract the moving leaf from the actual opening. Both aperture snow
+  and exterior snowfall stop at leaf/frame contacts, including swept shader contacts
+  that prevent fast particles from crossing a thin leaf between simulation steps.
+- F on the stove door/handle opens or closes it. Aiming inside the open firebox gives
+  LMB one-log and RMB up-to-two-log transfers, two seconds and 0.5 game minutes per
+  log. Cold whole logs can return to the existing visible carry system; return mode
+  remains selected until focus changes or a separate F action ends it. Completion
+  owns all resource changes, so cancellation cannot lose or duplicate wood.
+- F with free hands prepares the lighter. Each LMB press makes one strike, with a
+  55% chance and a guaranteed sixth attempt. A short 0.25-second animation interval
+  replaces the previous five-second lockout. Sparks, hand movement and the CC0
+  SamsterBirdies strike recording accompany every accepted attempt.
+- Successful lighter flame/light last only while LMB stays held. Three uninterrupted
+  seconds ignite the tinder once; shorter holds do not accumulate. Release, focus
+  loss, cancellation and paused menus extinguish the lighter immediately.
+- HeatSource owns an optional 20-second stove startup ramp and recoverable-log count.
+  Flame, light, point warmth, room heating and cooking use the same intensity. Saved
+  warmup resumes, sleep/accelerated time advance it, and legacy burning saves start
+  fully developed. Other sources retain immediate full output.
+- Stove context consumes mouse input before Quick Access. English/Russian prompts
+  describe the current target, transfer mode, available logs and G to free hands.
+
+Fixed
+- Notify authored world roots through the existing world-ready lifecycle: the main
+  scene's day/night manager now drives the canonical simulation clock. Visible stove
+  startup requests fine realtime slices temporarily; sleep/action steps stay bounded.
+  Flush older buffered time before ignition and release the fine-step request at zero.
+
+Validation
+- All 58 system suites passed their assertions and returned success, including real
+  mouse-input/focus workflows, save round trips, cancellation and accelerated time.
+  Existing ice duplicate-signal diagnostics and intentional negative-test diagnostics
+  remain separate from the assertion results.
+- Clean resource import and generator validation passed (4323 nodes, 83 footprints).
+  Generated and committed scenes both pass the door and First Exit route checks.
+- Identical sealed/closed/open blizzard comparison: closed-gap penalty 0.422 C,
+  below the required 1 C. Native Vulkan captures show the actual gap stream and
+  blocked exterior snow; disabling both barriers reproduces snow through the leaf.
+- Native Graciosa/WASAPI run captured sparks, held flame, release, kindling and fully
+  developed fire, with a nonzero indoor SFX recording and a video containing audio.
+  Evidence and replay commands: docs/validation/stove_draft_2026-09-28.md.
+
 ### 2026-09-28 — Correct Day / Dusk LUT green-axis packing (codex)
 
 Fixed

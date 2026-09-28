@@ -263,6 +263,7 @@ script = ExtResource("heat")
 heats_zone = NodePath("..")
 flame_light = NodePath("Flame")
 starts_burning = false
+warmup_seconds = 20.0
 
 [node name="Body" type="MeshInstance3D" parent="Zone/Stove"]
 transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 0, 0.45, 0)

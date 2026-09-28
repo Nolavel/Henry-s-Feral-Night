@@ -12,7 +12,10 @@ extends Node3D
 ##
 ## UAL is strictly in-place. CharacterBody3D remains authoritative for motion.
 
+enum WorkPose { NONE, ENTERING, HOLDING, EXITING, RETURNING }
+
 const MOVEMENT_EPSILON: float = 0.05
+const WORK_POSE_HOLD_SECONDS: float = 2.6
 
 const IDLE_ALIASES: Array[StringName] = [&"Idle_Loop", &"Idle"]
 const WALK_ALIASES: Array[StringName] = [&"Walk_Loop", &"Walk"]
@@ -171,6 +174,11 @@ var _offhand_socket: BoneAttachment3D
 var _offhand_prop: Node3D
 var _hold_pose: float = 0.0
 var _current_action: StringName = &""
+var _work_pose: WorkPose = WorkPose.NONE
+var _work_pose_time: float = 0.0
+var _work_pose_length: float = 0.0
+var _work_pose_blend: float = 0.0
+var _work_clip: AnimationNodeAnimation
 var _carried: ItemResource = null
 var _carried_count: int = 0
 var _sitting: bool = false
@@ -216,7 +224,8 @@ func _ready() -> void:
 func update_animation_blend(_delta: float) -> void:
 	if animation_tree == null or player == null:
 		return
-	var hold_target: float = 1.0 if is_instance_valid(_held_prop) else 0.0
+	_update_work_pose(_delta)
+	var hold_target: float = 1.0 if is_instance_valid(_held_prop) and _work_pose == WorkPose.NONE else 0.0
 	_hold_pose = move_toward(_hold_pose, hold_target, hold_pose_rate * _delta)
 	animation_tree.set("parameters/hold_pose/blend_amount", _hold_pose)
 
@@ -397,9 +406,13 @@ func is_carrying() -> bool:
 
 ## True while a full-body action plays that Henry must stand still for.
 func is_action_locking() -> bool:
+	if _work_pose != WorkPose.NONE or _work_pose_blend > 0.0:
+		return true
 	if animation_tree == null or not LOCKING_ACTIONS.has(_current_action):
 		return false
-	return bool(animation_tree.get("parameters/actions/active"))
+	## FIRE has not necessarily been evaluated when F arrives before a physics tick.
+	return bool(animation_tree.get("parameters/actions/active")) \
+		or int(animation_tree.get("parameters/actions/request")) == AnimationNodeOneShot.ONE_SHOT_REQUEST_FIRE
 
 
 func _has_carry_state() -> bool:
@@ -407,7 +420,7 @@ func _has_carry_state() -> bool:
 
 
 func play_action(action: StringName) -> bool:
-	if animation_tree == null or _action_node == null:
+	if animation_tree == null or _action_node == null or _work_pose != WorkPose.NONE:
 		return false
 	var clip_name: StringName = _resolve_action_clip(action)
 	if clip_name == &"":
@@ -424,6 +437,53 @@ func play_action(action: StringName) -> bool:
 func abort_action() -> void:
 	if animation_tree != null:
 		animation_tree.set("parameters/actions/request", AnimationNodeOneShot.ONE_SHOT_REQUEST_FADE_OUT)
+
+
+## Plays into the kneeling work clip, holds its middle, then resumes its exit.
+func begin_work_pose() -> bool:
+	var clip_name: StringName = _resolve_action_clip(&"fix")
+	if animation_tree == null or _work_clip == null or clip_name == &"" or _work_pose in [WorkPose.ENTERING, WorkPose.HOLDING]:
+		return false
+	var clip: Animation = animation_player.get_animation(clip_name)
+	if clip == null or clip.length <= WORK_POSE_HOLD_SECONDS:
+		return false
+	abort_action()
+	clip.loop_mode = Animation.LOOP_NONE
+	_work_clip.animation = clip_name
+	_work_pose_length = clip.length
+	_work_pose_time = minf(_work_pose_time, WORK_POSE_HOLD_SECONDS) if _work_pose in [WorkPose.EXITING, WorkPose.RETURNING] else 0.0
+	_work_pose = WorkPose.ENTERING
+	animation_tree.set("parameters/work_seek/seek_request", _work_pose_time)
+	return true
+
+
+func is_work_pose_ready() -> bool:
+	return _work_pose == WorkPose.HOLDING
+
+
+func end_work_pose() -> void:
+	if _work_pose == WorkPose.ENTERING:
+		_work_pose = WorkPose.RETURNING
+	elif _work_pose == WorkPose.HOLDING:
+		_work_pose = WorkPose.EXITING
+
+
+func _update_work_pose(delta: float) -> void:
+	if _work_pose == WorkPose.ENTERING:
+		_work_pose_time = minf(_work_pose_time + delta, WORK_POSE_HOLD_SECONDS)
+		if _work_pose_time >= WORK_POSE_HOLD_SECONDS:
+			_work_pose = WorkPose.HOLDING
+	elif _work_pose == WorkPose.RETURNING:
+		_work_pose_time = maxf(_work_pose_time - delta, 0.0)
+		if _work_pose_time <= 0.0:
+			_work_pose = WorkPose.NONE
+	elif _work_pose == WorkPose.EXITING:
+		_work_pose_time = minf(_work_pose_time + delta, _work_pose_length)
+		if _work_pose_time >= _work_pose_length:
+			_work_pose = WorkPose.NONE
+	_work_pose_blend = move_toward(_work_pose_blend, 0.0 if _work_pose == WorkPose.NONE else 1.0, delta * 10.0)
+	animation_tree.set("parameters/work_seek/seek_request", _work_pose_time)
+	animation_tree.set("parameters/work_pose/blend_amount", _work_pose_blend)
 
 
 func _resolve_action_clip(action: StringName) -> StringName:
@@ -936,7 +996,16 @@ func _setup_animation_tree() -> void:
 	tree_root.add_node(&"actions", actions, Vector2(-80.0, 0.0))
 	tree_root.connect_node(&"actions", 0, &"hold_pose")
 	tree_root.connect_node(&"actions", 1, &"action_clip")
-	tree_root.connect_node(&"output", 0, &"actions")
+	_work_clip = _clip(_resolved_idle)
+	tree_root.add_node(&"work_clip", _work_clip, Vector2(-560.0, 440.0))
+	tree_root.add_node(&"work_seek", AnimationNodeTimeSeek.new(), Vector2(-360.0, 440.0))
+	tree_root.add_node(&"work_pace", AnimationNodeTimeScale.new(), Vector2(-160.0, 440.0))
+	tree_root.add_node(&"work_pose", AnimationNodeBlend2.new(), Vector2(120.0, 0.0))
+	tree_root.connect_node(&"work_seek", 0, &"work_clip")
+	tree_root.connect_node(&"work_pace", 0, &"work_seek")
+	tree_root.connect_node(&"work_pose", 0, &"actions")
+	tree_root.connect_node(&"work_pose", 1, &"work_pace")
+	tree_root.connect_node(&"output", 0, &"work_pose")
 
 	animation_tree = AnimationTree.new()
 	animation_tree.name = "AnimationTree"
@@ -944,6 +1013,7 @@ func _setup_animation_tree() -> void:
 	add_child(animation_tree)
 	animation_tree.anim_player = animation_tree.get_path_to(animation_player)
 	animation_tree.active = true
+	animation_tree.set("parameters/work_pace/scale", 0.0)
 	animation_tree.set("parameters/base/Grounded/blend_position", 0.0)
 	animation_tree.set("parameters/base/Crouch/blend_position", 0.0)
 	animation_tree.set("parameters/base/Carry/arms/blend_amount", 1.0)

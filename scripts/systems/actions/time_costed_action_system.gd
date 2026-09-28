@@ -123,13 +123,23 @@ func complete_active() -> bool:
 
 
 func _process(delta: float) -> void:
+	if _active != null and _active.external_presentation:
+		return
+	advance_presentation(delta)
+
+
+## Advances a staged presentation through the same clock, stop checks and completion callback.
+func advance_presentation(delta: float) -> void:
 	if _active == null:
 		return
 	var stop_reason: StringName = _stop_reason()
 	if stop_reason != &"":
 		_cancel_internal(stop_reason)
 		return
+	if _active.presentation_seconds <= 0.0:
+		return
 	if _effective_presentation_seconds <= 0.0:
+		complete_active()
 		return
 
 	_elapsed_seconds = minf(_effective_presentation_seconds, _elapsed_seconds + maxf(delta, 0.0))
@@ -262,7 +272,7 @@ func _release_control() -> void:
 	if _owns_realtime_block and simulation_clock != null:
 		simulation_clock.pop_realtime_block()
 	_owns_realtime_block = false
-	if _previous_player_mode >= 0:
+	if _previous_player_mode >= 0 and is_inside_tree():
 		var state: Node = get_node_or_null(^"/root/PlayerState")
 		if state != null and state.has_method(&"is_paused") and not bool(state.call(&"is_paused")):
 			state.call(&"set_mode", _previous_player_mode)

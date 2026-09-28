@@ -17,7 +17,7 @@ CONSUME_REFUSED_NOT_CONSUMABLE,You cannot eat that,Это нельзя съес�
 CONSUME_REFUSED_NOT_CARRIED,You are not carrying that,У вас этого нет
 CONSUME_REFUSED_NO_BIO_MONITOR,Cannot eat right now,Сейчас нельзя поесть
 FEED_REFUSED_NO_SOURCE,There is nothing to burn it in,Здесь негде развести огонь
-FEED_REFUSED_ALREADY_FULL,The fire is already full,Огонь уже полный
+FEED_REFUSED_ALREADY_FULL,The firebox is full,Топка заполнена
 FEED_REFUSED_NO_FUEL,You need firewood,Нужны дрова
 FEED_REFUSED_NO_TINDER,You need tinder to start it,Для розжига нужна растопка
 FEED_REFUSED_NO_INVENTORY,Cannot reach your pack,Нет доступа к рюкзаку
@@ -26,7 +26,7 @@ WEATHER_CALM,Calm,Штиль
 WEATHER_WINDY,Windy,Ветер
 WEATHER_SNOWFALL,Snowfall,Снегопад
 WEATHER_BLIZZARD,Blizzard,Буря
-FEED_PROMPT,Add a log,Подкинуть полено
+FEED_PROMPT,Stove,Печка
 INTERACT_PUSH,Push,Толкнуть
 INTERACT_PICKUP,Pick up,Подобрать
 INTERACT_PRESS,Press,Нажать
@@ -94,12 +94,11 @@ PROMPT_DETAIL_OBJECT,Object,Объект
 STOVE_OPEN,Open stove door,Открыть дверцу печки
 STOVE_LOAD,Put carried logs inside,Положить дрова из рук в печку
 STOVE_CLOSE,Close stove door,Закрыть дверцу печки
-STOVE_IGNITE,Light with lighter,Зажечь зажигалкой
+STOVE_IGNITE,Light stove,Разжечь печку
 STOVE_NEED_LIGHTER,Pick up the lighter from the tool bench,Возьмите зажигалку со стола с инструментами
-STOVE_LIGHTER_READY,Lighter ready · LMB to strike,Зажигалка готова · ЛКМ — чиркнуть
-STOVE_LIGHTER_STRIKE,LMB · Strike lighter,ЛКМ · Чиркнуть зажигалкой
+STOVE_LIGHTER_READY,Lighter ready · hold LMB to ignite,Зажигалка готова · держите ЛКМ для розжига
+STOVE_LIGHTER_STRIKE,Hold LMB for 3 seconds to light the tinder,Держите ЛКМ 3 секунды для розжига
 STOVE_LIGHTER_MISS,Spark · no flame,Искра · пламени нет
-STOVE_LIGHTER_LOCKED,Lighter does not respond · %.1f s,Зажигалка не откликается · %.1f с
 STOVE_LIGHTER_FLAME,Flame caught,Пламя появилось
 STOVE_LOADED,Logs placed inside: %d,Положено поленьев: %d
 STOVE_FUEL_DETAIL,Stove: %d / %d logs · %.1f h,Печка: %d / %d поленьев · %.1f ч
@@ -165,3 +164,28 @@ ACTION_REFUSED_BUSY,Finish the current action first,Сначала законч�
 AFFLICTION_HYPOTHERMIA,Hypothermia,Переохлаждение
 AFFLICTION_DEHYDRATION,Dehydration,Обезвоживание
 AFFLICTION_EXHAUSTION,Exhaustion,Истощение
+STOVE_MOUSE_LOAD,LMB: load 1 log | RMB: load up to 2,ЛКМ: положить 1 полено | ПКМ: до 2
+STOVE_MOUSE_TAKE,RMB: take up to 2 cold logs,ПКМ: забрать до 2 холодных поленьев
+STOVE_TAKEN,Taken: %d logs,Взято поленьев: %d
+STOVE_FREE_HANDS,G: put down wood first; put away other held tools,G: сначала положите дрова; уберите инструмент из рук
+STOVE_CANNOT_TAKE,Only intact cold logs can be taken with room in your hands,"Можно забрать только целые холодные поленья, если в руках есть место"
+STOVE_LIGHTER_HOLD,Hold for 3 seconds to ignite,Держать 3 секунды — разжечь
+STOVE_CANCEL_LIGHTER,Cancel ignition,Отменить розжиг
+STOVE_KINDLING,Tinder caught. The stove is warming up.,Растопка загорелась. Печь разгорается.
+STOVE_AVAILABLE,Logs available: %d,Доступно поленьев: %d
+STOVE_END_RETURN,Finish returning logs,Завершить возврат поленьев
+STOVE_MOUSE_KEY,LMB,ЛКМ
+STOVE_ACTION_LOAD,Load logs,Положить поленья
+STOVE_ACTION_TAKE,Return whole logs,Забрать целые поленья
+STOVE_WARMING,Fire is growing,Печь разгорается
+STOVE_BURNING,Stove is burning,Печь горит
+STOVE_EMPTY,Firebox is empty,Топка пуста
+STOVE_TRANSFER,Moving logs: %d,Перенос поленьев: %d
+STOVE_CANCEL_TRANSFER,Cancel,Отменить
+STOVE_LOAD_COUNT,Load %d logs,Загрузить %d поленьев
+STOVE_PREPARING,Preparing ignition,Готовится к розжигу
+STOVE_OVERFLOW_BLOCKED,Logs loaded; no clear floor nearby for the rest. Put them down with G before ignition.,Бревна загружены; рядом нет места для остатка. Положите его клавишей G перед розжигом.
+STOVE_TRANSFER_PROGRESS,Loading %d logs · %d%%,Загрузка %d поленьев · %d%%
+STOVE_ACTION_INTERRUPTED,Action interrupted — press F to retry,Действие прервано — нажмите F ещё раз
+STOVE_RETURN_PROGRESS,Taking back %d logs · %d%%,Возврат %d поленьев · %d%%
+Bundle of tinder,Bundle of tinder,Связка растопки

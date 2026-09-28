@@ -9,6 +9,8 @@ var duration_hours: float = 0.0
 ## Zero means simulate immediately (sleep/wait). Positive values drive a staged
 ## real-time presentation while game time is billed deterministically.
 var presentation_seconds: float = 0.0
+## When true, the gameplay presenter calls advance_presentation instead of the system ticking twice.
+var external_presentation: bool = false
 var reason: StringName = &"action"
 var actor: Node
 var target: Node

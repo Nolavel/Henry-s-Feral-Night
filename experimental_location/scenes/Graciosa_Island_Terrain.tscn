@@ -31,7 +31,7 @@ metadata/_edit_group_ = true
 [node name="StreamContainer" type="Node3D" parent="." unique_id=1700979822]
 
 [node name="Player" parent="." unique_id=335150464 instance=ExtResource("2_8hwqn")]
-transform = Transform3D(-4.37114e-08, 0, 1, 0, 1, 0, -1, 0, -4.37114e-08, 1420, 3, -943)
+transform = Transform3D(-0.8511709, 0, -0.5248887, 0, 1, 0, 0.5248887, 0, -0.8511709, 1139.5799247, 6.898996, -663.1879678)
 
 [node name="HenryUALVisual" parent="Player" index="0"]
 transform = Transform3D(-1, 0, -8.742278e-08, 0, 1, 0, 8.742278e-08, 0, -1, 0, -1, 0)

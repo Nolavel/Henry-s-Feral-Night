@@ -39,6 +39,8 @@ var _visual_wind_velocity: Vector3 = Vector3.ZERO
 var _last_direction: Vector3 = Vector3.FORWARD
 
 var heightfield_service: SnowHeightFieldService
+var _snow_door: HingedDoor
+var _door_check_left: float = 0.0
 var _runtime_visuals_enabled: bool = true
 
 
@@ -74,9 +76,10 @@ func _ensure_heightfield_service() -> void:
 	add_child(heightfield_service)
 
 
-func _process(_delta: float) -> void:
+func _process(delta: float) -> void:
 	if not _runtime_visuals_enabled:
 		return
+	_update_door_barrier(delta)
 	if is_instance_valid(follow_target):
 		global_position = follow_target.global_position + Vector3.UP * WORLD_EMITTER_HEIGHT
 
@@ -347,3 +350,24 @@ func _apply_conditions(wind_speed_mps: float, snowfall_density: float) -> void:
 
 func get_visual_wind_velocity() -> Vector3:
 	return _visual_wind_velocity
+
+
+func _update_door_barrier(delta: float) -> void:
+	_door_check_left -= delta
+	if _door_check_left <= 0.0:
+		_door_check_left = 0.5
+		_snow_door = null
+		var nearest: float = 50.0
+		for candidate: Node in get_tree().get_nodes_in_group(&"snow_doors"):
+			var door := candidate as HingedDoor
+			var distance: float = door.global_position.distance_to(follow_target.global_position if is_instance_valid(follow_target) else global_position)
+			if distance < nearest:
+				nearest = distance
+				_snow_door = door
+	for material: ShaderMaterial in [_process_material, _foreground_material]:
+		if material == null:
+			continue
+		if is_instance_valid(_snow_door):
+			_snow_door.apply_snow_barrier(material)
+		else:
+			material.set_shader_parameter("snow_door_enabled", false)

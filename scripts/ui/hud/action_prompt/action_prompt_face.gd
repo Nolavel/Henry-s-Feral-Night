@@ -100,26 +100,27 @@ func _draw() -> void:
 		return
 
 	var key_bg := KEY_BASE.lerp(KEY_CONFIRM, _confirm)
-	key_bg.a *= _key_reveal
+	var key_reveal: float = _key_reveal if not _key.is_empty() else 0.0
+	key_bg.a *= key_reveal
 	var key_border := KEY_BORDER_BASE.lerp(KEY_BORDER_CONFIRM, _confirm)
-	key_border.a *= _key_reveal
+	key_border.a *= key_reveal
 	_key_style.bg_color = key_bg
 	_key_style.border_color = key_border
 
 	var key_rect := KEY_RECT
 	# The only hard-edged geometry is the physical key itself. No enclosing card.
-	var key_shadow := Color(0.16, 0.10, 0.055, 0.78 * _key_reveal)
+	var key_shadow := Color(0.16, 0.10, 0.055, 0.78 * key_reveal)
 	draw_rect(Rect2(key_rect.position + Vector2(0.0, 4.0), key_rect.size),
 		key_shadow, true)
 	draw_style_box(_key_style, key_rect)
 	draw_line(
 		key_rect.position + Vector2(8.0, 7.0),
 		key_rect.position + Vector2(key_rect.size.x - 8.0, 7.0),
-		Color(1.0, 0.96, 0.86, lerpf(0.65, 0.92, _confirm) * _key_reveal),
+		Color(1.0, 0.96, 0.86, lerpf(0.65, 0.92, _confirm) * key_reveal),
 		2.0
 	)
 
-	var key_size := 32
+	var key_size: int = 28 if _key.length() >= 3 else 32
 	var key_width := _key_font.get_string_size(
 		_key, HORIZONTAL_ALIGNMENT_LEFT, -1, key_size
 	).x
@@ -129,7 +130,7 @@ func _draw() -> void:
 	)
 	draw_string(
 		_key_font, key_pos, _key, HORIZONTAL_ALIGNMENT_LEFT, -1, key_size,
-		Color(0.08, 0.055, 0.035, _key_reveal)
+		Color(0.08, 0.055, 0.035, key_reveal)
 	)
 
 	var text_x := 124.0

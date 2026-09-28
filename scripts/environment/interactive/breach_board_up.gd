@@ -71,7 +71,7 @@ func _input(event: InputEvent) -> void:
 
 
 func can_interact() -> bool:
-	return super() and breach != null and (not breach.is_boarded() or breach.get_staged_boards() > 0)
+	return super() and breach != null and breach.boardable and (not breach.is_boarded() or breach.get_staged_boards() > 0)
 
 
 func is_placing_board() -> bool:
@@ -94,7 +94,7 @@ func is_aim_on_opening(from: Vector3, direction: Vector3) -> bool:
 
 
 func _on_interaction_performed() -> void:
-	if breach == null or _placing:
+	if breach == null or not breach.boardable or _placing:
 		return
 	var inventory: InventoryComponent = _get_inventory()
 	if inventory == null:

@@ -47,23 +47,42 @@ func drop_carried() -> bool:
 	if not bool(placement.get("valid", false)):
 		_message(tr("WOOD_DROP_BLOCKED"))
 		return false
+	_drop_at(placement)
+	_message(tr("WOOD_DROPPED"))
+	return true
+
+
+## Stove overflow uses the same saved piles and collision checks as a manual drop.
+func drop_carried_nearby() -> bool:
+	if not _carry.is_carrying() or _work_left > 0.0:
+		return false
+	var forward: Vector3 = -_body.global_basis.z
+	var right: Vector3 = _body.global_basis.x
+	for direction: Vector3 in [forward, -right, right]:
+		var placement: Dictionary = get_drop_placement(direction, 0.85)
+		if bool(placement.get("valid", false)):
+			_drop_at(placement)
+			return true
+	return false
+
+
+func _drop_at(placement: Dictionary) -> void:
 	var id: StringName = _carry.get_carried_item().id
 	var count: int = _carry.get_carried_count()
 	spawn_load(id, count, placement["transform"])
 	for _i: int in range(count):
 		_inventory.try_remove(id)
-	_message(tr("WOOD_DROPPED"))
-	return true
 
 
-## A body-facing floor ray plus path/volume checks ignore interaction trigger Areas.
-func get_drop_placement() -> Dictionary:
+## A floor ray plus path/volume checks ignore interaction trigger Areas.
+func get_drop_placement(direction: Vector3 = Vector3.ZERO, distance: float = 1.35) -> Dictionary:
 	if not _carry.is_carrying():
 		return {"valid": false}
-	var direction: Vector3 = -_body.global_basis.z
+	if direction == Vector3.ZERO:
+		direction = -_body.global_basis.z
 	direction.y = 0.0
 	direction = direction.normalized()
-	var at: Vector3 = _body.global_position + direction * 1.35
+	var at: Vector3 = _body.global_position + direction * distance
 	var space: PhysicsDirectSpaceState3D = _body.get_world_3d().direct_space_state
 	var floor_ray := PhysicsRayQueryParameters3D.create(at + Vector3.UP * 0.75, at + Vector3.DOWN * 3.0)
 	floor_ray.exclude = [_body.get_rid()]

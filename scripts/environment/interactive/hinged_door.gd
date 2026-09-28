@@ -17,10 +17,11 @@ const CLOSE_KEY: String = "HOUSE_DOOR_CLOSE"
 @export var starts_open: bool = false
 ## A shut damaged door still leaks around its frame, but much less than an open
 ## doorway. One multiplier drives both ThermalZone exposure and BreachDraft VFX.
-@export_range(0.0, 1.0, 0.05) var closed_breach_multiplier: float = 0.20
-## The shelter's damaged doorway can still leak while the leaf is closed. Once
-## it is boarded, the door closes and stops offering an interaction.
+@export_range(0.0, 1.0, 0.05) var closed_breach_multiplier: float = 0.05
+## The doorway remains operable; its frame leaks gently when the leaf is closed.
 @export var breach: ShelterBreach
+@export var opening_size: Vector2 = Vector2(1.5, 2.25)
+var _leaf: MeshInstance3D
 
 var _open: bool = false
 var _tween: Tween
@@ -32,8 +33,16 @@ func _ready() -> void:
 	if door_hinge != null:
 		door_hinge.rotation.y = deg_to_rad(open_angle_deg) if _open else 0.0
 		_ensure_two_sided_handles()
-	if breach != null and not breach.boarded_changed.is_connected(_on_breach_boarded_changed):
-		breach.boarded_changed.connect(_on_breach_boarded_changed)
+	if door_hinge != null:
+		_leaf = door_hinge.get_node_or_null(^"DoorLeaf") as MeshInstance3D
+		_add_snow_blockers()
+	if breach != null:
+		add_to_group(&"snow_doors")
+		breach.boardable = false
+		breach.closure = self
+		breach.opening_width_m = opening_size.x
+		breach.opening_height_m = opening_size.y
+		breach.global_transform = global_transform * Transform3D(Basis(Vector3.UP, PI), Vector3.ZERO)
 	super()
 	_sync_breach_exposure()
 	_refresh_prompt()
@@ -53,7 +62,6 @@ func can_interact() -> bool:
 		super()
 		and door_hinge != null
 		and not is_swinging()
-		and (breach == null or not breach.is_boarded())
 	)
 
 
@@ -73,26 +81,61 @@ func _get_interaction_text() -> String:
 	return "[%s] %s" % [_interact_key_label(), tr(CLOSE_KEY if _open else OPEN_KEY)]
 
 
-func _on_breach_boarded_changed(_boarded: bool) -> void:
-	_sync_breach()
+func _process(_delta: float) -> void:
+	if is_swinging():
+		_sync_breach_exposure()
 
 
 func _sync_breach() -> void:
 	_sync_breach_exposure()
-	if breach == null or not breach.is_boarded():
-		_refresh_prompt()
-		return
-	if _tween != null:
-		_tween.kill()
-	_open = false
-	if door_hinge != null:
-		door_hinge.rotation.y = 0.0
 	_refresh_prompt()
 
 
 func _sync_breach_exposure() -> void:
-	if breach != null:
-		breach.set_exposure_multiplier(1.0 if _open else closed_breach_multiplier)
+	if breach != null and door_hinge != null:
+		var aperture: float = 1.0 - clampf(cos(door_hinge.rotation.y), 0.0, 1.0)
+		breach.set_exposure_multiplier(lerpf(closed_breach_multiplier, 1.0, aperture))
+
+
+## Four non-overlapping strips subtract the projected leaf from the actual doorway.
+func get_draft_regions() -> Array[AABB]:
+	var result: Array[AABB] = []
+	if breach == null or _leaf == null:
+		return result
+	var opening := AABB(Vector3(-opening_size.x * 0.5, -opening_size.y * 0.5, -0.075), Vector3(opening_size.x, opening_size.y, 0.01))
+	var leaf_bounds: AABB = (breach.global_transform.affine_inverse() * _leaf.global_transform) * _leaf.get_aabb()
+	var left: float = clampf(leaf_bounds.position.x, opening.position.x, opening.end.x)
+	var right: float = clampf(leaf_bounds.end.x, left, opening.end.x)
+	var bottom: float = clampf(leaf_bounds.position.y, opening.position.y, opening.end.y)
+	var top: float = clampf(leaf_bounds.end.y, bottom, opening.end.y)
+	_append_region(result, Vector3(opening.position.x, opening.position.y, opening.position.z), Vector3(left - opening.position.x, opening.size.y, opening.size.z))
+	_append_region(result, Vector3(right, opening.position.y, opening.position.z), Vector3(opening.end.x - right, opening.size.y, opening.size.z))
+	_append_region(result, Vector3(left, opening.position.y, opening.position.z), Vector3(right - left, bottom - opening.position.y, opening.size.z))
+	_append_region(result, Vector3(left, top, opening.position.z), Vector3(right - left, opening.end.y - top, opening.size.z))
+	return result
+
+
+func _append_region(regions: Array[AABB], at: Vector3, size: Vector3) -> void:
+	if size.x > 0.006 and size.y > 0.006:
+		regions.append(AABB(at + Vector3(0.003, 0.003, 0.0), size - Vector3(0.006, 0.006, 0.0)))
+
+
+func _add_snow_blockers() -> void:
+	if _leaf == null or breach == null:
+		return
+	var collider := GPUParticlesCollisionBox3D.new()
+	collider.name = "SnowLeafCollider"
+	collider.size = _leaf.get_aabb().size
+	collider.position = _leaf.get_aabb().get_center()
+	_leaf.add_child(collider)
+	var frame_sizes: Array[Vector3] = [Vector3(0.12, opening_size.y + 0.12, 0.20), Vector3(0.12, opening_size.y + 0.12, 0.20), Vector3(opening_size.x, 0.12, 0.20)]
+	var frame_positions: Array[Vector3] = [Vector3(-(opening_size.x + 0.12) * 0.5, 0.0, 0.0), Vector3((opening_size.x + 0.12) * 0.5, 0.0, 0.0), Vector3(0.0, (opening_size.y + 0.12) * 0.5, 0.0)]
+	for index: int in range(3):
+		var frame := GPUParticlesCollisionBox3D.new()
+		frame.name = "SnowFrame%d" % index
+		frame.size = frame_sizes[index]
+		frame.position = frame_positions[index]
+		add_child(frame)
 
 
 func _refresh_prompt() -> void:
@@ -140,3 +183,16 @@ func _make_handle_side(node_name: StringName, x: float, z: float) -> void:
 	lever.mesh = lever_mesh
 	lever.material_override = brass
 	root.add_child(lever)
+
+
+## Both snowfall layers and aperture drafts share the current leaf/frame transforms.
+func apply_snow_barrier(material: ShaderMaterial) -> void:
+	material.set_shader_parameter("snow_door_enabled", is_instance_valid(_leaf))
+	if not is_instance_valid(_leaf):
+		return
+	var bounds: AABB = _leaf.get_aabb()
+	material.set_shader_parameter("snow_leaf_inverse", _leaf.global_transform.affine_inverse())
+	material.set_shader_parameter("snow_leaf_min", bounds.position)
+	material.set_shader_parameter("snow_leaf_max", bounds.end)
+	material.set_shader_parameter("snow_frame_inverse", global_transform.affine_inverse())
+	material.set_shader_parameter("snow_opening_size", opening_size)

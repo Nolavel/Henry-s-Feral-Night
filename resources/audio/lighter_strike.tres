@@ -1,0 +1,13 @@
+[gd_resource type="Resource" script_class="SoundEvent" load_steps=3 format=3]
+
+[ext_resource type="Script" path="res://core/audio/sound_event.gd" id="1"]
+[ext_resource type="AudioStream" path="res://assets/audio/lighter/lighter_strike.ogg" id="2"]
+
+[resource]
+script = ExtResource("1")
+streams = Array[AudioStream]([ExtResource("2")])
+volume_db = 3.0
+pitch_jitter = 0.035
+unit_size = 2.0
+max_distance_m = 8.0
+max_instances = 2

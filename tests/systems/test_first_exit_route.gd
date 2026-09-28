@@ -32,12 +32,19 @@ func _check_shelter() -> void:
 	_check(zone.is_interior, "the shelter zone is not an interior")
 	var breaches: Array[ShelterBreach] = zone.get_breaches()
 	_check(breaches.size() == 5, "expected 5 openings, found %d" % breaches.size())
-	for breach: ShelterBreach in breaches:
-		_check(breach.boarded_visual != null, "%s has no boards visual" % breach.name)
-		_check(breach.find_child("BoardUp", false, false) is BreachBoardUp, "%s has no board-up prompt" % breach.name)
+	var windows: int = 0
 	var before: float = zone.get_sealed_fraction()
-	breaches[0].board_up()
-	_check(zone.get_sealed_fraction() > before, "boarding a breach did not seal the shelter more")
+	for breach: ShelterBreach in breaches:
+		if breach.boardable:
+			windows += 1
+			_check(breach.boarded_visual != null, "%s has no boards visual" % breach.name)
+			_check(breach.find_child("BoardUp", false, false) is BreachBoardUp, "%s has no board-up prompt" % breach.name)
+			breach.board_up()
+		else:
+			_check(breach.closure is HingedDoor, "the non-boardable opening has no door")
+			_check(breach.find_child("BoardUp", false, false) == null, "the door still has a board-up prompt")
+	_check(windows == 4, "expected four repairable windows")
+	_check(zone.get_sealed_fraction() > before, "boarding windows did not seal the shelter more")
 	var stove := zone.find_child("Stove", false, false) as HeatSource
 	_check(stove != null, "the shelter has no stove")
 	if stove != null:

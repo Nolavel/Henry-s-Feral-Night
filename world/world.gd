@@ -93,6 +93,9 @@ func initialize() -> void:
 	_notify(player)
 	for system: Node in _systems:
 		_notify(system)
+	for child: Node in get_children():
+		if child != player and child != stream_container and not _systems.has(child):
+			_notify(child)
 	_build_3d_entities()
 	_build_ui()
 	print("[World] initialized with %d systems" % _systems.size())

@@ -1,7 +1,7 @@
 extends SceneTree
 
 ## Full-size doors open and close on the same interaction used everywhere else,
-## keep their physical leaf on the hinge, and lock when a shelter is boarded.
+## keep their physical leaf on the hinge, and ignore obsolete door boarding.
 ## Run: godot --headless --script tests/systems/test_hinged_door.gd
 
 const INTERACTIVE_SCENE: String = "res://scenes/environment/interactive/InteractiveArea.tscn"
@@ -21,12 +21,12 @@ func _process(delta: float) -> bool:
 		0:
 			_build()
 			_check(not bool(_door.call(&"is_open")), "door starts open")
-			_check(is_equal_approx(_breach.get_exposure_multiplier(), 0.2), "closed damaged door does not reduce draft")
+			_check(is_equal_approx(_breach.get_exposure_multiplier(), 0.05), "closed damaged door does not reduce draft")
 			_check(_door.can_interact(), "closed door refuses F")
 			_door.interact()
 			_check(bool(_door.call(&"is_open")) and bool(_door.call(&"is_swinging")),
 				"F did not start the opening swing")
-			_check(is_equal_approx(_breach.get_exposure_multiplier(), 1.0), "open door does not restore full draft")
+			_check(is_equal_approx(_breach.get_exposure_multiplier(), 0.05), "opening intent changed exposure before movement")
 			_check(not _door.can_interact(), "swinging door accepts another press")
 			_elapsed = 0.0
 			_step = 1
@@ -40,10 +40,11 @@ func _process(delta: float) -> bool:
 		2:
 			if _elapsed > float(_door.get(&"hand_delay")) + float(_door.get(&"swing_time")) + 0.2:
 				_check(not bool(_door.call(&"is_open")) and is_zero_approx(_hinge.rotation.y), "door did not close")
-				_check(is_equal_approx(_breach.get_exposure_multiplier(), 0.2), "closing the door did not reduce draft again")
+				_check(is_equal_approx(_breach.get_exposure_multiplier(), 0.05), "closing the door did not reduce draft again")
 				_breach.board_up()
-				_check(is_zero_approx(_breach.get_exposure_against(Vector3(0.0, 0.0, 1.0))), "boarded doorway still exposes the shelter")
-				_check(not _door.can_interact(), "boarded shelter door still accepts F")
+				_check(not _breach.is_boarded(), "door still accepts boards")
+				_breach.load_save_data({"forced": true, "boards": [0.0], "staged": 3})
+				_check(not _breach.is_boarded() and _door.can_interact(), "old save locked doorway")
 				_finish()
 	return false
 
@@ -74,7 +75,7 @@ func _finish() -> void:
 		push_error("hinged door: %d check(s) failed" % _failures)
 		quit(1)
 		return
-	print("hinged door: open, close and boarding lock passed")
+	print("hinged door: open, close and legacy boarding migration passed")
 	quit(0)
 
 
