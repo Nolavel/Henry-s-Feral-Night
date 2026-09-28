@@ -65,11 +65,12 @@ func _physics_process(delta: float) -> void:
 
 ## Re-picks the target now; normally run every physics frame.
 func detect_target() -> void:
-	if current_target != null:
-		if not is_instance_valid(current_target):
+	if not is_instance_valid(current_target):
+		if _last_in_reach or _last_in_prompt:
 			_clear_current_target(false)
-		elif current_target.is_queued_for_deletion() or not current_target.can_interact():
-			_clear_current_target()
+		current_target = null
+	elif current_target.is_queued_for_deletion() or not current_target.can_interact():
+		_clear_current_target()
 	var seated: bool = _is_seated()
 	var found: InteractiveArea = _find_seated_target() if seated else _find_crosshair_target()
 	var distance: float = _flat_distance_to(found) if found != null else INF
@@ -110,7 +111,13 @@ func _clear_current_target(update_target_state: bool = true) -> void:
 
 ## F states an intent: act now at arm's length, or walk over and act on arrival.
 func try_interact() -> void:
-	if _is_blocked() or current_target == null:
+	if _is_blocked():
+		return
+	if not is_instance_valid(current_target):
+		_clear_current_target(false)
+		return
+	if current_target.is_queued_for_deletion() or not current_target.can_interact():
+		_clear_current_target()
 		return
 	if _flat_distance_to(current_target) <= _reach():
 		_cancel_approach()
@@ -168,7 +175,8 @@ func _find_crosshair_target() -> InteractiveArea:
 				return direct
 
 	## Keep the selected stove authoritative while the ray stays on its body or moving door.
-	if current_target is HeatSourceFeed and (current_target as HeatSourceFeed).is_acting() \
+	if is_instance_valid(current_target) and current_target is HeatSourceFeed \
+		and (current_target as HeatSourceFeed).is_acting() \
 		and _flat_distance_to(current_target) <= intent_radius and _is_focus_aligned(from, direction, current_target):
 		return current_target
 
@@ -277,6 +285,8 @@ func _focus_hit_is_visible(from: Vector3, hit_position: Vector3, target: Interac
 
 
 func _is_focus_aligned(from: Vector3, direction: Vector3, area: InteractiveArea) -> bool:
+	if not is_instance_valid(area) or area.is_queued_for_deletion():
+		return false
 	if area is HeatSourceFeed and (area as HeatSourceFeed).is_acting():
 		var door: StoveDoorControl = (area as HeatSourceFeed).door_control
 		if is_instance_valid(door):
@@ -302,6 +312,8 @@ func _is_focus_aligned(from: Vector3, direction: Vector3, area: InteractiveArea)
 
 
 func _has_focus_line(camera: Camera3D, area: InteractiveArea) -> bool:
+	if not is_instance_valid(camera) or not is_instance_valid(area):
+		return false
 	var from: Vector3 = camera.project_ray_origin(get_viewport().get_visible_rect().size * 0.5)
 	var to := _focus_point(area)
 	var ray := PhysicsRayQueryParameters3D.create(from, to)
@@ -318,7 +330,7 @@ func _has_focus_line(camera: Camera3D, area: InteractiveArea) -> bool:
 ## pickup Areas have their origin on the floor and a 6 m trigger sphere; using
 ## that origin for line-of-sight makes the terrain occlude the pickup itself.
 func _focus_point(area: InteractiveArea) -> Vector3:
-	if area == null:
+	if not is_instance_valid(area):
 		return Vector3.ZERO
 	if is_instance_valid(area.focus_anchor):
 		return area.focus_anchor.global_position
@@ -443,6 +455,8 @@ func _area_from(collider: Variant) -> InteractiveArea:
 
 
 func _flat_distance_to(target: Node3D) -> float:
+	if not is_instance_valid(target) or not is_instance_valid(_player):
+		return INF
 	var offset: Vector3 = target.global_position - _player.global_position
 	offset.y = 0.0
 	return offset.length()
@@ -511,6 +525,8 @@ func is_crosshair_focused() -> bool:
 
 
 func _resolve_focus(area: InteractiveArea, from: Vector3, direction: Vector3) -> InteractiveArea:
+	if not is_instance_valid(area) or area.is_queued_for_deletion():
+		return null
 	if area is HeatSourceFeed:
 		return (area as HeatSourceFeed).resolve_focus(from, direction)
 	if area is StoveDoorControl:
@@ -521,6 +537,8 @@ func _resolve_focus(area: InteractiveArea, from: Vector3, direction: Vector3) ->
 
 
 func _owns_focus_body(owner_area: InteractiveArea, target: InteractiveArea) -> bool:
+	if not is_instance_valid(owner_area) or not is_instance_valid(target):
+		return false
 	return owner_area == target \
 		or (target is StoveDoorControl and (target as StoveDoorControl).feed == owner_area) \
 		or (owner_area is StoveDoorControl and (owner_area as StoveDoorControl).feed == target)

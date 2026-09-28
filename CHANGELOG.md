@@ -5,6 +5,16 @@ Maintained per branch; entries are added by whoever makes the change.
 
 ## [Unreleased] — `codex`
 
+### 2026-09-29 - Guard freed interaction targets (codex)
+
+Fixed
+- Clear invalid focus references before target selection, and check instance validity
+  before the active-stove type test. A removed target can no longer reach `is` through
+  the stove focus latch or its neighboring focus/ownership helpers.
+- Reject removed/queued targets on F and return no reach/focus for dead nodes.
+- Reviewed target clearing, lookup and input paths; git diff --check passed. Godot
+  and test suites were not launched, as requested by the author.
+
 ### 2026-09-29 - Start with both ignition supplies in Quick Access (codex)
 
 Changed
