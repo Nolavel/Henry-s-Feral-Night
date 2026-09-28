@@ -356,6 +356,48 @@ func take_off_instance(slot_id: StringName) -> Dictionary:
 	return {"id": String(item_id), "garment_state": state}
 
 
+## Moves a worn garment into Inventory while preserving per-instance state.
+func unequip_to_inventory(slot_id: StringName, inventory: InventoryComponent) -> bool:
+	if inventory == null:
+		return false
+	var resolved: StringName = _resolve_body_slot_id(slot_id)
+	var item_id: StringName = get_equipped(resolved)
+	if item_id == &"" or not _pockets_empty_for(resolved):
+		return false
+	var item: ItemResource = ItemCatalog.get_item(item_id)
+	if item == null or inventory.get_add_refusal(item) != &"":
+		return false
+	var payload: Dictionary = take_off_instance(resolved)
+	if payload.is_empty():
+		return false
+	var state: Dictionary = payload.get("garment_state", {})
+	if inventory.try_add_instance(item, state):
+		return true
+	# Defensive rollback: inventory refusal changed after preflight.
+	equip(resolved, item_id, state)
+	return false
+
+
+## Equips one carried non-stackable garment instance, restoring its runtime state.
+func equip_from_inventory(slot_id: StringName, item_id: StringName, inventory: InventoryComponent) -> Refusal:
+	if inventory == null:
+		return Refusal.UNKNOWN_ITEM
+	var resolved: StringName = _resolve_body_slot_id(slot_id)
+	var refusal: Refusal = can_equip(resolved, item_id)
+	if refusal != Refusal.NONE:
+		return refusal
+	var payload: Dictionary = inventory.take_instance(item_id)
+	if payload.is_empty():
+		return Refusal.UNKNOWN_ITEM
+	var state: Dictionary = payload.get("instance_state", {})
+	refusal = equip(resolved, item_id, state)
+	if refusal != Refusal.NONE:
+		var item: ItemResource = payload.get("item") as ItemResource
+		if item != null:
+			inventory.try_add_instance(item, state)
+	return refusal
+
+
 ## Puts an item into one pocket.
 func stow(body_slot_id: StringName, pocket_id: StringName, item_id: StringName) -> Refusal:
 	var refusal: Refusal = can_stow(body_slot_id, pocket_id, item_id)
