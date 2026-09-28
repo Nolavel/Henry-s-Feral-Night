@@ -5,6 +5,35 @@ Maintained per branch; entries are added by whoever makes the change.
 
 ## [Unreleased] — `codex`
 
+### 2026-09-28 — Status / Affliction layer (#131 phase 4) (codex)
+
+Added
+- Player-owned `AfflictionComponent` with persistent runtime `AfflictionState` and immutable
+  `AfflictionDefinition` resources.
+- Initial conditions are intentionally limited to hypothermia, dehydration and exhaustion.
+- Named modifier aggregation for `movement_speed_multiplier`, `fatigue_rate_multiplier`,
+  `recovery_rate_multiplier` and `work_duration_multiplier`.
+- Dedicated additive save key `afflictions`; old saves with no status payload load with an empty set.
+
+Changed
+- Thermal stage owns hypothermia truth; HydrationComponent owns dehydration threshold truth;
+  FatigueComponent owns exhaustion threshold truth. AfflictionComponent stores persistence and consequences.
+- AfflictionComponent binds ThermalManager through `on_world_ready(context)` instead of Player.gd
+  manually gluing the two systems together.
+- Movement, Fatigue and TimeCostedAction consumers read named modifier contracts rather than statuses
+  directly mutating their internal tuning.
+- Hypothermia severity scales consequences continuously: severity 1/2 applies half of the configured
+  max penalty, severity 2/2 applies the full definition.
+
+Tests
+- Activation/recovery edges are idempotent.
+- Save/load preserves active severity and elapsed time; missing old-save payload is safe.
+- Modifier composition is deterministic regardless of activation order.
+- Hypothermia severity interpolation is monotonic and exact for the authored definition.
+- WorldContext binding activates/recover hypothermia from ThermalManager without Player glue.
+- Real Hydration/Fatigue/Thermal thresholds drive the corresponding afflictions.
+- Movement, fatigue drain and time-costed work duration consume named modifiers without presentation nodes.
+
 ### 2026-09-28 — Split BioMonitor into Hunger / Hydration / Fatigue (#131 phase 3) (codex)
 
 Changed
