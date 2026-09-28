@@ -83,6 +83,9 @@ func _run() -> void:
 	feed._process(HeatSourceFeed.ADD_SECONDS)
 	_check(not feed.heat_source.is_burning() and feed.heat_source.get_remaining_hours() > 0.0,
 		"staged cold log load did not complete")
+	await physics_frame
+	_interact.detect_target()
+	_check_target(feed, "stove after staged log load")
 	_interact.try_interact() # ignite loaded log
 	_check(feed.is_acting(), "F did not start lighting the real stove")
 	feed._process(HeatSourceFeed.LIGHT_SECONDS)
