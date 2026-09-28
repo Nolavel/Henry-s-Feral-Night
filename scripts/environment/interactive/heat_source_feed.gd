@@ -109,7 +109,7 @@ func begin_act() -> Refusal:
 			return Refusal.NO_LIGHTER
 		return _start_light_action()
 
-	if heat_source.can_refuel() and inventory.has_item(fuel_item_id):
+	if _has_room_for_one_log() and inventory.has_item(fuel_item_id):
 		return _start_feed_action()
 
 	## A burning stove with no useful feed step closes on the next interaction.
@@ -229,7 +229,7 @@ func _feed_stop_reason() -> StringName:
 	var inventory: InventoryComponent = _get_inventory()
 	if inventory == null or not inventory.has_item(fuel_item_id):
 		return &"resource_lost"
-	if not heat_source.can_refuel():
+	if not _has_room_for_one_log():
 		return &"already_full"
 	return &""
 
@@ -275,7 +275,7 @@ func _finish_light_act() -> void:
 ## stays open so the player may deliberately add a second log or close it.
 func _finish_feed_act() -> void:
 	var inventory: InventoryComponent = _get_inventory()
-	if heat_source == null or inventory == null or not heat_source.can_refuel():
+	if heat_source == null or inventory == null or not _has_room_for_one_log():
 		_cancel_act()
 		return
 	if not inventory.try_remove(fuel_item_id):
@@ -344,7 +344,7 @@ func _get_interaction_text() -> String:
 		if not heat_source.is_burning() and heat_source.get_remaining_hours() > 0.0:
 			key = "STOVE_IGNITE"
 			detail = tr("STOVE_LIGHTER_READY" if _has_lighter() else "STOVE_NEED_LIGHTER")
-		elif inventory != null and inventory.has_item(fuel_item_id) and heat_source.can_refuel():
+		elif inventory != null and inventory.has_item(fuel_item_id) and _has_room_for_one_log():
 			key = "STOVE_LOAD"
 		elif heat_source.is_burning():
 			key = "STOVE_CLOSE"
@@ -369,7 +369,7 @@ func _visual() -> StoveVisual:
 func can_feed() -> Refusal:
 	if heat_source == null:
 		return Refusal.NO_SOURCE
-	if not heat_source.can_refuel():
+	if not _has_room_for_one_log():
 		return Refusal.ALREADY_FULL
 	var inventory: InventoryComponent = _get_inventory()
 	if fuel_item_id != &"" or tinder_item_id != &"":
@@ -429,6 +429,15 @@ static func describe_refusal(refusal: Refusal) -> String:
 			return "ACTION_REFUSED_BUSY"
 		_:
 			return ""
+
+
+func _has_room_for_one_log() -> bool:
+	if heat_source == null or heat_source.burn_duration_h <= 0.0:
+		return false
+	var fuel_hours: float = maxf(units_per_item * heat_source.hours_per_fuel_unit, 0.0)
+	if fuel_hours <= 0.0:
+		return false
+	return heat_source.burn_duration_h - heat_source.get_remaining_hours() + 0.001 >= fuel_hours
 
 
 ## A dead fire has to be started, which costs tinder on top of the wood.
