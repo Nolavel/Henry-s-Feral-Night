@@ -5,6 +5,15 @@ Maintained per branch; entries are added by whoever makes the change.
 
 ## [Unreleased] — `codex`
 
+### 2026-09-29 - Correct Quick Access starter item to the lighter (codex)
+
+Fixed
+- Correct the earlier misinterpretation: the author requested the lighter, not
+  tinder. Replace the right coat pocket starter item with `lighter`, Quick Access
+  slot 2, and update the walkthroughs. Continue keeps saved pocket contents.
+- Checked the catalog item and pocket mapping; git diff --check passed. Godot
+  and tests were not launched, as requested by the author.
+
 ### 2026-09-28 - Start with tinder in Quick Access (codex)
 
 Changed
