@@ -5,6 +5,54 @@ Maintained per branch; entries are added by whoever makes the change.
 
 ## [Unreleased] — `codex`
 
+### 2026-09-28 - Door gap snow and staged stove controls (codex)
+
+Changed
+- The shelter door is an operable opening with 5% closed leakage, rather than a fifth
+  repairable breach. Four windows retain boarding; door boards/prompts are removed
+  from the scene and generator, and old boarded-door saves no longer lock it.
+- Snow drafts subtract the moving leaf from the actual opening. Both aperture snow
+  and exterior snowfall stop at leaf/frame contacts, including swept shader contacts
+  that prevent fast particles from crossing a thin leaf between simulation steps.
+- F on the stove door/handle opens or closes it. Aiming inside the open firebox gives
+  LMB one-log and RMB up-to-two-log transfers, two seconds and 0.5 game minutes per
+  log. Cold whole logs can return to the existing visible carry system; return mode
+  remains selected until focus changes or a separate F action ends it. Completion
+  owns all resource changes, so cancellation cannot lose or duplicate wood.
+- F with free hands prepares the lighter. Each LMB press makes one strike, with a
+  55% chance and a guaranteed sixth attempt. A short 0.25-second animation interval
+  replaces the previous five-second lockout. Sparks, hand movement and the CC0
+  SamsterBirdies strike recording accompany every accepted attempt.
+- Successful lighter flame/light last only while LMB stays held. Three uninterrupted
+  seconds ignite the tinder once; shorter holds do not accumulate. Release, focus
+  loss, cancellation and paused menus extinguish the lighter immediately.
+- HeatSource owns an optional 20-second stove startup ramp and recoverable-log count.
+  Flame, light, point warmth, room heating and cooking use the same intensity. Saved
+  warmup resumes, sleep/accelerated time advance it, and legacy burning saves start
+  fully developed. Other sources retain immediate full output.
+- Stove context consumes mouse input before Quick Access. English/Russian prompts
+  describe the current target, transfer mode, available logs and G to free hands.
+
+Fixed
+- Notify authored world roots through the existing world-ready lifecycle: the main
+  scene's day/night manager now drives the canonical simulation clock. Visible stove
+  startup requests fine realtime slices temporarily; sleep/action steps stay bounded.
+  Flush older buffered time before ignition and release the fine-step request at zero.
+
+Validation
+- All 58 system suites passed their assertions and returned success, including real
+  mouse-input/focus workflows, save round trips, cancellation and accelerated time.
+  Existing ice duplicate-signal diagnostics and intentional negative-test diagnostics
+  remain separate from the assertion results.
+- Clean resource import and generator validation passed (4323 nodes, 83 footprints).
+  Generated and committed scenes both pass the door and First Exit route checks.
+- Identical sealed/closed/open blizzard comparison: closed-gap penalty 0.422 C,
+  below the required 1 C. Native Vulkan captures show the actual gap stream and
+  blocked exterior snow; disabling both barriers reproduces snow through the leaf.
+- Native Graciosa/WASAPI run captured sparks, held flame, release, kindling and fully
+  developed fire, with a nonzero indoor SFX recording and a video containing audio.
+  Evidence and replay commands: docs/validation/stove_draft_2026-09-28.md.
+
 ### 2026-09-28 — Correct Day / Dusk LUT green-axis packing (codex)
 
 Fixed

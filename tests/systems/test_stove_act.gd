@@ -1,9 +1,6 @@
 extends SceneTree
 
-## Door -> one-log staged load -> ignition -> one-log hot refuel.
-## Fuel commits only after each action completes and one physical log is never
-## spent unless there is room for its full fuel value.
-
+## Staged transfers conserve items; held ignition and saved warmup share game time.
 class FireParticipant:
 	extends Node
 
@@ -13,7 +10,6 @@ class FireParticipant:
 	func advance_simulation(hours: float, _context: SimulationStepContext) -> void:
 		HeatSource.advance_all_fuel(hours)
 
-
 var _failures: int = 0
 
 
@@ -22,180 +18,140 @@ func _initialize() -> void:
 
 
 func _run() -> void:
-	var player_state: Node = root.get_node_or_null(^"PlayerState")
-	if player_state != null:
-		player_state.set_mode(player_state.Mode.ON_FOOT)
-
+	var previous_locale: String = TranslationServer.get_locale()
+	for locale: String in ["en", "ru"]:
+		TranslationServer.set_locale(locale)
+		for key: String in ["STOVE_WARMING", "STOVE_BURNING", "STOVE_EMPTY", "STOVE_TRANSFER", "STOVE_CANCEL_TRANSFER"]:
+			_check(tr(key) != key, "missing stove translation: " + locale + "/" + key)
+	TranslationServer.set_locale(previous_locale)
 	var clock := SimulationClock.new()
 	root.add_child(clock)
-	clock.set_total_hours(12.0, &"test_seed")
-	var fire_participant := FireParticipant.new()
-	root.add_child(fire_participant)
-	clock.register_participant(fire_participant)
+	var participant := FireParticipant.new()
+	root.add_child(participant)
+	clock.register_participant(participant)
 	var actions := TimeCostedActionSystem.new()
 	actions.simulation_clock = clock
 	root.add_child(actions)
-
+	actions.set_process(false)
 	var player := CharacterBody3D.new()
 	player.add_to_group(&"player")
 	var inventory := InventoryComponent.new()
 	player.add_child(inventory)
+	var carry := CarryComponent.new()
+	carry.inventory = inventory
+	player.add_child(carry)
 	root.add_child(player)
-
 	var stove := HeatSource.new()
 	stove.starts_burning = false
-	var visual := StoveVisual.new()
-	visual.name = "StoveVisual"
-	stove.add_child(visual)
+	stove.warmup_seconds = 20.0
 	var feed := HeatSourceFeed.new()
+	feed.name = "Feed"
 	feed.heat_source = stove
 	stove.add_child(feed)
 	root.add_child(stove)
-
+	feed.set_process(false)
+	var wood: ItemResource = ItemCatalog.get_item(&"firewood")
 	for _i: int in range(3):
-		inventory.try_add(ItemCatalog.get_item(&"firewood"))
-
-	## Door opening is free and never spends fuel.
-	_check(feed.begin_act() == HeatSourceFeed.Refusal.NONE, "door did not open")
-	await create_timer(0.4).timeout
-	_check(visual.is_door_open() and inventory.get_count(&"firewood") == 3, "opening spent logs")
-
-	## One log is one cancellable WORKING action; cancellation spends nothing.
-	var cancel_time: float = clock.get_total_hours()
-	_check(feed.begin_act() == HeatSourceFeed.Refusal.NONE and feed.is_acting(), "first log action did not start")
-	_check(actions.get_active_action_id().begins_with("feed_stove:"), "log loading bypassed TimeCostedActionSystem")
-	if player_state != null:
-		_check(player_state.mode == player_state.Mode.WORKING, "log loading did not enter WORKING")
-	_check(actions.cancel(&"test_cancel"), "log loading refused cancellation")
-	_check(inventory.get_count(&"firewood") == 3, "cancelled log action consumed fuel")
-	_check(is_zero_approx(stove.get_remaining_hours()), "cancelled log action changed stove fuel")
-	_check(is_equal_approx(clock.get_total_hours(), cancel_time), "cancelled log action billed time before progress")
-	if player_state != null:
-		_check(player_state.mode == player_state.Mode.ON_FOOT, "cancelled log action did not restore PlayerState")
-
-	## Load exactly one cold log.
-	var before_load: float = clock.get_total_hours()
-	_check(feed.begin_act() == HeatSourceFeed.Refusal.NONE and feed.is_acting(), "cold one-log load refused")
-	actions._process(HeatSourceFeed.ADD_SECONDS)
-	_check(not feed.is_acting(), "cold log action did not finish")
-	_check(not stove.is_burning() and is_equal_approx(stove.get_remaining_hours(), 2.0), "cold log silently ignited or added wrong fuel")
-	_check(inventory.get_count(&"firewood") == 2, "cold load consumed more than one log")
-	_check(is_equal_approx(clock.get_total_hours() - before_load, feed.add_time_cost_minutes / 60.0),
-		"one-log load billed the wrong game time")
-	_check(visual.get_visible_log_count() == 1, "one cold log is not visible")
-
-	## Once cold fuel exists, ignition is the next step even if Henry still carries logs.
-	_check(feed.begin_act() == HeatSourceFeed.Refusal.NO_LIGHTER, "cold loaded stove did not prioritise ignition")
-	_check(inventory.get_count(&"firewood") == 2, "failed ignition consumed another log")
-
+		inventory.try_add(wood)
+	feed.toggle_door()
+	_check(feed.transfer_logs(2) == HeatSourceFeed.Refusal.NONE, "pair load refused")
+	actions._process(1.0)
+	feed.cancel_act()
+	_check(inventory.get_count(&"firewood") == 3 and stove.get_remaining_hours() == 0.0, "cancel lost resources")
+	var before: float = clock.get_total_hours()
+	_check(feed.transfer_logs(2) == HeatSourceFeed.Refusal.NONE, "pair retry refused")
+	actions._process(3.99)
+	_check(stove.get_remaining_hours() == 0.0 and inventory.get_count(&"firewood") == 3, "pair committed early")
+	actions._process(0.01)
+	_check(stove.get_recoverable_log_count() == 2 and inventory.get_count(&"firewood") == 1, "pair changed wrong counts")
+	_check(is_equal_approx(clock.get_total_hours() - before, 1.0 / 60.0), "pair billed wrong time")
+	_check(feed.begin_act() == HeatSourceFeed.Refusal.HANDS_OCCUPIED, "lighter accepted wood-filled hands")
+	_check(feed.transfer_logs(2) == HeatSourceFeed.Refusal.NONE, "one-log fallback refused")
+	actions._process(2.0)
+	_check(stove.get_recoverable_log_count() == 3 and not carry.is_carrying(), "last carried log failed")
+	inventory.try_add(wood)
+	_check(feed.transfer_logs(1) == HeatSourceFeed.Refusal.ALREADY_FULL, "full stove wasted a log")
+	inventory.try_remove(&"firewood")
+	inventory.max_carry_weight = wood.weight * 1.5
+	_check(feed.transfer_logs(2) == HeatSourceFeed.Refusal.NONE, "weight-limited return refused")
+	actions._process(2.0)
+	_check(carry.get_carried_count() == 1 and stove.get_recoverable_log_count() == 2, "return did not show one held log")
+	inventory.max_carry_weight = 30.0
+	_check(feed.transfer_logs(2) == HeatSourceFeed.Refusal.NONE, "latched repeat return refused")
+	actions._process(4.0)
+	_check(carry.get_carried_count() == 3 and stove.get_remaining_hours() == 0.0, "repeat return loaded instead or duplicated")
+	_check(feed.begin_act() == HeatSourceFeed.Refusal.NONE and not feed.is_acting(), "F did not finish return separately")
+	_check(feed.transfer_logs(2) == HeatSourceFeed.Refusal.NONE, "load after return refused")
+	actions._process(4.0)
+	inventory.try_remove(&"firewood")
+	var saved_inventory: Dictionary = inventory.get_save_data()
+	var saved_fire: Dictionary = stove.get_fire_save_data()
+	stove.restore_fire_save_data(saved_fire)
+	inventory.load_save_data(saved_inventory)
+	_check(stove.get_recoverable_log_count() == 2, "cold whole logs not restored")
+	inventory.try_add(ItemCatalog.get_item(&"boards"))
+	_check(feed.transfer_logs(1) != HeatSourceFeed.Refusal.NONE, "return accepted occupied hands")
+	inventory.try_remove(&"boards")
 	inventory.try_add(ItemCatalog.get_item(&"lighter"))
-	feed.first_strike_success_chance = 0.0
-	feed.second_strike_success_chance = 0.0
-	feed.guaranteed_success_strike = 3
-	feed.double_click_window_seconds = 0.22
-	feed.lighter_lockout_seconds = 5.0
-	var strike_events: Array[bool] = []
-	var lockout_events: Array[float] = []
-	feed.lighter_struck.connect(func(success: bool, _index: int) -> void: strike_events.append(success))
-	feed.lighter_lockout_started.connect(func(seconds: float) -> void: lockout_events.append(seconds))
-
-	var before_light: float = clock.get_total_hours()
-	_check(feed.begin_act() == HeatSourceFeed.Refusal.NONE and feed.is_acting(), "lighter did not start ignition session")
-	_check(actions.get_active_action_id().begins_with("light_stove:"), "stove ignition bypassed TimeCostedActionSystem")
-	if player_state != null:
-		_check(player_state.mode == player_state.Mode.WORKING, "stove ignition did not enter WORKING mode")
+	inventory.try_add(ItemCatalog.get_item(&"tinder"))
+	feed.strike_success_chance = 0.0
+	_check(feed.begin_act() == HeatSourceFeed.Refusal.NONE, "lighter preparation refused")
 	actions._process(10.0)
-	_check(actions.is_active() and not stove.is_burning(), "manual ignition auto-completed without LMB")
-	_check(is_equal_approx(clock.get_total_hours(), before_light), "manual ignition billed before a successful strike")
-
-	_check(feed.attempt_lighter_strike(10.0) == HeatSourceFeed.StrikeResult.SPARK, "first deliberate strike did not spark")
-	_check(strike_events.size() == 1 and not strike_events[0], "first strike VFX/signal contract is wrong")
-	_check(feed.attempt_lighter_strike(10.1, true) == HeatSourceFeed.StrikeResult.LOCKED, "double-click did not start lockout")
-	_check(lockout_events.size() == 1 and is_equal_approx(lockout_events[0], 5.0), "lockout duration is not five seconds")
-	_check(strike_events.size() == 1, "double-click incorrectly emitted another strike effect")
-	_check(feed.attempt_lighter_strike(12.0) == HeatSourceFeed.StrikeResult.LOCKED, "click during lockout was accepted")
-	_check(strike_events.size() == 1, "lockout click produced spark/VFX")
-	_check(feed.get_lighter_lockout_remaining(12.0) > 2.9, "lockout remaining time is wrong")
-
-	_check(feed.attempt_lighter_strike(15.2) == HeatSourceFeed.StrikeResult.SPARK, "first post-lockout strike did not spark")
-	_check(feed.attempt_lighter_strike(15.6) == HeatSourceFeed.StrikeResult.SPARK, "second post-lockout strike did not spark")
-	_check(feed.attempt_lighter_strike(16.0) == HeatSourceFeed.StrikeResult.IGNITED, "third normal strike did not guarantee ignition")
-	_check(strike_events.size() == 4 and strike_events.back(), "successful strike did not emit flame result")
-	_check(not actions.is_active(), "successful strike left manual action active")
-	if player_state != null:
-		_check(player_state.mode == player_state.Mode.ON_FOOT, "successful ignition did not restore PlayerState")
-	_check(stove.is_burning() and visual.is_glowing(), "successful lighter flame did not ignite the stove")
-	_check(is_equal_approx(clock.get_total_hours() - before_light, feed.light_time_cost_minutes / 60.0),
-		"successful manual ignition billed the wrong game time")
-	_check(inventory.has_item(&"lighter"), "reusable lighter was consumed")
-	await create_timer(0.4).timeout
-	_check(not visual.is_door_open(), "door did not close after ignition")
-
-	## Add the two remaining logs one at a time while the stove is burning.
-	_check(feed.begin_act() == HeatSourceFeed.Refusal.NONE, "hot door did not open")
-	var before_hot_one: float = clock.get_total_hours()
-	_check(feed.begin_act() == HeatSourceFeed.Refusal.NONE and feed.is_acting(), "first hot log did not start")
-	actions._process(HeatSourceFeed.ADD_SECONDS)
-	_check(inventory.get_count(&"firewood") == 1, "first hot action consumed more than one log")
-	_check(is_equal_approx(clock.get_total_hours() - before_hot_one, feed.add_time_cost_minutes / 60.0),
-		"first hot log billed wrong time")
-	await create_timer(0.4).timeout
-	_check(visual.is_door_open(), "door closed before player could add a second log")
-
-	_check(feed.begin_act() == HeatSourceFeed.Refusal.NONE and feed.is_acting(), "second hot log did not start")
-	actions._process(HeatSourceFeed.ADD_SECONDS)
-	_check(inventory.get_count(&"firewood") == 0, "second hot action did not consume exactly one log")
-	_check(stove.get_remaining_hours() > 5.9 and stove.get_remaining_hours() <= 6.0,
-		"two hot logs did not fill the stove to practical capacity")
-
-	## With less than one full-log slot left, another physical log must not be wasted.
-	inventory.try_add(ItemCatalog.get_item(&"firewood"))
-	var near_full: float = stove.get_remaining_hours()
-	_check(feed.begin_act() == HeatSourceFeed.Refusal.NONE, "full stove did not allow door close")
-	_check(not feed.is_acting(), "full stove incorrectly started another feed action")
-	_check(inventory.get_count(&"firewood") == 1, "full stove wasted a log")
-	_check(is_equal_approx(stove.get_remaining_hours(), near_full), "closing full stove changed fuel")
-	await create_timer(0.4).timeout
-	_check(not visual.is_door_open(), "full stove interaction did not close door")
-
-	## After roughly one log burns, exactly one carried log can be added.
-	clock.advance_hours(2.0, &"test_one_log_burn")
-	var after_one_burn: float = stove.get_remaining_hours()
-	_check(after_one_burn > 3.8 and after_one_burn < 4.1, "one-log burn did not free one fuel slot")
-	_check(feed.begin_act() == HeatSourceFeed.Refusal.NONE, "door did not open after one log burned")
-	_check(feed.begin_act() == HeatSourceFeed.Refusal.NONE and feed.is_acting(), "one-log top-up did not start")
-	actions._process(HeatSourceFeed.ADD_SECONDS)
-	_check(inventory.get_count(&"firewood") == 0, "one-log top-up consumed wrong inventory amount")
-	_check(stove.get_remaining_hours() > 5.8, "one-log top-up did not restore near-full fuel")
-
-	## After two logs burn, two logs can be deliberately added in two actions.
-	_check(feed.begin_act() == HeatSourceFeed.Refusal.NONE, "near-full stove did not close after one-log top-up")
-	clock.advance_hours(4.0, &"test_two_log_burn")
-	_check(stove.get_remaining_hours() > 1.7 and stove.get_remaining_hours() < 2.1,
-		"two-log burn did not free two fuel slots")
-	inventory.try_add(ItemCatalog.get_item(&"firewood"))
-	inventory.try_add(ItemCatalog.get_item(&"firewood"))
-	_check(feed.begin_act() == HeatSourceFeed.Refusal.NONE, "door did not open after two logs burned")
-	_check(feed.begin_act() == HeatSourceFeed.Refusal.NONE and feed.is_acting(), "first two-log top-up step refused")
-	actions._process(HeatSourceFeed.ADD_SECONDS)
-	_check(inventory.get_count(&"firewood") == 1, "first two-log top-up step consumed wrong amount")
-	_check(feed.begin_act() == HeatSourceFeed.Refusal.NONE and feed.is_acting(), "second two-log top-up step refused")
-	actions._process(HeatSourceFeed.ADD_SECONDS)
-	_check(inventory.get_count(&"firewood") == 0, "second two-log top-up step consumed wrong amount")
-	_check(stove.get_remaining_hours() > 5.7, "two-log top-up did not restore near-full fuel")
-
-	## Fire persistence still follows ShelterState.
-	var state := ShelterState.new()
-	root.add_child(state)
+	_check(not stove.is_burning(), "manual action auto-ignited")
+	for index: int in range(5):
+		_check(feed.attempt_lighter_strike(10.0 + index) == HeatSourceFeed.StrikeResult.SPARK, "forced miss ignited")
+		feed.advance_lighter_hold(10.0)
+		_check(not stove.is_burning(), "held miss retried itself")
+	_check(feed.attempt_lighter_strike(14.1) == HeatSourceFeed.StrikeResult.IGNORED, "animation interval not respected")
+	_check(feed.attempt_lighter_strike(15.0) == HeatSourceFeed.StrikeResult.FLAME, "sixth strike not guaranteed")
+	feed.advance_lighter_hold(2.9)
+	_check(not stove.is_burning() and inventory.has_item(&"tinder"), "short hold spent tinder")
+	feed.release_lighter()
+	feed.strike_success_chance = 1.0
+	feed.attempt_lighter_strike(16.0)
+	feed.advance_lighter_hold(0.2)
+	_check(not stove.is_burning(), "short holds accumulated")
+	var state: Node = root.get_node(^"PlayerState")
+	state.call(&"open_menu")
+	_check(not feed._flame_held and not feed._lighter.is_flame_visible(), "paused menu retained lighter flame")
+	feed.advance_lighter_hold(3.0)
+	_check(not stove.is_burning() and inventory.has_item(&"tinder"), "menu pause ignited tinder")
+	state.call(&"close_menu")
+	_check(not feed._flame_held, "closing menu reignited the lighter")
+	feed.set_target_state(true, true)
+	feed.set_target_state(false, false)
+	_check(not feed.is_acting() and inventory.has_item(&"tinder"), "lost focus failed to cancel")
+	_check(feed.begin_act() == HeatSourceFeed.Refusal.NONE, "prepare after cancellation failed")
+	feed.attempt_lighter_strike(17.0)
+	before = clock.get_total_hours()
+	feed.advance_lighter_hold(3.0)
+	_check(stove.is_burning() and not inventory.has_item(&"tinder"), "three-second hold did not catch")
+	_check(is_equal_approx(clock.get_total_hours() - before, 2.0 / 60.0), "ignition billed wrong time")
+	_check(is_equal_approx(stove.get_intensity(), 0.08), "fire started fully developed")
+	_check(stove.get_recoverable_log_count() == 0, "burning logs became whole wood")
+	stove.advance_fuel(10.0 / 3600.0)
+	_check(is_equal_approx(stove.get_intensity(), 0.54), "half warmup intensity wrong")
+	var half_save: Dictionary = stove.get_fire_save_data()
+	stove.restore_fire_save_data(half_save)
+	_check(is_equal_approx(stove.get_intensity(), 0.54), "save lost warmup progress")
+	stove.advance_fuel(10.0 / 3600.0)
+	_check(is_equal_approx(stove.get_intensity(), 1.0), "twenty-second warmup incomplete")
+	stove.extinguish()
+	_check(stove.get_recoverable_log_count() == 0, "charred remainder returned whole logs")
+	stove.restore_fire_save_data({"remaining_h": 4.0, "burning": true})
+	_check(is_equal_approx(stove.get_intensity(), 1.0), "old burning save not full strength")
+	stove.restore_fire_save_data(half_save)
+	clock.advance_hours(1.0, &"sleep")
+	_check(is_equal_approx(stove.get_intensity(), 1.0), "sleep did not advance warmup")
 	var zone := ThermalZone.new()
+	zone.max_heated_offset_c = 18.0
 	root.add_child(zone)
-	state.adopt_fire(zone, stove)
-	var key: String = "%s/%s" % [zone.name, stove.name]
-	stove.restore_fuel(4, false)
-	_check(not bool(state.get_save_data()["fires"][key]["burning"]), "cold state was not saved")
-	stove.restore_fuel(4, true)
-	_check(bool(state.get_save_data()["fires"][key]["burning"]), "ignited state was saved as cold")
-
+	stove.extinguish()
+	stove.heats_zone = zone
+	stove.restore_fuel(0.5, true)
+	stove.advance_fuel(1.0)
+	zone.advance_heating(1.0)
+	_check(is_equal_approx(zone.get_heated_offset_c(), 3.0), "last half-hour of heat was lost")
 	print("test_stove_act: %s" % ("PASS" if _failures == 0 else "%d FAILED" % _failures))
 	quit(0 if _failures == 0 else 1)
 

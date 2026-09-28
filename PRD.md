@@ -47,7 +47,7 @@ Milestone считается закрытым, когда:
 - [ ] Новый игрок проходит bunker → shelter → sleep/save за ~10–15 минут без debug-телепортов и консольных костылей.
 - [ ] Существуют три осмысленных **land**-пути: road / shore / ruins, которые отличаются по времени, холоду, весу и риску.
 - [ ] Weather turn реально заставляет пересмотреть обратный маршрут или набор ресурсов.
-- [ ] Shelter остаётся выбором (5 breaches, ограниченное количество boards), а не автоматическим safe room.
+- [ ] Shelter остаётся выбором (4 repairable windows + operable door, ограниченное количество boards), а не автоматическим safe room.
 - [ ] Sleep/load восстанавливает согласованное состояние: shelter, fuel, weather, bedroll, inventory и consumed world pickups.
 - [ ] README, `VERTICAL_SLICE.md` и `FIRST_EXIT.md` описывают один и тот же scope.
 - [ ] Thin ice нигде не блокирует прохождение и не обещается как маршрут A.

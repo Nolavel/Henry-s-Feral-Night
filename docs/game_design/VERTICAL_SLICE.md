@@ -21,7 +21,7 @@ bunker exit
   -> collect scarce boards, tinder, fuel and food
   -> weather worsens and changes the return decision
   -> reach the suburb shelter
-  -> choose which breaches to board (5 openings; placement quality matters)
+  -> choose which breaches to board (4 windows; placement quality matters)
   -> light and feed the stove
   -> recover / dry
   -> sleep -> save
@@ -64,7 +64,7 @@ active abilities; his weight is part of what Henry chooses to keep carrying.
 - Thermal model: ambient cold, wind chill, shelter, wetness and heat.
 - Weather profiles: calm, snowfall, windy and blizzard.
 - Hunger, thirst, energy and carry-weight pressure.
-- First Exit shelter: five breaches, carried-board placement, stove and mattress.
+- First Exit shelter: four repairable windows and an operable door, carried-board placement, stove and mattress.
 - Route and shelter pickups are authored and tested; current quantities are
   recorded above and in FIRST_EXIT.
 - Shelter state persists boarded breaches and stove fuel.
@@ -116,7 +116,7 @@ Required path:
 3. find, carry and use supplies; record whether the retained stock erases choice;
 4. experience the weather turn;
 5. reach the shelter;
-6. board a subset of the five breaches;
+6. board a subset of the four repairable windows;
 7. light/feed the stove;
 8. sleep and save;
 9. reload into a coherent world state.

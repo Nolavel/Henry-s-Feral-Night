@@ -77,8 +77,8 @@ func _test_a_dead_fire_needs_tinder_and_wood() -> void:
 	var inventory := _make_inventory([&"firewood"])
 	var feeder := _make_feeder(fire, inventory)
 
-	_check(feeder.item_name == tr("LIGHT_PROMPT"), "a cold stove does not advertise the light action")
-	_check(feeder.description == tr("LIGHT_REQUIREMENTS"), "the cold-stove prompt does not explain tinder + firewood")
+	_check(not fire.is_burning(), "an empty stove already burns")
+	_check(feeder.can_feed() == HeatSourceFeed.Refusal.NO_TINDER, "legacy feeding lost its tinder requirement")
 	_check(
 		feeder.feed() == HeatSourceFeed.Refusal.NO_TINDER,
 		"a dead fire was lit with no tinder"
@@ -188,6 +188,7 @@ func _test_a_dead_fire_stops_warming_the_room() -> void:
 	fire.advance_fuel(10.0)
 	_check(not fire.is_burning(), "the fire did not burn out")
 	for i: int in range(8):
+		fire.advance_fuel(0.5)
 		zone.advance_heating(0.5)
 	_check(
 		zone.get_total_offset_c() < warm,

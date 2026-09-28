@@ -117,26 +117,45 @@ turn each board into one firewood log. Stowing the hatchet before completion
 keeps the boards intact. Without a drawn hatchet F picks the boards up normally.
 Loose piles and collected source IDs follow the existing save/ledger contract.
 
-## Light the stove
+## Door and stove
 
-1. Pick up the lighter from the tool bench. It stays reusable in the inventory;
-   it does not need a new binding or a separate selected-item action.
-2. Carry a three-log pile from the left side of the house to the stove. Aim at
-   the firebox/door, not the cooking ring above it.
-3. First F: **Open stove door**. The door swings open; no logs are spent.
-4. Second F: **Put carried logs inside**. Up to three logs move from the arms to
-   the firebox. The cold load is visible and saved without starting a fire.
-5. Third F: **Light with lighter**. Without the lighter, the prompt tells Henry
-   where to find it, and the loaded wood stays intact. No hidden tinder item is
-   required by this player interaction. Ignition takes five seconds; Henry holds
-   still, flame grows, then the door closes and the HeatSource starts burning.
-6. The prompt reports loaded logs and remaining hours (three logs = six game
-   hours). Additional wood can be loaded later by opening the door again.
-7. **Room air: ... °C** appears at the upper right while inside. It reads outdoor
-   air plus accumulated room heating, excluding core body temperature and the
-   stove's immediate radiant warmth. Heating rises at the existing six degrees
-   per game hour, with a small two-degree ceiling even in the completely leaky
-   test shelter. Boarding increases the ceiling toward eighteen extra degrees.
+The exterior door is always operable; its closed frame leaks 5% of an open
+aperture. Snow enters through the four actual edge gaps only, follows live wind
+and snowfall, and stops on the moving leaf/frame. Only the four windows accept
+boards, hammer placement and nails. Old boarded-door saves do not lock it.
+
+1. Pick up the reusable lighter from the tool bench and tinder from route loot.
+2. Aim at the stove door/handle: **F opens or closes it**. Aim inside the open
+   firebox for fuel and ignition. The cooking ring remains a separate target.
+3. With wood in Henry's arms, **LMB loads one; RMB loads up to two**. Each log
+   takes two seconds and the existing half-minute game-time cost. Cold logs can
+   be loaded repeatedly before ignition; a full firebox refuses another log.
+4. With empty hands, **LMB retrieves one; RMB retrieves up to two** intact cold
+   logs. Returned logs use the existing visible CarryComponent armful. This
+   return mode stays active after the first log; **F finishes it separately**,
+   or looking away resets it. Other occupied hands and excess weight refuse.
+5. **F prepares the lighter** in a loaded cold firebox. Put extra logs down with
+   **G** and put away held tools first. Every new LMB press makes one audible,
+   visible strike. A miss needs release and another press; success probability
+   is 55%, and attempt six is guaranteed. There is only a 0.25-second animation
+   interval, with no five-second lockout or automatic retries.
+6. A successful lighter flame burns **only while LMB is held**. Hold continuously
+   for **three seconds** to catch tinder; shorter holds never accumulate.
+   Release, F cancellation, pause, or losing focus immediately puts it out.
+   Tinder is spent exactly once when the fire catches; the lighter is reusable.
+7. The stove then develops independently for **20 seconds at normal game speed**,
+   from 8% to full output. Flame, light, radiant warmth, room heating and cooking
+   share HeatSource intensity. Sleep and accelerated time advance the same stage;
+   saves restore progress. Old burning saves load fully developed. Previously
+   burned fuel never returns as whole logs; old cold saves without intact-log
+   accounting conservatively offer no retrieval.
+8. **Room air: ... degrees** shows outdoor air plus accumulated room heating,
+   excluding body temperature and the stove's immediate radiant warmth. Windows
+   determine the heat ceiling; the closed door gap has only a small effect.
+
+Transfers commit items/fuel on completion. **F cancels an ongoing transfer**;
+looking away also cancels, preserving resources. Partial work retains only the
+existing earned game-time cost. Stove mouse input takes priority over Quick Access.
 
 ## Sit, eat, wait, sleep and drop the flare
 

@@ -37,6 +37,11 @@ func _run() -> void:
 	var stove: Node3D = feed.get_parent() as Node3D
 	_check((feed.get_node(^"CollisionShape3D") as CollisionShape3D).shape is BoxShape3D,
 		"saved stove trigger reverted to the template sphere")
+	await _aim(feed.door_control, stove.to_global(Vector3(1.0, 0.9, 0.0)), feed.door_control.focus_anchor.global_position)
+	_check_target(feed.door_control, "stove closed door")
+	_interact.try_interact()
+	_check(feed.is_door_open() and not feed.is_acting(), "F on handle did not exclusively open door")
+	await create_timer(0.4).timeout
 	await _aim(feed, stove.to_global(Vector3(1.0, 0.9, 0.0)), feed.focus_anchor.global_position)
 	_check_target(feed, "stove body")
 	var distractor := InteractiveArea.new()
@@ -77,8 +82,8 @@ func _run() -> void:
 	_check_target(feed, "stove did not recover after occluder removal")
 	_inventory.try_add(ItemCatalog.get_item(&"firewood"))
 	_inventory.try_add(ItemCatalog.get_item(&"lighter"))
-	_interact.try_interact() # open
-	_interact.try_interact() # stage one cold log
+	_inventory.try_add(ItemCatalog.get_item(&"tinder"))
+	feed.transfer_logs(1) # Mouse transfer into the open firebox.
 	_check(feed.is_acting(), "F did not start staged log loading")
 	feed._process(HeatSourceFeed.ADD_SECONDS)
 	_check(not feed.heat_source.is_burning() and feed.heat_source.get_remaining_hours() > 0.0,
@@ -86,14 +91,14 @@ func _run() -> void:
 	await physics_frame
 	_interact.detect_target()
 	_check_target(feed, "stove after staged log load")
-	feed.first_strike_success_chance = 0.0
-	feed.second_strike_success_chance = 0.0
+	feed.strike_success_chance = 0.0
 	feed.guaranteed_success_strike = 3
 	_interact.try_interact() # prepare lighter
 	_check(feed.is_acting(), "F did not start lighting the real stove")
 	_check(feed.attempt_lighter_strike(10.0) == HeatSourceFeed.StrikeResult.SPARK, "first LMB strike did not spark")
 	_check(feed.attempt_lighter_strike(10.4) == HeatSourceFeed.StrikeResult.SPARK, "second LMB strike did not spark")
-	_check(feed.attempt_lighter_strike(10.8) == HeatSourceFeed.StrikeResult.IGNITED, "third LMB strike did not ignite")
+	_check(feed.attempt_lighter_strike(10.8) == HeatSourceFeed.StrikeResult.FLAME, "third LMB strike did not ignite")
+	feed.advance_lighter_hold(3.0)
 	_check(feed.heat_source.is_burning(), "stove did not ignite")
 	var door: InteractiveArea = house.get_node(^"HouseDoor") as InteractiveArea
 	await _aim(door, door.global_position + house.global_basis.z * 1.1, door.interactive_mesh.global_position)
