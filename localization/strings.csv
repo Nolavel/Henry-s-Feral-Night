@@ -157,3 +157,4 @@ HUB_CLOTHING_WET,Wet,Мокрая
 HUB_CLOTHING_SOAKED,Soaked,Промокла
 HUB_DRYING,Drying,Сохнет
 HUB_NOT_DRYING,Not drying,Не сохнет
+ACTION_REFUSED_BUSY,Finish the current action first,Сначала закончите текущее действие
