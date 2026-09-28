@@ -165,10 +165,18 @@ func extinguish() -> void:
 
 ## Burns fuel for the given number of in-game hours.
 func advance_fuel(delta_hours: float) -> void:
-	if _is_burning and delta_hours > 0.0:
-		heat_elapsed.emit(delta_hours)
-	if not _is_burning or burn_duration_h <= 0.0:
+	if not _is_burning or delta_hours <= 0.0:
 		return
+	if burn_duration_h <= 0.0:
+		heat_elapsed.emit(delta_hours)
+		return
+
+	## Consumers warming on the source receive only the time the fire actually
+	## burned. A 15-minute simulation slice cannot grant 15 minutes of cooking
+	## when two minutes of fuel remained.
+	var burned_hours: float = minf(delta_hours, _remaining_h)
+	if burned_hours > 0.0:
+		heat_elapsed.emit(burned_hours)
 	_remaining_h = maxf(0.0, _remaining_h - delta_hours)
 	fuel_changed.emit(get_fuel_fraction())
 	if _remaining_h <= 0.0:
