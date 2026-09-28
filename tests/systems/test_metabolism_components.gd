@@ -13,6 +13,7 @@ func _process(_delta: float) -> bool:
 	_ran = true
 	_test_real_player_composition()
 	_test_legacy_save_shape_and_round_trip()
+	_test_simulation_clock_is_the_only_tick_path()
 	_test_step_equivalence()
 	_test_carry_affects_fatigue_only()
 	_test_food_does_not_touch_hydration()
@@ -68,6 +69,34 @@ func _test_legacy_save_shape_and_round_trip() -> void:
 	_check(is_equal_approx(fresh.current_energy, 19.0), "legacy energy did not round-trip")
 	_dispose(bio)
 	_dispose(fresh)
+
+
+func _test_simulation_clock_is_the_only_tick_path() -> void:
+	var bio := _make_bio()
+	_check(not bio.has_method(&"_on_time_changed"), "legacy DayNight metabolism tick still exists")
+
+	var clock := SimulationClock.new()
+	root.add_child(clock)
+	clock.set_total_hours(12.0, &"seed")
+	clock.register_participant(bio)
+
+	var hunger_events: Array[float] = []
+	var hydration_events: Array[float] = []
+	var fatigue_events: Array[float] = []
+	bio.hunger_level_changed.connect(func(value: float) -> void: hunger_events.append(value))
+	bio.thirst_level_changed.connect(func(value: float) -> void: hydration_events.append(value))
+	bio.energy_level_changed.connect(func(value: float) -> void: fatigue_events.append(value))
+
+	_check(clock.advance_hours(1.0, &"walk"), "SimulationClock refused metabolism hour")
+	_check(is_equal_approx(bio.current_calories, 2400.0), "clock hour billed hunger incorrectly")
+	_check(is_equal_approx(bio.current_hydration, 95.0), "clock hour billed hydration incorrectly")
+	_check(is_equal_approx(bio.current_energy, 93.0), "clock hour billed fatigue incorrectly")
+	_check(hunger_events.size() == 4, "one clock hour did not emit exactly four quarter-hour hunger updates")
+	_check(hydration_events.size() == 4, "one clock hour did not emit exactly four quarter-hour hydration updates")
+	_check(fatigue_events.size() == 4, "one clock hour did not emit exactly four quarter-hour fatigue updates")
+
+	_dispose(clock)
+	_dispose(bio)
 
 
 func _test_step_equivalence() -> void:
