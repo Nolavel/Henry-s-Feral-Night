@@ -228,7 +228,7 @@ func _test_dismantle() -> void:
 		_check_target(other, "dismantle " + String(path))
 		_press(&"interact")
 		_check(other._work_left > 0.0, "seat interaction intercepted table dismantling")
-		other._process(TableSalvage.WORK_SECONDS)
+		_actions._process(TableSalvage.WORK_SECONDS)
 		_check(other._destroyed and other._logs != null and other._logs.count == 3, "another wooden table did not yield logs")
 	var meal: MealTable = _house.get_node(^"ShelterZone/RestCrate/MealTable") as MealTable
 	_check(not meal.has_node(^"Dismantle") and meal.visible and meal.is_in_group(MealTable.GROUP),
