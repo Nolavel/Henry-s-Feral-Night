@@ -5,6 +5,26 @@ Maintained per branch; entries are added by whoever makes the change.
 
 ## [Unreleased] — `codex`
 
+### 2026-09-28 — Time-costed Action System (#131 phase 2) (codex)
+
+Added
+- World-scoped `TimeCostedActionSystem` and runtime `TimeActionRequest`: one lifecycle for
+  long actions with declared game-time cost, presentation duration, deterministic simulation
+  slices, progress, completion/cancellation callbacks and optional stop predicates.
+- Controlled actions block ordinary realtime clock advancement while active, preventing double
+  billing when a staged action converts real presentation seconds into game hours.
+- Headless lifecycle coverage for exact billing, deterministic early stop, staged progress,
+  cancellation, non-interruptible actions, PlayerState mode ownership and callback semantics.
+
+Changed
+- Sleep and seated wait now use the common action contract over `SimulationClock`.
+- Sleep enters `PlayerState.SLEEPING`; wait enters `PlayerState.WORKING`; prior mode is restored
+  after completion or cancellation without introducing a second state enum.
+- SleepPrompt closes its modal menu before starting the sleep action, so action state is not hidden
+  behind `MENU`.
+- The action layer queries an optional work-duration modifier contract without compiling against
+  the future Affliction implementation; resource/tool/recipe rules remain owned by gameplay code.
+
 ### 2026-09-28 — First Exit systemic-pressure pass (#134) (codex)
 
 Changed
