@@ -46,10 +46,6 @@ signal exhaustion_recovered
 @export var carry_fatigue_factor: float = 0.6
 @export var carry_inventory: InventoryComponent
 
-## Legacy scene seam. Production ticking is SimulationClock-owned.
-@export var dn_manager: DayNightManager
-var last_game_hour: int = -1
-
 var _hunger: HungerComponent
 var _hydration: HydrationComponent
 var _fatigue: FatigueComponent
@@ -244,18 +240,6 @@ func get_fatigue_component() -> FatigueComponent:
 func emit_initial_progress() -> void:
 	update_ui_signals()
 	check_critical_states()
-
-
-## Compatibility seam for isolated legacy scenes.
-func _on_time_changed(_formatted_time: String, _is_day: bool, _day_number: int, _period_description: String) -> void:
-	if dn_manager == null:
-		return
-	var current_game_hour: int = int(dn_manager.get_current_hour_float())
-	if current_game_hour == last_game_hour:
-		return
-	last_game_hour = current_game_hour
-	_reset_recent()
-	pass_awake_hours(1.0)
 
 
 func get_simulation_priority() -> int:
