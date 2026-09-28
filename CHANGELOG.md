@@ -5,6 +5,33 @@ Maintained per branch; entries are added by whoever makes the change.
 
 ## [Unreleased] — `codex`
 
+### 2026-09-28 — Staged one-log stove refueling (#131 PR D follow-up) (codex)
+
+Changed
+- Runtime stove feeding no longer auto-loads every carried log that fits.
+- With the stove door open, one interaction starts one short `WORKING` TimeCostedAction and commits
+  exactly one physical log only after the action completes.
+- Repeating the interaction deliberately adds a second log if another full fuel-unit slot is free.
+- A cold empty stove loads one log first; once any cold fuel exists, ignition is prioritised even if
+  Henry still carries more logs. Extra logs can be added after the fire catches.
+- Cancelling the feed action consumes no log and bills no unearned action time.
+- A stove refuses to spend a full log unless at least one complete log's fuel value fits; fractional
+  remaining capacity never destroys an item.
+- The door stays open after a successful feed so a second log can be added; when no full log fits,
+  the next interaction closes the door.
+- One log still represents the existing `hours_per_fuel_unit` value (2 game hours by default);
+  full stove capacity remains the existing 6 game hours.
+
+Tests
+- cold one-log load is staged and does not ignite;
+- ignition is prioritised after cold fuel exists;
+- hot refuel consumes one log per completed action;
+- cancellation preserves inventory/fuel;
+- near-full stove does not waste a log;
+- after one log burns, exactly one top-up is accepted;
+- after two logs burn, two sequential top-ups are accepted;
+- each feed action enters/restores `PlayerState.WORKING`.
+
 ### 2026-09-28 — Shelter gameplay action adoption (#131 PR D) (codex)
 
 Changed
