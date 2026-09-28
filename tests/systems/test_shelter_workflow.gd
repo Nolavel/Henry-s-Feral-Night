@@ -188,7 +188,7 @@ func _test_dismantle() -> void:
 	await _aim(work, work.focus_anchor.global_position + _house.global_basis.z * 0.8, work.focus_anchor.global_position)
 	_press(&"interact")
 	_check(work._work_left > 0.0 and not work._destroyed, "F did not start an explicit timed dismantle")
-	work._process(TableSalvage.WORK_SECONDS)
+	_actions._process(TableSalvage.WORK_SECONDS)
 	_check(work._destroyed and not work.table_owner.visible, "finished dismantle did not remove the table")
 	var logs: ItemPickup = work._logs
 	_check(logs != null and logs.count == 3, "table did not yield three physical logs")
@@ -366,7 +366,7 @@ func _test_stove() -> void:
 	_inventory.try_add(ItemCatalog.get_item(&"lighter"))
 	_press(&"interact")
 	_check(feed.is_acting() and not source.is_burning(), "ignition skipped the lighting act")
-	feed._process(HeatSourceFeed.LIGHT_SECONDS)
+	_actions._process(HeatSourceFeed.LIGHT_SECONDS)
 	_check(source.is_burning() and stove_visual.is_glowing(), "lighting finished without flame and heat")
 	var zone: ThermalZone = _house.get_node(^"ShelterZone") as ThermalZone
 	var temp: float = zone.get_total_offset_c()
@@ -501,10 +501,10 @@ func _press(action: StringName) -> void:
 
 
 func _on_action_started(action_id: StringName, _duration_h: float) -> void:
-	if not String(action_id).begins_with("board_window:"):
+	if not str(action_id).begins_with("board_window:"):
 		return
 	var state: Node = root.get_node_or_null(^"PlayerState")
-	_board_started_in_working = state != null and String(state.get("mode")) == String(state.Mode.WORKING)
+	_board_started_in_working = state != null and int(state.get("mode")) == int(state.Mode.WORKING)
 
 
 func _check_target(target: InteractiveArea, context: String) -> void:
