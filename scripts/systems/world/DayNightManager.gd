@@ -19,6 +19,7 @@ enum TimeOfDay {
 }
 
 const DEFAULT_SKY_SHADER: Shader = preload("res://shaders/environment/freemans_parallax_clouds.gdshader")
+const SIMULATION_CLOCK_SCRIPT: GDScript = preload("res://scripts/systems/time/simulation_clock.gd")
 
 const PERIOD_RU: Array[String] = [
 	"Полночь",
@@ -65,7 +66,18 @@ const DUSK_END_HOUR: float = 22.0
 @export var day_and_night_duration_label: Label
 @export var current_day_label: Label
 
-var total_game_time_hours: float = 12.0
+var simulation_clock: SimulationClock
+var _legacy_total_game_time_hours: float = 12.0
+var total_game_time_hours: float:
+	get:
+		if simulation_clock != null and simulation_clock.is_initialized():
+			return simulation_clock.get_total_hours()
+		return _legacy_total_game_time_hours
+	set(value):
+		_legacy_total_game_time_hours = maxf(value, 0.0)
+		if simulation_clock != null:
+			simulation_clock.set_total_hours(_legacy_total_game_time_hours, &"legacy_day_night")
+
 var _clock_loaded: bool = false
 var current_day: int = 1
 var is_day: bool = true
@@ -96,14 +108,52 @@ func _process(delta: float) -> void:
 	if is_instance_valid(time_accelerator) and time_accelerator.is_accelerating:
 		game_hours_per_second *= time_accelerator.acceleration_factor
 
-	total_game_time_hours += delta * game_hours_per_second
+	var advance: float = delta * game_hours_per_second
+	if simulation_clock != null:
+		simulation_clock.advance_hours(advance, SimulationClock.REALTIME_REASON)
+		return
 
-	var game_hour: float = get_current_hour_float()
+	total_game_time_hours += advance
+	_consume_legacy_clock_sample(get_current_hour_float())
+
+
+## Composition-root hook: the simulation clock becomes canonical once World exists.
+func on_world_ready(context: WorldContext) -> void:
+	if simulation_clock == null:
+		simulation_clock = context.get_system(SIMULATION_CLOCK_SCRIPT) as SimulationClock
+	if simulation_clock == null:
+		push_warning("DayNightManager: SimulationClock missing; using legacy local time")
+		return
+	if not simulation_clock.clock_changed.is_connected(_on_simulation_clock_changed):
+		simulation_clock.clock_changed.connect(_on_simulation_clock_changed)
+	if not simulation_clock.is_initialized():
+		simulation_clock.set_total_hours(
+			_legacy_total_game_time_hours if _clock_loaded else start_hour,
+			&"new_game"
+		)
+	else:
+		_on_simulation_clock_changed(simulation_clock.get_total_hours(), &"attach")
+
+
+func _on_simulation_clock_changed(total_hours: float, reason: StringName) -> void:
+	_legacy_total_game_time_hours = total_hours
+	var hour: float = fmod(total_hours, 24.0)
+	var minute: int = int(hour * 60.0)
+	if minute == last_game_minute and reason != &"load":
+		return
+	last_game_minute = minute
+	var emit_edges: bool = not [
+		&"load", &"new_game", &"implicit_start", &"legacy_day_night", &"attach"
+	].has(reason)
+	_on_game_minute_changed(hour, emit_edges)
+
+
+func _consume_legacy_clock_sample(game_hour: float) -> void:
 	var game_minute: int = int(game_hour * 60.0)
-
-	if game_minute != last_game_minute:
-		last_game_minute = game_minute
-		_on_game_minute_changed(game_hour)
+	if game_minute == last_game_minute:
+		return
+	last_game_minute = game_minute
+	_on_game_minute_changed(game_hour)
 
 
 func _setup_default_settings() -> void:
@@ -193,6 +243,7 @@ func _apply_static_sky_parameters() -> void:
 
 func _force_update_visuals() -> void:
 	var hour: float = get_current_hour_float()
+	current_day = floori(total_game_time_hours / 24.0) + 1
 	is_day = _is_day(hour)
 	_update_environment_visuals(hour)
 	if is_instance_valid(color_grade_controller):
@@ -201,20 +252,19 @@ func _force_update_visuals() -> void:
 	_update_time_display()
 
 
-func _on_game_minute_changed(game_hour: float) -> void:
-	var new_day: int = int(floor(total_game_time_hours / 24.0)) + 1
-	if new_day > current_day:
-		current_day = new_day
+func _on_game_minute_changed(game_hour: float, emit_edges: bool = true) -> void:
+	current_day = int(floor(total_game_time_hours / 24.0)) + 1
 
 	var was_day: bool = is_day
 	is_day = _is_day(game_hour)
 
-	if was_day and not is_day:
-		night_started.emit(current_day)
-		if current_day == settings.critical_night_day:
-			critical_night_approaching.emit()
-	elif not was_day and is_day:
-		day_started.emit(current_day)
+	if emit_edges:
+		if was_day and not is_day:
+			night_started.emit(current_day)
+			if current_day == settings.critical_night_day:
+				critical_night_approaching.emit()
+		elif not was_day and is_day:
+			day_started.emit(current_day)
 
 	_update_environment_visuals(game_hour)
 	if is_instance_valid(color_grade_controller):
