@@ -5,11 +5,17 @@ extends Node
 const DROP_ACTION: StringName = &"drop_carried"
 const CHOP_SECONDS: float = 4.0
 
+@export_group("Work time")
+## Game-time cost is independent from the four-second chopping presentation.
+@export_range(0.1, 60.0, 0.1) var chop_time_cost_minutes: float = 2.0
+
 var _drops: Array[ItemPickup] = []
 var _serial: int = 0
 var _restore_generation: int = 0
 var _chopping: ItemPickup
 var _work_left: float = 0.0
+var _action_managed: bool = false
+var _action_id: StringName = &""
 var _hint: Label
 var _message_left: float = 0.0
 
@@ -105,7 +111,50 @@ func begin_chop(pickup: ItemPickup) -> bool:
 	_body.call(&"hold_still", CHOP_SECONDS)
 	_body.call(&"play_action_animation", &"fix")
 	_message(tr("WOOD_CHOP_WORK"))
+
+	var actions: TimeCostedActionSystem = _actions()
+	if actions != null:
+		var request := TimeActionRequest.new()
+		_action_id = StringName("chop:%d" % get_instance_id())
+		request.action_id = _action_id
+		request.duration_hours = chop_time_cost_minutes / 60.0
+		request.presentation_seconds = CHOP_SECONDS
+		request.reason = &"chop"
+		request.actor = _body
+		request.target = pickup
+		request.stop_check = _chop_stop_reason
+		request.on_complete = _chop_action_completed
+		request.on_cancel = _chop_action_cancelled
+		_action_managed = actions.start_action(request)
+		if not _action_managed:
+			_chopping = null
+			_work_left = 0.0
+			return false
 	return true
+
+
+func _chop_stop_reason() -> StringName:
+	if not is_instance_valid(_chopping) or _chopping.is_queued_for_deletion():
+		return &"target_lost"
+	if not axe_is_held():
+		return &"tool_lost"
+	return &""
+
+
+func _chop_action_completed(_elapsed_h: float) -> void:
+	_action_managed = false
+	_work_left = 0.0
+	_finish_chop()
+
+
+func _chop_action_cancelled(_elapsed_h: float, _reason: StringName) -> void:
+	_action_managed = false
+	_work_left = 0.0
+	_chopping = null
+
+
+func _actions() -> TimeCostedActionSystem:
+	return TimeCostedActionSystem.find(get_tree()) if is_inside_tree() else null
 
 
 func _finish_chop() -> void:
@@ -156,7 +205,12 @@ func get_save_data() -> Dictionary:
 
 
 func load_save_data(data: Dictionary) -> void:
+	if _action_managed:
+		var actions: TimeCostedActionSystem = _actions()
+		if actions != null and actions.get_active_action_id() == _action_id:
+			actions.cancel(&"load")
 	_restore_generation += 1
+	_action_managed = false
 	_work_left = 0.0
 	_chopping = null
 	for pickup: ItemPickup in _drops:
@@ -206,9 +260,16 @@ func _ensure_hint() -> void:
 
 func _process(delta: float) -> void:
 	if _work_left > 0.0:
-		_work_left -= delta
-		if _work_left <= 0.0:
-			_finish_chop()
+		if _action_managed:
+			var actions: TimeCostedActionSystem = _actions()
+			if actions != null and actions.get_active_action_id() == _action_id:
+				_work_left = CHOP_SECONDS * (1.0 - actions.get_progress())
+			else:
+				_action_managed = false
+		else:
+			_work_left -= delta
+			if _work_left <= 0.0:
+				_finish_chop()
 	if _carry.is_carrying():
 		_ensure_hint()
 		if _message_left <= 0.0:
