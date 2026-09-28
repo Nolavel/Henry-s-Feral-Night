@@ -158,3 +158,6 @@ HUB_CLOTHING_SOAKED,Soaked,Промокла
 HUB_DRYING,Drying,Сохнет
 HUB_NOT_DRYING,Not drying,Не сохнет
 ACTION_REFUSED_BUSY,Finish the current action first,Сначала закончите текущее действие
+AFFLICTION_HYPOTHERMIA,Hypothermia,Переохлаждение
+AFFLICTION_DEHYDRATION,Dehydration,Обезвоживание
+AFFLICTION_EXHAUSTION,Exhaustion,Истощение
