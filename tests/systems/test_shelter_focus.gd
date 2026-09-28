@@ -77,9 +77,13 @@ func _run() -> void:
 	_check_target(feed, "stove did not recover after occluder removal")
 	_inventory.try_add(ItemCatalog.get_item(&"firewood"))
 	_inventory.try_add(ItemCatalog.get_item(&"lighter"))
-	_interact.try_interact()
-	_interact.try_interact()
-	_interact.try_interact()
+	_interact.try_interact() # open
+	_interact.try_interact() # stage one cold log
+	_check(feed.is_acting(), "F did not start staged log loading")
+	feed._process(HeatSourceFeed.ADD_SECONDS)
+	_check(not feed.heat_source.is_burning() and feed.heat_source.get_remaining_hours() > 0.0,
+		"staged cold log load did not complete")
+	_interact.try_interact() # ignite loaded log
 	_check(feed.is_acting(), "F did not start lighting the real stove")
 	feed._process(HeatSourceFeed.LIGHT_SECONDS)
 	_check(feed.heat_source.is_burning(), "stove did not ignite")
