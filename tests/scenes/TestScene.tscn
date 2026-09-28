@@ -113,9 +113,6 @@ mesh = SubResource("BoxMesh_efhgp")
 [node name="Player" parent="." instance=ExtResource("4_vhdnb")]
 transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 0, 1, 0)
 
-[node name="BioMonitorManager" parent="Player" node_paths=PackedStringArray("dn_manager")]
-dn_manager = NodePath("../../WorldEnvironmentSystem/DayNightManager")
-
 [node name="MeshWall" type="MeshInstance3D" parent="."]
 transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 0, 2.52639, -10)
 mesh = SubResource("BoxMesh_sofqw")
