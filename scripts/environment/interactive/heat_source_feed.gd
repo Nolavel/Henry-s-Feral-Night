@@ -289,20 +289,21 @@ func _finish_feed_act() -> void:
 	_act_left = 0.0
 	var visual: StoveVisual = _visual()
 	if visual != null:
-		visual.end_act()
+		visual.end_act(true)
 	fuel_added.emit(heat_source, hours)
 	show_message(tr("STOVE_LOADED") % 1)
 	_update_label()
 
 
 func _cancel_act() -> void:
+	var keep_door_open: bool = not _act_lighting
 	_action_managed = false
 	_act_left = 0.0
 	_act_lighting = false
 	_action_id = &""
 	var visual: StoveVisual = _visual()
 	if visual != null:
-		visual.end_act()
+		visual.end_act(keep_door_open)
 	_update_label()
 
 
