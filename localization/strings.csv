@@ -185,3 +185,6 @@ STOVE_CANCEL_TRANSFER,Cancel,Отменить
 STOVE_LOAD_COUNT,Load %d logs,Загрузить %d поленьев
 STOVE_PREPARING,Preparing ignition,Готовится к розжигу
 STOVE_OVERFLOW_BLOCKED,Logs loaded; no clear floor nearby for the rest. Put them down with G before ignition.,Бревна загружены; рядом нет места для остатка. Положите его клавишей G перед розжигом.
+STOVE_TRANSFER_PROGRESS,Loading %d logs · %d%%,Загрузка %d поленьев · %d%%
+STOVE_ACTION_INTERRUPTED,Action interrupted — press F to retry,Действие прервано — нажмите F ещё раз
+STOVE_RETURN_PROGRESS,Taking back %d logs · %d%%,Возврат %d поленьев · %d%%

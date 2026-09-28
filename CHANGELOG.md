@@ -5,6 +5,28 @@ Maintained per branch; entries are added by whoever makes the change.
 
 ## [Unreleased] — `codex`
 
+### 2026-09-28 - Resolve stalled stove transfer presentation (codex)
+
+Fixed
+- Stove loading explicitly enables its presenter and advances the transfer through
+  TimeCostedActionSystem each frame, rather than only polling another node's timer.
+  External presentation skips the system's automatic tick, preserving one clock,
+  completion callback, partial cancellation cost and resource commit owner.
+- A lost/replaced action clears the stove's busy state and offers retry; it can no
+  longer wait indefinitely for an action that is absent. Zero-duration work modifiers
+  complete staged actions instead of turning them into endless manual actions.
+- Loading shows its log count and percentage as the main prompt, with F cancellation
+  below it. Logs remain owned by the hands until the completion callback commits them.
+- Guard PlayerState lookup when cancellation occurs after scene teardown; the author's
+  existing runtime log showed this error while returning from the game to the title.
+
+Validation
+- Reviewed external versus automatic ticking, completion into ignition, cancellation,
+  missing-action recovery and item commits. git diff --check passed. Godot and test
+  suites were not launched. The cause of the shared timer's runtime stall could not
+  be confirmed from the screenshot/log alone; the new explicit tick still needs the
+  author's gameplay confirmation.
+
 ### 2026-09-28 - Stove loading and ignition refusal fixes (codex)
 
 Fixed

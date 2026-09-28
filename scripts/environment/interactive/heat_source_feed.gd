@@ -153,6 +153,11 @@ func _input(event: InputEvent) -> void:
 func _process(delta: float) -> void:
 	if not is_acting() or _ui_blocked():
 		return
+	var actions: TimeCostedActionSystem = _actions()
+	if _action_managed and (actions == null or actions.get_active_action_id() != _action_id):
+		cancel_act(&"action_lost")
+		show_message(tr("STOVE_ACTION_INTERRUPTED"))
+		return
 	var stop_reason: StringName = _light_stop_reason() if _is_lighting() else _transfer_stop_reason()
 	if stop_reason != &"":
 		cancel_act(stop_reason)
@@ -162,9 +167,9 @@ func _process(delta: float) -> void:
 			_stage = Stage.READY
 		advance_lighter_hold(delta)
 		return
-	var actions: TimeCostedActionSystem = _actions()
 	if _action_managed:
-		if actions != null and actions.get_active_action_id() == _action_id:
+		actions.advance_presentation(delta)
+		if _stage == Stage.TRANSFERRING and actions.get_active_action_id() == _action_id:
 			_act_left = _act_duration_seconds() * (1.0 - actions.get_progress())
 		return
 	_act_left -= delta
@@ -210,6 +215,7 @@ func _start_action(lighting: bool, count: int, removing: bool) -> Refusal:
 	_removing = removing
 	_act_left = LIGHT_SECONDS if lighting else ADD_SECONDS * count
 	_stage = Stage.PREPARING if lighting else Stage.TRANSFERRING
+	set_process(true)
 	if lighting:
 		_strike_count = 0
 		_last_strike_seconds = -1000.0
@@ -221,6 +227,7 @@ func _start_action(lighting: bool, count: int, removing: bool) -> Refusal:
 		request.action_id = _action_id
 		request.duration_hours = (light_time_cost_minutes if lighting else add_time_cost_minutes * count) / 60.0
 		request.presentation_seconds = 0.0 if lighting else _act_left
+		request.external_presentation = not lighting
 		request.reason = &"light_stove" if lighting else &"take_stove_logs" if removing else &"feed_stove"
 		request.actor = _player
 		request.target = heat_source
@@ -551,8 +558,9 @@ func _get_interaction_text() -> String:
 		set_description("[%s] %s" % [_interact_key_label(), tr("STOVE_CANCEL_LIGHTER")])
 		return tr("STOVE_PREPARING" if _stage == Stage.PREPARING else "STOVE_LIGHTER_HOLD")
 	if is_acting():
-		set_description(tr("STOVE_TRANSFER") % _transfer_count)
-		return "[%s] %s" % [_interact_key_label(), tr("STOVE_CANCEL_TRANSFER")]
+		var progress: int = int(roundf(100.0 * (1.0 - _act_left / maxf(_act_duration_seconds(), 0.001))))
+		set_description("[%s] %s" % [_interact_key_label(), tr("STOVE_CANCEL_TRANSFER")])
+		return tr("STOVE_RETURN_PROGRESS" if _removing else "STOVE_TRANSFER_PROGRESS") % [_transfer_count, clampi(progress, 0, 100)]
 	var count: int = _available_logs(false)
 	var detail: String = tr("STOVE_MOUSE_TAKE") if _available_logs(true) > 0 else ""
 	if count > 0:
@@ -573,7 +581,9 @@ func _get_interaction_text() -> String:
 
 func get_interaction_prompt_data() -> Dictionary:
 	var data: Dictionary = super()
-	if _stage == Stage.PREPARING:
+	if _stage == Stage.TRANSFERRING:
+		data["key"] = ""
+	elif _stage == Stage.PREPARING:
 		data["key"] = ""
 	elif _is_lighting():
 		data["key"] = tr("STOVE_MOUSE_KEY")

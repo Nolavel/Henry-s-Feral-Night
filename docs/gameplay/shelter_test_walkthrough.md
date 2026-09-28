@@ -131,6 +131,10 @@ boards, hammer placement and nails. Old boarded-door saves do not lock it.
    shows the number before starting. Loading takes two seconds and 0.5 game
    minutes per log. Logs leave the hands and appear in the firebox on completion;
    F cancellation before completion preserves the entire carried load.
+   The main prompt shows the loading percentage; F cancellation is secondary.
+   The stove advances its transfer presentation directly through the shared action
+   system, which still owns game-time billing, stop checks and completion. Loss
+   of that action ends the loading state with a retry hint instead of leaving it busy.
 4. Any surplus is automatically put down as a normal saved wood pile. Placement
    checks the floor ahead, then to Henry's left and right. If every position is
    blocked, the loaded wood stays in the stove and the surplus stays in his arms.
