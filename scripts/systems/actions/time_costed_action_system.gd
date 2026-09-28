@@ -185,7 +185,7 @@ func _enter_player_mode(mode: int) -> void:
 	if mode < 0:
 		return
 	var state: Node = get_node_or_null(^"/root/PlayerState")
-	if state == null or int(state.get("mode")) == int(state.get("Mode").MENU):
+	if state == null or not state.has_method(&"is_paused") or bool(state.call(&"is_paused")):
 		return
 	_previous_player_mode = int(state.get("mode"))
 	state.call(&"set_mode", mode)
@@ -197,6 +197,6 @@ func _release_control() -> void:
 	_owns_realtime_block = false
 	if _previous_player_mode >= 0:
 		var state: Node = get_node_or_null(^"/root/PlayerState")
-		if state != null and int(state.get("mode")) != int(state.get("Mode").MENU):
+		if state != null and state.has_method(&"is_paused") and not bool(state.call(&"is_paused")):
 			state.call(&"set_mode", _previous_player_mode)
 	_previous_player_mode = -1
