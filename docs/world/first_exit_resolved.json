@@ -911,8 +911,7 @@
 		}
 	],
 	"spawn": {
-		"x": 1420.0,
-		"yaw_deg": 132.0,
-		"z": -943.0
+		"anchor": "shelter_house/House",
+		"local": [0, 0, 11.4]
 	}
 }

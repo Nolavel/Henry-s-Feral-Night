@@ -38,13 +38,14 @@ WeatherBeat, persistent consumed-pickup records, the held road flare, Player Hub
 and inspection, field bedroll, physical Quick Access, finite water/tins and
 shelter work are implemented. The remaining First Exit proof is the continuous
 stranger playtest and its captures; optional route audio and coastal thin-ice
-content are later work. The bunker start is restored; shelter supplies and
-bonus stacks remain as explicitly requested by the author on 2026-09-28.
+content are later work. The current temporary test start is at the shelter
+entrance; shelter supplies and bonus stacks remain as requested by the author.
 
 ## Run
 
 Main scene: **`experimental_location/scenes/Graciosa_Island_Terrain.tscn`**
-(set as `run/main_scene`). Henry starts at the bunker door.
+(set as `run/main_scene`). New games currently start at the shelter entrance
+for interaction testing; Continue restores the saved player position.
 Systems test scene: `tests/scenes/TestScene.tscn`.
 
 ```bash

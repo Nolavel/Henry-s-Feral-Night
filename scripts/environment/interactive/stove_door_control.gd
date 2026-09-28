@@ -6,12 +6,15 @@ var feed: HeatSourceFeed
 
 
 func can_interact() -> bool:
-	return is_instance_valid(feed) and not feed.is_acting()
+	return is_instance_valid(feed)
 
 
 func _on_interaction_performed() -> void:
 	if feed != null:
-		feed.toggle_door()
+		if feed.is_acting():
+			feed.cancel_act()
+		else:
+			feed.toggle_door()
 
 
 func _get_interaction_text() -> String:
@@ -29,7 +32,7 @@ func is_aim_on_door(from: Vector3, direction: Vector3) -> bool:
 
 
 func _input(event: InputEvent) -> void:
-	if not _targeted or not shape_cast_detected:
+	if not _targeted or not shape_cast_detected or (feed != null and feed.is_acting()):
 		return
 	var mouse := event as InputEventMouseButton
 	if mouse != null and mouse.button_index in [MOUSE_BUTTON_LEFT, MOUSE_BUTTON_RIGHT]:

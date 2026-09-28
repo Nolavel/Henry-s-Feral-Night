@@ -6,6 +6,8 @@ var _flame: MeshInstance3D
 var _flame_light: OmniLight3D
 var _spark_light: OmniLight3D
 var _flash_tween: Tween
+var _strike_tween: Tween
+var _rest_rotation: Vector3
 var _flame_on: bool = false
 var _time: float = 0.0
 
@@ -40,6 +42,14 @@ func _ready() -> void:
 
 
 func strike(success: bool) -> void:
+	if _strike_tween != null:
+		_strike_tween.kill()
+	else:
+		_rest_rotation = rotation
+	rotation = _rest_rotation
+	_strike_tween = create_tween()
+	_strike_tween.tween_property(self, ^"rotation", _rest_rotation + Vector3(-0.16, 0.0, 0.10), 0.07)
+	_strike_tween.tween_property(self, ^"rotation", _rest_rotation, 0.13)
 	if _flash_tween != null:
 		_flash_tween.kill()
 	_spark_light.light_energy = 3.0

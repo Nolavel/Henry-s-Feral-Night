@@ -35,15 +35,20 @@ house without terrain edits.
 
 ![First Exit area](first_exit_area.png)
 
-The ordinary island start is the bunker at **(1420, terrain height, −943)** on the east
-peninsula, facing **yaw 132°**, toward the suburb and its water tower. The peninsula runs ~800 m
-south-west from the tip at Guards Beach and is **150–250 m wide**.
+The current temporary test start is directly outside the shelter entrance, at
+**(1139.58, terrain height, −663.19)**, facing the house (**yaw 148.34°**). The
+layout uses `shelter_house/House` with local offset **(0, 0, 11.4)**, so rebuilding
+keeps the start beside the shelter. New games use it; Continue retains saved positions.
+
+The full First Exit route starts at the bunker **(1420, terrain height, −943)**
+on the east peninsula, facing yaw 132° toward the suburb and water tower. The
+peninsula runs ~800 m south-west from Guards Beach and is 150–250 m wide.
 
 The island uses generated **`FirstExitBlockout/SpawnPoint`**. Its Y comes from
 the heightmap, with the existing marker/body clearance; no terrain is edited.
 On 2026-09-28 the author explicitly retained the shelter supply setup: bonus
-stacks and the second bedroll/flare kit still lie near the house. Only the
-temporary shelter start is removed. The layout JSON and generator own both.
+stacks and the second bedroll/flare kit still lie near the house. The shelter
+test start is active again for the stove pass. The layout JSON and generator own both.
 
 The scene already names this sector (Label3D and streaming chunks):
 East Point Redoubt, Alata Battery, Gateway Cove, The Patrol Trail, Radio

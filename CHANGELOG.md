@@ -5,6 +5,41 @@ Maintained per branch; entries are added by whoever makes the change.
 
 ## [Unreleased] — `codex`
 
+### 2026-09-28 - Intuitive stove flow and shelter test start (codex)
+
+Changed
+- New games temporarily start outside the shelter entrance, facing the house,
+  for the author's interaction tests. Layout, saved scene, initial player transform
+  and resolved metadata agree; existing saves retain their player positions.
+- F in an open firebox loads the complete armful that fits, showing the count in
+  advance. Transfers commit wood at completion; uncommitted logs no longer appear
+  in the firebox while still held.
+- Surplus wood automatically becomes an ordinary saveable pile, checking clear
+  floor ahead and on both sides. Blocked placement preserves the surplus in hands
+  and explains how to put it down; already loaded fuel remains in the stove.
+- Cold loading automatically draws the owned lighter and enters Fixing_Kneeling.
+  AnimationTree plays to 2.6 seconds, holds the work pose and resumes the remaining
+  clip on completion/cancellation. The torch pose and repeated full-body strike
+  animations no longer compete with the kneeling pose.
+- LMB is enabled after the pose settles and always produces a strike, sound,
+  sparks and flame. Three uninterrupted held seconds ignite tinder exactly once.
+  Release/pause resets the hold; F cancels. Hot refueling never prepares ignition.
+- Body, firebox and door keep the same stove focus during work. Other targets,
+  lost reach and removed sources cancel. RMB explicitly returns up to two intact
+  cold logs, cancelling ignition first; mouse loading and implicit return mode are removed.
+- Player movement obeys the action system's WORKING mode for the entire transfer,
+  including multi-log loading after its short presentation clip ends.
+- English/Russian prompts and the shelter walkthrough describe the new sequence.
+  Missing tools preserve the cold load; fuel saves and gradual warmup keep their
+  existing HeatSource ownership.
+
+Validation
+- Static review covers input ownership, staged transitions, resource commits,
+  hand/pose cleanup and overflow persistence. git diff --check is the only command check.
+- Per the author's request, Godot, renders and test suites were not run. Existing
+  automated stove assertions describe the previous controls; this revision's
+  visual/gameplay acceptance remains the author's manual run.
+
 ### 2026-09-28 - Door gap snow and staged stove controls (codex)
 
 Changed

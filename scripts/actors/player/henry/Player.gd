@@ -103,7 +103,9 @@ func _physics_process(delta: float) -> void:
 	## Working actions (pickup, repair, opening), the Hub and sitting root Henry.
 	var in_hub: bool = (is_instance_valid(hub) and hub.is_open()) or (is_instance_valid(rest) and rest.is_sitting()) \
 		or Time.get_ticks_msec() < _hold_until_ms
-	if in_hub or (is_instance_valid(animation_component) and animation_component.is_action_locking()):
+	var state: Node = get_node_or_null(^"/root/PlayerState")
+	var mode_locked: bool = state != null and bool(state.call(&"is_movement_blocked"))
+	if in_hub or mode_locked or (is_instance_valid(animation_component) and animation_component.is_action_locking()):
 		world_dir = Vector3.ZERO
 		jump_just_pressed = false
 		sprint_is_pressed = false
@@ -212,6 +214,14 @@ func hold_still(seconds: float) -> void:
 
 func is_holding_still() -> bool:
 	return Time.get_ticks_msec() < _hold_until_ms
+
+
+## Facing for a stationary interaction stays owned by the player controller.
+func face_work_target(target: Vector3) -> void:
+	var at: Vector3 = target
+	at.y = global_position.y
+	if global_position.distance_squared_to(at) > 0.0001:
+		look_at(at, Vector3.UP)
 
 
 func play_action_animation(action: StringName) -> bool:

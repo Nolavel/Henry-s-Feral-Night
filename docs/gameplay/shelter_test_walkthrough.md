@@ -1,15 +1,15 @@
 # Shelter test walkthrough
 
-The ordinary island starts at the bunker again (2026-09-28). Follow the land
-route to the shelter; the author retains the complete supply layout, including
-bonus stacks and its spare bedroll/flare kit. Start a new game for the route test:
-old saves correctly retain their pickup ledger and
-already consumed supplies. No existing save is deleted or rewritten by this pass.
+The island temporarily starts directly outside the shelter entrance for the
+author's stove/interaction tests (2026-09-28), facing the house. Start a new game
+to use this spawn; Continue restores the position in the existing save. The
+complete supply layout, bonus stacks and spare bedroll/flare kit remain in place.
+Existing saves and their consumed-pickup ledger are preserved.
 
 ## Find and carry supplies
 
-1. Henry starts at the bunker facing the water tower. Pick up its packed bedroll
-   and road flare if desired. A second separate pair remains by the shelter approach.
+1. Henry starts in the shelter entrance approach, between its spare bedroll
+   and road flare. The bunker kit remains available for later route testing.
 2. Looking toward the entrance, walk along the right side of the house for the
    full-size plank stacks. Each F pickup carries three boards in Henry's arms;
    they are not placed invisibly into a backpack. More than one trip is expected.
@@ -127,22 +127,36 @@ boards, hammer placement and nails. Old boarded-door saves do not lock it.
 1. Pick up the reusable lighter from the tool bench and tinder from route loot.
 2. Aim at the stove door/handle: **F opens or closes it**. Aim inside the open
    firebox for fuel and ignition. The cooking ring remains a separate target.
-3. With wood in Henry's arms, **LMB loads one; RMB loads up to two**. Each log
-   takes two seconds and the existing half-minute game-time cost. Cold logs can
-   be loaded repeatedly before ignition; a full firebox refuses another log.
-4. With empty hands, **LMB retrieves one; RMB retrieves up to two** intact cold
-   logs. Returned logs use the existing visible CarryComponent armful. This
-   return mode stays active after the first log; **F finishes it separately**,
-   or looking away resets it. Other occupied hands and excess weight refuse.
-5. **F prepares the lighter** in a loaded cold firebox. Put extra logs down with
-   **G** and put away held tools first. Every new LMB press makes one audible,
-   visible strike. A miss needs release and another press; success probability
-   is 55%, and attempt six is guaranteed. There is only a 0.25-second animation
-   interval, with no five-second lockout or automatic retries.
-6. A successful lighter flame burns **only while LMB is held**. Hold continuously
-   for **three seconds** to catch tinder; shorter holds never accumulate.
-   Release, F cancellation, pause, or losing focus immediately puts it out.
-   Tinder is spent exactly once when the fire catches; the lighter is reusable.
+3. With wood in Henry's arms, **F loads the whole armful that fits**. The prompt
+   shows the number before starting. Loading takes two seconds and 0.5 game
+   minutes per log. Logs leave the hands and appear in the firebox on completion;
+   F cancellation before completion preserves the entire carried load.
+4. Any surplus is automatically put down as a normal saved wood pile. Placement
+   checks the floor ahead, then to Henry's left and right. If every position is
+   blocked, the loaded wood stays in the stove and the surplus stays in his arms.
+   The prompt explains the obstruction; use **G** somewhere clear, then F to
+   prepare ignition. A burning stove only receives fuel and does not prepare a lighter.
+5. After a cold load, Henry **automatically draws his owned lighter and kneels**
+   using the existing Fixing_Kneeling animation. He holds its middle at 2.6 seconds,
+   with the hand at the firebox instead of the torch pose. No extra F or Quick
+   Access selection is needed. Missing lighter/tinder never prevents loading:
+   the cold logs remain inside and the prompt names the missing item. Once it is
+   acquired, **F prepares ignition** in an already loaded stove.
+6. Once Henry has settled into the pose, **press and hold LMB for three seconds**.
+   Each accepted press gives a guaranteed audible strike, visible sparks and
+   lighter flame. Pressing before the pose is ready does not start a flame; release
+   and press once ready. Short holds do not accumulate. Release or a paused menu
+   immediately extinguishes the lighter and resets the hold; resuming requires a
+   fresh press. Tinder is spent once when the fire catches. Henry then puts away
+   the lighter and finishes the animation to stand up; the stove door stays open.
+   **F cancels** either loading or ignition. During an action, moving the crosshair
+   between this stove's body, firebox and door preserves the same interaction.
+   Aiming elsewhere, leaving reach or losing the stove cancels it. Cancelling
+   before Henry settles reverses the partial kneel instead of completing the work clip.
+   **RMB retrieves up to two intact cold logs**, with the usual hand/weight limits.
+   During ignition preparation it first cancels the lighter. Returned wood remains
+   in Henry's arms; RMB can retrieve again, and F deliberately loads it back.
+
 7. The stove then develops independently for **20 seconds at normal game speed**,
    from 8% to full output. Flame, light, radiant warmth, room heating and cooking
    share HeatSource intensity. Sleep and accelerated time advance the same stage;
@@ -177,6 +191,14 @@ inherits walking velocity, falls under gravity, and collides with terrain/floor.
 It keeps burning after landing. Held-item rotation remains specific to the flare.
 
 ## Verification and limits
+
+This stove revision has not been run in Godot or rendered by Codex, at the author's
+request. Earlier automated stove expectations still describe the previous controls.
+For manual acceptance, check a full armful, a partially full cold stove with
+surplus placed nearby, blocked overflow placement, missing lighter/tinder,
+short versus uninterrupted holds, pause/cancellation and hot refueling.
+The held load, visible stove fuel and loose piles must always account for the
+same total logs; preparing a lighter must never spend tinder.
 
 `test_shelter_workflow.gd` uses the real player scene, its component/input routing,
 a TPS camera with the production 0.51 m lens offset, and generated house

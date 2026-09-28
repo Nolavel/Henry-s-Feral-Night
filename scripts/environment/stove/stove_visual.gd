@@ -30,8 +30,6 @@ var _flames: Array[MeshInstance3D] = []
 ## 0..1 while a lighting act catches: a weak flame that grows before the fire takes.
 var _kindle: float = 0.0
 var _acting: bool = false
-var _act_log: bool = false
-var _pending_logs: int = 0
 var _door_tween: Tween
 
 
@@ -54,12 +52,9 @@ func get_capacity_logs() -> int:
 	return clampi(ceili(source.burn_duration_h / source.hours_per_fuel_unit - 0.001), 1, MAX_LOGS)
 
 
-## A staged act at the stove: the door opens, a log goes in; lighting also grows
-## a weak flame over `seconds` before the fire itself takes.
-func begin_act(lighting: bool, seconds: float, count: int = 1, removing: bool = false) -> void:
+## Only committed fuel appears in the firebox; the action owns preparation feedback.
+func begin_act(lighting: bool, _seconds: float, _count: int = 1, _removing: bool = false) -> void:
 	_acting = true
-	_act_log = not lighting and not removing
-	_pending_logs = count if _act_log else 0
 	_swing_door(true)
 	if lighting:
 		## Manual lighter interaction owns the pre-ignition feedback. The stove
@@ -70,8 +65,6 @@ func begin_act(lighting: bool, seconds: float, count: int = 1, removing: bool = 
 
 func end_act(keep_door_open: bool = false) -> void:
 	_acting = false
-	_act_log = false
-	_pending_logs = 0
 	_kindle = 0.0
 	_swing_door(keep_door_open)
 	_refresh()
@@ -136,8 +129,6 @@ func _refresh() -> void:
 	var units: int = 0
 	if source != null and source.hours_per_fuel_unit > 0.0:
 		units = ceili(source.get_remaining_hours() / source.hours_per_fuel_unit - 0.001)
-	if _act_log:
-		units += _pending_logs
 	for i: int in range(_logs.size()):
 		_logs[i].visible = i < clampi(units, 0, get_capacity_logs())
 	_glow.visible = burning or (_acting and _kindle > 0.0)

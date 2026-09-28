@@ -272,6 +272,16 @@ func _focus_hit_is_visible(from: Vector3, hit_position: Vector3, target: Interac
 
 
 func _is_focus_aligned(from: Vector3, direction: Vector3, area: InteractiveArea) -> bool:
+	if area is HeatSourceFeed and (area as HeatSourceFeed).is_acting():
+		var ray := PhysicsRayQueryParameters3D.create(from, from + direction * focus_length)
+		ray.collide_with_areas = false
+		ray.collide_with_bodies = true
+		ray.exclude = [_player.get_rid()]
+		var hit: Dictionary = _player.get_world_3d().direct_space_state.intersect_ray(ray)
+		if not hit.is_empty():
+			return _owns_focus_body(_area_from(hit.get("collider")), area)
+		var door: StoveDoorControl = (area as HeatSourceFeed).door_control
+		return is_instance_valid(door) and door.is_aim_on_door(from, direction)
 	if area is StoveDoorControl:
 		return (area as StoveDoorControl).is_aim_on_door(from, direction)
 	if area is BreachBoardUp:
@@ -492,8 +502,16 @@ func is_crosshair_focused() -> bool:
 
 
 func _resolve_focus(area: InteractiveArea, from: Vector3, direction: Vector3) -> InteractiveArea:
-	return (area as HeatSourceFeed).resolve_focus(from, direction) if area is HeatSourceFeed else area
+	if area is HeatSourceFeed:
+		return (area as HeatSourceFeed).resolve_focus(from, direction)
+	if area is StoveDoorControl:
+		var feed: HeatSourceFeed = (area as StoveDoorControl).feed
+		if is_instance_valid(feed) and feed.is_acting():
+			return feed
+	return area
 
 
 func _owns_focus_body(owner_area: InteractiveArea, target: InteractiveArea) -> bool:
-	return owner_area == target or (target is StoveDoorControl and (target as StoveDoorControl).feed == owner_area)
+	return owner_area == target \
+		or (target is StoveDoorControl and (target as StoveDoorControl).feed == owner_area) \
+		or (owner_area is StoveDoorControl and (owner_area as StoveDoorControl).feed == target)
