@@ -27,6 +27,10 @@ func _process(_delta: float) -> bool:
 
 
 func _run() -> void:
+	var state: Node = root.get_node_or_null(^"PlayerState")
+	if state != null:
+		state.set_mode(state.Mode.ON_FOOT)
+
 	var clock := SimulationClock.new()
 	root.add_child(clock)
 	clock.set_total_hours(12.0, &"test_seed")
@@ -84,10 +88,15 @@ func _test_stew_action(
 	_check(warmer.get_state() == StoveWarmer.State.WARMING, "stew did not enter warming state")
 	_check(actions.is_active(), "stew warming did not start TimeCostedAction")
 	_check(actions.get_active_action_id().begins_with("cook_food:"), "stew used wrong action id")
+	var state: Node = root.get_node_or_null(^"PlayerState")
+	if state != null:
+		_check(state.mode == state.Mode.WORKING, "cooking did not enter WORKING mode")
 	_check(not inventory.has_item(&"tinned_stew"), "stew stayed in inventory while cooking")
 
 	actions._process(StoveWarmer.WARM_PRESENTATION_SECONDS)
 	_check(not actions.is_active(), "cooking action did not finish")
+	if state != null:
+		_check(state.mode == state.Mode.ON_FOOT, "cooking did not restore PlayerState")
 	_check(warmer.get_state() == StoveWarmer.State.READY and warmer.get_item_id() == &"tinned_stew_hot",
 		"stew did not become hot through action-driven world time")
 	_check(is_equal_approx(clock.get_total_hours() - before_time, StoveWarmer.WARM_HOURS),
