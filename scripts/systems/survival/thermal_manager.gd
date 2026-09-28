@@ -121,8 +121,6 @@ func on_world_ready(context: WorldContext) -> void:
 		zone_probe = _build_probe()
 	_follow()
 	initialize()
-	if day_night_manager == null:
-		push_warning("ThermalManager: the world has no DayNightManager, body temperature will not tick")
 
 
 ## The thermal model reads the world at Henry's feet, so it rides with him.
@@ -162,16 +160,7 @@ func initialize() -> void:
 	if not _initialized:
 		_initialized = true
 		_body_temp_c = normal_body_temp_c
-	_connect_clock()
 	_connect_probe()
-
-
-## Subscribes to the clock, at most once.
-func _connect_clock() -> void:
-	if day_night_manager == null:
-		return
-	if not day_night_manager.time_update.is_connected(_on_time_update):
-		day_night_manager.time_update.connect(_on_time_update)
 
 
 ## Subscribes to the zone probe, at most once.
@@ -323,9 +312,20 @@ func load_save_data(data: Dictionary) -> void:
 	_update_stage()
 
 
-## Advances every hourly rate. Driven by the day/night clock, not by frames.
+func get_simulation_priority() -> int:
+	return 300
+
+
+func advance_simulation(hours: float, context: SimulationStepContext) -> void:
+	_advance_hours(hours, context.hour_of_day)
+
+
+## Compatibility seam for isolated thermal tests/tools; production uses SimulationClock.
 func _on_time_update(current_hour: float) -> void:
-	var hours: float = _hours.consume(current_hour)
+	_advance_hours(_hours.consume(current_hour), current_hour)
+
+
+func _advance_hours(hours: float, current_hour: float) -> void:
 	if hours <= 0.0 or _is_dead:
 		return
 	HeatSource.advance_all_fuel(hours)
