@@ -373,9 +373,14 @@ func _test_stove() -> void:
 	_check(feedback == feed.tr("STOVE_NEED_LIGHTER"), "refusal did not reach the central prompt")
 
 	_inventory.try_add(ItemCatalog.get_item(&"lighter"))
+	feed.first_strike_success_chance = 0.0
+	feed.second_strike_success_chance = 0.0
+	feed.guaranteed_success_strike = 3
 	_press(&"interact")
 	_check(feed.is_acting() and not source.is_burning(), "ignition skipped the lighting act")
-	_actions._process(HeatSourceFeed.LIGHT_SECONDS)
+	_check(feed.attempt_lighter_strike(20.0) == HeatSourceFeed.StrikeResult.SPARK, "first shelter LMB strike did not spark")
+	_check(feed.attempt_lighter_strike(20.4) == HeatSourceFeed.StrikeResult.SPARK, "second shelter LMB strike did not spark")
+	_check(feed.attempt_lighter_strike(20.8) == HeatSourceFeed.StrikeResult.IGNITED, "third shelter LMB strike did not ignite")
 	_check(source.is_burning() and stove_visual.is_glowing(), "lighting finished without flame and heat")
 	await physics_frame
 	_interact.detect_target()

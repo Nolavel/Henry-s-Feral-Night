@@ -86,9 +86,14 @@ func _run() -> void:
 	await physics_frame
 	_interact.detect_target()
 	_check_target(feed, "stove after staged log load")
-	_interact.try_interact() # ignite loaded log
+	feed.first_strike_success_chance = 0.0
+	feed.second_strike_success_chance = 0.0
+	feed.guaranteed_success_strike = 3
+	_interact.try_interact() # prepare lighter
 	_check(feed.is_acting(), "F did not start lighting the real stove")
-	feed._process(HeatSourceFeed.LIGHT_SECONDS)
+	_check(feed.attempt_lighter_strike(10.0) == HeatSourceFeed.StrikeResult.SPARK, "first LMB strike did not spark")
+	_check(feed.attempt_lighter_strike(10.4) == HeatSourceFeed.StrikeResult.SPARK, "second LMB strike did not spark")
+	_check(feed.attempt_lighter_strike(10.8) == HeatSourceFeed.StrikeResult.IGNITED, "third LMB strike did not ignite")
 	_check(feed.heat_source.is_burning(), "stove did not ignite")
 	var door: InteractiveArea = house.get_node(^"HouseDoor") as InteractiveArea
 	await _aim(door, door.global_position + house.global_basis.z * 1.1, door.interactive_mesh.global_position)
