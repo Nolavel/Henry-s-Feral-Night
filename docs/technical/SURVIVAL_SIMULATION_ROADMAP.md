@@ -229,6 +229,12 @@ Required cases:
 
 # 4. Phase 2 — Time-costed Action System
 
+> **Implementation status (codex, 2026-09-28): complete foundation.** Sleep and wait are migrated
+> to the common action contract; deterministic billing, early-stop, staged progress, cancellation,
+> realtime blocking and PlayerState restoration are covered by headless tests. Cooking, snow→water,
+> repair and boarding remain phase-2 consumers to adopt one-by-one, not responsibilities of the
+> action framework itself.
+
 ## 4.1 Goal
 
 All meaningful long actions pay for themselves in the same simulation currency: **game time**.
