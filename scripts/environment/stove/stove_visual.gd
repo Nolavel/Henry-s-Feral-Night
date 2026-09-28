@@ -62,11 +62,11 @@ func begin_act(lighting: bool, seconds: float) -> void:
 	_refresh()
 
 
-func end_act() -> void:
+func end_act(keep_door_open: bool = false) -> void:
 	_acting = false
 	_act_log = false
 	_kindle = 0.0
-	_swing_door(false)
+	_swing_door(keep_door_open)
 	_refresh()
 
 
