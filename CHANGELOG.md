@@ -5,6 +5,42 @@ Maintained per branch; entries are added by whoever makes the change.
 
 ## [Unreleased] — `codex`
 
+### 2026-09-28 — Shelter gameplay action adoption (#131 PR D) (codex)
+
+Changed
+- Stove-top cooking and snow→water now intentionally advance game time through the shared
+  `TimeCostedActionSystem` instead of relying only on passive manual/test fuel advancement.
+- `StoveWarmer` keeps recipe ownership: raw item / `warms_into`, partial heat progress, result
+  transformation and save data remain in the warmer; the action layer owns only time/progress/cancel.
+- A full stew cook or snow melt keeps the existing 0.5 h recipe cost and presents it as one staged
+  WORKING action. Simulation is billed in one-minute slices.
+- If the fire goes out, the action cancels with partial recipe progress preserved. After relighting,
+  interacting with the ring resumes only the remaining heat/time.
+- HeatSource now emits `heat_elapsed` for the time fuel actually burned, so a coarse simulation
+  slice cannot grant more cooking/warming than the remaining fuel.
+- Stove ignition and window boarding explicitly enter `PlayerState.WORKING` through their existing
+  TimeCostedAction requests and restore the previous mode afterward.
+- The real shelter workflow test now owns a SimulationClock + TimeCostedActionSystem, so boarding
+  no longer passes through the legacy no-action fallback during integration tests.
+
+Validated consumers
+- stove ignition → TimeCostedAction;
+- cooking / hot stew → TimeCostedAction;
+- snow → warm water → TimeCostedAction;
+- board placement → TimeCostedAction.
+
+Deferred
+- Generic garment/item repair is not marked adopted because RIMEWATCH currently has no real repair
+  interaction, repair material/tool contract or gameplay owner. `EquipmentComponent.repair_garment()`
+  remains the simulation seam for a later concrete repair verb rather than inventing a fake recipe here.
+
+Tests
+- invalid/obstructed board placement bills no time; a valid board bills exactly its authored cost;
+- board placement and stove ignition enter WORKING;
+- cooking/melting bill exactly 0.5 game hours and matching fuel;
+- fire-out cancels early using actual burned fuel time, preserves partial progress and can resume;
+- snow melt and stew use distinct action ids/reasons and restore PlayerState on completion.
+
 ### 2026-09-28 — Clothing layers and per-instance garment state (#131 phase 5) (codex)
 
 Added
