@@ -29,6 +29,7 @@ const WORLD_READY_METHOD: StringName = &"on_world_ready"
 
 ## Node systems — .new(), parented to World.
 const WORLD_SYSTEM_SCRIPTS: Array[GDScript] = [
+	preload("res://scripts/systems/time/simulation_clock.gd"),
 	preload("res://scripts/systems/world/WeatherController.gd"),
 	preload("res://scripts/systems/world/weather/snowfall_vfx.gd"),
 	preload("res://scripts/systems/world/snow/snow_presentation_system.gd"),
