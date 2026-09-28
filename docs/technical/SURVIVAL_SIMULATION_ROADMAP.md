@@ -928,10 +928,17 @@ Do not implement the epic as one PR.
 
 ### PR D — Gameplay action adoption
 
-- cooking;
-- snow→water;
-- repair;
-- boarding;
+> **Implementation status (codex, 2026-09-28): real shelter consumers migrated.**
+> Stove ignition, cooking/hot stew, snow→water and board placement use the shared
+> TimeCostedAction path. Cooking/melting preserve partial heat progress when the fire dies.
+> Generic repair remains deliberately open because no concrete repair interaction/material
+> owner exists yet; `EquipmentComponent.repair_garment()` is only the simulation seam.
+
+- [x] cooking;
+- [x] snow→water;
+- [ ] repair — waiting for a real gameplay owner/tool/material contract;
+- [x] boarding;
+- [x] stove ignition (existing shelter work consumer);
 - one action at a time.
 
 ### PR E — Metabolism split
