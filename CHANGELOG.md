@@ -5,6 +5,50 @@ Maintained per branch; entries are added by whoever makes the change.
 
 ## [Unreleased] — `codex`
 
+### 2026-09-28 — Clothing layers and per-instance garment state (#131 phase 5) (codex)
+
+Added
+- Layered Henry equipment layout with explicit base / mid / outer clothing slots per body region.
+- Explicit legacy slot migration for old `head / torso / legs / feet` equipment saves into the new
+  `*_outer` slots; unknown legacy layer ids are warned and refused rather than guessed.
+- Immutable garment definition data for body region, layer, base insulation, windproofing,
+  waterproofing, drying rate and maximum condition.
+- Runtime `GarmentInstanceState` containing normalised wetness and condition; shared `GarmentData`
+  Resources remain unchanged at runtime.
+- Two non-starter layered garments (`thermal_shirt`, `wool_sweater`) so torso base/mid/outer
+  behavior is represented by real catalog data without changing Henry's starting loadout.
+- Equipment aggregate APIs for effective insulation, wind protection, water protection and
+  average clothing wetness.
+- Outside-in moisture propagation per body region: outer waterproof/condition reduces penetration
+  to mid/base layers; each garment dries by its own authored rate.
+- Stateful garment transfer through InventoryComponent. Non-stackable inventory entries may carry
+  optional instance state, including through inventory save/load.
+
+Changed
+- `EquipmentComponent` save key remains `equipment`, extending the old
+  `{ body, pockets }` payload with optional `garment_states`.
+- Old equipment saves without `garment_states` load garments dry and at full condition.
+- `InventoryComponent` save key remains `inventory`; optional instance state is additive and only
+  used for physical non-stackable items.
+- `ThermalManager` now consumes effective insulation and wind protection from EquipmentComponent,
+  and delegates clothing wetting/drying to the per-garment model.
+- The old `thermal.wetness` value remains as a compatibility/presentation mirror while clothing
+  wetness is now derived from EquipmentComponent when equipment is present.
+- Condition lowers insulation / windproofing / waterproofing but does not destroy an item;
+  `damage_garment()` / `repair_garment()` are the public seams for later time-costed repair.
+
+Tests
+- base + mid + outer can occupy the same body region simultaneously;
+- legacy slot aliases and old save paths migrate explicitly;
+- outer layers measurably protect inner layers from moisture;
+- wetness lowers effective insulation;
+- condition lowers insulation, wind and water protection;
+- state survives equipment save/load and unequip → inventory save/load → re-equip;
+- old saves default to dry/full-condition;
+- invalid old layer slots do not silently migrate;
+- runtime wetness/condition never mutate shared GarmentData;
+- ThermalManager reads effective clothing protection rather than inspecting garments itself.
+
 ### 2026-09-28 — Status / Affliction layer (#131 phase 4) (codex)
 
 Added
