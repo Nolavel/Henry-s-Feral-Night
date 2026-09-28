@@ -69,21 +69,12 @@ func initialize() -> void:
 		_gust_noise = FastNoiseLite.new()
 		_gust_noise.seed = gust_seed
 		_gust_noise.noise_type = FastNoiseLite.TYPE_SIMPLEX
-	_connect_clock()
 	if _current != null or profiles.is_empty():
 		return
 	var initial: WeatherProfile = _find_profile(starting_profile_id)
 	if initial == null:
 		initial = _pick_weighted()
 	_activate(initial, true)
-
-
-## Subscribes to the clock, at most once.
-func _connect_clock() -> void:
-	if day_night_manager == null:
-		return
-	if not day_night_manager.time_update.is_connected(_on_time_update):
-		day_night_manager.time_update.connect(_on_time_update)
 
 
 func _process(delta: float) -> void:
@@ -101,8 +92,6 @@ func _process(delta: float) -> void:
 func on_world_ready(context: WorldContext) -> void:
 	if day_night_manager == null:
 		day_night_manager = context.find_in_scene(DAY_NIGHT_SCRIPT) as DayNightManager
-	if day_night_manager != null and not day_night_manager.time_update.is_connected(_on_time_update):
-		day_night_manager.time_update.connect(_on_time_update)
 	if profiles.is_empty():
 		profiles = load_profiles_from(DEFAULT_PROFILE_DIR)
 	initialize()
@@ -249,21 +238,37 @@ func _sample_conditions() -> void:
 	)
 
 
-## Counts down the active profile's duration and rolls the next one.
+func get_simulation_priority() -> int:
+	return 100
+
+
+func advance_simulation(hours: float, context: SimulationStepContext) -> void:
+	_advance_weather(hours, context.reason != SimulationClock.REALTIME_REASON)
+
+
+## Compatibility seam for isolated legacy tests/tools; production uses SimulationClock.
 func _on_time_update(current_hour: float) -> void:
-	var hours: float = _hours.consume(current_hour)
+	_advance_weather(_hours.consume(current_hour), false)
+
+
+func _advance_weather(hours: float, instant_transition: bool) -> void:
 	if _current == null or not scheduler_enabled or hours <= 0.0:
 		return
-	_remaining_h -= hours
-	if _remaining_h > 0.0:
-		return
-	var next: WeatherProfile = _find_profile(_then_id)
-	_then_id = &""
-	if next == null:
-		next = _pick_weighted()
-		if next == _current and profiles.size() > 1:
+	var remaining_step: float = hours
+	while remaining_step > 0.000001:
+		if _remaining_h > remaining_step:
+			_remaining_h -= remaining_step
+			return
+		remaining_step -= maxf(_remaining_h, 0.0)
+		var next: WeatherProfile = _find_profile(_then_id)
+		_then_id = &""
+		if next == null:
 			next = _pick_weighted()
-	_activate(next, false)
+			if next == _current and profiles.size() > 1:
+				next = _pick_weighted()
+		_activate(next, instant_transition)
+		if _remaining_h <= 0.000001:
+			return
 
 
 ## Swaps in a profile, either instantly or blended over its blend time.
