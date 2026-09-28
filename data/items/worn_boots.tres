@@ -5,9 +5,16 @@
 
 [sub_resource type="Resource" id="G_worn_boots"]
 script = ExtResource("garment")
-body_slot_id = &"feet"
+body_slot_id = &"feet_outer"
+body_region = &"feet"
+layer = 2
 pockets = []
 insulation_c = 1.5
+base_insulation_c = 1.5
+windproof = 0.55
+waterproof = 0.65
+drying_rate = 0.18
+max_condition = 1.0
 mesh_node_name = &"Boots"
 
 [resource]
