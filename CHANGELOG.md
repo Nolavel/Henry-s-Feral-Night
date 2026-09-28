@@ -5,6 +5,20 @@ Maintained per branch; entries are added by whoever makes the change.
 
 ## [Unreleased] — `codex`
 
+### 2026-09-28 — Correct Day / Dusk LUT green-axis packing (codex)
+
+Fixed
+- The Day and Dusk LUT atlases added in `3c0a290` stored the green axis upside down:
+  black mapped to bright green and white to magenta. Reverse the atlas rows to match
+  the existing Texture3D import layout, preserving every authored color value.
+- Add neutral-ramp and primary-axis checks to the color-grading suite. Texture
+  dimensions and profile-switching checks alone did not detect the inversion.
+
+Validation
+- New color checks reject the original atlases with 130 failures and pass all four corrected profiles.
+- Godot 4.8 dev6 clean reimport passed; Forward+ captures of the production Graciosa scene
+  reproduce the green/magenta failure before the fix and restore normal colors afterward.
+
 ### 2026-09-28 — Manual lighter ignition ritual (codex)
 
 Changed

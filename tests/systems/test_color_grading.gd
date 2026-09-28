@@ -24,7 +24,7 @@ func _initialize() -> void:
 		push_error("color grading: %d check(s) failed" % _failures)
 		quit(1)
 		return
-	print("color grading: four 33^3 LUT profiles and time/shelter switching passed")
+	print("color grading: four 33^3 LUT profiles, color axes and time/shelter switching passed")
 	quit(0)
 
 func _check_profile(profile: ColorGradeProfile, expected_id: StringName) -> void:
@@ -38,6 +38,37 @@ func _check_profile(profile: ColorGradeProfile, expected_id: StringName) -> void
 	_check(profile.lut.get_width() == LUT_SIZE, "%s width is not 33" % expected_id)
 	_check(profile.lut.get_height() == LUT_SIZE, "%s height is not 33" % expected_id)
 	_check(profile.lut.get_depth() == LUT_SIZE, "%s depth is not 33" % expected_id)
+	_check_color_axes(profile)
+
+
+## Inspect the source atlas because the headless dummy renderer cannot read Texture3D data.
+## Imported dimensions above and RGB landmarks below cover layout and axis direction.
+func _check_color_axes(profile: ColorGradeProfile) -> void:
+	var atlas := Image.new()
+	var error: Error = atlas.load_png_from_buffer(FileAccess.get_file_as_bytes(profile.lut.resource_path))
+	_check(error == OK, "%s has no readable source atlas" % profile.profile_id)
+	if error != OK:
+		return
+	var previous: Color = Color(-1.0, -1.0, -1.0)
+	for index: int in range(LUT_SIZE):
+		var gray: Color = atlas.get_pixel(index * LUT_SIZE + index, index)
+		var spread: float = maxf(gray.r, maxf(gray.g, gray.b)) - minf(gray.r, minf(gray.g, gray.b))
+		_check(spread < 0.10, "%s neutral ramp has a color cast at %d" % [profile.profile_id, index])
+		_check(gray.r >= previous.r and gray.g >= previous.g and gray.b >= previous.b,
+			"%s neutral ramp reverses a color axis at %d" % [profile.profile_id, index])
+		previous = gray
+	var last: int = LUT_SIZE - 1
+	var primaries: Array[Color] = [
+		atlas.get_pixel(last, 0),
+		atlas.get_pixel(0, last),
+		atlas.get_pixel(last * LUT_SIZE, 0),
+	]
+	for axis: int in range(3):
+		var channels: Array[float] = [primaries[axis].r, primaries[axis].g, primaries[axis].b]
+		_check(channels[axis] > 0.80 and channels[(axis + 1) % 3] < 0.20
+			and channels[(axis + 2) % 3] < 0.20,
+			"%s primary color axis %d is mispacked" % [profile.profile_id, axis])
+
 
 func _check_switching(day: ColorGradeProfile, dusk: ColorGradeProfile, night: ColorGradeProfile, shelter: ColorGradeProfile) -> void:
 	if day == null or dusk == null or night == null or shelter == null:
