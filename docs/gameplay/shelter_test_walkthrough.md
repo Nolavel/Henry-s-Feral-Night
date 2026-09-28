@@ -124,7 +124,11 @@ aperture. Snow enters through the four actual edge gaps only, follows live wind
 and snowfall, and stops on the moving leaf/frame. Only the four windows accept
 boards, hammer placement and nails. Old boarded-door saves do not lock it.
 
-1. Pick up the reusable lighter from the tool bench and tinder from route loot.
+1. A new game starts with tinder already in the right coat pocket (Quick Access
+   slot 2). No pickup or hand selection is needed: the stove uses it directly
+   from the pocket. Pick up the reusable lighter from the tool bench. Existing
+   saves restore their own pockets; starting supplies are not refilled on Continue.
+   Fort/collapsed-house tinder remains available after this first portion is spent.
 2. Aim at the stove door/handle: **F opens or closes it**. Aim inside the open
    firebox for fuel and ignition. The cooking ring remains a separate target.
 3. With wood in Henry's arms, **F loads the whole armful that fits**. The prompt

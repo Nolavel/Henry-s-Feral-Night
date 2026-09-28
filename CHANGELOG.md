@@ -5,6 +5,23 @@ Maintained per branch; entries are added by whoever makes the change.
 
 ## [Unreleased] — `codex`
 
+### 2026-09-28 - Start with tinder in Quick Access (codex)
+
+Changed
+- Per the author's instruction, new games start with one tinder portion already in
+  the right coat pocket, Quick Access slot 2. Stove preparation uses that owned
+  pocket item directly; it need not be drawn or moved through the Hub.
+- Starter equipment accepts worn-pocket paths after equipping the starter garments,
+  using normal fit/occupancy checks and slot signals. Pocket save/load remains the
+  authority; Continue does not refill the starter tinder.
+- Localize the tinder item name and update the shelter/route walkthroughs to show
+  the current F-load, automatic kneel and held-LMB controls.
+
+Validation
+- Reviewed starter initialization order, right coat pocket capacity, Quick Access
+  ordering and stove pocket consumption. git diff --check passed. Godot and test
+  suites were not launched, as requested by the author.
+
 ### 2026-09-28 - Resolve stalled stove transfer presentation (codex)
 
 Fixed

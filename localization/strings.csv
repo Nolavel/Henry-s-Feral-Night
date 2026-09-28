@@ -188,3 +188,4 @@ STOVE_OVERFLOW_BLOCKED,Logs loaded; no clear floor nearby for the rest. Put them
 STOVE_TRANSFER_PROGRESS,Loading %d logs · %d%%,Загрузка %d поленьев · %d%%
 STOVE_ACTION_INTERRUPTED,Action interrupted — press F to retry,Действие прервано — нажмите F ещё раз
 STOVE_RETURN_PROGRESS,Taking back %d logs · %d%%,Возврат %d поленьев · %d%%
+Bundle of tinder,Bundle of tinder,Связка растопки
