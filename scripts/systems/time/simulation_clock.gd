@@ -21,6 +21,7 @@ var _initialized: bool = false
 var _participants: Array[Dictionary] = []
 var _next_order: int = 0
 var _world_context: WorldContext
+var _realtime_blockers: int = 0
 
 
 func on_world_ready(context: WorldContext) -> void:
@@ -62,6 +63,8 @@ func set_total_hours(hours: float, reason: StringName = &"load") -> bool:
 func advance_hours(hours: float, reason: StringName) -> bool:
 	if hours <= 0.0:
 		return false
+	if reason == REALTIME_REASON and _realtime_blockers > 0:
+		return false
 	if not _initialized:
 		set_total_hours(0.0, &"implicit_start")
 
@@ -86,6 +89,21 @@ func advance_hours(hours: float, reason: StringName) -> bool:
 ## Explicitly settles a buffered realtime fraction, useful before state capture.
 func flush_realtime() -> void:
 	_flush_partial(REALTIME_REASON)
+
+
+## Controlled actions own game-time advancement while active. A counter rather
+## than a bool makes nested presentation layers safe without a second clock.
+func push_realtime_block() -> void:
+	_flush_partial(REALTIME_REASON)
+	_realtime_blockers += 1
+
+
+func pop_realtime_block() -> void:
+	_realtime_blockers = maxi(0, _realtime_blockers - 1)
+
+
+func is_realtime_blocked() -> bool:
+	return _realtime_blockers > 0
 
 
 func register_participant(node: Node) -> void:
