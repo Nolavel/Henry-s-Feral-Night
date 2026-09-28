@@ -11,6 +11,7 @@ var critical_threshold_percent: float = 10.0
 var energy_restored_per_hour: float = 12.5
 var carry_fatigue_factor: float = 0.6
 var carry_inventory: InventoryComponent
+var _afflictions: AfflictionComponent
 
 var current_energy: float = 100.0
 var previous_energy: float = 100.0
@@ -56,7 +57,8 @@ func restore_sleep(hours: float, rest_quality: float) -> void:
 	var was_critical: bool = is_critical
 	previous_energy = current_energy
 	current_energy = clampf(
-		current_energy + hours * energy_restored_per_hour * clampf(rest_quality, 0.0, 1.0),
+		current_energy + hours * energy_restored_per_hour * clampf(rest_quality, 0.0, 1.0)
+			* _status_multiplier(&"recovery_rate_multiplier"),
 		0.0,
 		max_energy
 	)
@@ -92,7 +94,18 @@ func reset_recent() -> void:
 func get_drain_multiplier() -> float:
 	var load: float = get_load_fraction()
 	var over_half: float = clampf((load - 0.5) * 2.0, 0.0, 1.0)
-	return 1.0 + over_half * carry_fatigue_factor
+	var carry_multiplier: float = 1.0 + over_half * carry_fatigue_factor
+	return carry_multiplier * _status_multiplier(&"fatigue_rate_multiplier")
+
+
+func _status_multiplier(stat_id: StringName) -> float:
+	if _afflictions == null:
+		var root: Node = get_parent()
+		if root is BioMonitorManager:
+			root = root.get_parent()
+		if root != null:
+			_afflictions = root.get_node_or_null(^"AfflictionComponent") as AfflictionComponent
+	return _afflictions.get_multiplier(stat_id) if _afflictions != null else 1.0
 
 
 func get_drain_reason() -> StringName:
