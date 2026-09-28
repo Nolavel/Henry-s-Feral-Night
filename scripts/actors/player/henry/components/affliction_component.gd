@@ -11,6 +11,7 @@ signal affliction_recovered(id: StringName)
 const HYPOTHERMIA: AfflictionDefinition = preload("res://resources/status/hypothermia.tres")
 const DEHYDRATION: AfflictionDefinition = preload("res://resources/status/dehydration.tres")
 const EXHAUSTION: AfflictionDefinition = preload("res://resources/status/exhaustion.tres")
+const THERMAL_SCRIPT: GDScript = preload("res://scripts/systems/survival/thermal_manager.gd")
 
 var _definitions: Dictionary = {}
 var _states: Dictionary = {}
@@ -23,6 +24,10 @@ func _ready() -> void:
 	for definition: AfflictionDefinition in [HYPOTHERMIA, DEHYDRATION, EXHAUSTION]:
 		_definitions[definition.id] = definition
 	_bind_metabolic_sources()
+
+
+func on_world_ready(context: WorldContext) -> void:
+	bind_thermal(context.get_system(THERMAL_SCRIPT) as ThermalManager)
 
 
 func _bind_metabolic_sources() -> void:
