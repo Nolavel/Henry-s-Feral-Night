@@ -22,9 +22,16 @@ excluded_from_auto_stow = false
 
 [sub_resource type="Resource" id="G_worn_coat"]
 script = ExtResource("garment")
-body_slot_id = &"torso"
+body_slot_id = &"torso_outer"
+body_region = &"torso"
+layer = 2
 pockets = [SubResource("P_coat_left"), SubResource("P_coat_right")]
 insulation_c = 5.5
+base_insulation_c = 5.5
+windproof = 0.65
+waterproof = 0.45
+drying_rate = 0.22
+max_condition = 1.0
 mesh_node_name = &"Coat"
 
 [resource]

@@ -3,27 +3,72 @@
 [ext_resource type="Script" uid="uid://jupvim8nmjrv" path="res://core/equipment/equipment_layout.gd" id="layout"]
 [ext_resource type="Script" uid="uid://40y6ohgf4m2w" path="res://core/equipment/equipment_slot_definition.gd" id="slot"]
 
-[sub_resource type="Resource" id="Slot_head"]
+[sub_resource type="Resource" id="Slot_head_outer"]
 script = ExtResource("slot")
-id = &"head"
-display_name = "Head"
+id = &"head_outer"
+display_name = "Head / outer"
+body_region = &"head"
+layer_id = &"outer"
 
-[sub_resource type="Resource" id="Slot_torso"]
+[sub_resource type="Resource" id="Slot_torso_base"]
 script = ExtResource("slot")
-id = &"torso"
-display_name = "Torso"
+id = &"torso_base"
+display_name = "Torso / base"
+body_region = &"torso"
+layer_id = &"base"
+
+[sub_resource type="Resource" id="Slot_torso_mid"]
+script = ExtResource("slot")
+id = &"torso_mid"
+display_name = "Torso / mid"
+body_region = &"torso"
+layer_id = &"mid"
 max_size = 1
 
-[sub_resource type="Resource" id="Slot_legs"]
+[sub_resource type="Resource" id="Slot_torso_outer"]
 script = ExtResource("slot")
-id = &"legs"
-display_name = "Legs"
+id = &"torso_outer"
+display_name = "Torso / outer"
+body_region = &"torso"
+layer_id = &"outer"
 max_size = 1
 
-[sub_resource type="Resource" id="Slot_feet"]
+[sub_resource type="Resource" id="Slot_legs_base"]
 script = ExtResource("slot")
-id = &"feet"
-display_name = "Feet"
+id = &"legs_base"
+display_name = "Legs / base"
+body_region = &"legs"
+layer_id = &"base"
+
+[sub_resource type="Resource" id="Slot_legs_mid"]
+script = ExtResource("slot")
+id = &"legs_mid"
+display_name = "Legs / mid"
+body_region = &"legs"
+layer_id = &"mid"
+max_size = 1
+
+[sub_resource type="Resource" id="Slot_legs_outer"]
+script = ExtResource("slot")
+id = &"legs_outer"
+display_name = "Legs / outer"
+body_region = &"legs"
+layer_id = &"outer"
+max_size = 1
+
+[sub_resource type="Resource" id="Slot_feet_base"]
+script = ExtResource("slot")
+id = &"feet_base"
+display_name = "Feet / base"
+body_region = &"feet"
+layer_id = &"base"
+
+[sub_resource type="Resource" id="Slot_feet_outer"]
+script = ExtResource("slot")
+id = &"feet_outer"
+display_name = "Feet / outer"
+body_region = &"feet"
+layer_id = &"outer"
 max_size = 1
 
 [sub_resource type="Resource" id="Slot_pack"]
@@ -43,4 +88,16 @@ excluded_from_auto_stow = true
 
 [resource]
 script = ExtResource("layout")
-body_slots = Array[ExtResource("slot")]([SubResource("Slot_head"), SubResource("Slot_torso"), SubResource("Slot_legs"), SubResource("Slot_feet"), SubResource("Slot_pack"), SubResource("Slot_fixture")])
+body_slots = Array[ExtResource("slot")]([
+SubResource("Slot_head_outer"),
+SubResource("Slot_torso_base"),
+SubResource("Slot_torso_mid"),
+SubResource("Slot_torso_outer"),
+SubResource("Slot_legs_base"),
+SubResource("Slot_legs_mid"),
+SubResource("Slot_legs_outer"),
+SubResource("Slot_feet_base"),
+SubResource("Slot_feet_outer"),
+SubResource("Slot_pack"),
+SubResource("Slot_fixture")
+])

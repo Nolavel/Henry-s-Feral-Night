@@ -23,6 +23,11 @@ extends Resource
 ## Human-facing label, for debug output and a future inventory screen.
 @export var display_name: String = ""
 
+## Optional semantic clothing coordinates. Empty values mean this is an
+## equipment/utility slot rather than a clothing layer.
+@export var body_region: StringName = &""
+@export var layer_id: StringName = &""
+
 ## The largest item this socket accepts. A coat pocket is POCKET, the pack
 ## slot is BULKY.
 @export var max_size: ItemTraits.SizeClass = ItemTraits.SizeClass.POCKET

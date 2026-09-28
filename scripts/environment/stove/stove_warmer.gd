@@ -10,6 +10,9 @@ signal state_changed(state: State)
 enum State { EMPTY, WARMING, READY }
 
 const WARM_HOURS: float = 0.5
+## Real presentation time for a full 30-minute cooking/melting action.
+const WARM_PRESENTATION_SECONDS: float = 6.0
+const WARM_STEP_HOURS: float = 1.0 / 60.0
 const INTERACTIVE_SCENE: String = "res://scenes/environment/interactive/InteractiveArea.tscn"
 const PROMPT_SCRIPT: String = "res://scripts/environment/stove/stove_warmer_prompt.gd"
 const PUT_KEY: String = "WARM_PUT"
@@ -26,6 +29,8 @@ var _progress_h: float = 0.0
 var _prop: Node3D
 var _prompt: InteractiveArea
 var _steam: GPUParticles3D
+var _action_id: StringName = &""
+var _action_managed: bool = false
 
 
 func _ready() -> void:
@@ -72,11 +77,9 @@ func put(inventory: InventoryComponent, item_id: StringName) -> bool:
 func advance(hours: float) -> void:
 	if _state != State.WARMING:
 		return
-	_progress_h += hours
-	if _progress_h >= WARM_HOURS:
-		var raw: ItemResource = ItemCatalog.get_item(_item_id)
-		_item_id = raw.warms_into if raw != null else &""
-		_set_state(State.READY if _item_id != &"" else State.EMPTY)
+	_progress_h = minf(WARM_HOURS, _progress_h + maxf(hours, 0.0))
+	if _progress_h >= WARM_HOURS - 0.000001:
+		_finish_warming()
 
 
 ## Eats or drinks the warmed item off the ring.
@@ -96,8 +99,15 @@ func interact_with(player: Node) -> void:
 		return
 	match _state:
 		State.EMPTY:
+			var actions: TimeCostedActionSystem = _actions()
+			if actions != null and actions.is_active():
+				return
 			var inventory: InventoryComponent = InventoryComponent.find_in(player)
-			put(inventory, find_warmable(inventory))
+			var id: StringName = find_warmable(inventory)
+			if put(inventory, id):
+				_start_warm_action(player)
+		State.WARMING:
+			_start_warm_action(player)
 		State.READY:
 			take(player.get_node_or_null(^"ConsumptionController") as ConsumptionController)
 
@@ -105,7 +115,16 @@ func interact_with(player: Node) -> void:
 func can_interact_with(player: Node) -> bool:
 	match _state:
 		State.EMPTY:
-			return source != null and source.is_burning() and find_warmable(InventoryComponent.find_in(player)) != &""
+			var actions: TimeCostedActionSystem = _actions()
+			return (
+				source != null
+				and source.is_burning()
+				and (actions == null or not actions.is_active())
+				and find_warmable(InventoryComponent.find_in(player)) != &""
+			)
+		State.WARMING:
+			var actions: TimeCostedActionSystem = _actions()
+			return source != null and source.is_burning() and (actions == null or not actions.is_active())
 		State.READY:
 			return true
 	return false
@@ -122,6 +141,101 @@ func get_prompt_text(player: Node) -> String:
 	var hot: ItemResource = ItemCatalog.get_item(_item_id)
 	var drink: bool = hot != null and hot.consumable != null and hot.consumable.calories <= 0.0
 	return "%s: %s" % [tr(DRINK_KEY if drink else EAT_KEY), tr(hot.display_name) if hot != null else ""]
+
+
+func _start_warm_action(player: Node) -> bool:
+	if _state != State.WARMING or source == null or not source.is_burning():
+		return false
+	var actions: TimeCostedActionSystem = _actions()
+	if actions == null:
+		## Isolated tools may still advance the HeatSource explicitly.
+		return false
+	if actions.is_active():
+		return false
+
+	var remaining_h: float = maxf(WARM_HOURS - _progress_h, 0.0)
+	if remaining_h <= 0.000001:
+		return true
+
+	var request := TimeActionRequest.new()
+	var reason: StringName = _warm_reason()
+	_action_id = StringName("%s:%d" % [String(reason), get_instance_id()])
+	request.action_id = _action_id
+	request.duration_hours = remaining_h
+	request.presentation_seconds = WARM_PRESENTATION_SECONDS * (remaining_h / WARM_HOURS)
+	request.reason = reason
+	request.actor = player
+	request.target = self
+	request.interruptible = true
+	request.simulation_step_hours = WARM_STEP_HOURS
+	request.player_mode = _resolve_player_mode(&"WORKING")
+	request.stop_check = _warm_stop_reason
+	request.on_complete = _warm_action_completed
+	request.on_cancel = _warm_action_cancelled
+	_action_managed = actions.start_action(request)
+	return _action_managed
+
+
+func _warm_reason() -> StringName:
+	if _item_id in [&"mug_snow", &"snow_handful"]:
+		return &"melt_snow"
+	return &"cook_food"
+
+
+func _warm_stop_reason() -> StringName:
+	if _state != State.WARMING:
+		return &""
+	if source == null:
+		return &"target_lost"
+	if not source.is_burning():
+		return &"fire_out"
+	return &""
+
+
+func _warm_action_completed(_elapsed_h: float) -> void:
+	_action_managed = false
+	_action_id = &""
+	## The HeatSource heat_elapsed signal is the recipe truth. If a custom
+	## source failed to provide enough actual heat, leave the item warming.
+	if _state == State.WARMING and _progress_h >= WARM_HOURS - 0.000001:
+		_finish_warming()
+
+
+func _warm_action_cancelled(_elapsed_h: float, _reason: StringName) -> void:
+	_action_managed = false
+	_action_id = &""
+
+
+func _is_action_active() -> bool:
+	if not _action_managed:
+		return false
+	var actions: TimeCostedActionSystem = _actions()
+	return actions != null and actions.get_active_action_id() == _action_id
+
+
+func _actions() -> TimeCostedActionSystem:
+	return TimeCostedActionSystem.find(get_tree()) if is_inside_tree() else null
+
+
+func _resolve_player_mode(mode_name: StringName) -> int:
+	var state: Node = get_node_or_null(^"/root/PlayerState")
+	if state == null:
+		return -1
+	var script: Script = state.get_script() as Script
+	if script == null:
+		return -1
+	var constants: Dictionary = script.get_script_constant_map()
+	var modes: Dictionary = constants.get("Mode", {})
+	return int(modes.get(String(mode_name), -1))
+
+
+func _finish_warming() -> void:
+	if _state != State.WARMING:
+		return
+	var raw: ItemResource = ItemCatalog.get_item(_item_id)
+	_item_id = raw.warms_into if raw != null else &""
+	_progress_h = WARM_HOURS
+	_set_state(State.READY if _item_id != &"" else State.EMPTY)
 
 
 func _set_state(state: State) -> void:
@@ -238,9 +352,11 @@ func get_save_data() -> Dictionary:
 
 
 func load_save_data(data: Dictionary) -> void:
+	_action_managed = false
+	_action_id = &""
 	_state = int(data.get("state", 0)) as State
 	_item_id = StringName(data.get("item", ""))
-	_progress_h = float(data.get("progress", 0.0))
+	_progress_h = clampf(float(data.get("progress", 0.0)), 0.0, WARM_HOURS)
 	if _item_id == &"" or ItemCatalog.get_item(_item_id) == null:
 		_state = State.EMPTY
 		_item_id = &""

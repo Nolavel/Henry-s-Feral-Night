@@ -54,19 +54,20 @@ func get_capacity_logs() -> int:
 ## a weak flame over `seconds` before the fire itself takes.
 func begin_act(lighting: bool, seconds: float) -> void:
 	_acting = true
-	_act_log = false
+	_act_log = not lighting
 	_swing_door(true)
 	if lighting:
-		_kindle = 0.05
-		create_tween().tween_property(self, ^"_kindle", 1.0, seconds * 0.9).set_delay(seconds * 0.1)
+		## Manual lighter interaction owns the pre-ignition feedback. The stove
+		## itself stays dark until a successful strike actually catches.
+		_kindle = 0.0
 	_refresh()
 
 
-func end_act() -> void:
+func end_act(keep_door_open: bool = false) -> void:
 	_acting = false
 	_act_log = false
 	_kindle = 0.0
-	_swing_door(false)
+	_swing_door(keep_door_open)
 	_refresh()
 
 

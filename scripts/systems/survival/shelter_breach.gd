@@ -32,6 +32,9 @@ signal staged_boards_changed(count: int)
 var _forced_boarded: bool = false
 var _placed_board_y: Array[float] = []
 var _staged_boards: int = 0
+## External closure such as a door leaf can reduce the same aperture without
+## pretending it is fully repaired. Thermal and particles read this one value.
+var _exposure_multiplier: float = 1.0
 var _placed_root: Node3D
 var _staged_root: Node3D
 
@@ -91,6 +94,18 @@ func get_coverage_fraction() -> float:
 
 func get_gap_fraction() -> float:
 	return get_open_fraction()
+
+
+func set_exposure_multiplier(value: float) -> void:
+	var next: float = clampf(value, 0.0, 1.0)
+	if is_equal_approx(next, _exposure_multiplier):
+		return
+	_exposure_multiplier = next
+	_announce()
+
+
+func get_exposure_multiplier() -> float:
+	return _exposure_multiplier
 
 
 func get_board_size() -> Vector3:
@@ -175,8 +190,8 @@ func get_exposure_against(wind_direction: Vector3) -> float:
 	if open_fraction <= 0.0:
 		return 0.0
 	if wind_direction.length_squared() < 0.0001:
-		return severity * open_fraction
-	return severity * open_fraction * maxf(0.0, get_facing().dot(-wind_direction.normalized()))
+		return severity * open_fraction * _exposure_multiplier
+	return severity * open_fraction * _exposure_multiplier * maxf(0.0, get_facing().dot(-wind_direction.normalized()))
 
 
 func get_facing() -> Vector3:

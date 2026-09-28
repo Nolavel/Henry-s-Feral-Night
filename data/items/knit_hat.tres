@@ -5,9 +5,16 @@
 
 [sub_resource type="Resource" id="G_knit_hat"]
 script = ExtResource("garment")
-body_slot_id = &"head"
+body_slot_id = &"head_outer"
+body_region = &"head"
+layer = 2
 pockets = []
 insulation_c = 1.8
+base_insulation_c = 1.8
+windproof = 0.35
+waterproof = 0.15
+drying_rate = 0.35
+max_condition = 1.0
 mesh_node_name = &"Hat"
 
 [resource]

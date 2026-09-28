@@ -229,6 +229,12 @@ Required cases:
 
 # 4. Phase 2 — Time-costed Action System
 
+> **Implementation status (codex, 2026-09-28): complete foundation.** Sleep and wait are migrated
+> to the common action contract; deterministic billing, early-stop, staged progress, cancellation,
+> realtime blocking and PlayerState restoration are covered by headless tests. Cooking, snow→water,
+> repair and boarding remain phase-2 consumers to adopt one-by-one, not responsibilities of the
+> action framework itself.
+
 ## 4.1 Goal
 
 All meaningful long actions pay for themselves in the same simulation currency: **game time**.
@@ -405,6 +411,11 @@ Required:
 
 # 5. Phase 3 — Split BioMonitorManager
 
+> **Implementation status (codex, 2026-09-28): complete.** Runtime state is owned by
+> `HungerComponent`, `HydrationComponent` and `FatigueComponent`. `BioMonitorManager` remains
+> the `bio` save adapter and legacy API/signal facade, with SimulationClock as the only production
+> ticking source. The old DayNight metabolism callback has been removed.
+
 ## 5.1 Current problem
 
 `BioMonitorManager` currently owns:
@@ -544,6 +555,12 @@ Required:
 
 # 6. Phase 4 — Status / Affliction layer
 
+> **Implementation status (codex, 2026-09-28): complete foundation.** Hypothermia,
+> dehydration and exhaustion are persistent player-owned states driven by factual source-system
+> thresholds. Definitions remain immutable Resources; runtime state is saveable under `afflictions`;
+> consumers read named modifiers instead of afflictions mutating other systems. Starvation remains
+> intentionally deferred until playtest evidence says it adds a useful consequence.
+
 ## 6.1 Goal
 
 Convert survival threshold crossings into durable gameplay consequences without hard-wiring every system to every other system.
@@ -671,6 +688,13 @@ Required:
 ---
 
 # 7. Phase 5 — Clothing layers and per-instance garment state
+
+> **Implementation status (codex, 2026-09-28): complete foundation.** Henry's live layout now
+> supports layered body regions; static garment protection remains immutable definition data;
+> wetness/condition are per-instance and survive equipment/inventory save transfers; moisture
+> propagates outside-in; EquipmentComponent exposes effective insulation/wind/water protection and
+> ThermalManager consumes those aggregates. Existing `equipment` / `inventory` save keys remain
+> compatible through additive fields and explicit legacy slot migration.
 
 ## 7.1 Current base
 
@@ -904,10 +928,19 @@ Do not implement the epic as one PR.
 
 ### PR D — Gameplay action adoption
 
-- cooking;
-- snow→water;
-- repair;
-- boarding;
+> **Implementation status (codex, 2026-09-28): real shelter consumers migrated.**
+> Stove ignition, cooking/hot stew, snow→water and board placement use the shared
+> TimeCostedAction path. Cooking/melting preserve partial heat progress when the fire dies.
+> Generic repair remains deliberately open because no concrete repair interaction/material
+> owner exists yet; `EquipmentComponent.repair_garment()` is only the simulation seam.
+
+- [x] cooking;
+- [x] snow→water;
+- [ ] repair — waiting for a real gameplay owner/tool/material contract;
+- [x] boarding;
+- [x] stove ignition (existing shelter work consumer);
+- [x] staged one-log stove refueling / top-up;
+- [x] shelter furniture dismantling (existing shelter work consumer);
 - one action at a time.
 
 ### PR E — Metabolism split

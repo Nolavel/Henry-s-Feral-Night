@@ -77,11 +77,23 @@ func _run() -> void:
 	_check_target(feed, "stove did not recover after occluder removal")
 	_inventory.try_add(ItemCatalog.get_item(&"firewood"))
 	_inventory.try_add(ItemCatalog.get_item(&"lighter"))
-	_interact.try_interact()
-	_interact.try_interact()
-	_interact.try_interact()
+	_interact.try_interact() # open
+	_interact.try_interact() # stage one cold log
+	_check(feed.is_acting(), "F did not start staged log loading")
+	feed._process(HeatSourceFeed.ADD_SECONDS)
+	_check(not feed.heat_source.is_burning() and feed.heat_source.get_remaining_hours() > 0.0,
+		"staged cold log load did not complete")
+	await physics_frame
+	_interact.detect_target()
+	_check_target(feed, "stove after staged log load")
+	feed.first_strike_success_chance = 0.0
+	feed.second_strike_success_chance = 0.0
+	feed.guaranteed_success_strike = 3
+	_interact.try_interact() # prepare lighter
 	_check(feed.is_acting(), "F did not start lighting the real stove")
-	feed._process(HeatSourceFeed.LIGHT_SECONDS)
+	_check(feed.attempt_lighter_strike(10.0) == HeatSourceFeed.StrikeResult.SPARK, "first LMB strike did not spark")
+	_check(feed.attempt_lighter_strike(10.4) == HeatSourceFeed.StrikeResult.SPARK, "second LMB strike did not spark")
+	_check(feed.attempt_lighter_strike(10.8) == HeatSourceFeed.StrikeResult.IGNITED, "third LMB strike did not ignite")
 	_check(feed.heat_source.is_burning(), "stove did not ignite")
 	var door: InteractiveArea = house.get_node(^"HouseDoor") as InteractiveArea
 	await _aim(door, door.global_position + house.global_basis.z * 1.1, door.interactive_mesh.global_position)

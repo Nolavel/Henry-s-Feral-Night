@@ -27,6 +27,10 @@ const GAP_KEY: String = "BREACH_GAP_REMAINS"
 @export_group("Breach")
 @export var breach: ShelterBreach
 
+@export_group("Work time")
+## One board placement pays game time even though the current LMB presentation is immediate.
+@export_range(0.1, 30.0, 0.1) var board_time_cost_minutes: float = 1.0
+
 var _inventory: InventoryComponent
 var _placing: bool = false
 var _preview: MeshInstance3D
@@ -235,6 +239,9 @@ func _commit_board() -> void:
 	if breach.get_staged_boards() <= 0 or inventory.get_count(NAIL_ID) < NAILS_PER_BOARD:
 		_cancel_placement()
 		return
+	var actions: TimeCostedActionSystem = _actions()
+	if actions != null and actions.is_active():
+		return
 	if not inventory.try_remove(NAIL_ID) or not inventory.try_remove(NAIL_ID):
 		_cancel_placement()
 		return
@@ -243,6 +250,25 @@ func _commit_board() -> void:
 		inventory.try_add(ItemCatalog.get_item(NAIL_ID))
 		_cancel_placement()
 		return
+
+	var paid: bool = true
+	if actions != null:
+		var request := TimeActionRequest.new()
+		request.action_id = StringName("board_window:%d" % get_instance_id())
+		request.duration_hours = board_time_cost_minutes / 60.0
+		request.reason = &"board_window"
+		request.actor = get_tree().get_first_node_in_group(&"player")
+		request.target = breach
+		request.player_mode = _resolve_player_mode(&"WORKING")
+		request.interruptible = false
+		var result: Dictionary = actions.run_to_completion(request)
+		paid = bool(result.get("completed", false))
+	if not paid:
+		inventory.try_add(ItemCatalog.get_item(NAIL_ID))
+		inventory.try_add(ItemCatalog.get_item(NAIL_ID))
+		breach.return_staged_board()
+		return
+
 	breach.place_board(_preview_y)
 	hammer.swing()
 	board_placed.emit(breach, breach.get_coverage_fraction())
@@ -316,6 +342,22 @@ func _make_hand_board() -> Node3D:
 	mesh_instance.mesh = mesh
 	root.add_child(mesh_instance)
 	return root
+
+
+func _resolve_player_mode(mode_name: StringName) -> int:
+	var state: Node = get_node_or_null(^"/root/PlayerState")
+	if state == null:
+		return -1
+	var script: Script = state.get_script() as Script
+	if script == null:
+		return -1
+	var constants: Dictionary = script.get_script_constant_map()
+	var modes: Dictionary = constants.get("Mode", {})
+	return int(modes.get(String(mode_name), -1))
+
+
+func _actions() -> TimeCostedActionSystem:
+	return TimeCostedActionSystem.find(get_tree()) if is_inside_tree() else null
 
 
 func _get_inventory() -> InventoryComponent:

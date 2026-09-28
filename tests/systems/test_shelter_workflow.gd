@@ -10,6 +10,9 @@ var _player: Player
 var _camera: TpsCamera
 var _interact: InteractComponent
 var _inventory: InventoryComponent
+var _clock: SimulationClock
+var _actions: TimeCostedActionSystem
+var _board_started_in_working: bool = false
 
 
 func _initialize() -> void:
@@ -17,6 +20,14 @@ func _initialize() -> void:
 
 
 func _run() -> void:
+	_clock = SimulationClock.new()
+	root.add_child(_clock)
+	_clock.set_total_hours(12.0, &"test_seed")
+	_actions = TimeCostedActionSystem.new()
+	_actions.simulation_clock = _clock
+	root.add_child(_actions)
+	_actions.action_started.connect(_on_action_started)
+
 	_scene = (load("res://scenes/world/first_exit/first_exit_blockout.tscn") as PackedScene).instantiate() as Node3D
 	root.add_child(_scene)
 	_house = _scene.get_node(^"ShelterHouse/House") as Node3D
@@ -177,7 +188,7 @@ func _test_dismantle() -> void:
 	await _aim(work, work.focus_anchor.global_position + _house.global_basis.z * 0.8, work.focus_anchor.global_position)
 	_press(&"interact")
 	_check(work._work_left > 0.0 and not work._destroyed, "F did not start an explicit timed dismantle")
-	work._process(TableSalvage.WORK_SECONDS)
+	_actions._process(TableSalvage.WORK_SECONDS)
 	_check(work._destroyed and not work.table_owner.visible, "finished dismantle did not remove the table")
 	var logs: ItemPickup = work._logs
 	_check(logs != null and logs.count == 3, "table did not yield three physical logs")
@@ -217,7 +228,7 @@ func _test_dismantle() -> void:
 		_check_target(other, "dismantle " + String(path))
 		_press(&"interact")
 		_check(other._work_left > 0.0, "seat interaction intercepted table dismantling")
-		other._process(TableSalvage.WORK_SECONDS)
+		_actions._process(TableSalvage.WORK_SECONDS)
 		_check(other._destroyed and other._logs != null and other._logs.count == 3, "another wooden table did not yield logs")
 	var meal: MealTable = _house.get_node(^"ShelterZone/RestCrate/MealTable") as MealTable
 	_check(not meal.has_node(^"Dismantle") and meal.visible and meal.is_in_group(MealTable.GROUP),
@@ -253,6 +264,7 @@ func _test_boards() -> void:
 		return
 	_check(String(area.get_interaction_prompt_data()["key"]) == "LMB", "placement still asks for F")
 	var previous_nails: int = _inventory.get_count(&"nails")
+	var before_board_time: float = _clock.get_total_hours()
 	_point_camera(breach.to_global(Vector3(0, -0.43, 0)))
 	area._update_preview()
 	_check(area._preview_valid, "camera-centre ghost could not be placed at the real window")
@@ -260,6 +272,8 @@ func _test_boards() -> void:
 	_press(&"fire")
 	_check(breach.get_placed_board_positions().is_empty() and _inventory.get_count(&"nails") == previous_nails,
 		"same-frame camera turn committed a stale board preview")
+	_check(is_equal_approx(_clock.get_total_hours(), before_board_time),
+		"invalid stale board placement billed game time")
 	_point_camera(breach.to_global(Vector3(0, -0.43, 0)))
 	var wall := StaticBody3D.new()
 	var wall_collision := CollisionShape3D.new()
@@ -275,6 +289,8 @@ func _test_boards() -> void:
 	_press(&"fire")
 	_check(breach.get_placed_board_positions().is_empty() and _inventory.get_count(&"nails") == previous_nails,
 		"LMB placed/spent materials through an obstruction")
+	_check(is_equal_approx(_clock.get_total_hours(), before_board_time),
+		"obstructed board placement billed game time")
 	wall.queue_free()
 	await physics_frame
 	await physics_frame
@@ -283,6 +299,14 @@ func _test_boards() -> void:
 	_check(breach.get_placed_board_positions().size() == 1 and breach.get_staged_boards() == 2,
 		"LMB did not move one staged board onto the window")
 	_check(_inventory.get_count(&"nails") == previous_nails - 2, "one placement did not consume exactly two nails")
+	_check(
+		is_equal_approx(
+			_clock.get_total_hours() - before_board_time,
+			area.board_time_cost_minutes / 60.0
+		),
+		"one fitted board billed the wrong game time"
+	)
+	_check(_board_started_in_working, "board_window action did not enter WORKING mode")
 	await physics_frame
 	_interact.detect_target()
 	_press(&"interact")
@@ -329,9 +353,17 @@ func _test_stove() -> void:
 	_check_target(feed, "stove with solid hull")
 	_press(&"interact")
 	_check(not source.is_burning() and _inventory.get_count(&"firewood") == 3, "opening consumed logs or ignited stove")
+
 	_press(&"interact")
-	_check(not source.is_burning() and is_equal_approx(source.get_remaining_hours(), 6), "cold load did not store three logs")
-	_check(_inventory.get_count(&"firewood") == 0 and stove_visual.get_visible_log_count() == 3, "logs did not move from hands into firebox")
+	_check(feed.is_acting(), "cold one-log load did not start")
+	_actions._process(HeatSourceFeed.ADD_SECONDS)
+	_check(not source.is_burning() and is_equal_approx(source.get_remaining_hours(), 2), "cold one-log load stored wrong fuel")
+	_check(_inventory.get_count(&"firewood") == 2 and stove_visual.get_visible_log_count() == 1,
+		"cold one-log load did not move exactly one log into firebox")
+	await physics_frame
+	_interact.detect_target()
+	_check_target(feed, "stove after cold log load")
+
 	while _inventory.has_item(&"lighter"):
 		_inventory.try_remove(&"lighter")
 	var before: float = source.get_remaining_hours()
@@ -339,11 +371,34 @@ func _test_stove() -> void:
 	_check(not feed.is_acting() and is_equal_approx(source.get_remaining_hours(), before), "missing lighter spent loaded fuel")
 	var feedback: String = String(feed.get_interaction_prompt_data()["detail"])
 	_check(feedback == feed.tr("STOVE_NEED_LIGHTER"), "refusal did not reach the central prompt")
+
 	_inventory.try_add(ItemCatalog.get_item(&"lighter"))
+	feed.first_strike_success_chance = 0.0
+	feed.second_strike_success_chance = 0.0
+	feed.guaranteed_success_strike = 3
 	_press(&"interact")
 	_check(feed.is_acting() and not source.is_burning(), "ignition skipped the lighting act")
-	feed._process(HeatSourceFeed.LIGHT_SECONDS)
+	_check(feed.attempt_lighter_strike(20.0) == HeatSourceFeed.StrikeResult.SPARK, "first shelter LMB strike did not spark")
+	_check(feed.attempt_lighter_strike(20.4) == HeatSourceFeed.StrikeResult.SPARK, "second shelter LMB strike did not spark")
+	_check(feed.attempt_lighter_strike(20.8) == HeatSourceFeed.StrikeResult.IGNITED, "third shelter LMB strike did not ignite")
 	_check(source.is_burning() and stove_visual.is_glowing(), "lighting finished without flame and heat")
+	await physics_frame
+	_interact.detect_target()
+	_check_target(feed, "stove after ignition")
+
+	_press(&"interact") # reopen hot stove
+	_press(&"interact") # second log
+	_check(feed.is_acting(), "first hot top-up did not start")
+	_actions._process(HeatSourceFeed.ADD_SECONDS)
+	_check(_inventory.get_count(&"firewood") == 1, "first hot top-up consumed wrong number of logs")
+	await physics_frame
+	_interact.detect_target()
+	_check_target(feed, "stove after first hot top-up")
+	_press(&"interact") # third log
+	_check(feed.is_acting(), "second hot top-up did not start")
+	_actions._process(HeatSourceFeed.ADD_SECONDS)
+	_check(_inventory.get_count(&"firewood") == 0 and stove_visual.get_visible_log_count() == 3,
+		"two hot top-ups did not fill the stove one log at a time")
 	var zone: ThermalZone = _house.get_node(^"ShelterZone") as ThermalZone
 	var temp: float = zone.get_total_offset_c()
 	zone.advance_heating(1.0 / 60.0)
@@ -474,6 +529,13 @@ func _press(action: StringName) -> void:
 	event.action = action
 	event.pressed = false
 	root.push_input(event)
+
+
+func _on_action_started(action_id: StringName, _duration_h: float) -> void:
+	if not str(action_id).begins_with("board_window:"):
+		return
+	var state: Node = root.get_node_or_null(^"PlayerState")
+	_board_started_in_working = state != null and int(state.get("mode")) == int(state.Mode.WORKING)
 
 
 func _check_target(target: InteractiveArea, context: String) -> void:

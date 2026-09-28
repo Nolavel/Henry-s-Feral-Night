@@ -8,11 +8,15 @@ const WORK_SECONDS: float = 4.0
 @export var world_id: StringName = &""
 @export var yield_count: int = 3
 @export var floor_y: float = 0.0
+## Game-time price is tuning, separate from the four-second presentation.
+@export_range(0.1, 60.0, 0.1) var time_cost_minutes: float = 2.0
 
 var _destroyed: bool = false
 var _work_left: float = 0.0
 var _logs: ItemPickup
 var _solid_layers: Dictionary = {}
+var _action_managed: bool = false
+var _action_id: StringName = &""
 
 
 func _ready() -> void:
@@ -58,13 +62,72 @@ func _on_interaction_performed() -> void:
 		player.call(&"play_action_animation", &"fix")
 	_hammer().swing()
 
+	var actions: TimeCostedActionSystem = _actions()
+	if actions != null:
+		var request := TimeActionRequest.new()
+		_action_id = StringName("dismantle:%d" % get_instance_id())
+		request.action_id = _action_id
+		request.duration_hours = time_cost_minutes / 60.0
+		request.presentation_seconds = WORK_SECONDS
+		request.reason = &"dismantle"
+		request.actor = player
+		request.target = self
+		request.player_mode = _resolve_player_mode(&"WORKING")
+		request.stop_check = _work_stop_reason
+		request.on_complete = _work_action_completed
+		request.on_cancel = _work_action_cancelled
+		_action_managed = actions.start_action(request)
+		if not _action_managed:
+			_work_left = 0.0
+
 
 func _process(delta: float) -> void:
 	if _work_left <= 0.0:
 		return
+	if _action_managed:
+		var actions: TimeCostedActionSystem = _actions()
+		if actions != null and actions.get_active_action_id() == _action_id:
+			_work_left = WORK_SECONDS * (1.0 - actions.get_progress())
+		return
+	_action_managed = false
 	_work_left -= delta
 	if _work_left <= 0.0:
 		_destroy()
+
+
+func _work_stop_reason() -> StringName:
+	if not wants_break():
+		return &"tool_lost"
+	if _is_seated():
+		return &"seated"
+	return &""
+
+
+func _work_action_completed(_elapsed_h: float) -> void:
+	_action_managed = false
+	_work_left = 0.0
+	_destroy()
+
+
+func _work_action_cancelled(_elapsed_h: float, _reason: StringName) -> void:
+	_action_managed = false
+	_work_left = 0.0
+
+
+func _resolve_player_mode(mode_name: StringName) -> int:
+	var state: Node = get_node_or_null(^"/root/PlayerState")
+	if state == null:
+		return -1
+	var script: Script = state.get_script() as Script
+	if script == null:
+		return -1
+	var constants: Dictionary = script.get_script_constant_map()
+	var modes: Dictionary = constants.get("Mode", {})
+	return int(modes.get(String(mode_name), -1))
+
+
+func _actions() -> TimeCostedActionSystem:
+	return TimeCostedActionSystem.find(get_tree()) if is_inside_tree() else null
 
 
 func _destroy() -> void:

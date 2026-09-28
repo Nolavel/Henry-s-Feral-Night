@@ -52,8 +52,6 @@ func on_world_ready(context: WorldContext) -> void:
 	_weather = context.get_system(WEATHER_SCRIPT) as WeatherController
 	_thermal = context.get_system(THERMAL_SCRIPT) as ThermalManager
 	_clock = context.find_in_scene(DAY_NIGHT_SCRIPT) as DayNightManager
-	if _clock != null and not _clock.time_update.is_connected(_on_time_update):
-		_clock.time_update.connect(_on_time_update)
 	refresh()
 
 
@@ -131,6 +129,15 @@ func load_save_data(data: Dictionary) -> void:
 	refresh()
 
 
+func get_simulation_priority() -> int:
+	return 350
+
+
+func advance_simulation(hours: float, _context: SimulationStepContext) -> void:
+	advance_hours(hours)
+
+
+## Compatibility seam for isolated tools/tests; production uses SimulationClock.
 func _on_time_update(current_hour: float) -> void:
 	advance_hours(_hours.consume(current_hour))
 

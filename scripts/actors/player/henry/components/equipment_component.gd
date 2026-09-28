@@ -21,6 +21,8 @@ extends Node
 signal slot_changed(slot_path: StringName, item_id: StringName)
 ## Emitted when total insulation changes, so the thermal model can resample.
 signal insulation_changed(total_c: float)
+## Runtime state changed for one worn garment.
+signal garment_state_changed(slot_id: StringName, state: Dictionary)
 
 ## Why a placement was refused. Never a bare bool: the caller has to be able
 ## to say what went wrong.
@@ -36,6 +38,12 @@ enum Refusal {
 }
 
 const POCKET_SEPARATOR: String = "/"
+const LEGACY_SLOT_MIGRATION: Dictionary = {
+	&"head": &"head_outer",
+	&"torso": &"torso_outer",
+	&"legs": &"legs_outer",
+	&"feet": &"feet_outer",
+}
 
 @export_group("Data")
 ## The body slots this character has. Without it nothing can be equipped.
@@ -45,11 +53,16 @@ const POCKET_SEPARATOR: String = "/"
 ## Non-garments placed from the start, body slot id to item id: Kenny on his fixture.
 @export var starter_slot_items: Dictionary[StringName, StringName] = {}
 
+@export_group("Survival")
+## Fraction of insulation retained by a fully soaked garment before condition.
+@export_range(0.0, 1.0, 0.01) var soaked_insulation_retention: float = 0.25
+
 @export_group("Debug")
 @export var debug_log: bool = false
 
 var _body: Dictionary = {}
 var _pockets: Dictionary = {}
+var _garment_states: Dictionary = {}
 
 
 func _ready() -> void:
@@ -87,7 +100,7 @@ func get_carried_weight() -> float:
 
 ## Item worn in a body slot, or empty.
 func get_equipped(slot_id: StringName) -> StringName:
-	return _body.get(slot_id, &"")
+	return _body.get(_resolve_body_slot_id(slot_id), &"")
 
 
 ## Item in one pocket of one worn garment, or empty.
@@ -129,12 +142,139 @@ func get_total_insulation_c() -> float:
 	for slot_id: StringName in _body:
 		var item: ItemResource = ItemCatalog.get_item(_body[slot_id])
 		if item != null and item.garment != null:
-			total += item.garment.insulation_c
+			total += item.garment.get_base_insulation_c()
 	return total
+
+
+## Effective protection is definition data × instance condition × instance wetness.
+func get_effective_insulation_c() -> float:
+	var total: float = 0.0
+	for slot_id: StringName in _body:
+		var item: ItemResource = ItemCatalog.get_item(_body[slot_id])
+		if item == null or item.garment == null or item.garment.body_region == &"":
+			continue
+		var state: GarmentInstanceState = _ensure_garment_state(slot_id)
+		var wet_factor: float = lerpf(1.0, soaked_insulation_retention, state.wetness)
+		total += item.garment.get_base_insulation_c() * state.condition * wet_factor
+	return total
+
+
+func get_wind_protection() -> float:
+	return _aggregate_region_protection(&"windproof")
+
+
+func get_water_protection() -> float:
+	return _aggregate_region_protection(&"waterproof")
+
+
+func get_average_wetness() -> float:
+	var total: float = 0.0
+	var count: int = 0
+	for slot_id: StringName in _body:
+		var item: ItemResource = ItemCatalog.get_item(_body[slot_id])
+		if item == null or item.garment == null or item.garment.body_region == &"":
+			continue
+		total += _ensure_garment_state(slot_id).wetness
+		count += 1
+	return total / float(count) if count > 0 else 0.0
+
+
+func has_wet_garments() -> bool:
+	return get_average_wetness() > 0.001
+
+
+func get_garment_state(slot_id: StringName) -> Dictionary:
+	var resolved: StringName = _resolve_body_slot_id(slot_id)
+	if get_equipped(resolved) == &"":
+		return {}
+	var item: ItemResource = ItemCatalog.get_item(get_equipped(resolved))
+	if item == null or item.garment == null:
+		return {}
+	return _ensure_garment_state(resolved).to_dict()
+
+
+func set_garment_wetness(slot_id: StringName, wetness: float) -> bool:
+	var resolved: StringName = _resolve_body_slot_id(slot_id)
+	var state: GarmentInstanceState = _ensure_existing_garment_state(resolved)
+	if state == null:
+		return false
+	state.set_wetness(wetness)
+	_emit_garment_state(resolved)
+	return true
+
+
+func damage_garment(slot_id: StringName, amount: float) -> bool:
+	var resolved: StringName = _resolve_body_slot_id(slot_id)
+	var state: GarmentInstanceState = _ensure_existing_garment_state(resolved)
+	if state == null:
+		return false
+	state.damage(amount)
+	_emit_garment_state(resolved)
+	return true
+
+
+func repair_garment(slot_id: StringName, amount: float) -> bool:
+	var resolved: StringName = _resolve_body_slot_id(slot_id)
+	var state: GarmentInstanceState = _ensure_existing_garment_state(resolved)
+	if state == null:
+		return false
+	state.repair(amount)
+	_emit_garment_state(resolved)
+	return true
+
+
+func add_wetness_all(amount: float) -> void:
+	if amount <= 0.0:
+		return
+	for slot_id: StringName in _body:
+		var state: GarmentInstanceState = _ensure_existing_garment_state(slot_id)
+		if state == null:
+			continue
+		state.add_wetness(amount)
+		_emit_garment_state(slot_id)
+
+
+## Applies precipitation outside-in per body region, then dries every layer by
+## its own authored rate. Outer waterproofing reduces penetration to inner layers.
+func advance_garment_moisture(hours: float, exposure_rate_per_hour: float, drying_warmth: float) -> void:
+	if hours <= 0.0:
+		return
+	var regions: Dictionary = {}
+	for slot_id: StringName in _body:
+		var item: ItemResource = ItemCatalog.get_item(_body[slot_id])
+		if item == null or item.garment == null or item.garment.body_region == &"":
+			continue
+		var region: StringName = item.garment.body_region
+		if not regions.has(region):
+			regions[region] = []
+		(regions[region] as Array).append(slot_id)
+
+	for region: StringName in regions:
+		var slots: Array = regions[region]
+		slots.sort_custom(func(a: StringName, b: StringName) -> bool:
+			var ga: GarmentData = ItemCatalog.get_item(_body[a]).garment
+			var gb: GarmentData = ItemCatalog.get_item(_body[b]).garment
+			return int(ga.layer) > int(gb.layer)
+		)
+		var penetration: float = maxf(exposure_rate_per_hour, 0.0) * hours
+		for slot_variant: Variant in slots:
+			var slot_id := StringName(slot_variant)
+			var item: ItemResource = ItemCatalog.get_item(_body[slot_id])
+			var garment: GarmentData = item.garment
+			var state: GarmentInstanceState = _ensure_garment_state(slot_id)
+			var before_wet: float = state.wetness
+			if penetration > 0.0:
+				var resistance: float = clampf(garment.waterproof * state.condition, 0.0, 1.0)
+				penetration *= 1.0 - resistance
+				state.add_wetness(penetration)
+			state.dry(garment.drying_rate * clampf(drying_warmth, 0.0, 1.0) * hours)
+			if not is_equal_approx(before_wet, state.wetness):
+				_emit_garment_state(slot_id)
 
 
 ## Whether this item could go in this body slot right now.
 func can_equip(slot_id: StringName, item_id: StringName) -> Refusal:
+	slot_id = _resolve_body_slot_id(slot_id)
 	var definition: EquipmentSlotDefinition = _find_body_slot(slot_id)
 	if definition == null:
 		return Refusal.NO_SUCH_SLOT
@@ -146,7 +286,11 @@ func can_equip(slot_id: StringName, item_id: StringName) -> Refusal:
 	if item.carried_in_hands:
 		return Refusal.HANDS_ONLY
 	if item.garment != null:
-		if item.garment.body_slot_id != slot_id:
+		if _resolve_body_slot_id(item.garment.body_slot_id) != slot_id:
+			return Refusal.WRONG_BODY_SLOT
+		if definition.body_region != &"" and item.garment.body_region != definition.body_region:
+			return Refusal.WRONG_BODY_SLOT
+		if definition.layer_id != &"" and item.garment.get_layer_id() != definition.layer_id:
 			return Refusal.WRONG_BODY_SLOT
 	elif not definition.accepts_non_garment:
 		return Refusal.WRONG_BODY_SLOT
@@ -170,30 +314,88 @@ func can_stow(body_slot_id: StringName, pocket_id: StringName, item_id: StringNa
 
 ## Wears an item. REFUSES an occupied slot rather than swapping: a component
 ## that knows nothing about the inventory could only drop what it displaced.
-func equip(slot_id: StringName, item_id: StringName) -> Refusal:
+func equip(slot_id: StringName, item_id: StringName, garment_state: Dictionary = {}) -> Refusal:
+	slot_id = _resolve_body_slot_id(slot_id)
 	var refusal: Refusal = can_equip(slot_id, item_id)
 	if refusal != Refusal.NONE:
 		_log("equip refused", slot_id, item_id, refusal)
 		return refusal
 	_body[slot_id] = item_id
+	var item: ItemResource = ItemCatalog.get_item(item_id)
+	if item != null and item.garment != null:
+		_garment_states[slot_id] = GarmentInstanceState.from_dict(garment_state)
 	slot_changed.emit(slot_id, item_id)
-	insulation_changed.emit(get_total_insulation_c())
+	insulation_changed.emit(get_effective_insulation_c())
 	return Refusal.NONE
 
 
 ## Takes a garment off and returns it. Refuses while its own pockets hold
 ## anything — emptying someone's coat for them is not this component's call.
 func unequip(slot_id: StringName) -> StringName:
+	var payload: Dictionary = take_off_instance(slot_id)
+	return StringName(payload.get("id", ""))
+
+
+## Stateful removal path for inventory transfers. The returned state belongs to
+## this physical garment instance and must travel with it.
+func take_off_instance(slot_id: StringName) -> Dictionary:
+	slot_id = _resolve_body_slot_id(slot_id)
 	var item_id: StringName = get_equipped(slot_id)
 	if item_id == &"":
-		return &""
+		return {}
 	if not _pockets_empty_for(slot_id):
 		_log("unequip refused", slot_id, item_id, Refusal.POCKETS_NOT_EMPTY)
-		return &""
+		return {}
+	var state: Dictionary = {}
+	if _garment_states.has(slot_id):
+		state = (_garment_states[slot_id] as GarmentInstanceState).to_dict()
 	_body.erase(slot_id)
+	_garment_states.erase(slot_id)
 	slot_changed.emit(slot_id, &"")
-	insulation_changed.emit(get_total_insulation_c())
-	return item_id
+	insulation_changed.emit(get_effective_insulation_c())
+	return {"id": String(item_id), "garment_state": state}
+
+
+## Moves a worn garment into Inventory while preserving per-instance state.
+func unequip_to_inventory(slot_id: StringName, inventory: InventoryComponent) -> bool:
+	if inventory == null:
+		return false
+	var resolved: StringName = _resolve_body_slot_id(slot_id)
+	var item_id: StringName = get_equipped(resolved)
+	if item_id == &"" or not _pockets_empty_for(resolved):
+		return false
+	var item: ItemResource = ItemCatalog.get_item(item_id)
+	if item == null or inventory.get_add_refusal(item) != &"":
+		return false
+	var payload: Dictionary = take_off_instance(resolved)
+	if payload.is_empty():
+		return false
+	var state: Dictionary = payload.get("garment_state", {})
+	if inventory.try_add_instance(item, state):
+		return true
+	# Defensive rollback: inventory refusal changed after preflight.
+	equip(resolved, item_id, state)
+	return false
+
+
+## Equips one carried non-stackable garment instance, restoring its runtime state.
+func equip_from_inventory(slot_id: StringName, item_id: StringName, inventory: InventoryComponent) -> Refusal:
+	if inventory == null:
+		return Refusal.UNKNOWN_ITEM
+	var resolved: StringName = _resolve_body_slot_id(slot_id)
+	var refusal: Refusal = can_equip(resolved, item_id)
+	if refusal != Refusal.NONE:
+		return refusal
+	var payload: Dictionary = inventory.take_instance(item_id)
+	if payload.is_empty():
+		return Refusal.UNKNOWN_ITEM
+	var state: Dictionary = payload.get("instance_state", {})
+	refusal = equip(resolved, item_id, state)
+	if refusal != Refusal.NONE:
+		var item: ItemResource = payload.get("item") as ItemResource
+		if item != null:
+			inventory.try_add_instance(item, state)
+	return refusal
 
 
 ## Puts an item into one pocket.
@@ -256,7 +458,8 @@ func stow_anywhere(item_id: StringName) -> Refusal:
 
 ## Address of one pocket, as stored and as reported by slot_changed.
 func pocket_path(body_slot_id: StringName, pocket_id: StringName) -> StringName:
-	return StringName("%s%s%s" % [body_slot_id, POCKET_SEPARATOR, pocket_id])
+	var resolved: StringName = _resolve_body_slot_id(body_slot_id)
+	return StringName("%s%s%s" % [resolved, POCKET_SEPARATOR, pocket_id])
 
 
 func get_save_key() -> StringName:
@@ -264,7 +467,14 @@ func get_save_key() -> StringName:
 
 
 func get_save_data() -> Dictionary:
-	return {"body": _to_string_keys(_body), "pockets": _to_string_keys(_pockets)}
+	var states: Dictionary = {}
+	for slot_id: StringName in _garment_states:
+		states[String(slot_id)] = (_garment_states[slot_id] as GarmentInstanceState).to_dict()
+	return {
+		"body": _to_string_keys(_body),
+		"pockets": _to_string_keys(_pockets),
+		"garment_states": states,
+	}
 
 
 ## Restores body slots BEFORE pockets: a pocket only exists while the garment
@@ -274,10 +484,11 @@ func get_save_data() -> Dictionary:
 func load_save_data(data: Dictionary) -> void:
 	_body.clear()
 	_pockets.clear()
+	_garment_states.clear()
 
 	var saved_body: Dictionary = data.get("body", {})
 	for slot_key: Variant in saved_body:
-		var slot_id := StringName(slot_key)
+		var slot_id := _resolve_body_slot_id(StringName(slot_key))
 		var item_id := StringName(saved_body[slot_key])
 		if _find_body_slot(slot_id) == null:
 			push_warning("Equipment: save names body slot '%s', the layout does not" % slot_id)
@@ -285,6 +496,9 @@ func load_save_data(data: Dictionary) -> void:
 		if ItemCatalog.get_item(item_id) == null:
 			continue
 		_body[slot_id] = item_id
+		var item: ItemResource = ItemCatalog.get_item(item_id)
+		if item != null and item.garment != null:
+			_garment_states[slot_id] = GarmentInstanceState.new()
 
 	var saved_pockets: Dictionary = data.get("pockets", {})
 	for path_key: Variant in saved_pockets:
@@ -293,14 +507,27 @@ func load_save_data(data: Dictionary) -> void:
 			push_warning("Equipment: malformed pocket path '%s' in save" % path_key)
 			continue
 		var item_id := StringName(saved_pockets[path_key])
-		if _find_pocket(StringName(parts[0]), StringName(parts[1])) == null:
+		var migrated_slot: StringName = _resolve_body_slot_id(StringName(parts[0]))
+		if _find_pocket(migrated_slot, StringName(parts[1])) == null:
 			push_warning("Equipment: nothing worn provides pocket '%s'" % path_key)
 			continue
 		if ItemCatalog.get_item(item_id) == null:
 			continue
-		_pockets[StringName(path_key)] = item_id
+		_pockets[pocket_path(migrated_slot, StringName(parts[1]))] = item_id
 
-	insulation_changed.emit(get_total_insulation_c())
+	var saved_states: Dictionary = data.get("garment_states", {})
+	for slot_key: Variant in saved_states:
+		var slot_id: StringName = _resolve_body_slot_id(StringName(slot_key))
+		if not _body.has(slot_id):
+			push_warning("Equipment: garment state names empty slot '%s'" % slot_key)
+			continue
+		var state_data: Variant = saved_states[slot_key]
+		if typeof(state_data) != TYPE_DICTIONARY:
+			push_warning("Equipment: malformed garment state for '%s'" % slot_key)
+			continue
+		_garment_states[slot_id] = GarmentInstanceState.from_dict(state_data)
+
+	insulation_changed.emit(get_effective_insulation_c())
 
 
 func _check_fit(definition: EquipmentSlotDefinition, item: ItemResource) -> Refusal:
@@ -308,7 +535,18 @@ func _check_fit(definition: EquipmentSlotDefinition, item: ItemResource) -> Refu
 
 
 func _find_body_slot(slot_id: StringName) -> EquipmentSlotDefinition:
-	return layout.find_slot(slot_id) if layout != null else null
+	if layout == null:
+		return null
+	return layout.find_slot(_resolve_body_slot_id(slot_id))
+
+
+func _resolve_body_slot_id(slot_id: StringName) -> StringName:
+	if layout != null and layout.find_slot(slot_id) != null:
+		return slot_id
+	var migrated: StringName = LEGACY_SLOT_MIGRATION.get(slot_id, &"")
+	if migrated != &"" and layout != null and layout.find_slot(migrated) != null:
+		return migrated
+	return slot_id
 
 
 ## A pocket exists only while the garment bringing it is worn in that slot.
@@ -326,11 +564,56 @@ func _find_pocket(body_slot_id: StringName, pocket_id: StringName) -> EquipmentS
 
 
 func _pockets_empty_for(body_slot_id: StringName) -> bool:
+	body_slot_id = _resolve_body_slot_id(body_slot_id)
 	var prefix: String = "%s%s" % [body_slot_id, POCKET_SEPARATOR]
 	for path: StringName in _pockets:
 		if String(path).begins_with(prefix) and _pockets[path] != &"":
 			return false
 	return true
+
+
+func _ensure_existing_garment_state(slot_id: StringName) -> GarmentInstanceState:
+	if not _body.has(slot_id):
+		return null
+	var item: ItemResource = ItemCatalog.get_item(_body[slot_id])
+	if item == null or item.garment == null:
+		return null
+	return _ensure_garment_state(slot_id)
+
+
+func _ensure_garment_state(slot_id: StringName) -> GarmentInstanceState:
+	if not _garment_states.has(slot_id):
+		_garment_states[slot_id] = GarmentInstanceState.new()
+	return _garment_states[slot_id] as GarmentInstanceState
+
+
+func _emit_garment_state(slot_id: StringName) -> void:
+	var state: GarmentInstanceState = _ensure_existing_garment_state(slot_id)
+	if state == null:
+		return
+	garment_state_changed.emit(slot_id, state.to_dict())
+	insulation_changed.emit(get_effective_insulation_c())
+
+
+func _aggregate_region_protection(property_name: StringName) -> float:
+	var by_region: Dictionary = {}
+	for slot_id: StringName in _body:
+		var item: ItemResource = ItemCatalog.get_item(_body[slot_id])
+		if item == null or item.garment == null or item.garment.body_region == &"":
+			continue
+		var garment: GarmentData = item.garment
+		var state: GarmentInstanceState = _ensure_garment_state(slot_id)
+		var authored: float = float(garment.get(property_name))
+		var protection: float = clampf(authored * state.condition, 0.0, 1.0)
+		var region: StringName = garment.body_region
+		var previous_unblocked: float = 1.0 - float(by_region.get(region, 0.0))
+		by_region[region] = 1.0 - previous_unblocked * (1.0 - protection)
+	if by_region.is_empty():
+		return 0.0
+	var total: float = 0.0
+	for region: StringName in by_region:
+		total += float(by_region[region])
+	return total / float(by_region.size())
 
 
 ## StringName keys do not survive JSON, so the save carries plain strings.

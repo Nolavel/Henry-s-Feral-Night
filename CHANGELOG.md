@@ -5,6 +5,234 @@ Maintained per branch; entries are added by whoever makes the change.
 
 ## [Unreleased] — `codex`
 
+### 2026-09-28 — Manual lighter ignition ritual (codex)
+
+Changed
+- Stove ignition is now event-driven: F prepares the lighter and each deliberate LMB press performs
+  one strike instead of the old automatic five-second catch.
+- A rapid accidental double-click starts a five-second input lockout. During lockout clicks produce
+  no strike animation, spark or light and cannot ignite the stove.
+- Normal strikes have authored first/second-attempt chances and are guaranteed by the third clean
+  strike by default, keeping occasional third-attempt catches without allowing endless bad luck.
+- Every accepted strike produces a short local spark/light VFX at Henry's hand socket when available,
+  with the stove interaction anchor as a fallback. A successful strike adds a slightly stronger,
+  longer lighter-flame flash before the stove takes over.
+- `TimeCostedActionSystem` now supports event-driven actions through `start_manual_action()` and
+  `complete_active()`; the declared game-time cost is billed only when gameplay reports success.
+- Stove visuals no longer grow a fake pre-ignition flame on a timer.
+
+Tests
+- manual actions do not complete or bill from elapsed real time and bill exactly once on explicit completion;
+- stove ignition stays in WORKING until a successful lighter strike;
+- double-click lockout lasts five seconds and emits no strike effect;
+- lockout clicks cannot ignite; three clean post-lockout strikes guarantee the configured catch;
+- successful ignition restores PlayerState and bills the existing authored ignition time.
+
+### 2026-09-28 — Staged one-log stove refueling (#131 PR D follow-up) (codex)
+
+Changed
+- Runtime stove feeding no longer auto-loads every carried log that fits.
+- With the stove door open, one interaction starts one short `WORKING` TimeCostedAction and commits
+  exactly one physical log only after the action completes.
+- Repeating the interaction deliberately adds a second log if another full fuel-unit slot is free.
+- A cold empty stove loads one log first; once any cold fuel exists, ignition is prioritised even if
+  Henry still carries more logs. Extra logs can be added after the fire catches.
+- Cancelling the feed action consumes no log and bills no unearned action time.
+- A stove refuses to spend a full log unless at least one complete log's fuel value fits; fractional
+  remaining capacity never destroys an item.
+- The door stays open after a successful feed so a second log can be added; when no full log fits,
+  the next interaction closes the door.
+- One log still represents the existing `hours_per_fuel_unit` value (2 game hours by default);
+  full stove capacity remains the existing 6 game hours.
+
+Tests
+- cold one-log load is staged and does not ignite;
+- ignition is prioritised after cold fuel exists;
+- hot refuel consumes one log per completed action;
+- cancellation preserves inventory/fuel;
+- near-full stove does not waste a log;
+- after one log burns, exactly one top-up is accepted;
+- after two logs burn, two sequential top-ups are accepted;
+- each feed action enters/restores `PlayerState.WORKING`.
+
+### 2026-09-28 — Shelter gameplay action adoption (#131 PR D) (codex)
+
+Changed
+- Stove-top cooking and snow→water now intentionally advance game time through the shared
+  `TimeCostedActionSystem` instead of relying only on passive manual/test fuel advancement.
+- `StoveWarmer` keeps recipe ownership: raw item / `warms_into`, partial heat progress, result
+  transformation and save data remain in the warmer; the action layer owns only time/progress/cancel.
+- A full stew cook or snow melt keeps the existing 0.5 h recipe cost and presents it as one staged
+  WORKING action. Simulation is billed in one-minute slices.
+- If the fire goes out, the action cancels with partial recipe progress preserved. After relighting,
+  interacting with the ring resumes only the remaining heat/time.
+- HeatSource now emits `heat_elapsed` for the time fuel actually burned, so a coarse simulation
+  slice cannot grant more cooking/warming than the remaining fuel.
+- Stove ignition, window boarding and shelter-table dismantling explicitly enter
+  `PlayerState.WORKING` through their existing TimeCostedAction requests and restore the previous mode afterward.
+- The real shelter workflow test now owns a SimulationClock + TimeCostedActionSystem, so boarding
+  no longer passes through the legacy no-action fallback during integration tests.
+
+Validated consumers
+- stove ignition → TimeCostedAction;
+- cooking / hot stew → TimeCostedAction;
+- snow → warm water → TimeCostedAction;
+- board placement → TimeCostedAction;
+- shelter furniture dismantling → TimeCostedAction.
+
+Deferred
+- Generic garment/item repair is not marked adopted because RIMEWATCH currently has no real repair
+  interaction, repair material/tool contract or gameplay owner. `EquipmentComponent.repair_garment()`
+  remains the simulation seam for a later concrete repair verb rather than inventing a fake recipe here.
+
+Tests
+- invalid/obstructed board placement bills no time; a valid board bills exactly its authored cost;
+- board placement and stove ignition enter WORKING;
+- cooking/melting bill exactly 0.5 game hours and matching fuel;
+- fire-out cancels early using actual burned fuel time, preserves partial progress and can resume;
+- snow melt and stew use distinct action ids/reasons and restore PlayerState on completion.
+
+### 2026-09-28 — Clothing layers and per-instance garment state (#131 phase 5) (codex)
+
+Added
+- Layered Henry equipment layout with explicit base / mid / outer clothing slots per body region.
+- Explicit legacy slot migration for old `head / torso / legs / feet` equipment saves into the new
+  `*_outer` slots; unknown legacy layer ids are warned and refused rather than guessed.
+- Immutable garment definition data for body region, layer, base insulation, windproofing,
+  waterproofing, drying rate and maximum condition.
+- Runtime `GarmentInstanceState` containing normalised wetness and condition; shared `GarmentData`
+  Resources remain unchanged at runtime.
+- Two non-starter layered garments (`thermal_shirt`, `wool_sweater`) so torso base/mid/outer
+  behavior is represented by real catalog data without changing Henry's starting loadout.
+- Equipment aggregate APIs for effective insulation, wind protection, water protection and
+  average clothing wetness.
+- Outside-in moisture propagation per body region: outer waterproof/condition reduces penetration
+  to mid/base layers; each garment dries by its own authored rate.
+- Stateful garment transfer through InventoryComponent. Non-stackable inventory entries may carry
+  optional instance state, including through inventory save/load.
+
+Changed
+- `EquipmentComponent` save key remains `equipment`, extending the old
+  `{ body, pockets }` payload with optional `garment_states`.
+- Old equipment saves without `garment_states` load garments dry and at full condition.
+- `InventoryComponent` save key remains `inventory`; optional instance state is additive and only
+  used for physical non-stackable items.
+- `ThermalManager` now consumes effective insulation and wind protection from EquipmentComponent,
+  and delegates clothing wetting/drying to the per-garment model.
+- The old `thermal.wetness` value remains as a compatibility/presentation mirror while clothing
+  wetness is now derived from EquipmentComponent when equipment is present.
+- Condition lowers insulation / windproofing / waterproofing but does not destroy an item;
+  `damage_garment()` / `repair_garment()` are the public seams for later time-costed repair.
+
+Tests
+- base + mid + outer can occupy the same body region simultaneously;
+- legacy slot aliases and old save paths migrate explicitly;
+- outer layers measurably protect inner layers from moisture;
+- wetness lowers effective insulation;
+- condition lowers insulation, wind and water protection;
+- state survives equipment save/load and unequip → inventory save/load → re-equip;
+- old saves default to dry/full-condition;
+- invalid old layer slots do not silently migrate;
+- runtime wetness/condition never mutate shared GarmentData;
+- ThermalManager reads effective clothing protection rather than inspecting garments itself.
+
+### 2026-09-28 — Status / Affliction layer (#131 phase 4) (codex)
+
+Added
+- Player-owned `AfflictionComponent` with persistent runtime `AfflictionState` and immutable
+  `AfflictionDefinition` resources.
+- Initial conditions are intentionally limited to hypothermia, dehydration and exhaustion.
+- Named modifier aggregation for `movement_speed_multiplier`, `fatigue_rate_multiplier`,
+  `recovery_rate_multiplier` and `work_duration_multiplier`.
+- Dedicated additive save key `afflictions`; old saves with no status payload load with an empty set.
+
+Changed
+- Thermal stage owns hypothermia truth; HydrationComponent owns dehydration threshold truth;
+  FatigueComponent owns exhaustion threshold truth. AfflictionComponent stores persistence and consequences.
+- AfflictionComponent binds ThermalManager through `on_world_ready(context)` instead of Player.gd
+  manually gluing the two systems together.
+- Movement, Fatigue and TimeCostedAction consumers read named modifier contracts rather than statuses
+  directly mutating their internal tuning.
+- Hypothermia severity scales consequences continuously: severity 1/2 applies half of the configured
+  max penalty, severity 2/2 applies the full definition.
+
+Tests
+- Activation/recovery edges are idempotent.
+- Save/load preserves active severity and elapsed time; missing old-save payload is safe.
+- Modifier composition is deterministic regardless of activation order.
+- Hypothermia severity interpolation is monotonic and exact for the authored definition.
+- WorldContext binding activates/recover hypothermia from ThermalManager without Player glue.
+- Real Hydration/Fatigue/Thermal thresholds drive the corresponding afflictions.
+- Movement, fatigue drain and time-costed work duration consume named modifiers without presentation nodes.
+
+### 2026-09-28 — Split BioMonitor into Hunger / Hydration / Fatigue (#131 phase 3) (codex)
+
+Changed
+- `HungerComponent`, `HydrationComponent` and `FatigueComponent` are the only owners of their
+  runtime values, previous values, critical state and per-track drain/recovery rules.
+- `BioMonitorManager` is now a compatibility facade / SimulationClock coordinator / save adapter:
+  legacy properties, methods and HUD signals proxy the three components instead of storing a second copy.
+- Production metabolism has exactly one ticking path: `SimulationClock → BioMonitorManager.advance_simulation()`.
+  The old DayNight `dn_manager/_on_time_changed` path and scene overrides were removed.
+- Fatigue reads an optional status-modifier contract without compiling against the Affliction layer,
+  keeping phase 3 independent from phase 4.
+
+Compatibility
+- Save key remains `bio`.
+- Save payload remains exactly `{ calories, hydration, energy }`; old payloads load into the new
+  components without a save-version bump.
+- Existing HUD and gameplay callers can continue using BioMonitorManager's legacy properties/signals.
+
+Tests
+- Real player composition proves the facade resolves the three sibling components.
+- Legacy save shape/round-trip is unchanged.
+- 24 × 1 h and 96 × 0.25 h metabolism are equivalent.
+- Carry load affects Fatigue only; adding calories does not mutate Hydration.
+- Sleep still bills Hunger/Hydration while restoring Fatigue.
+- One SimulationClock hour produces exactly four quarter-hour updates and no legacy DayNight tick exists.
+
+### 2026-09-28 — Time-costed Action System (#131 phase 2) (codex)
+
+Added
+- World-scoped `TimeCostedActionSystem` and runtime `TimeActionRequest`: one lifecycle for
+  long actions with declared game-time cost, presentation duration, deterministic simulation
+  slices, progress, completion/cancellation callbacks and optional stop predicates.
+- Controlled actions block ordinary realtime clock advancement while active, preventing double
+  billing when a staged action converts real presentation seconds into game hours.
+- Headless lifecycle coverage for exact billing, deterministic early stop, staged progress,
+  cancellation, non-interruptible actions, PlayerState mode ownership and callback semantics.
+
+Changed
+- Sleep and seated wait now use the common action contract over `SimulationClock`.
+- Sleep enters `PlayerState.SLEEPING`; wait enters `PlayerState.WORKING`; prior mode is restored
+  after completion or cancellation without introducing a second state enum.
+- SleepPrompt closes its modal menu before starting the sleep action, so action state is not hidden
+  behind `MENU`.
+- The action layer queries an optional work-duration modifier contract without compiling against
+  the future Affliction implementation; resource/tool/recipe rules remain owned by gameplay code.
+
+### 2026-09-28 — First Exit systemic-pressure pass (#134) (codex)
+
+Changed
+- Carried weight now has a readable physical cost before the 30 kg hard limit: movement begins
+  slowing above 40% load and reaches 78% speed / 82% acceleration at full load. The existing
+  BioMonitor fatigue multiplier remains authoritative above half load.
+- The shelter door and doorway now share one exposure value. Open = full draft, a closed damaged
+  door = 20% draft, and fully boarded = zero. ThermalZone and snow-draft particles therefore agree.
+- A closed damaged door explicitly says that the frame still leaks instead of looking like a particle bug.
+- Player Hub now reports load state, movement/fatigue cost, clothing wetness stage, whether clothing
+  is currently drying, and the percentage of dry insulation still working.
+
+Added
+- Public wetness state/drying/insulation readback on ThermalManager and energy-drain explanation on
+  BioMonitorManager; presentation reads these values instead of copying simulation formulas.
+- Headless #134 regression coverage for heavy-load movement/fatigue, wetness readability and Hub
+  readback; hinged-door tests now assert closed/open/boarded exposure.
+
+Validation
+- Pending pull-request CI. This pass deliberately does not claim a human 10–15 minute run while the
+  owner has no local PC access; automated checks cover the new contracts only.
+
 ### 2026-09-28 — Time-aware ColdAsh grading and weather-driven clouds (codex)
 
 Added

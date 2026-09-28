@@ -23,8 +23,15 @@ excluded_from_auto_stow = false
 [sub_resource type="Resource" id="G_backpack"]
 script = ExtResource("garment")
 body_slot_id = &"pack"
+body_region = &""
+layer = 2
 pockets = [SubResource("P_pack_main"), SubResource("P_pack_lid")]
 insulation_c = 0.3
+base_insulation_c = 0.0
+windproof = 0.0
+waterproof = 0.0
+drying_rate = 0.2
+max_condition = 1.0
 mesh_node_name = &"Backpack"
 
 [resource]
