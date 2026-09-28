@@ -1,10 +1,8 @@
 class_name InteractComponent
 extends Node3D
 
-## Crosshair-authoritative interaction selection.
-## Proximity only grants permission; the camera-centre ray decides which
-## InteractiveArea Henry is actually addressing. F acts at arm's length or
-## walks over first, but never on an unfocused nearby object.
+## The crosshair chooses the target when F is pressed.
+## A requested pickup stays selected for arrival even as the walking camera moves.
 
 ## What is targeted and whether it is already within arm's reach.
 signal interact_target_changed(target: InteractiveArea, in_reach: bool)
@@ -474,14 +472,25 @@ func _begin_approach(target: InteractiveArea) -> void:
 	_player.call(&"move_to_position", stop_point)
 
 
-## Arrival is distance to the target, never "the walk ended".
+## Pickup arrival uses the item requested by F, not the moving camera's focus.
+## Other interactions keep their live focus requirement.
 func _update_approach(delta: float) -> void:
 	if _pending == null:
 		return
-	if not is_instance_valid(_pending) or not _pending.can_interact():
+	if not is_instance_valid(_pending) or _pending.is_queued_for_deletion() \
+		or not _pending.can_interact() or _is_blocked():
 		_stop_approach()
 		return
-	if _pending == current_target and is_target_in_reach():
+	var pickup_requested: bool = _pending is ItemPickup
+	## WASD taking over cancels the pickup intent before any arrival is processed.
+	if pickup_requested and _approach_stopped:
+		_stop_approach()
+		return
+	var distance: float = _flat_distance_to(_pending)
+	if pickup_requested and distance > intent_radius:
+		_stop_approach()
+		return
+	if (pickup_requested or _pending == current_target) and distance <= _reach():
 		var target: InteractiveArea = _pending
 		_stop_approach()
 		_perform(target)

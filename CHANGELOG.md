@@ -5,6 +5,22 @@ Maintained per branch; entries are added by whoever makes the change.
 
 ## [Unreleased] — `codex`
 
+### 2026-09-29 - Complete the pickup requested before walking (codex)
+
+Fixed
+- Use the ItemPickup captured by F to complete an approach at arm's reach. Camera
+  movement can change live crosshair focus without discarding the requested item.
+  Other interaction types retain their live focus requirement.
+- Cancel a pending pickup when WASD takes over, the target is removed/disabled,
+  it leaves the intent radius, movement becomes blocked, or the approach times out.
+- The previous pickup fix covered animation and inertia, but left the arrival
+  condition dependent on current crosshair focus; this addresses that condition.
+
+Validation
+- Statically traced F selection, approach, focus loss, arrival and cancellation
+  against Player's movement loop and ItemPickup's inventory acceptance path.
+  git diff --check passed; Godot and test suites were not launched, as requested.
+
 ### 2026-09-29 - Keep Henry still during successful pickups (codex)
 
 Fixed
