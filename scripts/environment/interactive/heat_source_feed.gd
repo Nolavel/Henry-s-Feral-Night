@@ -38,6 +38,9 @@ const ADD_SECONDS: float = 2.0
 @export_group("Work time")
 ## Lighting keeps the existing five-second animation; this is its game-time cost.
 @export_range(0.1, 60.0, 0.1) var light_time_cost_minutes: float = 2.0
+## One physical log is one short WORKING action. Repeating the interaction adds
+## a second log if the stove still has room.
+@export_range(0.1, 60.0, 0.1) var add_time_cost_minutes: float = 0.5
 
 var _inventory: InventoryComponent
 var _act_left: float = 0.0
@@ -45,6 +48,7 @@ var _act_lighting: bool = false
 var _door_open: bool = false
 var _action_managed: bool = false
 var _action_id: StringName = &""
+var _feed_was_burning: bool = false
 
 
 func _ready() -> void:
@@ -79,39 +83,61 @@ func is_acting() -> bool:
 	return _act_left > 0.0
 
 
-## Advances one explicit step. Opening and loading never silently ignite wood.
+## Advances one explicit step. Opening never spends resources. With the door
+## open, one interaction loads exactly one log; a cold stove with fuel then
+## prioritises ignition. A burning stove may be fed repeatedly until full.
 func begin_act() -> Refusal:
-	if heat_source == null or is_acting():
+	if heat_source == null:
 		return Refusal.NO_SOURCE
+	if is_acting():
+		return Refusal.BUSY
 	if not _door_open:
 		_door_open = true
 		if _visual() != null:
 			_visual().set_door_open(true)
 		return Refusal.NONE
+
 	var inventory: InventoryComponent = _get_inventory()
 	if inventory == null:
 		return Refusal.NO_INVENTORY
-	var available: int = inventory.get_count(fuel_item_id)
-	var room: int = maxi(0, floori((heat_source.burn_duration_h - heat_source.get_remaining_hours() + 0.001)
-		/ (heat_source.hours_per_fuel_unit * units_per_item)))
-	if available > 0 and room > 0:
-		var amount: int = mini(available, room)
-		for _i: int in range(amount):
-			inventory.try_remove(fuel_item_id)
-		var hours: float = heat_source.get_remaining_hours() + amount * units_per_item * heat_source.hours_per_fuel_unit
-		heat_source.restore_fuel(hours, heat_source.is_burning())
-		fuel_added.emit(heat_source, hours)
-		show_message(tr("STOVE_LOADED") % amount)
-		return Refusal.NONE
+
+	## Once a cold stove has any loaded wood, the next step is ignition. More
+	## wood can be added after it catches, so the player is never forced to
+	## auto-fill the stove before lighting it.
+	if not heat_source.is_burning() and heat_source.get_remaining_hours() > 0.0:
+		if not _has_lighter():
+			return Refusal.NO_LIGHTER
+		return _start_light_action()
+
+	if heat_source.can_refuel() and inventory.has_item(fuel_item_id):
+		return _start_feed_action()
+
+	## A burning stove with no useful feed step closes on the next interaction.
 	if heat_source.is_burning():
-		_door_open = false
-		if _visual() != null:
-			_visual().set_door_open(false)
+		_close_door()
 		return Refusal.NONE
-	if heat_source.get_remaining_hours() <= 0.0:
-		return Refusal.NO_FUEL
-	if not _has_lighter():
-		return Refusal.NO_LIGHTER
+
+	return Refusal.NO_FUEL
+
+
+func _process(delta: float) -> void:
+	if _act_left <= 0.0:
+		return
+	if _action_managed:
+		var actions: TimeCostedActionSystem = _actions()
+		if actions != null and actions.get_active_action_id() == _action_id:
+			_act_left = _act_duration_seconds() * (1.0 - actions.get_progress())
+			return
+		_action_managed = false
+	_act_left -= delta
+	if _act_left <= 0.0:
+		if _act_lighting:
+			_finish_light_act()
+		else:
+			_finish_feed_act()
+
+
+func _start_light_action() -> Refusal:
 	_act_lighting = true
 	_act_left = LIGHT_SECONDS
 	var player: Node = get_tree().get_first_node_in_group(&"player") if is_inside_tree() else null
@@ -131,10 +157,40 @@ func begin_act() -> Refusal:
 		request.on_cancel = _light_action_cancelled
 		_action_managed = actions.start_action(request)
 		if not _action_managed:
-			_act_lighting = false
-			_act_left = 0.0
+			_clear_act()
 			return Refusal.BUSY
+	_begin_visual_act(player)
+	return Refusal.NONE
 
+
+func _start_feed_action() -> Refusal:
+	_act_lighting = false
+	_act_left = ADD_SECONDS
+	_feed_was_burning = heat_source.is_burning()
+	var player: Node = get_tree().get_first_node_in_group(&"player") if is_inside_tree() else null
+	var actions: TimeCostedActionSystem = _actions()
+	if actions != null:
+		var request := TimeActionRequest.new()
+		_action_id = StringName("feed_stove:%d" % get_instance_id())
+		request.action_id = _action_id
+		request.duration_hours = add_time_cost_minutes / 60.0
+		request.presentation_seconds = ADD_SECONDS
+		request.reason = &"feed_stove"
+		request.actor = player
+		request.target = heat_source
+		request.player_mode = _resolve_player_mode(&"WORKING")
+		request.stop_check = _feed_stop_reason
+		request.on_complete = _feed_action_completed
+		request.on_cancel = _feed_action_cancelled
+		_action_managed = actions.start_action(request)
+		if not _action_managed:
+			_clear_act()
+			return Refusal.BUSY
+	_begin_visual_act(player)
+	return Refusal.NONE
+
+
+func _begin_visual_act(player: Node) -> void:
 	var visual: StoveVisual = _visual()
 	if visual != null:
 		visual.begin_act(_act_lighting, _act_left)
@@ -144,21 +200,10 @@ func begin_act() -> Refusal:
 		if player.has_method(&"play_action_animation"):
 			player.call(&"play_action_animation", &"fix" if _act_lighting else &"interact")
 	act_started.emit(_act_lighting)
-	return Refusal.NONE
 
 
-func _process(delta: float) -> void:
-	if _act_left <= 0.0:
-		return
-	if _action_managed:
-		var actions: TimeCostedActionSystem = _actions()
-		if actions != null and actions.get_active_action_id() == _action_id:
-			_act_left = LIGHT_SECONDS * (1.0 - actions.get_progress())
-			return
-		_action_managed = false
-	_act_left -= delta
-	if _act_left <= 0.0:
-		_finish_act()
+func _act_duration_seconds() -> float:
+	return LIGHT_SECONDS if _act_lighting else ADD_SECONDS
 
 
 func _light_stop_reason() -> StringName:
@@ -171,17 +216,31 @@ func _light_stop_reason() -> StringName:
 
 func _light_action_completed(_elapsed_h: float) -> void:
 	_action_managed = false
-	_finish_act()
+	_finish_light_act()
 
 
 func _light_action_cancelled(_elapsed_h: float, _reason: StringName) -> void:
+	_cancel_act()
+
+
+func _feed_stop_reason() -> StringName:
+	if heat_source == null:
+		return &"target_lost"
+	var inventory: InventoryComponent = _get_inventory()
+	if inventory == null or not inventory.has_item(fuel_item_id):
+		return &"resource_lost"
+	if not heat_source.can_refuel():
+		return &"already_full"
+	return &""
+
+
+func _feed_action_completed(_elapsed_h: float) -> void:
 	_action_managed = false
-	_act_lighting = false
-	_act_left = 0.0
-	var visual: StoveVisual = _visual()
-	if visual != null:
-		visual.end_act()
-	_update_label()
+	_finish_feed_act()
+
+
+func _feed_action_cancelled(_elapsed_h: float, _reason: StringName) -> void:
+	_cancel_act()
 
 
 func _resolve_player_mode(mode_name: StringName) -> int:
@@ -200,16 +259,64 @@ func _actions() -> TimeCostedActionSystem:
 	return TimeCostedActionSystem.find(get_tree()) if is_inside_tree() else null
 
 
-## The fire catches (or takes the log): only now does it burn and give heat.
-func _finish_act() -> void:
+## The fire catches only after the ignition action completes.
+func _finish_light_act() -> void:
 	_act_left = 0.0
 	heat_source.restore_fuel(heat_source.get_remaining_hours(), true)
-	_door_open = false
+	_close_door()
 	var visual: StoveVisual = _visual()
 	if visual != null:
 		visual.end_act()
 	fuel_added.emit(heat_source, heat_source.get_remaining_hours())
 	_update_label()
+
+
+## Commits exactly one log after the staged feed action completes. The door
+## stays open so the player may deliberately add a second log or close it.
+func _finish_feed_act() -> void:
+	var inventory: InventoryComponent = _get_inventory()
+	if heat_source == null or inventory == null or not heat_source.can_refuel():
+		_cancel_act()
+		return
+	if not inventory.try_remove(fuel_item_id):
+		_cancel_act()
+		return
+	var hours: float = minf(
+		heat_source.burn_duration_h,
+		heat_source.get_remaining_hours() + units_per_item * heat_source.hours_per_fuel_unit
+	)
+	heat_source.restore_fuel(hours, _feed_was_burning or heat_source.is_burning())
+	_act_left = 0.0
+	var visual: StoveVisual = _visual()
+	if visual != null:
+		visual.end_act()
+	fuel_added.emit(heat_source, hours)
+	show_message(tr("STOVE_LOADED") % 1)
+	_update_label()
+
+
+func _cancel_act() -> void:
+	_action_managed = false
+	_act_left = 0.0
+	_act_lighting = false
+	_action_id = &""
+	var visual: StoveVisual = _visual()
+	if visual != null:
+		visual.end_act()
+	_update_label()
+
+
+func _clear_act() -> void:
+	_action_managed = false
+	_act_left = 0.0
+	_act_lighting = false
+	_action_id = &""
+
+
+func _close_door() -> void:
+	_door_open = false
+	if _visual() != null:
+		_visual().set_door_open(false)
 
 
 func _has_lighter() -> bool:
@@ -234,13 +341,13 @@ func _get_interaction_text() -> String:
 		detail = tr("STOVE_FUEL_DETAIL") % [loaded, capacity, heat_source.get_remaining_hours()]
 	if _door_open and heat_source != null:
 		var inventory: InventoryComponent = _get_inventory()
-		if inventory != null and inventory.has_item(fuel_item_id) and heat_source.can_refuel():
+		if not heat_source.is_burning() and heat_source.get_remaining_hours() > 0.0:
+			key = "STOVE_IGNITE"
+			detail = tr("STOVE_LIGHTER_READY" if _has_lighter() else "STOVE_NEED_LIGHTER")
+		elif inventory != null and inventory.has_item(fuel_item_id) and heat_source.can_refuel():
 			key = "STOVE_LOAD"
 		elif heat_source.is_burning():
 			key = "STOVE_CLOSE"
-		elif heat_source.get_remaining_hours() > 0.0:
-			key = "STOVE_IGNITE"
-			detail = tr("STOVE_LIGHTER_READY" if _has_lighter() else "STOVE_NEED_LIGHTER")
 		else:
 			key = "STOVE_LOAD"
 			detail = tr("FEED_REFUSED_NO_FUEL")
