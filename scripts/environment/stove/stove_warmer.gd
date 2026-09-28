@@ -99,6 +99,9 @@ func interact_with(player: Node) -> void:
 		return
 	match _state:
 		State.EMPTY:
+			var actions: TimeCostedActionSystem = _actions()
+			if actions != null and actions.is_active():
+				return
 			var inventory: InventoryComponent = InventoryComponent.find_in(player)
 			var id: StringName = find_warmable(inventory)
 			if put(inventory, id):
@@ -112,9 +115,16 @@ func interact_with(player: Node) -> void:
 func can_interact_with(player: Node) -> bool:
 	match _state:
 		State.EMPTY:
-			return source != null and source.is_burning() and find_warmable(InventoryComponent.find_in(player)) != &""
+			var actions: TimeCostedActionSystem = _actions()
+			return (
+				source != null
+				and source.is_burning()
+				and (actions == null or not actions.is_active())
+				and find_warmable(InventoryComponent.find_in(player)) != &""
+			)
 		State.WARMING:
-			return source != null and source.is_burning() and not _is_action_active()
+			var actions: TimeCostedActionSystem = _actions()
+			return source != null and source.is_burning() and (actions == null or not actions.is_active())
 		State.READY:
 			return true
 	return false
