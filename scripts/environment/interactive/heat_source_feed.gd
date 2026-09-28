@@ -125,6 +125,7 @@ func begin_act() -> Refusal:
 		request.reason = &"light_stove"
 		request.actor = player
 		request.target = heat_source
+		request.player_mode = _resolve_player_mode(&"WORKING")
 		request.stop_check = _light_stop_reason
 		request.on_complete = _light_action_completed
 		request.on_cancel = _light_action_cancelled
@@ -181,6 +182,18 @@ func _light_action_cancelled(_elapsed_h: float, _reason: StringName) -> void:
 	if visual != null:
 		visual.end_act()
 	_update_label()
+
+
+func _resolve_player_mode(mode_name: StringName) -> int:
+	var state: Node = get_node_or_null(^"/root/PlayerState")
+	if state == null:
+		return -1
+	var script: Script = state.get_script() as Script
+	if script == null:
+		return -1
+	var constants: Dictionary = script.get_script_constant_map()
+	var modes: Dictionary = constants.get("Mode", {})
+	return int(modes.get(String(mode_name), -1))
 
 
 func _actions() -> TimeCostedActionSystem:
