@@ -5,7 +5,7 @@ extends SceneTree
 ## approach path. Frames go to user://shots/slice/.
 ## Run: xvfb-run godot --path . --rendering-driver vulkan --script res://tools/runtime/capture_shelter_slice.gd
 
-const SCENE: String = "res://experimental_location/scenes/Graciosa_Island_Terrain.tscn"
+const SCENE: String = "res://archive/graciosa/scenes/Graciosa_Island_Terrain.tscn"
 const OUT_DIR: String = "user://shots/slice"
 const WARMUP: float = 3.0
 ## A phase that waits longer than this is reported and the capture quits.

@@ -5,7 +5,7 @@ extends SceneTree
 ## Frames go to user://shots/flare/, rendered through a capture SubViewport.
 ## Run: xvfb-run godot --path . --rendering-driver vulkan --script res://tools/runtime/capture_held_flare_ingame.gd
 
-const SCENE: String = "res://experimental_location/scenes/Graciosa_Island_Terrain.tscn"
+const SCENE: String = "res://archive/graciosa/scenes/Graciosa_Island_Terrain.tscn"
 const OUT_DIR: String = "user://shots/flare"
 const WARMUP: float = 3.0
 const NIGHT_HOUR: float = 22.5

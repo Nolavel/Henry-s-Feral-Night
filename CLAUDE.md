@@ -45,8 +45,10 @@ rule changes) and `global.json` (take `main`'s).
 - Renderer: Forward+ / Vulkan. CI runs headless suites only; render locally on
   CPU via lavapipe (`tools/ci/render.sh`).
 - Main development scene: `res://tests/scenes/TestScene.tscn`.
-- Terrain is `IslandTerrain` from `world/terrain/source/graciosa_height.png`;
-  heights are edited via Blender (`tools/blender/`), never by hand in code.
+- Main terrain is `IslandTerrain` from the preserved NOAA crop in
+  `world/terrain/source/key_west/`; Graciosa sources live in `archive/graciosa/`.
+  NOAA base heights remain unchanged. Authored height edits use Blender
+  (`tools/blender/`), never hand-written code.
 
 ## Language policy
 

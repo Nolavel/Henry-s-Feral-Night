@@ -1,6 +1,6 @@
 extends SceneTree
 
-const MAIN_SCENE: String = "res://experimental_location/scenes/Graciosa_Island_Terrain.tscn"
+const MAIN_SCENE: String = "res://scenes/world/key_west/key_west.tscn"
 const OUT_DIR: String = "res://docs/runtime_previews/key_west_first_exit"
 const BUNKER := Vector2(-3452.88, 2273.84)
 const SHELTER := Vector2(-3551.61, 1567.72)

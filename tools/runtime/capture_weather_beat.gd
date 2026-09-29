@@ -4,7 +4,7 @@ extends SceneTree
 ## storm after Henry walks 200 m from the start. Frames go to user://shots/weather/.
 ## Run: xvfb-run godot --path . --rendering-driver vulkan --script res://tools/runtime/capture_weather_beat.gd
 
-const SCENE: String = "res://experimental_location/scenes/Graciosa_Island_Terrain.tscn"
+const SCENE: String = "res://archive/graciosa/scenes/Graciosa_Island_Terrain.tscn"
 const OUT_DIR: String = "user://shots/weather"
 const WARMUP: float = 4.0
 

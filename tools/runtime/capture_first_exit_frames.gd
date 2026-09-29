@@ -5,7 +5,7 @@ extends SceneTree
 ## stove, and Henry seated with Kenny. Frames go to user://shots/first_exit/.
 ## Run: xvfb-run godot --path . --rendering-driver vulkan --script res://tools/runtime/capture_first_exit_frames.gd
 
-const SCENE: String = "res://experimental_location/scenes/Graciosa_Island_Terrain.tscn"
+const SCENE: String = "res://archive/graciosa/scenes/Graciosa_Island_Terrain.tscn"
 const OUT_DIR: String = "user://shots/first_exit"
 ## From docs/world/first_exit_resolved.json.
 const BUNKER := Vector2(1427.0, -952.0)

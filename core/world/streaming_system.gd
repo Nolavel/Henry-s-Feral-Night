@@ -1,7 +1,7 @@
 # =============================================================================
 # streaming_system.gd — the only owner of streamed world content.
 #
-# Reads data/world_data.tres and nothing else. There is no per-chunk variable
+# Reads archive/graciosa/data/world_data.tres and nothing else. There is no per-chunk variable
 # and no per-chunk match arm anywhere in this file: adding a chunk means
 # re-running tools/world/generate_world_data.gd, not editing code.
 #
@@ -32,7 +32,7 @@ signal initialized(chunk_count: int)
 ## Where a chunk is in the pipeline.
 enum CellState { UNLOADED, QUEUED, LOADING, READY, ACTIVE }
 
-const DEFAULT_WORLD_DATA: String = "res://data/world_data.tres"
+const DEFAULT_WORLD_DATA: String = "res://archive/graciosa/data/world_data.tres"
 
 @export_group("Distance")
 ## Metres added to a chunk's own radius to get its load band.
@@ -123,7 +123,7 @@ func initialize(container: Node3D, player: Node3D) -> void:
 
 
 ## Runtime-only initialization for tools/experimental worlds that do not use
-## data/world_data.tres. The owner and state machine are still StreamingSystem.
+## archive/graciosa/data/world_data.tres. The owner and state machine are still StreamingSystem.
 func initialize_runtime_only(container: Node3D, player: Node3D) -> void:
 	if _initialized:
 		return

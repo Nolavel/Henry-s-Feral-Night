@@ -88,4 +88,4 @@ content_scene_path = "res://scenes/game/chunks/chunk_the_pit_descent.tscn"
 script = ExtResource("2_e4cvp")
 chunks = Array[ExtResource("1_a7pgw")]([SubResource("Resource_xy5s7"), SubResource("Resource_ke6ng"), SubResource("Resource_ffflj"), SubResource("Resource_m1w6v"), SubResource("Resource_msege"), SubResource("Resource_3v5xq"), SubResource("Resource_1h1a2"), SubResource("Resource_0d14d"), SubResource("Resource_keauj")])
 spawn_point = Vector3(1420, 3, -943)
-source_scene_path = "res://experimental_location/scenes/Graciosa_Island_Terrain.tscn"
+source_scene_path = "res://archive/graciosa/scenes/Graciosa_Island_Terrain.tscn"

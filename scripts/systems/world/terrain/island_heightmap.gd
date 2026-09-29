@@ -4,8 +4,8 @@ extends RefCounted
 ## The island's heights, read from the baked LA8 heightmap (L = high byte,
 ## A = low byte). World x, z in metres; heights in metres, sea level 0.
 
-const DEFAULT_IMAGE: String = "res://world/terrain/graciosa_height_la8.png"
-const DEFAULT_META: String = "res://world/terrain/graciosa_height_la8.json"
+const DEFAULT_IMAGE: String = "res://archive/graciosa/terrain/graciosa_height_la8.png"
+const DEFAULT_META: String = "res://archive/graciosa/terrain/graciosa_height_la8.json"
 
 var origin: Vector2 = Vector2.ZERO
 var metres_per_px: float = 1.0

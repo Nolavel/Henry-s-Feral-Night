@@ -11,7 +11,7 @@ import os
 import numpy as np
 from PIL import Image
 
-DEFAULT_PNG = "world/terrain/source/graciosa_height.png"
+DEFAULT_PNG = "archive/graciosa/terrain/source/graciosa_height.png"
 ## Fixed range so an edit never rescales the whole file: ~1 mm per step.
 HEIGHT_MIN = -16.0
 HEIGHT_MAX = 48.0

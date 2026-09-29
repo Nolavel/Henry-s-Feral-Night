@@ -1,12 +1,16 @@
 # Terrain: the heightmap is the source of truth
 
+The default Key West scene uses the committed NOAA crop described in
+`world/terrain/source/key_west/README.md`. This page preserves the authored
+Graciosa workflow; its files now live under `archive/graciosa/`.
+
 Author's decision (2026-09-24): Graciosa's shape lives in a heightmap edited
 through Blender. The game will build its own terrain mesh from it and
 Terrain3D goes away.
 
 ## The file
 
-`world/terrain/source/graciosa_height.png` with `graciosa_height.json` next to
+`archive/graciosa/terrain/source/graciosa_height.png` with `graciosa_height.json` next to
 it. Godot does not import this folder (`.gdignore`).
 
 | Property | Value |
@@ -27,8 +31,8 @@ Import a region, edit heights, and write back only what changed:
 
 ```bash
 # whole island, coarse (4 m grid) or a detail window at 1 m
-blender --python tools/blender/heightmap_import.py -- world/terrain/source/graciosa_height.png --step 4
-blender --python tools/blender/heightmap_import.py -- world/terrain/source/graciosa_height.png \
+blender --python tools/blender/heightmap_import.py -- archive/graciosa/terrain/source/graciosa_height.png --step 4
+blender --python tools/blender/heightmap_import.py -- archive/graciosa/terrain/source/graciosa_height.png \
     --step 1 --window 1000 -1000 1500 -550 --blend first_exit_terrain.blend
 
 # after sculpting / proportional editing / modifiers
@@ -55,9 +59,9 @@ island report and the route metrics accept the PNG directly, with no Godot and
 no Terrain3D:
 
 ```bash
-PYTHONPATH=tools/world python3 tools/world/route_metrics.py world/terrain/source/graciosa_height.png \
+PYTHONPATH=tools/world python3 tools/world/route_metrics.py archive/graciosa/terrain/source/graciosa_height.png \
     data/world/first_exit_layout.json docs/world/first_exit_routes
-PYTHONPATH=tools/world python3 tools/world/island_report.py world/terrain/source/graciosa_height.png \
+PYTHONPATH=tools/world python3 tools/world/island_report.py archive/graciosa/terrain/source/graciosa_height.png \
     docs/world/first_exit_area 1300 -900 350
 ```
 
@@ -69,7 +73,7 @@ because it is now sampled at 1 m instead of 2 m.
 
 Godot reads a 16-bit PNG as 8-bit, which gives 25 cm height steps. The game
 therefore reads a baked copy with the same bytes:
-`world/terrain/graciosa_height_la8.png`, an 8-bit grey+alpha PNG where
+`archive/graciosa/terrain/graciosa_height_la8.png`, an 8-bit grey+alpha PNG where
 L = high byte and A = low byte. It is imported as a raw `Image`, so no alpha
 fix-up touches it. Rebuild it after every edit of the source:
 

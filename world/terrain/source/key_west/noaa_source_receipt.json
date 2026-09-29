@@ -1,0 +1,39 @@
+{
+  "url": "https://coast.noaa.gov/htdata/raster2/elevation/NGS_FL_key_west_DEM_2016_6366/2016_key_west_mosaic_m6366.tif",
+  "etag": "\"26bc84d4-65c18697fef10\"",
+  "bytes": 649888980,
+  "sha256": "573bd136a230263af78e3eeda5b554efe42d2cc38eea0cda3d2dbd8744c572cb",
+  "original_s3_url": "https://noaa-nos-coastal-lidar-pds.s3.amazonaws.com/dem/NGS_FL_key_west_DEM_2016_6366/2016_key_west_mosaic_m6366.tif",
+  "verified_s3_etag": "38aab58423b972e783fdc666d099d0db-78",
+  "s3_multipart_part_bytes": 8388608,
+  "conversion": {
+    "resampling": "bilinear",
+    "source_crs": "EPSG:32617",
+    "target_transform": [
+      415424.0,
+      2.0,
+      0.0,
+      2720288.0,
+      0.0,
+      -2.0
+    ],
+    "width": 6602,
+    "height": 3286,
+    "height_range_m": [
+      -16,
+      48
+    ],
+    "source_gdal_version": "3.12.4",
+    "no_authored_height_changes": true
+  },
+  "files": {
+    "world/terrain/source/key_west/key_west_preview_2m_height.png": "d1eebf76f2be5fc7b4cddfcd8e5e232d7b53f45194975ada4b41d0262e81a1df",
+    "world/terrain/source/key_west/key_west_preview_2m_height.json": "743e8383d8f83c0b0c72aa6610304d9850f9e6f3817065dbab3c4d0a5632fd7b",
+    "world/terrain/key_west_preview_2m_la8.png": "c4260dac499a5853ad0e69895274b94272fbc43097853dc7ef5193a07355d9b6",
+    "world/terrain/key_west_preview_2m_la8.json": "c939750059de7f319b655ff17459b4ed5c46379d0d9d6578e005599fbd1f66f1"
+  },
+  "decoded_valid_height_range_m": [
+    -8.180544747081711,
+    28.46161593041886
+  ]
+}

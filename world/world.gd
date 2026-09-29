@@ -61,6 +61,8 @@ const UI_CANVAS_LAYER_INDEX: int = 40
 const SPAWN_CLEARANCE: float = 1.0
 
 @export_group("Scene wiring")
+## A playable scene may pin its dataset independently of developer test defaults.
+@export var world_profile: WorldProfile
 ## Container the streaming pipeline fills. Created if absent.
 @export var stream_container: Node3D
 ## Player already present in the scene; one is not spawned when this is set.
@@ -80,7 +82,7 @@ var _profile_content: Node3D
 
 
 func _ready() -> void:
-	_profile = WorldProfileCatalog.load_selected()
+	_profile = world_profile if world_profile != null else WorldProfileCatalog.load_selected()
 	if _profile != null and _profile.prewarm_before_first_frame:
 		initialize()
 		return
@@ -95,7 +97,7 @@ func initialize() -> void:
 		return
 	_resolve_scene_nodes()
 	if _profile == null:
-		_profile = WorldProfileCatalog.load_selected()
+		_profile = world_profile if world_profile != null else WorldProfileCatalog.load_selected()
 	_apply_profile_terrain()
 	_apply_profile_content()
 	_build_systems()
@@ -140,6 +142,9 @@ func _apply_profile_terrain() -> void:
 		return
 	if not FileAccess.file_exists(_profile.terrain_image_path) or not FileAccess.file_exists(_profile.terrain_meta_path):
 		push_error("World: terrain for '%s' is not built; run its documented offline bake first" % _profile.id)
+		return
+	if terrain.heightmap != null and terrain.heightmap_image_path == _profile.terrain_image_path \
+		and terrain.heightmap_meta_path == _profile.terrain_meta_path:
 		return
 	if not terrain.reload_heightmap(_profile.terrain_image_path, _profile.terrain_meta_path):
 		push_error("World: failed to load terrain for '%s'" % _profile.id)

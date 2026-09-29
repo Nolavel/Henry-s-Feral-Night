@@ -5,6 +5,41 @@ Maintained per branch; entries are added by whoever makes the change.
 
 ## [Unreleased] — `codex`
 
+### 2026-09-29 - Start in Key West and archive Graciosa (codex, author-approved main pass)
+
+Changed
+- Set F5 and the title-menu game target to the complete Key West world scene.
+  Pin its world profile in the scene so startup needs no HFN_WORLD override.
+- Commit the real 2 m NOAA crop, source metadata and frozen city/enrichment/ocean
+  mask snapshot. Preserve source receipts; normal startup needs no GIS downloads.
+- Move the Graciosa scene, terrain/source images and WorldData to archive/graciosa.
+  Preserve image bytes and scene UID; pin the archived scene to its own profile.
+  Update dependent capture/bake tools, tests and docs to the archived paths.
+- Keep the shared First Exit bunker/shelter and gameplay systems in place. Key West
+  retains the Whitehead-to-Fort-Street route, blizzard and city streaming. Clear
+  references to the discarded template owner before transplanting its nodes.
+- Match HeightMapShape3D collision spacing to the dataset resolution. The 2 m
+  Key West surface previously had 1 m collision patches and allowed falling
+  below the rendered ground. Preserve real elevation through uniform scaling.
+- Update the CLAUDE.md heightmap-source path and current product/world documents.
+  The author explicitly requested this pass directly on main; branch conventions
+  remain unchanged for subsequent work.
+
+Validation
+- Project script compilation, startup presentation, input-map and archived streaming
+  checks passed. Graciosa source/runtime heightmap hashes match the previous commit.
+- Final lossless Image import and 217-script compilation passed. World profiles,
+  Key West First Exit, startup presentation and stove/world-time suites passed.
+- Real Vulkan startup with no HFN_WORLD override registered 148 city chunks
+  (3 ACTIVE), started blizzard at Whitehead, and rendered a non-black frame.
+  With physics active, the player settles on the visible terrain instead of
+  falling underneath. Raycast checks passed for both 1 m Graciosa and 2 m Key West.
+- The complete NOAA DEM matches its original S3 multipart ETag; every packed
+  heightmap pixel equals the committed 16-bit crop. Receipts use Git-stable LF.
+- Full-suite success remains unverified: the unchanged nightly stove-act and
+  shelter-focus fixture failures are documented in GODOT_AI_INTEGRATION.md.
+  Godot-generated import metadata retains its normal blank line at EOF.
+
 ### 2026-09-29 - Resolve Godot AI installation conflicts and integrate main (codex)
 
 Changed
