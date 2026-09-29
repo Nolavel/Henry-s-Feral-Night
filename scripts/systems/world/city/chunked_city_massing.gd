@@ -428,7 +428,7 @@ func _build_airport_layer() -> void:
 			areas.append(feature)
 		elif kind == "runway":
 			runway_segments.append(feature)
-		elif kind in {"taxiway", "taxilane"}:
+		elif kind in ["taxiway", "taxilane"]:
 			taxiway_segments.append(feature)
 
 	_add_airport_ribbons(runway_segments, _runway_material, 0.22, "Runways")
@@ -486,7 +486,7 @@ func _add_airport_areas(features: Array) -> void:
 		var kind: String = String(feature.get("kind", ""))
 		if kind == "runway":
 			material = _runway_material
-		elif kind in {"taxiway", "taxilane"}:
+		elif kind in ["taxiway", "taxilane"]:
 			material = _taxiway_material
 		var instance := MeshInstance3D.new()
 		instance.name = "AirportArea_%s_%s" % [kind, feature.get("id", 0)]
