@@ -1,6 +1,6 @@
 extends SceneTree
 
-## Stage 5 Key West proof for issue #138:
+## Stage 5 Key West proof for issue #138 — verification run:
 ## NOAA terrain + ocean-connected ice + chunk-aware OSM city + airport block.
 ## No Blender edits and no production First Exit migration.
 const HEIGHT_IMAGE: String = "res://world/terrain/key_west_preview_2m_la8.png"
