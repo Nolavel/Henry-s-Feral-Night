@@ -33,8 +33,10 @@ static func make_materials() -> Dictionary:
 	materials["sand"] = _material(Color(0.45, 0.43, 0.37), 0.99)
 	materials["sidewalk"] = _material(Color(0.54, 0.55, 0.55), 0.96)
 	materials["curb"] = _material(Color(0.72, 0.73, 0.72), 0.94)
-	materials["white_line"] = _material(Color(0.89, 0.90, 0.88), 0.82)
-	materials["yellow_line"] = _material(Color(0.86, 0.68, 0.18), 0.82)
+	materials["white_line"] = _material(Color(0.97, 0.98, 0.96), 0.72)
+	materials["yellow_line"] = _material(Color(1.0, 0.72, 0.08), 0.72)
+	(materials["white_line"] as StandardMaterial3D).shading_mode = BaseMaterial3D.SHADING_MODE_UNSHADED
+	(materials["yellow_line"] as StandardMaterial3D).shading_mode = BaseMaterial3D.SHADING_MODE_UNSHADED
 	materials["coast"] = _material(Color(0.20, 0.23, 0.24), 0.98)
 	materials["pier"] = _material(Color(0.30, 0.31, 0.30), 0.96)
 	materials["barrier"] = _material(Color(0.31, 0.33, 0.33), 0.93, false, true)
@@ -148,6 +150,7 @@ static func build_facade_accents(
 	material: Material
 ) -> Node3D:
 	var transforms: Array[Transform3D] = []
+	var window_transforms: Array[Transform3D] = []
 	for id_variant: Variant in building_ids:
 		var building := buildings[int(id_variant)] as Dictionary
 		var metadata: Dictionary = building.get("metadata", {})
@@ -156,8 +159,6 @@ static func build_facade_accents(
 		var add_canopy: bool = kind in ["retail", "commercial", "hotel", "terrace"]
 		if street == "Duval Street" and kind not in ["shed", "garage", "roof", "carport"]:
 			add_canopy = true
-		if not add_canopy:
-			continue
 		var proxy: Dictionary = building.get("proxy", {})
 		var center := Vector2(float(proxy.get("x", 0.0)), float(proxy.get("z", 0.0)))
 		var width: float = maxf(float(proxy.get("width", 3.0)), 3.0)
@@ -165,25 +166,97 @@ static func build_facade_accents(
 		var angle: float = float(proxy.get("angle", 0.0))
 		var front := _rotated(center, angle, 0.0, -depth * 0.5 - 0.42)
 		var ground: float = maxf(terrain.get_height(center.x, center.y), 0.0)
-		var basis := Basis(Vector3.UP, angle).scaled(Vector3(maxf(width * 0.68, 2.2), 0.13, 0.85))
-		transforms.append(Transform3D(basis, Vector3(front.x, ground + 2.65, front.y)))
-	if transforms.is_empty():
+		if add_canopy:
+			var basis := Basis(Vector3.UP, angle).scaled(Vector3(maxf(width * 0.68, 2.2), 0.13, 0.85))
+			transforms.append(Transform3D(basis, Vector3(front.x, ground + 2.65, front.y)))
+		if kind not in ["shed", "garage", "roof", "carport", "warehouse", "hangar"] and width >= 4.0:
+			var windows: int = clampi(int(floor(width / 4.5)), 1, 4)
+			var right := Vector2(cos(angle), sin(angle))
+			for wi: int in range(windows):
+				var ratio: float = (float(wi) + 0.5) / float(windows) - 0.5
+				var wp: Vector2 = front + right * ratio * width * 0.72
+				var wbasis := Basis(Vector3.UP, angle).scaled(Vector3(minf(1.25, width / float(windows) * 0.42), 0.72, 0.09))
+				window_transforms.append(Transform3D(wbasis, Vector3(wp.x, ground + 1.55, wp.y)))
+	if transforms.is_empty() and window_transforms.is_empty():
 		return null
-	var mesh := BoxMesh.new()
-	mesh.size = Vector3.ONE
-	mesh.material = material
-	var multimesh := MultiMesh.new()
-	multimesh.transform_format = MultiMesh.TRANSFORM_3D
-	multimesh.mesh = mesh
-	multimesh.instance_count = transforms.size()
-	for i: int in range(transforms.size()):
-		multimesh.set_instance_transform(i, transforms[i])
-	var instance := MultiMeshInstance3D.new()
-	instance.name = "StorefrontAwnings"
-	instance.multimesh = multimesh
 	var holder := Node3D.new()
 	holder.name = "FacadeArchetypes"
-	holder.add_child(instance)
+	if not transforms.is_empty():
+		var mesh := BoxMesh.new()
+		mesh.size = Vector3.ONE
+		mesh.material = material
+		var multimesh := MultiMesh.new()
+		multimesh.transform_format = MultiMesh.TRANSFORM_3D
+		multimesh.mesh = mesh
+		multimesh.instance_count = transforms.size()
+		for i: int in range(transforms.size()):
+			multimesh.set_instance_transform(i, transforms[i])
+		var instance := MultiMeshInstance3D.new()
+		instance.name = "StorefrontAwnings"
+		instance.multimesh = multimesh
+		holder.add_child(instance)
+	if not window_transforms.is_empty():
+		var window_material := _material(Color(0.10, 0.13, 0.15), 0.70)
+		var window_mesh := BoxMesh.new()
+		window_mesh.size = Vector3.ONE
+		window_mesh.material = window_material
+		var window_multimesh := MultiMesh.new()
+		window_multimesh.transform_format = MultiMesh.TRANSFORM_3D
+		window_multimesh.mesh = window_mesh
+		window_multimesh.instance_count = window_transforms.size()
+		for i: int in range(window_transforms.size()):
+			window_multimesh.set_instance_transform(i, window_transforms[i])
+		var window_instance := MultiMeshInstance3D.new()
+		window_instance.name = "FacadeWindows"
+		window_instance.multimesh = window_multimesh
+		holder.add_child(window_instance)
+	return holder
+
+
+static func build_ring0_road_surface(
+	roads: Array,
+	terrain: IslandTerrain,
+	enrichment: Dictionary,
+	materials: Dictionary
+) -> Node3D:
+	var holder := Node3D.new()
+	holder.name = "Ring0RoadNetwork"
+	var groups: Dictionary = {}
+	for road_variant: Variant in roads:
+		var road := road_variant as Dictionary
+		var points: Array = road.get("points", [])
+		if points.size() < 2:
+			continue
+		var attrs: Dictionary = _road_attrs(road, enrichment)
+		var surface: String = _road_surface(road, attrs)
+		if not groups.has(surface):
+			groups[surface] = []
+		for i: int in range(points.size() - 1):
+			var av := points[i] as Array
+			var bv := points[i + 1] as Array
+			if av.size() < 2 or bv.size() < 2:
+				continue
+			(groups[surface] as Array).append([
+				Vector2(float(av[0]), float(av[1])),
+				Vector2(float(bv[0]), float(bv[1])),
+				_road_width(road, attrs),
+			])
+	for surface: String in groups:
+		var vertices := PackedVector3Array()
+		var normals := PackedVector3Array()
+		var indices := PackedInt32Array()
+		for item_variant: Variant in groups[surface]:
+			var item := item_variant as Array
+			_append_ribbon(
+				vertices, normals, indices,
+				item[0], item[1], float(item[2]) * 0.5,
+				0.24, terrain
+			)
+		_add_mesh_child(
+			holder, "Ring0_%s" % surface,
+			vertices, normals, PackedColorArray(), indices,
+			materials.get(surface, materials["asphalt"])
+		)
 	return holder
 
 
@@ -240,7 +313,7 @@ static func build_road_node(
 				if lanes >= 4:
 					white_segments.append([a, b, -width * 0.25, true])
 					white_segments.append([a, b, width * 0.25, true])
-		if oneway and a.distance_to(b) > 12.0:
+		if oneway and a.distance_to(b) > 8.0:
 			arrow_segments.append([a, b])
 
 	for surface: String in groups:
@@ -249,7 +322,7 @@ static func build_road_node(
 		var indices := PackedInt32Array()
 		for item_variant: Variant in groups[surface]:
 			var item := item_variant as Array
-			_append_ribbon(vertices, normals, indices, item[0], item[1], float(item[2]) * 0.5, 0.12, terrain)
+			_append_ribbon(vertices, normals, indices, item[0], item[1], float(item[2]) * 0.5, 0.27, terrain)
 		_add_mesh_child(holder, "Surface_%s" % surface, vertices, normals, PackedColorArray(), indices, materials.get(surface, materials["asphalt"]))
 
 	var sidewalk_vertices := PackedVector3Array()
@@ -268,8 +341,8 @@ static func build_road_node(
 		for sign_value: float in [-1.0, 1.0]:
 			var curb_offset: float = sign_value * (width * 0.5 + 0.22)
 			var walk_offset: float = sign_value * (width * 0.5 + 1.05)
-			_append_ribbon(curb_vertices, curb_normals, curb_indices, a + side * curb_offset, b + side * curb_offset, 0.18, 0.20, terrain)
-			_append_ribbon(sidewalk_vertices, sidewalk_normals, sidewalk_indices, a + side * walk_offset, b + side * walk_offset, 0.72, 0.16, terrain)
+			_append_ribbon(curb_vertices, curb_normals, curb_indices, a + side * curb_offset, b + side * curb_offset, 0.18, 0.33, terrain)
+			_append_ribbon(sidewalk_vertices, sidewalk_normals, sidewalk_indices, a + side * walk_offset, b + side * walk_offset, 0.72, 0.29, terrain)
 	_add_mesh_child(holder, "Curbs", curb_vertices, curb_normals, PackedColorArray(), curb_indices, materials["curb"])
 	_add_mesh_child(holder, "Sidewalks", sidewalk_vertices, sidewalk_normals, PackedColorArray(), sidewalk_indices, materials["sidewalk"])
 
@@ -294,7 +367,7 @@ static func build_road_node(
 	var arrow_indices := PackedInt32Array()
 	for item_variant: Variant in arrow_segments:
 		var item := item_variant as Array
-		_append_arrow(arrow_vertices, arrow_normals, arrow_indices, item[0], item[1], terrain)
+		_append_arrows_along(arrow_vertices, arrow_normals, arrow_indices, item[0], item[1], terrain)
 	_add_mesh_child(holder, "OneWayArrows", arrow_vertices, arrow_normals, PackedColorArray(), arrow_indices, materials["white_line"])
 	return holder
 
@@ -350,9 +423,9 @@ static func build_supplemental_node(terrain: IslandTerrain, enrichment: Dictiona
 			if kind == "sidewalk":
 				_append_ribbon(sidewalk_v, sidewalk_n, sidewalk_i, a, b, 0.7, 0.17, terrain)
 			elif kind == "coastline":
-				_append_ribbon(coast_v, coast_n, coast_i, a, b, 0.65, 0.23, terrain)
+				_append_ribbon(coast_v, coast_n, coast_i, a, b, 1.15, 0.36, terrain)
 			elif kind in ["pier", "breakwater", "groyne"]:
-				var half_width: float = 2.5 if kind == "pier" else 3.5
+				var half_width: float = 3.2 if kind == "pier" else 4.2
 				_append_ribbon(pier_v, pier_n, pier_i, a, b, half_width, 0.42, terrain)
 			elif kind.begins_with("barrier:"):
 				_append_wall(barrier_v, barrier_n, barrier_i, a, b, 1.35, terrain)
@@ -509,7 +582,7 @@ static func _append_marking(
 		cursor += period
 
 
-static func _append_arrow(
+static func _append_arrows_along(
 	vertices: PackedVector3Array,
 	normals: PackedVector3Array,
 	indices: PackedInt32Array,
@@ -517,20 +590,35 @@ static func _append_arrow(
 	b: Vector2,
 	terrain: IslandTerrain
 ) -> void:
-	var direction := (b - a).normalized()
-	var length: float = a.distance_to(b)
+	var delta := b - a
+	var length: float = delta.length()
 	if length < 8.0:
 		return
-	var center := a.lerp(b, 0.55)
+	var direction := delta / length
+	var count: int = maxi(1, int(floor(length / 28.0)))
+	for i: int in range(count):
+		var t: float = (float(i) + 0.5) / float(count)
+		var center: Vector2 = a.lerp(b, t)
+		_append_arrow_at(vertices, normals, indices, center, direction, terrain)
+
+
+static func _append_arrow_at(
+	vertices: PackedVector3Array,
+	normals: PackedVector3Array,
+	indices: PackedInt32Array,
+	center: Vector2,
+	direction: Vector2,
+	terrain: IslandTerrain
+) -> void:
 	var side := Vector2(-direction.y, direction.x)
-	var ground: float = maxf(terrain.get_height(center.x, center.y), 0.0) + 0.215
-	var p0 := center - direction * 2.2 - side * 0.20
-	var p1 := center + direction * 0.4 - side * 0.20
-	var p2 := center + direction * 0.4 - side * 0.75
-	var p3 := center + direction * 2.4
-	var p4 := center + direction * 0.4 + side * 0.75
-	var p5 := center + direction * 0.4 + side * 0.20
-	var p6 := center - direction * 2.2 + side * 0.20
+	var ground: float = maxf(terrain.get_height(center.x, center.y), 0.0) + 0.38
+	var p0 := center - direction * 3.0 - side * 0.30
+	var p1 := center + direction * 0.65 - side * 0.30
+	var p2 := center + direction * 0.65 - side * 1.05
+	var p3 := center + direction * 3.6
+	var p4 := center + direction * 0.65 + side * 1.05
+	var p5 := center + direction * 0.65 + side * 0.30
+	var p6 := center - direction * 3.0 + side * 0.30
 	var base: int = vertices.size()
 	for p: Vector2 in [p0, p1, p2, p3, p4, p5, p6]:
 		vertices.append(Vector3(p.x, ground, p.y))
@@ -542,6 +630,19 @@ static func _append_arrow(
 		base + 2, base + 4, base + 5,
 	])
 
+
+static func _append_arrow(
+	vertices: PackedVector3Array,
+	normals: PackedVector3Array,
+	indices: PackedInt32Array,
+	a: Vector2,
+	b: Vector2,
+	terrain: IslandTerrain
+) -> void:
+	var direction := (b - a).normalized()
+	if direction.length_squared() < 0.1:
+		return
+	_append_arrow_at(vertices, normals, indices, a.lerp(b, 0.55), direction, terrain)
 
 static func _append_threshold(
 	vertices: PackedVector3Array,
