@@ -152,6 +152,8 @@ static func footprint_box(polygon: PackedVector2Array) -> Dictionary:
 
 
 ## A triangle whose front face points along `facing`, with that as its normal.
+## Godot's front face winds clockwise seen from the front, so (b-a)×(c-a)
+## points away from the viewer.
 static func emit_tri(
 	vertices: PackedVector3Array,
 	normals: PackedVector3Array,
@@ -163,7 +165,7 @@ static func emit_tri(
 	facing: Vector3,
 	color: Color
 ) -> void:
-	if (b - a).cross(c - a).dot(facing) < 0.0:
+	if (b - a).cross(c - a).dot(facing) > 0.0:
 		var swap: Vector3 = b
 		b = c
 		c = swap
@@ -257,14 +259,14 @@ static func build_facade_accents(
 		var ground: float = building_base(polygon, terrain)
 		if add_canopy and width >= 2.5:
 			var front: Vector2 = mid + outward * 0.42
-			var basis := Basis(Vector3.UP, angle).scaled(Vector3(maxf(width * 0.68, 2.2), 0.13, 0.85))
+			var basis := Basis(Vector3.UP, angle).scaled_local(Vector3(maxf(width * 0.68, 2.2), 0.13, 0.85))
 			transforms.append(Transform3D(basis, Vector3(front.x, ground + 2.65, front.y)))
 		if kind not in ["shed", "garage", "roof", "carport", "warehouse", "hangar"] and width >= 4.0:
 			var windows: int = clampi(int(floor(width / 4.5)), 1, 4)
 			for wi: int in range(windows):
 				var ratio: float = (float(wi) + 0.5) / float(windows) - 0.5
 				var wp: Vector2 = mid + right * ratio * width * 0.72 + outward * 0.05
-				var wbasis := Basis(Vector3.UP, angle).scaled(Vector3(minf(1.25, width / float(windows) * 0.42), 0.72, 0.09))
+				var wbasis := Basis(Vector3.UP, angle).scaled_local(Vector3(minf(1.25, width / float(windows) * 0.42), 0.72, 0.09))
 				window_transforms.append(Transform3D(wbasis, Vector3(wp.x, ground + 1.55, wp.y)))
 	if transforms.is_empty() and window_transforms.is_empty():
 		return null
@@ -962,16 +964,8 @@ static func _append_roof_tri(
 	var vc := Vector3(c.x, cy, c.y)
 	var normal := (vb - va).cross(vc - va).normalized()
 	if normal.y < 0.0:
-		var temp := vb
-		vb = vc
-		vc = temp
-		normal = (vb - va).cross(vc - va).normalized()
-	var base: int = vertices.size()
-	for value: Vector3 in [va, vb, vc]:
-		vertices.append(value)
-		normals.append(normal)
-		colors.append(color)
-	indices.append_array([base, base + 1, base + 2])
+		normal = -normal
+	emit_tri(vertices, normals, colors, indices, va, vb, vc, normal, color)
 
 
 static func _rotated(center: Vector2, angle: float, local_x: float, local_z: float) -> Vector2:

@@ -62,7 +62,8 @@ func _test_triangles_face_where_asked() -> void:
 	KeyWestCityVisuals.emit_tri(v, n, c, i, Vector3.ZERO, Vector3(1, 0, 0), Vector3(0, 0, 1), Vector3.UP, Color.WHITE)
 	for t: int in range(0, i.size(), 3):
 		var normal: Vector3 = (v[i[t + 1]] - v[i[t]]).cross(v[i[t + 2]] - v[i[t]])
-		_check(normal.y > 0.0, "a roof triangle faces down")
+		## Front faces wind clockwise: (b-a)×(c-a) points away from the viewer above.
+		_check(normal.y < 0.0, "a roof triangle faces down")
 
 
 func _test_rectangles_get_a_box_and_odd_lots_do_not() -> void:
@@ -97,6 +98,6 @@ func _test_gables_are_closed() -> void:
 	_check(vertical == 2, "a gable roof is open at its ends")
 	var up: int = 0
 	for t: int in range(0, faces.size(), 3):
-		if (faces[t + 1] - faces[t]).cross(faces[t + 2] - faces[t]).normalized().y > 0.2:
+		if (faces[t + 1] - faces[t]).cross(faces[t + 2] - faces[t]).normalized().y < -0.2:
 			up += 1
 	_check(up == 4, "a gable roof does not cover both sides, %d slope triangles" % up)

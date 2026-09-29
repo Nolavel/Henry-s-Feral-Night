@@ -453,7 +453,7 @@ func _ensure_massing(state: Dictionary) -> void:
 		var height: float = maxf(float(building.get("height", 3.0)), 3.0)
 		var angle: float = float(proxy.get("angle", 0.0))
 		var ground: float = maxf(terrain.get_height(x, z), 0.0)
-		var basis := Basis(Vector3.UP, angle).scaled(Vector3(width, height, depth))
+		var basis := Basis(Vector3.UP, angle).scaled_local(Vector3(width, height, depth))
 		multimesh.set_instance_transform(
 			local_i,
 			Transform3D(basis, Vector3(x, ground + height * 0.5 + 0.04, z))
