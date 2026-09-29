@@ -135,3 +135,44 @@ The experimental renderer `ChunkedCityMassing` provides:
 
 This is still isolated research code. It does not replace the production
 `StreamingSystem` yet, and Graciosa / First Exit remain unchanged.
+
+
+## Stage 6 StreamingSystem + TPS proof — 2026-09-29
+
+Verified Actions run: `36529305655`.
+
+The frozen Stage 5 `city_preview.json` snapshot from run `36524001180`
+was reused unchanged. The TPS job explicitly skips the Overpass city rebuild.
+
+Streaming integration:
+- the existing `StreamingSystem` remains the single owner of ACTIVE/UNLOADED
+  state;
+- generated Key West chunks register through a runtime-source API instead of
+  introducing a second streaming manager;
+- all **148** city chunks use the same state machine and the same
+  `instantiation_budget_per_frame`;
+- Ring 0 building proxies stay lightweight;
+- exact OSM footprint meshes and per-chunk road batches are created only for
+  ACTIVE chunks and physically freed on UNLOADED;
+- the existing static Graciosa `WorldData/ChunkData` path is preserved.
+
+Regression coverage:
+- `tests/systems/test_streaming.gd` now verifies runtime registration,
+  Ring 0 creation, ACTIVE transition, far-focus UNLOADED transition, and
+  removal of runtime detail;
+- final run: `streaming: all checks passed`.
+
+Real project `Player` + `TpsCamera` captures were made at six points:
+- Duval Street / Old Town: 3 ACTIVE of 148;
+- Front Street / waterfront: 3 ACTIVE (nearby overlap with Duval is retained);
+- Truman Avenue: 2 ACTIVE;
+- North Roosevelt Boulevard: 4 ACTIVE;
+- EYW / South Roosevelt Boulevard: 2 ACTIVE;
+- Stock Island / MacDonald Avenue: 3 ACTIVE.
+
+Large teleports show zero old ACTIVE chunks before the new neighbourhood
+activates. Nearby Duval → Front Street intentionally keeps overlapping chunks
+because the points share the same streaming neighbourhood/hysteresis band.
+
+This proves city detail now follows the TPS focus rather than keeping all
+12,354 detailed building footprints live at once.
