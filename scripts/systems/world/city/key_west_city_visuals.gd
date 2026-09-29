@@ -566,7 +566,7 @@ static func _append_marking(
 	var start := a + side * offset
 	var end := b + side * offset
 	if not dashed:
-		_append_ribbon(vertices, normals, indices, start, end, half_width, 0.205, terrain)
+		_append_ribbon(vertices, normals, indices, start, end, half_width, 0.39, terrain)
 		return
 	var cursor: float = 0.0
 	var period: float = maxf(dash_length + gap_length, 0.1)
@@ -577,7 +577,7 @@ static func _append_marking(
 				vertices, normals, indices,
 				start + direction * cursor,
 				start + direction * dash_end,
-				half_width, 0.205, terrain
+				half_width, 0.39, terrain
 			)
 		cursor += period
 
@@ -611,14 +611,14 @@ static func _append_arrow_at(
 	terrain: IslandTerrain
 ) -> void:
 	var side := Vector2(-direction.y, direction.x)
-	var ground: float = maxf(terrain.get_height(center.x, center.y), 0.0) + 0.38
-	var p0 := center - direction * 3.0 - side * 0.30
-	var p1 := center + direction * 0.65 - side * 0.30
-	var p2 := center + direction * 0.65 - side * 1.05
-	var p3 := center + direction * 3.6
-	var p4 := center + direction * 0.65 + side * 1.05
-	var p5 := center + direction * 0.65 + side * 0.30
-	var p6 := center - direction * 3.0 + side * 0.30
+	var ground: float = maxf(terrain.get_height(center.x, center.y), 0.0) + 0.41
+	var p0 := center - direction * 1.65 - side * 0.16
+	var p1 := center + direction * 0.35 - side * 0.16
+	var p2 := center + direction * 0.35 - side * 0.52
+	var p3 := center + direction * 1.95
+	var p4 := center + direction * 0.35 + side * 0.52
+	var p5 := center + direction * 0.35 + side * 0.16
+	var p6 := center - direction * 1.65 + side * 0.16
 	var base: int = vertices.size()
 	for p: Vector2 in [p0, p1, p2, p3, p4, p5, p6]:
 		vertices.append(Vector3(p.x, ground, p.y))
@@ -629,7 +629,6 @@ static func _append_arrow_at(
 		base + 2, base + 3, base + 4,
 		base + 2, base + 4, base + 5,
 	])
-
 
 static func _append_arrow(
 	vertices: PackedVector3Array,
@@ -669,7 +668,7 @@ static func _append_threshold(
 			vertices, normals, indices,
 			center - direction * 3.0,
 			center + direction * 3.0,
-			0.55, 0.215, terrain
+			0.55, 0.40, terrain
 		)
 
 
