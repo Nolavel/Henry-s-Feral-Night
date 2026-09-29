@@ -51,6 +51,7 @@ var _snowfall_density: float = 0.0
 var _visibility_m: float = 0.0
 var _wetness_rate: float = 0.0
 var _snow_cover: float = 0.0
+var _wind_direction_override_deg: float = -1.0
 
 
 ## Profile an authored beat asked to follow the current one; empty lets the scheduler pick.
@@ -59,6 +60,14 @@ var _then_id: StringName = &""
 
 func _ready() -> void:
 	initialize()
+
+
+func apply_world_profile(profile: WorldProfile) -> void:
+	if profile == null:
+		return
+	if profile.initial_weather_profile_id != &"":
+		starting_profile_id = profile.initial_weather_profile_id
+	_wind_direction_override_deg = profile.wind_direction_override_deg
 
 
 ## Builds the gust noise, wires the clock and activates the first profile.
@@ -227,8 +236,10 @@ func _sample_conditions() -> void:
 
 	## Bearings are blended as vectors, so crossing 0/360 turns the short way
 	## round instead of sweeping back through every intermediate direction.
-	var from_dir: Vector3 = _bearing_to_vector(from.wind_direction_deg)
-	var to_dir: Vector3 = _bearing_to_vector(_current.wind_direction_deg)
+	var from_bearing: float = _wind_direction_override_deg if _wind_direction_override_deg >= 0.0 else from.wind_direction_deg
+	var to_bearing: float = _wind_direction_override_deg if _wind_direction_override_deg >= 0.0 else _current.wind_direction_deg
+	var from_dir: Vector3 = _bearing_to_vector(from_bearing)
+	var to_dir: Vector3 = _bearing_to_vector(to_bearing)
 	var jitter_deg: float = lerpf(
 		from.wind_direction_jitter_deg, _current.wind_direction_jitter_deg, _blend
 	)

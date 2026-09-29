@@ -14,6 +14,20 @@ on:
       - "resources/environment/color_grading/**"
       - "assets/textures/color_grading/**"
       - "tools/runtime/capture_color_grading.gd"
+      - "tools/runtime/capture_key_west.gd"
+      - "tools/runtime/capture_key_west_tps.gd"
+      - "tools/runtime/capture_key_west_first_exit.gd"
+      - "scripts/world/key_west_first_exit.gd"
+      - "scenes/world/key_west/key_west_first_exit.tscn"
+      - "core/world/resources/world_profile.gd"
+      - "core/world/streaming_system.gd"
+      - "world/world.gd"
+      - "data/world_profiles/key_west_test.tres"
+      - "tests/systems/test_key_west_first_exit.gd"
+      - "tests/systems/test_streaming.gd"
+      - "scripts/systems/world/city/chunked_city_massing.gd"
+      - "tools/world/build_key_west_preview.sh"
+      - "tools/world/build_key_west_city_preview.py"
   pull_request:
     branches: [main]
     paths-ignore:
@@ -56,7 +70,7 @@ jobs:
         run: tools/ci/run_tests.sh
 
   color-grade-preview:
-    if: github.event_name == 'push'
+    if: github.event_name == 'push' && !contains(github.event.head_commit.message, '[key-west-preview]') && !contains(github.event.head_commit.message, '[key-west-tps]') && !contains(github.event.head_commit.message, '[key-west-first-exit]')
     runs-on: ubuntu-latest
     timeout-minutes: 12
     steps:
@@ -92,5 +106,124 @@ jobs:
         with:
           name: rimewatch-color-grades
           path: docs/runtime_previews/color_grading/*.png
+          if-no-files-found: error
+          retention-days: 3
+
+  key-west-preview:
+    if: github.event_name == 'push' && (contains(github.event.head_commit.message, '[key-west-preview]') || contains(github.event.head_commit.message, '[key-west-tps]') || contains(github.event.head_commit.message, '[key-west-first-exit]'))
+    runs-on: ubuntu-latest
+    timeout-minutes: 20
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Cache Godot
+        uses: actions/cache@v4
+        with:
+          path: |
+            ~/.local/opt/godot-mono
+          key: godot-4.8-dev6-v2
+
+      - name: Provision Godot + CPU Vulkan
+        run: tools/ci/setup_env.sh
+
+      - name: Install terrain conversion tools
+        run: |
+          sudo apt-get update -qq
+          sudo apt-get install -y -qq gdal-bin python3-numpy python3-pil python3-pyproj python3-venv
+
+      - name: Download frozen Stage 5 city snapshot
+        if: contains(github.event.head_commit.message, '[key-west-tps]') || contains(github.event.head_commit.message, '[key-west-first-exit]')
+        uses: actions/download-artifact@v4
+        with:
+          name: rimewatch-key-west-preview
+          run-id: 36524001180
+          github-token: ${{ github.token }}
+          path: /tmp/keywest-stage5
+
+      - name: Restore frozen city_preview.json
+        if: contains(github.event.head_commit.message, '[key-west-tps]') || contains(github.event.head_commit.message, '[key-west-first-exit]')
+        run: |
+          mkdir -p docs/runtime_previews/key_west
+          cp /tmp/keywest-stage5/city_preview.json docs/runtime_previews/key_west/city_preview.json
+
+      - name: Build NOAA Key West preview terrain
+        env:
+          COMMIT_MESSAGE: ${{ github.event.head_commit.message }}
+        run: |
+          if [[ "$COMMIT_MESSAGE" == *"[key-west-tps]"* || "$COMMIT_MESSAGE" == *"[key-west-first-exit]"* ]]; then
+            HFN_REUSE_CITY_JSON=1 bash tools/world/build_key_west_preview.sh
+          else
+            bash tools/world/build_key_west_preview.sh
+          fi
+
+      - name: Install Overture client
+        if: contains(github.event.head_commit.message, '[key-west-tps]') || contains(github.event.head_commit.message, '[key-west-first-exit]')
+        run: |
+          python3 -m venv /tmp/overture-venv
+          /tmp/overture-venv/bin/pip install -q overturemaps
+
+      - name: Download Overture Key West visual data
+        if: contains(github.event.head_commit.message, '[key-west-tps]') || contains(github.event.head_commit.message, '[key-west-first-exit]')
+        run: |
+          BBOX="-81.835,24.535,-81.705,24.595"
+          /tmp/overture-venv/bin/overturemaps download --bbox="$BBOX" -f geojson --type=building -o /tmp/keywest_overture_buildings.geojson
+          /tmp/overture-venv/bin/overturemaps download --bbox="$BBOX" -f geojson --type=segment -o /tmp/keywest_overture_segments.geojson
+          /tmp/overture-venv/bin/overturemaps download --bbox="$BBOX" -f geojson --type=infrastructure -o /tmp/keywest_overture_infrastructure.geojson
+
+      - name: Build visual enrichment sidecar
+        if: contains(github.event.head_commit.message, '[key-west-tps]') || contains(github.event.head_commit.message, '[key-west-first-exit]')
+        run: |
+          python3 tools/world/build_key_west_visual_enrichment.py \
+            --report docs/runtime_previews/key_west/source_report.json \
+            --city docs/runtime_previews/key_west/city_preview.json \
+            --overture-buildings /tmp/keywest_overture_buildings.geojson \
+            --overture-segments /tmp/keywest_overture_segments.geojson \
+            --overture-infrastructure /tmp/keywest_overture_infrastructure.geojson \
+            --out docs/runtime_previews/key_west/visual_enrichment.json
+
+      - name: Import generated preview assets
+        run: tools/ci/import_gate.sh
+
+      - name: Verify StreamingSystem runtime chunks
+        if: contains(github.event.head_commit.message, '[key-west-tps]') || contains(github.event.head_commit.message, '[key-west-first-exit]')
+        run: |
+          "$HOME/.local/bin/godot" --headless --path . --script tests/systems/test_streaming.gd
+
+      - name: Capture Key West
+        env:
+          COMMIT_MESSAGE: ${{ github.event.head_commit.message }}
+        run: |
+          export VK_DRIVER_FILES=/usr/share/vulkan/icd.d/lvp_icd.json
+          export XDG_RUNTIME_DIR=/tmp/xdg
+          mkdir -p "$XDG_RUNTIME_DIR"
+          SCRIPT="tools/runtime/capture_key_west.gd"
+          if [[ "$COMMIT_MESSAGE" == *"[key-west-first-exit]"* ]]; then
+            "$HOME/.local/bin/godot" --headless --path . --script tests/systems/test_key_west_first_exit.gd
+            SCRIPT="tools/runtime/capture_key_west_first_exit.gd"
+          elif [[ "$COMMIT_MESSAGE" == *"[key-west-tps]"* ]]; then
+            SCRIPT="tools/runtime/capture_key_west_tps.gd"
+          fi
+          xvfb-run -a "$HOME/.local/bin/godot" \
+            --path . \
+            --resolution 1600x1000 \
+            --rendering-driver vulkan \
+            --rendering-method forward_plus \
+            --audio-driver Dummy \
+            --script "$SCRIPT"
+
+      - name: Upload Key West previews
+        uses: actions/upload-artifact@v4
+        with:
+          name: ${{ contains(github.event.head_commit.message, '[key-west-first-exit]') && 'rimewatch-key-west-first-exit' || (contains(github.event.head_commit.message, '[key-west-tps]') && 'rimewatch-key-west-tps' || 'rimewatch-key-west-preview') }}
+          path: |
+            docs/runtime_previews/key_west/*.png
+            docs/runtime_previews/key_west/source_report.json
+            docs/runtime_previews/key_west/city_preview.json
+            docs/runtime_previews/key_west/ocean_connected_mask.png
+            docs/runtime_previews/key_west/visual_enrichment.json
+            docs/runtime_previews/key_west_tps/*.png
+            docs/runtime_previews/key_west_tps/stream_report.json
+            docs/runtime_previews/key_west_first_exit/*.png
+            docs/runtime_previews/key_west_first_exit/report.json
           if-no-files-found: error
           retention-days: 3
