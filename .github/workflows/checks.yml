@@ -14,6 +14,8 @@ on:
       - "resources/environment/color_grading/**"
       - "assets/textures/color_grading/**"
       - "tools/runtime/capture_color_grading.gd"
+      - "tools/runtime/capture_key_west.gd"
+      - "tools/world/build_key_west_preview.sh"
   pull_request:
     branches: [main]
     paths-ignore:
@@ -56,7 +58,7 @@ jobs:
         run: tools/ci/run_tests.sh
 
   color-grade-preview:
-    if: github.event_name == 'push'
+    if: github.event_name == 'push' && !contains(github.event.head_commit.message, '[key-west-preview]')
     runs-on: ubuntu-latest
     timeout-minutes: 12
     steps:
@@ -92,5 +94,50 @@ jobs:
         with:
           name: rimewatch-color-grades
           path: docs/runtime_previews/color_grading/*.png
+          if-no-files-found: error
+          retention-days: 3
+
+  key-west-preview:
+    if: github.event_name == 'push' && contains(github.event.head_commit.message, '[key-west-preview]')
+    runs-on: ubuntu-latest
+    timeout-minutes: 20
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Cache Godot
+        uses: actions/cache@v4
+        with:
+          path: |
+            ~/.local/opt/godot-mono
+          key: godot-4.8-dev6-v2
+
+      - name: Provision Godot + CPU Vulkan
+        run: tools/ci/setup_env.sh
+
+      - name: Install terrain conversion tools
+        run: |
+          sudo apt-get update -qq
+          sudo apt-get install -y -qq gdal-bin python3-numpy python3-pil
+
+      - name: Build NOAA Key West preview terrain
+        run: bash tools/world/build_key_west_preview.sh
+
+      - name: Import generated preview assets
+        run: tools/ci/import_gate.sh
+
+      - name: Capture Key West on ice
+        run: |
+          export VK_DRIVER_FILES=/usr/share/vulkan/icd.d/lvp_icd.json
+          export XDG_RUNTIME_DIR=/tmp/xdg
+          mkdir -p "$XDG_RUNTIME_DIR"
+          xvfb-run -a "$HOME/.local/bin/godot"             --path .             --resolution 1600x1000             --rendering-driver vulkan             --rendering-method forward_plus             --audio-driver Dummy             --script tools/runtime/capture_key_west.gd
+
+      - name: Upload Key West previews
+        uses: actions/upload-artifact@v4
+        with:
+          name: rimewatch-key-west-preview
+          path: |
+            docs/runtime_previews/key_west/*.png
+            docs/runtime_previews/key_west/source_report.json
           if-no-files-found: error
           retention-days: 3
