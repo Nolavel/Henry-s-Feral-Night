@@ -123,7 +123,7 @@ func _build_stage() -> void:
 
 func _hide_player_hud() -> void:
 	for node_name: StringName in [&"MouseCursorUI", &"VitalHUD"]:
-		var node := _player.get_node_or_null(node_name)
+		var node := _player.get_node_or_null(NodePath(String(node_name)))
 		if node != null:
 			node.queue_free()
 
