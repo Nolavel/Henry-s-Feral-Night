@@ -11,6 +11,7 @@ const WEATHER_SCRIPT: GDScript = preload("res://scripts/systems/world/WeatherCon
 const TERRAIN_SCRIPT: GDScript = preload("res://scripts/systems/world/terrain/island_terrain.gd")
 const PRESENTATION_SCRIPT: GDScript = preload("res://scripts/systems/world/snow/snow_presentation_system.gd")
 const PICKUP_SCRIPT: GDScript = preload("res://scripts/environment/interactive/item_pickup.gd")
+const SENSOR_SCRIPT: GDScript = preload("res://scripts/actors/player/henry/components/foot_contact_sensor.gd")
 ## Render layer 20: meshes on it press into the snow.
 const CONTACT_LAYER: int = 1 << 19
 
@@ -33,7 +34,7 @@ const CONTACT_LAYER: int = 1 << 19
 @export var drift_m: float = 0.3
 @export var lee_m: float = 0.6
 ## Snow thins out towards this height and never lies below it.
-@export var sea_level_m: float = 0.0
+@export var sea_level_m: float = 0.04
 ## Share of the settled depth a foot or body packs down.
 @export_range(0.0, 1.0) var max_pack: float = 0.85
 
@@ -48,6 +49,12 @@ const CONTACT_LAYER: int = 1 << 19
 @export_range(0.2, 1.0) var deep_snow_speed: float = 0.6
 ## Depth at which wading is slowest, in metres.
 @export var deep_snow_m: float = 0.5
+## Deeper than this Henry wades: his whole body ploughs a trench. Shallower,
+## only planted soles press, so steps stay separate prints.
+@export var wade_depth_m: float = 0.3
+## Width of one sole and how far it reaches past the heel and toe bones.
+@export var sole_width_m: float = 0.11
+@export var sole_margin_m: float = 0.05
 
 var field: SnowField = SnowField.new()
 
@@ -69,6 +76,9 @@ var _weather: WeatherController
 var _presentation: Node
 var _terrain: IslandTerrain
 var _world_root: Node
+var _sensor: FootContactSensor
+var _soles: Array[MeshInstance3D] = []
+var _wading: bool = false
 
 
 func _ready() -> void:
@@ -93,15 +103,16 @@ func on_world_ready(context: WorldContext) -> void:
 	field.sea_level_m = sea_level_m if _terrain != null else -INF
 	if _player != null:
 		_mover = _player.get_node_or_null(^"MovementController")
-		tag_contact(_player)
+	_sensor = context.find_in_scene(SENSOR_SCRIPT) as FootContactSensor
 
 
 ## Puts every mesh under `root` on the contact layer, so it presses into snow.
-func tag_contact(root: Node) -> void:
+func tag_contact(root: Node, on: bool = true) -> void:
 	if root is VisualInstance3D and not is_ancestor_of(root):
-		(root as VisualInstance3D).layers |= CONTACT_LAYER
+		var visual := root as VisualInstance3D
+		visual.layers = (visual.layers | CONTACT_LAYER) if on else (visual.layers & ~CONTACT_LAYER)
 	for child: Node in root.get_children():
-		tag_contact(child)
+		tag_contact(child, on)
 
 
 func _physics_process(_delta: float) -> void:
@@ -109,8 +120,38 @@ func _physics_process(_delta: float) -> void:
 		return
 	var at: Vector3 = _player.global_position
 	recentre_to(Vector2(at.x, at.z))
+	var depth: float = field.get_depth(at.x, at.z)
 	if _mover != null and &"snow_speed_multiplier" in _mover:
-		_mover.set(&"snow_speed_multiplier", get_speed_multiplier(field.get_depth(at.x, at.z)))
+		_mover.set(&"snow_speed_multiplier", get_speed_multiplier(depth))
+	var wading: bool = depth > wade_depth_m
+	if wading != _wading:
+		_wading = wading
+		tag_contact(_player, wading)
+	_place_soles()
+
+
+## Sets a sole under each foot as it lands; a lifted foot presses nothing.
+func _place_soles() -> void:
+	for side: int in range(_soles.size()):
+		var sole: MeshInstance3D = _soles[side]
+		var foot: Dictionary = _sensor.get_foot(side) if _sensor != null else {}
+		var planted: bool = not foot.is_empty() and _sensor.is_planted(side)
+		## A planted sole stays where it landed: the walk clip glides, a boot does not.
+		var landed: bool = planted and not sole.visible
+		sole.visible = planted
+		if not landed:
+			continue
+		var heel: Vector3 = foot["heel"]
+		var toe: Vector3 = foot["toe"]
+		var along := Vector3(toe.x - heel.x, 0.0, toe.z - heel.z)
+		if along.length_squared() < 0.0001:
+			along = Vector3.FORWARD * 0.2
+		var bottom: float = minf(float(foot["ball"].y), toe.y) - 0.03
+		var centre := Vector3((heel.x + toe.x) * 0.5, bottom + 0.15, (heel.z + toe.z) * 0.5)
+		var basis := Basis.looking_at(along.normalized(), Vector3.UP)
+		sole.global_transform = Transform3D(
+			basis.scaled_local(Vector3(sole_width_m, 0.3, along.length() + sole_margin_m * 2.0)), centre
+		)
 
 
 func _process(delta: float) -> void:
@@ -217,6 +258,22 @@ func _build_capture() -> void:
 	quad.cast_shadow = GeometryInstance3D.SHADOW_CASTING_SETTING_OFF
 	quad.position = Vector3(0, 0, -1)
 	_contact_cam.add_child(quad)
+	for i: int in range(2):
+		var sole := MeshInstance3D.new()
+		sole.name = "Sole%d" % i
+		## An oval with a flat bottom: a boot sole, not a brick.
+		var oval := CylinderMesh.new()
+		oval.top_radius = 0.5
+		oval.bottom_radius = 0.5
+		oval.height = 1.0
+		oval.radial_segments = 20
+		oval.rings = 1
+		sole.mesh = oval
+		sole.layers = CONTACT_LAYER
+		sole.cast_shadow = GeometryInstance3D.SHADOW_CASTING_SETTING_OFF
+		sole.visible = false
+		add_child(sole)
+		_soles.append(sole)
 	for i: int in range(2):
 		var vp: SubViewport = _viewport("SnowPacked%d" % i)
 		vp.render_target_update_mode = SubViewport.UPDATE_DISABLED
