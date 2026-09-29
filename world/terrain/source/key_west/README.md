@@ -49,3 +49,26 @@ Godot captures produced:
 
 The terrain loader was also hardened to read the packed LA8 PNG bytes directly
 as an `Image`, bypassing Texture2D import/compression settings.
+
+
+## Stage 4 verified Godot massing — 2026-09-29
+
+Successful preview run: `36520195465` on `codex`.
+
+Visual/data result:
+- NOAA terrain remains unchanged; no Blender pass and no vertical exaggeration.
+- Ice is no longer a raised full plane. It is rendered 0.04 m below sea level
+  and masked to **ocean-connected** cells derived from the DEM, so enclosed
+  below-zero terrain does not become fake inland ponds/lakes.
+- Ocean mask preview resolution: 8 m/px.
+- OpenStreetMap preview import: **12,354 building footprints** and
+  **2,681 road ways** / **15,511 road points**.
+- Building footprints are represented by one lightweight oriented box each and
+  rendered through one MultiMesh for the geography proof.
+- Roads are rendered as one combined terrain-draped ribbon mesh.
+- OSM preview attribution is included in captures:
+  `© OpenStreetMap contributors — ODbL`.
+- Four Godot captures passed: cluster top, Key West top, oblique, and low coast.
+
+The Stage 4 assets are still disposable preview outputs. They prove scale,
+coverage and spatial rhythm; they are not final production buildings or roads.
