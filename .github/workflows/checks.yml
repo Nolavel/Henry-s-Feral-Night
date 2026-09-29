@@ -16,6 +16,7 @@ on:
       - "tools/runtime/capture_color_grading.gd"
       - "tools/runtime/capture_key_west.gd"
       - "tools/world/build_key_west_preview.sh"
+      - "tools/world/build_key_west_city_preview.py"
   pull_request:
     branches: [main]
     paths-ignore:
@@ -117,7 +118,7 @@ jobs:
       - name: Install terrain conversion tools
         run: |
           sudo apt-get update -qq
-          sudo apt-get install -y -qq gdal-bin python3-numpy python3-pil
+          sudo apt-get install -y -qq gdal-bin python3-numpy python3-pil python3-pyproj
 
       - name: Build NOAA Key West preview terrain
         run: bash tools/world/build_key_west_preview.sh
@@ -139,5 +140,7 @@ jobs:
           path: |
             docs/runtime_previews/key_west/*.png
             docs/runtime_previews/key_west/source_report.json
+            docs/runtime_previews/key_west/city_preview.json
+            docs/runtime_previews/key_west/ocean_connected_mask.png
           if-no-files-found: error
           retention-days: 3
