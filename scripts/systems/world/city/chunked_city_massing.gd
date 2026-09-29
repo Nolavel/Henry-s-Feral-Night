@@ -99,7 +99,7 @@ func set_focus(point: Vector2, show_all_massing: bool = false) -> void:
 
 		if detailed:
 			_ensure_detail(state)
-		_ensure_roads(state)
+			_ensure_roads(state)
 			var detail_node: Node3D = state["detail"]
 			if detail_node != null:
 				detail_node.visible = true
