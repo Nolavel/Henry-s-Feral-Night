@@ -5,6 +5,15 @@ Maintained per branch; entries are added by whoever makes the change.
 
 ## [Unreleased] — `codex`
 
+### 2026-09-29 - Key West street props and trees (claudeflow)
+
+- `KeyWestStreetProps` places mapped power poles, street lamps, traffic signals,
+  STOP signs, bus stops, benches, bins and zebra crossings as instanced simple
+  models facing the nearest road.
+- Trees, tree rows, woods and scrub come from Overture base/land
+  (`data/world/key_west/vegetation.json`, `tools/world/fetch_key_west_vegetation.py`);
+  palms 5–12 m after the Graciosa model, a quarter broadleaf.
+
 ### 2026-09-29 - Snow window matches the terrain snow (claudeflow)
 
 - `snow_ground.gdshader` uses the terrain snow colour and roughness, so the

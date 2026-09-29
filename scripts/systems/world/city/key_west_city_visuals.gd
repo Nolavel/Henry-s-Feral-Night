@@ -480,8 +480,6 @@ static func build_supplemental_node(terrain: IslandTerrain, enrichment: Dictiona
 	var barrier_v := PackedVector3Array()
 	var barrier_n := PackedVector3Array()
 	var barrier_i := PackedInt32Array()
-	var lamp_points: Array[Vector2] = []
-	var pole_points: Array[Vector2] = []
 	var tower_points: Array[Vector2] = []
 
 	for feature_variant: Variant in features:
@@ -494,12 +492,9 @@ static func build_supplemental_node(terrain: IslandTerrain, enrichment: Dictiona
 			if p_values.size() < 2:
 				continue
 			var p := Vector2(float(p_values[0]), float(p_values[1]))
-			if kind == "street_lamp":
-				lamp_points.append(p)
-			elif kind.begins_with("power:"):
-				pole_points.append(p)
-			else:
-				tower_points.append(p)
+			if kind == "street_lamp" or kind == "power:pole":
+				continue  # Modelled by KeyWestStreetProps.
+			tower_points.append(p)
 			continue
 		if geometry_type != "LineString":
 			continue
@@ -537,8 +532,6 @@ static func build_supplemental_node(terrain: IslandTerrain, enrichment: Dictiona
 		body.name = "FenceCollision"
 		body.add_child(collision)
 		fences.add_child(body)
-	_add_poles(holder, "StreetLamps", lamp_points, 4.6, 0.055, terrain, materials["pole"])
-	_add_poles(holder, "PowerPoles", pole_points, 8.5, 0.095, terrain, materials["pole"])
 	_add_poles(holder, "Towers", tower_points, 13.0, 0.16, terrain, materials["pole"])
 	return holder
 

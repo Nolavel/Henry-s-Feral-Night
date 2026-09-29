@@ -671,6 +671,7 @@ func _build_global_visuals() -> void:
 	if _enrichment.is_empty():
 		return
 	_global_visuals = KeyWestCityVisuals.build_supplemental_node(terrain, _enrichment, _visual_materials)
+	_global_visuals.add_child(KeyWestStreetProps.build(terrain, _enrichment, _roads))
 	if _global_visuals != null and _global_visuals.get_child_count() > 0:
 		add_child(_global_visuals)
 	elif _global_visuals != null:
