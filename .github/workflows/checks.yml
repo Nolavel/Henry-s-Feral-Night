@@ -15,6 +15,7 @@ on:
       - "assets/textures/color_grading/**"
       - "tools/runtime/capture_color_grading.gd"
       - "tools/runtime/capture_key_west.gd"
+      - "scripts/systems/world/city/chunked_city_massing.gd"
       - "tools/world/build_key_west_preview.sh"
       - "tools/world/build_key_west_city_preview.py"
   pull_request:
