@@ -5,6 +5,24 @@ Maintained per branch; entries are added by whoever makes the change.
 
 ## [Unreleased] — `codex`
 
+### 2026-09-29 - Add an inspector toggle for the shelter start (codex)
+
+Changed
+- Export World.spawn_at_shelter, default false. True selects the Fort Street
+  shelter entrance; false keeps the authored Whitehead bunker scenario.
+- Transplant the existing First Exit entrance marker into Key West, preserving
+  its orientation and placing it above the NOAA terrain. Select it before world
+  lifecycle notifications so camera, terrain and city streaming use the start.
+- Weather and Continue restoration retain their existing behavior. Continue the
+  author-approved main workflow for this related startup edit.
+
+Validation
+- Clean Godot import and compilation of all 217 project scripts passed.
+  Real-world checks passed for both false
+  (Whitehead, 3 ACTIVE chunks) and true (Fort Street entrance, 4 ACTIVE chunks):
+  player grounded, matching terrain, 148 registered city chunks, initial blizzard.
+- The shelter mode rendered a non-black Vulkan frame without script errors.
+
 ### 2026-09-29 - Start in Key West and archive Graciosa (codex, author-approved main pass)
 
 Changed

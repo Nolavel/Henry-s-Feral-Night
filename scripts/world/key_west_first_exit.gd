@@ -130,6 +130,14 @@ func _transplant_first_exit() -> void:
 			_clear_template_owner(node, template)
 			template.remove_child(node)
 			add_child(node)
+	var shelter_spawn := template.get_node_or_null(^"SpawnPoint") as Marker3D
+	if shelter_spawn != null:
+		_move_from_anchor(shelter_spawn, _source_shelter, _target_shelter, shelter_delta_yaw, 1.0)
+		shelter_spawn.position.y = maxf(_terrain.get_height(shelter_spawn.position.x, shelter_spawn.position.z), 0.0) + 0.15
+		shelter_spawn.name = "ShelterSpawnPoint"
+		_clear_template_owner(shelter_spawn, template)
+		template.remove_child(shelter_spawn)
+		add_child(shelter_spawn)
 	_build_bunker_vestibule(bunker_target_yaw)
 	_build_spawn_marker(route_dir)
 	template.free()

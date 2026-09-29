@@ -71,6 +71,8 @@ const SPAWN_CLEARANCE: float = 1.0
 @export var camera: Camera3D
 ## Where the player starts. Freed after use, as the old GameRouter did.
 @export var first_spawner_marker: Marker3D
+## Start at the shelter entrance instead of the authored scenario spawn.
+@export var spawn_at_shelter: bool = false
 ## Off for a scene with its own floor, such as TestScene, so the island's
 ## chunks are not streamed on top of it.
 @export var streaming_enabled: bool = true
@@ -191,6 +193,14 @@ func _build_systems() -> void:
 
 ## Moves the player onto the spawn marker, then drops the marker.
 func _place_player() -> void:
+	if spawn_at_shelter:
+		var shelter_spawn := find_child("ShelterSpawnPoint", true, false) as Marker3D
+		if shelter_spawn != null:
+			if first_spawner_marker != null and first_spawner_marker != shelter_spawn:
+				first_spawner_marker.queue_free()
+			first_spawner_marker = shelter_spawn
+		else:
+			push_warning("World: ShelterSpawnPoint is missing; using the scenario spawn")
 	if player == null or first_spawner_marker == null:
 		return
 	player.global_position = (

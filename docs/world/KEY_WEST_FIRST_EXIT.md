@@ -39,3 +39,12 @@ profile for direct F6 launches. Test scenes keep their existing isolated default
 
 Validation/capture extends the existing checks workflow; no second CI pipeline
 is introduced.
+
+## Shelter start toggle
+
+On the main scene's `World` root, enable **Spawn At Shelter** (`spawn_at_shelter`)
+to start outside the Fort Street shelter entrance, facing the house. The marker
+reuses the authored First Exit shelter start, transformed into Key West and
+snapped above its terrain. Disable it (the default) for the Whitehead bunker
+scenario. Both modes retain the same initial blizzard and streaming lifecycle.
+Continue still restores the saved position through the existing save system.
