@@ -237,7 +237,8 @@ func _baked(tx: int, ty: int) -> Vector2:
 
 
 func _to_texel(world: Vector2) -> Vector2i:
-	var p: Vector2 = (world - _origin) / window_m * float(print_res)
+	## Snapped first, so a point on a texel edge reads the same cell after a move.
+	var p: Vector2 = ((world - _origin) / window_m * float(print_res)).snapped(Vector2(0.001, 0.001))
 	return Vector2i(floori(p.x), floori(p.y))
 
 

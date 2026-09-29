@@ -99,11 +99,24 @@ func _test_prints_fill_in() -> void:
 
 func _test_prints_survive_a_recentre() -> void:
 	var shell: SnowShell = _shell()
+	## Every texel of one print, including edge cells and random clods.
+	var points: Array[Vector2] = []
+	for iz: int in range(-8, 9):
+		for ix: int in range(-4, 5):
+			points.append(Vector2(3.0 + ix * 0.025, 1.0 + iz * 0.025))
 	shell.press(0, Vector3(3, 0, 1), Vector3.UP, Vector3.FORWARD, 2.0)
-	var before: float = shell.get_carve_at(3.0, 1.0)
+	var before: PackedFloat32Array = []
+	for at: Vector2 in points:
+		before.append(shell.get_carve_at(at.x, at.y) + shell.get_rim_at(at.x, at.y))
+	_check(shell.get_carve_at(3.0, 1.0) > 0.5, "no print to carry across the move")
 	shell.recentre_to(Vector2(6.4, 3.2))
-	_check(shell.get_origin() != Vector2(-12.8, -12.8), "the window did not move")
-	_check(is_equal_approx(shell.get_carve_at(3.0, 1.0), before), "a print moved or vanished with the window")
+	_check(shell.get_origin().is_equal_approx(Vector2(-6.4, -9.6)), "the window did not move")
+	var moved: int = 0
+	for i: int in range(points.size()):
+		var at: Vector2 = points[i]
+		if not is_equal_approx(shell.get_carve_at(at.x, at.y) + shell.get_rim_at(at.x, at.y), before[i]):
+			moved += 1
+	_check(moved == 0, "%d print texels moved or vanished with the window" % moved)
 	_dispose(shell)
 
 
