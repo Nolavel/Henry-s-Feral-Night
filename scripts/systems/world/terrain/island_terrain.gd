@@ -9,6 +9,12 @@ const SHADER: Shader = preload("res://shaders/environment/terrain/island_terrain
 ## Grid spacing of each level of detail, in heightmap pixels.
 const LOD_STEPS: Array[int] = [1, 4, 16]
 
+@export_group("Heightmap")
+## Game-readable LA8 heightmap. Defaults preserve the current Graciosa world.
+@export_file("*.png") var heightmap_image_path: String = IslandHeightmap.DEFAULT_IMAGE
+@export_file("*.json") var heightmap_meta_path: String = IslandHeightmap.DEFAULT_META
+
+@export_group("Terrain")
 @export var chunk_size_px: int = 128
 ## Chunk centre closer than this gets full detail, then the next level.
 @export var lod_distances_m: Array[float] = [192.0, 768.0]
@@ -32,7 +38,7 @@ var _queue: Array = []
 
 
 func _ready() -> void:
-	heightmap = IslandHeightmap.load_default()
+	heightmap = IslandHeightmap.load_from(heightmap_image_path, heightmap_meta_path)
 	if heightmap == null:
 		return
 	_material = ShaderMaterial.new()
