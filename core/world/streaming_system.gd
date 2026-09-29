@@ -238,7 +238,7 @@ func _scan_one(id: StringName, player_position: Vector3, position: Vector3, radi
 func pump() -> void:
 	_poll_loads()
 	var budget: int = instantiation_budget_per_frame
-	for id: StringName in _chunks:
+	for id: StringName in _states:
 		if budget <= 0:
 			break
 		if _states.get(id, CellState.UNLOADED) != CellState.READY:
