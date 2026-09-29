@@ -28,6 +28,7 @@ var _player: Player
 var _camera: TpsCamera
 var _meta: Dictionary
 var _city_data: Dictionary
+var _enrichment_data: Dictionary
 var _shots: Array[Dictionary] = []
 var _overlay: Label
 var _records: Array[Dictionary] = []
@@ -37,7 +38,8 @@ func _initialize() -> void:
 	DirAccess.make_dir_recursive_absolute(ProjectSettings.globalize_path(OUT_DIR))
 	_meta = _read_json(HEIGHT_META)
 	_city_data = _read_json(CITY_JSON)
-	if _meta.is_empty() or _city_data.is_empty():
+	_enrichment_data = _read_json(ENRICHMENT_JSON)
+	if _meta.is_empty() or _city_data.is_empty() or _enrichment_data.is_empty():
 		push_error("key west TPS capture: missing frozen terrain/city data")
 		quit(1)
 
@@ -141,17 +143,17 @@ func _hide_player_hud() -> void:
 func _build_environment() -> void:
 	var sun := DirectionalLight3D.new()
 	sun.rotation_degrees = Vector3(-47.0, -34.0, 0.0)
-	sun.light_energy = 1.35
+	sun.light_energy = 1.15
 	sun.shadow_enabled = true
 	sun.directional_shadow_max_distance = 2600.0
 	root.add_child(sun)
 
 	var env := Environment.new()
 	env.background_mode = Environment.BG_COLOR
-	env.background_color = Color(0.59, 0.63, 0.67)
+	env.background_color = Color(0.43, 0.47, 0.51)
 	env.ambient_light_source = Environment.AMBIENT_SOURCE_COLOR
-	env.ambient_light_color = Color(0.80, 0.83, 0.87)
-	env.ambient_light_energy = 0.72
+	env.ambient_light_color = Color(0.70, 0.75, 0.80)
+	env.ambient_light_energy = 0.50
 	var world_env := WorldEnvironment.new()
 	world_env.environment = env
 	root.add_child(world_env)
@@ -187,7 +189,7 @@ void fragment() {
 	vec2 uv = (world_pos.xz - world_origin) / world_size;
 	if (uv.x < 0.0 || uv.y < 0.0 || uv.x > 1.0 || uv.y > 1.0) discard;
 	if (texture(ocean_mask, uv).r < 0.5) discard;
-	ALBEDO = vec3(0.49, 0.56, 0.63);
+	ALBEDO = vec3(0.38, 0.46, 0.54);
 	ROUGHNESS = 0.38;
 	METALLIC = 0.05;
 }
@@ -214,42 +216,139 @@ void fragment() {
 func _build_shots() -> Array[Dictionary]:
 	var shots: Array[Dictionary] = []
 	shots.append(_road_shot(
-		"01_duval_old_town", "Duval Street / Old Town",
-		"Duval Street", Vector2(-3400.0, 900.0), -8.0, false
+		"01_duval_old_town", "Duval Street / Old Town — roofs + facades",
+		"Duval Street", Vector2(-3400.0, 900.0), -7.0, false
+	))
+	shots.append(_coast_shot(
+		"02_waterfront_coast", "Old Town waterfront — coastline + piers",
+		Vector2(-3816.0, 746.0)
 	))
 	shots.append(_road_shot(
-		"02_front_waterfront", "Front Street / waterfront",
-		"Front Street", Vector2(-3710.0, 780.0), -9.0, true
+		"03_truman_midtown", "Truman Avenue — two-way road grammar",
+		"Truman Avenue", Vector2(-2550.0, 1260.0), -7.0, false
 	))
 	shots.append(_road_shot(
-		"03_truman_midtown", "Truman Avenue",
-		"Truman Avenue", Vector2(-2550.0, 1260.0), -8.0, false
+		"04_north_roosevelt", "North Roosevelt — multilane surface + markings",
+		"North Roosevelt Boulevard", Vector2(-450.0, 80.0), -7.0, true
 	))
-	shots.append(_road_shot(
-		"04_north_roosevelt", "North Roosevelt Boulevard",
-		"North Roosevelt Boulevard", Vector2(-450.0, 80.0), -8.0, true
-	))
-
-	var airport_values: Array = (_city_data.get("airport", {}) as Dictionary).get("center", [])
-	var airport_focus := Vector2(
-		float(airport_values[0]) if airport_values.size() > 0 else 1215.0,
-		float(airport_values[1]) if airport_values.size() > 1 else 992.0
-	)
-	var airport_shot := _road_shot(
-		"05_eyw_airport", "EYW / South Roosevelt",
-		"South Roosevelt Boulevard", airport_focus, -7.0, false
-	)
-	var airport_position: Vector2 = airport_shot["position"]
-	var toward_airport: Vector2 = (airport_focus - airport_position).normalized()
-	if toward_airport.length_squared() > 0.1:
-		airport_shot["yaw"] = _yaw_for_direction(toward_airport)
-	shots.append(airport_shot)
-
-	shots.append(_road_shot(
-		"06_stock_island", "Stock Island / MacDonald Avenue",
-		"MacDonald Avenue", Vector2(2780.0, -840.0), -8.0, false
+	shots.append(_airport_runway_shot())
+	shots.append(_oneway_road_shot(
+		"06_macdonald_oneway", "MacDonald Avenue — one-way direction",
+		"MacDonald Avenue", Vector2(2775.0, -842.0), -7.0
 	))
 	return shots
+
+
+func _coast_shot(file_name: String, label: String, preferred: Vector2) -> Dictionary:
+	var best_distance: float = INF
+	var best_midpoint := preferred
+	var best_direction := Vector2(1.0, 0.0)
+	for feature_variant: Variant in (_enrichment_data.get("supplemental", []) as Array):
+		var feature := feature_variant as Dictionary
+		if String(feature.get("kind", "")) != "coastline":
+			continue
+		var geometry: Dictionary = feature.get("geometry", {})
+		if String(geometry.get("type", "")) != "LineString":
+			continue
+		var points: Array = geometry.get("coordinates", [])
+		for i: int in range(points.size() - 1):
+			var av := points[i] as Array
+			var bv := points[i + 1] as Array
+			if av.size() < 2 or bv.size() < 2:
+				continue
+			var a := Vector2(float(av[0]), float(av[1]))
+			var b := Vector2(float(bv[0]), float(bv[1]))
+			var midpoint := (a + b) * 0.5
+			var distance: float = midpoint.distance_to(preferred)
+			if distance < best_distance:
+				best_distance = distance
+				best_midpoint = midpoint
+				best_direction = (b - a).normalized()
+	var normal := Vector2(-best_direction.y, best_direction.x)
+	var candidate_a := best_midpoint + normal * 18.0
+	var candidate_b := best_midpoint - normal * 18.0
+	var height_a: float = _terrain.get_height(candidate_a.x, candidate_a.y)
+	var height_b: float = _terrain.get_height(candidate_b.x, candidate_b.y)
+	var position: Vector2 = candidate_a if height_a >= height_b else candidate_b
+	var toward_water := (best_midpoint - position).normalized()
+	return {
+		"file": file_name,
+		"label": label,
+		"road": "NOAA coast + mapped piers/breakwaters",
+		"position": position,
+		"yaw": _yaw_for_direction(toward_water),
+		"pitch": -5.0,
+	}
+
+
+func _airport_runway_shot() -> Dictionary:
+	for feature_variant: Variant in (_city_data.get("airport_features", []) as Array):
+		var feature := feature_variant as Dictionary
+		if String(feature.get("kind", "")) != "runway":
+			continue
+		var points: Array = feature.get("points", [])
+		if points.size() < 2:
+			continue
+		var first := points[0] as Array
+		var last := points[points.size() - 1] as Array
+		var a := Vector2(float(first[0]), float(first[1]))
+		var b := Vector2(float(last[0]), float(last[1]))
+		var direction := (b - a).normalized()
+		var side := Vector2(-direction.y, direction.x)
+		var width: float = maxf(float(feature.get("width", 30.0)), 20.0)
+		var position := a - direction * 12.0 + side * (width * 0.5 + 6.0)
+		return {
+			"file": "05_eyw_runway",
+			"label": "EYW runway 09/27 — runway/taxiway grammar",
+			"road": "Runway edge + threshold + taxiway markings",
+			"position": position,
+			"yaw": _yaw_for_direction(direction),
+			"pitch": -4.0,
+		}
+	return {
+		"file": "05_eyw_runway",
+		"label": "EYW runway",
+		"road": "airport fallback",
+		"position": Vector2(320.0, 1020.0),
+		"yaw": _yaw_for_direction(Vector2(1.0, 0.0)),
+		"pitch": -4.0,
+	}
+
+
+func _oneway_road_shot(
+	file_name: String,
+	label: String,
+	road_name: String,
+	preferred: Vector2,
+	pitch_deg: float
+) -> Dictionary:
+	var best_distance: float = INF
+	var best_position := preferred
+	var best_direction := Vector2(0.0, -1.0)
+	for road_variant: Variant in (_city_data.get("roads", []) as Array):
+		var road := road_variant as Dictionary
+		if String(road.get("name", "")) != road_name or String(road.get("oneway", "")) != "yes":
+			continue
+		var points: Array = road.get("points", [])
+		for i: int in range(points.size() - 1):
+			var av := points[i] as Array
+			var bv := points[i + 1] as Array
+			var a := Vector2(float(av[0]), float(av[1]))
+			var b := Vector2(float(bv[0]), float(bv[1]))
+			var midpoint := (a + b) * 0.5
+			var distance: float = midpoint.distance_to(preferred)
+			if distance < best_distance:
+				best_distance = distance
+				best_position = midpoint
+				best_direction = (b - a).normalized()
+	return {
+		"file": file_name,
+		"label": label,
+		"road": "%s — OSM oneway=yes" % road_name,
+		"position": best_position,
+		"yaw": _yaw_for_direction(best_direction),
+		"pitch": pitch_deg,
+	}
 
 
 func _road_shot(
@@ -401,7 +500,7 @@ func _write_report() -> void:
 
 func _snowify_terrain() -> void:
 	var snow := StandardMaterial3D.new()
-	snow.albedo_color = Color(0.79, 0.82, 0.85, 1.0)
+	snow.albedo_color = Color(0.67, 0.71, 0.75, 1.0)
 	snow.roughness = 0.93
 	for child: Node in _terrain.get_children():
 		var mesh := child as MeshInstance3D
