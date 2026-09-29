@@ -14,6 +14,8 @@ SOURCE_PNG="world/terrain/source/key_west/key_west_preview_2m_height.png"
 SOURCE_JSON="world/terrain/source/key_west/key_west_preview_2m_height.json"
 RUNTIME_PNG="world/terrain/key_west_preview_2m_la8.png"
 RUNTIME_JSON="world/terrain/key_west_preview_2m_la8.json"
+OCEAN_MASK="docs/runtime_previews/key_west/ocean_connected_mask.png"
+CITY_JSON="docs/runtime_previews/key_west/city_preview.json"
 REPORT="docs/runtime_previews/key_west/source_report.json"
 
 # Geographic gate for the first Godot proof: Key West + Fleming Key +
@@ -98,11 +100,62 @@ print("[key-west] local bounds %.0f x %.0f m; %d x %d px" % (span_x, span_z, wid
 print("[key-west] source elevation", band.get("minimum"), "..", band.get("maximum"), "m")
 PY
 
+echo "[key-west] ocean-connected mask (8 m/px, enclosed depressions excluded)"
+python3 - "$SOURCE_PNG" "$OCEAN_MASK" "$REPORT" <<'PY'
+import json
+import sys
+from collections import deque
+
+import numpy as np
+from PIL import Image
+
+source_png, mask_png, report_json = sys.argv[1:]
+grey = np.asarray(Image.open(source_png), dtype=np.uint16)
+stride = 4
+coarse = grey[::stride, ::stride]
+sea_code = int(round((0.0 - (-16.0)) / 64.0 * 65535.0))
+water = coarse <= sea_code
+ocean = np.zeros(water.shape, dtype=np.uint8)
+rows, cols = water.shape
+queue = deque()
+
+def seed(r, col):
+    if 0 <= r < rows and 0 <= col < cols and water[r, col] and not ocean[r, col]:
+        ocean[r, col] = 1
+        queue.append((r, col))
+
+for col in range(cols):
+    seed(0, col)
+    seed(rows - 1, col)
+for r in range(rows):
+    seed(r, 0)
+    seed(r, cols - 1)
+
+while queue:
+    r, col = queue.popleft()
+    seed(r - 1, col)
+    seed(r + 1, col)
+    seed(r, col - 1)
+    seed(r, col + 1)
+
+Image.fromarray(ocean * 255, mode="L").save(mask_png, optimize=True)
+report = json.load(open(report_json, encoding="utf-8"))
+report["ocean_mask_resolution_m"] = float(report["preview_resolution_m"]) * stride
+report["ocean_mask_connected_pixels"] = int(ocean.sum())
+report["ocean_mask_total_pixels"] = int(ocean.size)
+with open(report_json, "w", encoding="utf-8") as handle:
+    json.dump(report, handle, indent=1)
+print("[key-west] ocean mask", cols, "x", rows, "connected=", int(ocean.sum()))
+PY
+
 PYTHONPATH=tools/world python3 tools/world/bake_terrain.py \
   --source "$SOURCE_PNG" \
   --meta "$SOURCE_JSON" \
   --out-png "$RUNTIME_PNG" \
   --out-json "$RUNTIME_JSON"
 
+echo "[key-west] OpenStreetMap roads + building massing"
+python3 tools/world/build_key_west_city_preview.py --report "$REPORT" --out "$CITY_JSON"
+
 echo "[key-west] generated:"
-ls -lh "$SOURCE_PNG" "$SOURCE_JSON" "$RUNTIME_PNG" "$RUNTIME_JSON" "$REPORT"
+ls -lh "$SOURCE_PNG" "$SOURCE_JSON" "$RUNTIME_PNG" "$RUNTIME_JSON" "$OCEAN_MASK" "$CITY_JSON" "$REPORT"
