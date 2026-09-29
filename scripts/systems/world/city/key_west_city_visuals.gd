@@ -39,6 +39,7 @@ static func make_materials() -> Dictionary:
 	materials["pier"] = _material(Color(0.30, 0.31, 0.30), 0.96)
 	materials["barrier"] = _material(Color(0.31, 0.33, 0.33), 0.93, false, true)
 	materials["pole"] = _material(Color(0.22, 0.24, 0.24), 0.90)
+	materials["awning"] = _material(Color(0.20, 0.25, 0.28), 0.88)
 	return materials
 
 
@@ -138,6 +139,52 @@ static func build_roof_mesh(
 	if vertices.is_empty():
 		return null
 	return _mesh(vertices, normals, colors, indices, material)
+
+
+static func build_facade_accents(
+	buildings: Array,
+	building_ids: Array,
+	terrain: IslandTerrain,
+	material: Material
+) -> Node3D:
+	var transforms: Array[Transform3D] = []
+	for id_variant: Variant in building_ids:
+		var building := buildings[int(id_variant)] as Dictionary
+		var metadata: Dictionary = building.get("metadata", {})
+		var kind: String = String(metadata.get("building", ""))
+		var street: String = String(metadata.get("addr:street", metadata.get("street_hint", "")))
+		var add_canopy: bool = kind in ["retail", "commercial", "hotel", "terrace"]
+		if street == "Duval Street" and kind not in ["shed", "garage", "roof", "carport"]:
+			add_canopy = true
+		if not add_canopy:
+			continue
+		var proxy: Dictionary = building.get("proxy", {})
+		var center := Vector2(float(proxy.get("x", 0.0)), float(proxy.get("z", 0.0)))
+		var width: float = maxf(float(proxy.get("width", 3.0)), 3.0)
+		var depth: float = maxf(float(proxy.get("depth", 3.0)), 3.0)
+		var angle: float = float(proxy.get("angle", 0.0))
+		var front := _rotated(center, angle, 0.0, -depth * 0.5 - 0.42)
+		var ground: float = maxf(terrain.get_height(center.x, center.y), 0.0)
+		var basis := Basis(Vector3.UP, angle).scaled(Vector3(maxf(width * 0.68, 2.2), 0.13, 0.85))
+		transforms.append(Transform3D(basis, Vector3(front.x, ground + 2.65, front.y)))
+	if transforms.is_empty():
+		return null
+	var mesh := BoxMesh.new()
+	mesh.size = Vector3.ONE
+	mesh.material = material
+	var multimesh := MultiMesh.new()
+	multimesh.transform_format = MultiMesh.TRANSFORM_3D
+	multimesh.mesh = mesh
+	multimesh.instance_count = transforms.size()
+	for i: int in range(transforms.size()):
+		multimesh.set_instance_transform(i, transforms[i])
+	var instance := MultiMeshInstance3D.new()
+	instance.name = "StorefrontAwnings"
+	instance.multimesh = multimesh
+	var holder := Node3D.new()
+	holder.name = "FacadeArchetypes"
+	holder.add_child(instance)
+	return holder
 
 
 static func build_road_node(
@@ -421,7 +468,7 @@ static func _road_lanes(road: Dictionary, width: float) -> int:
 
 static func _has_oneway_flag(attrs: Dictionary) -> bool:
 	var value: String = JSON.stringify(attrs.get("road_flags", [])).to_lower()
-	return "one_way" in value or "oneway" in value
+	return value.contains("one_way") or value.contains("oneway")
 
 
 static func _append_marking(
