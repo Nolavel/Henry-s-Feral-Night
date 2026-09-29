@@ -189,6 +189,14 @@ snow_ground.gdshader: top − packed + rim          MovementController speed
 - **Henry stays consistent.** His collider stands on firm ground; his boots
   reach the bottom of the pit they made. `MovementController.snow_speed_multiplier`
   falls from 1.0 at 5 cm to 0.6 at 50 cm of snow.
-- **Window.** 25.6 m, moved in 3.2 m steps; packing is shifted with it.
+- **Snow bed.** Snow settles on the ground box-blurred over ~1 m and never
+  below it, so terrain facets and small hollows fill in. Where the snow thins
+  under ~2 cm the shell is discarded and the ground shows, instead of the two
+  surfaces z-fighting at the shore.
+- **Prints.** Below `wade_depth_m` (30 cm) only planted soles press: an oval
+  sole is set where each foot lands and held until it lifts, so the gliding
+  walk clip leaves separate prints. Deeper, Henry's whole mesh ploughs.
+- **Window.** 25.6 m, moved in 3.2 m steps; packing is shifted with it. The
+  mesh is 3 cm near Henry and coarsens to 25 cm at the edge; packing is 2.5 cm.
 - **Cost.** One extra 512² render of layer 20 and one 512² 2D pass per frame,
   plus a CPU field rebuild (~16k samples) each time the window moves.

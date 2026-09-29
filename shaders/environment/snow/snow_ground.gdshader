@@ -59,7 +59,9 @@ void vertex() {
 
 void fragment() {
 	vec2 uv = (v_world.xz - origin) / window_m;
-	if (v_cut > 0.5 || snow_hash(floor(v_world.xz * 40.0)) > v_edge * 1.05) {
+	float grain = snow_hash(floor(v_world.xz * 40.0));
+	// Where snow thins to a skin it would z-fight the ground: let the ground show.
+	if (v_cut > 0.5 || grain > v_edge * 1.05 || v_depth < 0.012 + grain * 0.02) {
 		discard;
 	}
 	// Pit walls are sharper than the mesh, so they also come in through the normal.

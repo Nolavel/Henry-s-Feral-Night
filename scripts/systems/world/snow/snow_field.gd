@@ -15,12 +15,15 @@ var cover_depth_m: Vector2 = Vector2(0.05, 0.25)
 ## Tallest wind drift and lee pile at snow_cover 1.
 var drift_m: float = 0.3
 var lee_m: float = 0.6
+## Snow rounds off ground detail finer than this, in metres.
+var smooth_m: float = 1.0
 
 ## R: snow top (world y), G: depth, B: 1 where the shell is cut away.
 var image: Image
 var origin: Vector2 = Vector2(INF, INF)
 
 var _ground: PackedVector2Array = []
+var _bed: PackedFloat32Array = []
 var _noise: FastNoiseLite = FastNoiseLite.new()
 
 
@@ -43,6 +46,7 @@ func rebuild(new_origin: Vector2, cover: float, wind: Vector2) -> void:
 	for ty: int in range(res):
 		for tx: int in range(res):
 			_ground[ty * res + tx] = ground_sampler.call(_world_of(tx, ty))
+	_smooth_bed()
 	if image == null or image.get_width() != res:
 		image = Image.create_empty(res, res, false, Image.FORMAT_RGBF)
 	var side := Vector2(-wind.y, wind.x)
@@ -61,15 +65,19 @@ func rebuild(new_origin: Vector2, cover: float, wind: Vector2) -> void:
 			var drift: float = pow(cover, 1.5) * drift_m * ridge
 			var lee: float = cover * lee_m * _lee(tx, ty, wind, step)
 			## Wind scours the face that rises into it and fills hollows.
-			var rise: float = _height_at(tx + roundi(wind.x * step), ty + roundi(wind.y * step)) - g.x
+			var bed: float = _bed[ty * res + tx]
+			var rise: float = _bed_at(tx + roundi(wind.x * step), ty + roundi(wind.y * step)) - bed
 			var scour: float = clampf(1.0 - rise / (0.35 * float(step) * texel_m()) * 0.5, 0.35, 1.25)
 			var depth: float = (settled + max(drift, lee) + min(drift, lee) * 0.3) * scour
 			depth += settled * 0.15 * _noise.get_noise_2d(at.x * 1.3, at.y * 1.3)
 			## Snow thins to nothing at the water's edge and never lies below it.
-			depth *= smoothstep(sea_level_m + 0.05, sea_level_m + 0.8, g.x)
+			var shore: float = smoothstep(sea_level_m + 0.05, sea_level_m + 0.8, g.x)
+			depth *= shore
 			var cut: float = 1.0 if g.x < sea_level_m + 0.02 else 0.0
 			depth = maxf(depth, 0.0)
-			image.set_pixel(tx, ty, Color(g.x + depth, depth, cut))
+			## Depth is measured from the real ground, so the shader's ground stays true.
+			var top: float = g.x + (bed - g.x) * shore + depth
+			image.set_pixel(tx, ty, Color(top, top - g.x, cut))
 
 
 ## Snow top at a world point (bilinear), or -INF outside the window.
@@ -103,10 +111,50 @@ func _world_of(tx: int, ty: int) -> Vector2:
 	return origin + (Vector2(tx, ty) + Vector2(0.5, 0.5)) * texel_m()
 
 
-func _height_at(tx: int, ty: int) -> float:
+func _bed_at(tx: int, ty: int) -> float:
 	tx = clampi(tx, 0, res - 1)
 	ty = clampi(ty, 0, res - 1)
-	return _ground[ty * res + tx].x
+	return _bed[ty * res + tx]
+
+
+## The surface snow settles on: the ground box-blurred twice, never below it,
+## so hollows and terrain facets fill while nothing pokes through.
+func _smooth_bed() -> void:
+	var n: int = res * res
+	var a := PackedFloat32Array()
+	a.resize(n)
+	for i: int in range(n):
+		a[i] = _ground[i].x
+	var r: int = maxi(1, roundi(smooth_m / texel_m() * 0.5))
+	var b := PackedFloat32Array()
+	b.resize(n)
+	for _pass: int in range(2):
+		_blur_rows(a, b, r)
+		_blur_cols(b, a, r)
+	_bed.resize(n)
+	for i: int in range(n):
+		_bed[i] = maxf(a[i], _ground[i].x)
+
+
+func _blur_rows(src: PackedFloat32Array, dst: PackedFloat32Array, r: int) -> void:
+	for y: int in range(res):
+		var row: int = y * res
+		var sum: float = 0.0
+		for k: int in range(-r, r + 1):
+			sum += src[row + clampi(k, 0, res - 1)]
+		for x: int in range(res):
+			dst[row + x] = sum / float(2 * r + 1)
+			sum += src[row + mini(x + r + 1, res - 1)] - src[row + maxi(x - r, 0)]
+
+
+func _blur_cols(src: PackedFloat32Array, dst: PackedFloat32Array, r: int) -> void:
+	for x: int in range(res):
+		var sum: float = 0.0
+		for k: int in range(-r, r + 1):
+			sum += src[clampi(k, 0, res - 1) * res + x]
+		for y: int in range(res):
+			dst[y * res + x] = sum / float(2 * r + 1)
+			sum += src[mini(y + r + 1, res - 1) * res + x] - src[maxi(y - r, 0) * res + x]
 
 
 ## 0..1: how much an obstacle upwind shelters this point.
