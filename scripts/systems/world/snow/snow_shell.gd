@@ -59,6 +59,8 @@ const CONTACT_LAYER: int = 1 << 19
 ## Width of one sole and how far it reaches past the heel and toe bones.
 @export var sole_width_m: float = 0.11
 @export var sole_margin_m: float = 0.05
+## Width and length of the toe that drags through snow on a lifted foot.
+@export var drag_size_m: Vector2 = Vector2(0.07, 0.14)
 
 var field: SnowField = SnowField.new()
 
@@ -82,6 +84,7 @@ var _terrain: IslandTerrain
 var _world_root: Node
 var _sensor: FootContactSensor
 var _soles: Array[MeshInstance3D] = []
+var _drags: Array[MeshInstance3D] = []
 var _wading: bool = false
 
 
@@ -140,6 +143,7 @@ func _place_soles() -> void:
 		var sole: MeshInstance3D = _soles[side]
 		var foot: Dictionary = _sensor.get_foot(side) if _sensor != null else {}
 		var planted: bool = not foot.is_empty() and _sensor.is_planted(side)
+		_place_drag(side, foot, planted)
 		## A planted sole stays where it landed: the walk clip glides, a boot does not.
 		var landed: bool = planted and not sole.visible
 		sole.visible = planted
@@ -233,6 +237,26 @@ func _build_surface() -> void:
 
 
 ## A square grid, dense near the middle where Henry stands and coarser outwards.
+## A lifted foot's toe follows the boot every frame and presses only as deep
+## as it actually dips into the snow, so a low swing drags a furrow.
+func _place_drag(side: int, foot: Dictionary, planted: bool) -> void:
+	var drag: MeshInstance3D = _drags[side]
+	drag.visible = not foot.is_empty() and not planted
+	if not drag.visible:
+		return
+	var ball: Vector3 = foot["ball"]
+	var toe: Vector3 = foot["toe"]
+	var along := Vector3(toe.x - ball.x, 0.0, toe.z - ball.z)
+	if along.length_squared() < 0.0001:
+		along = Vector3.FORWARD
+	var bottom: float = minf(ball.y, toe.y) - 0.02
+	var centre := Vector3((ball.x + toe.x) * 0.5, bottom + 0.15, (ball.z + toe.z) * 0.5)
+	var basis := Basis.looking_at(along.normalized(), Vector3.UP)
+	drag.global_transform = Transform3D(
+		basis.scaled_local(Vector3(drag_size_m.x, 0.3, drag_size_m.y)), centre
+	)
+
+
 func _graded_grid() -> ArrayMesh:
 	var half: float = window_m * 0.5
 	var side: PackedFloat32Array = [0.0]
@@ -317,6 +341,14 @@ func _build_capture() -> void:
 		sole.visible = false
 		add_child(sole)
 		_soles.append(sole)
+		var drag := MeshInstance3D.new()
+		drag.name = "Drag%d" % i
+		drag.mesh = oval
+		drag.layers = CONTACT_LAYER
+		drag.cast_shadow = GeometryInstance3D.SHADOW_CASTING_SETTING_OFF
+		drag.visible = false
+		add_child(drag)
+		_drags.append(drag)
 	for i: int in range(2):
 		var vp: SubViewport = _viewport("SnowPacked%d" % i)
 		vp.render_target_update_mode = SubViewport.UPDATE_DISABLED

@@ -196,6 +196,10 @@ snow_ground.gdshader: top − packed + rim          MovementController speed
 - **Prints.** Below `wade_depth_m` (30 cm) only planted soles press: an oval
   sole is set where each foot lands and held until it lifts, so the gliding
   walk clip leaves separate prints. Deeper, Henry's whole mesh ploughs.
+- **Drag.** A lifted foot's toe follows the boot every frame and presses only
+  as deep as it actually dips into the snow: toe-off scuffs and touchdown
+  marks in shallow snow, drag furrows where the swing stays low. Nothing
+  presses while the toe is above the surface.
 - **Window.** 25.6 m, moved in 3.2 m steps; packing is shifted with it. The
   mesh is 3 cm near Henry and coarsens to 25 cm at the edge; packing is 2.5 cm.
 - **Cost.** One extra 512² render of layer 20 and one 512² 2D pass per frame,
