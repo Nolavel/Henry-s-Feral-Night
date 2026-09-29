@@ -30,6 +30,7 @@ var _visual_materials: Dictionary = {}
 var _stream_to_chunk: Dictionary = {}
 var _stream_active: Dictionary = {}
 var _stream_ring0_ready: bool = false
+var _excluded_building_ids: Dictionary = {}
 
 var _massing_material: StandardMaterial3D
 var _detail_material: StandardMaterial3D
@@ -67,6 +68,30 @@ func configure(terrain_node: IslandTerrain, data_path: String, enrichment_path: 
 
 ## Runtime-source API consumed by StreamingSystem. The JSON snapshot stays
 ## untouched; only exact chunk geometry is created/destroyed around the focus.
+## Suppresses source footprints replaced by authored gameplay buildings.
+## This is runtime-only: city_preview.json remains immutable.
+func exclude_buildings_near(point: Vector2, radius_m: float = 1.0) -> int:
+	var excluded: int = 0
+	for index: int in range(_buildings.size()):
+		var building := _buildings[index] as Dictionary
+		var proxy: Dictionary = building.get("proxy", {})
+		var position := Vector2(float(proxy.get("x", 0.0)), float(proxy.get("z", 0.0)))
+		if position.distance_to(point) <= radius_m:
+			if not _excluded_building_ids.has(index):
+				_excluded_building_ids[index] = true
+				excluded += 1
+	return excluded
+
+
+func _filtered_building_ids(ids: Array) -> Array:
+	var filtered: Array = []
+	for id_variant: Variant in ids:
+		var index: int = int(id_variant)
+		if not _excluded_building_ids.has(index):
+			filtered.append(index)
+	return filtered
+
+
 func get_stream_chunks() -> Array:
 	_index_stream_chunks()
 	var descriptors: Array = []
@@ -376,7 +401,7 @@ func _ensure_massing(state: Dictionary) -> void:
 	if state["massing"] != null:
 		return
 	var chunk: Dictionary = state["data"]
-	var building_ids: Array = chunk.get("building_ids", [])
+	var building_ids: Array = _filtered_building_ids(chunk.get("building_ids", []))
 	if building_ids.is_empty():
 		return
 
@@ -415,7 +440,7 @@ func _ensure_detail(state: Dictionary) -> void:
 	if state["detail"] != null:
 		return
 	var chunk: Dictionary = state["data"]
-	var building_ids: Array = chunk.get("building_ids", [])
+	var building_ids: Array = _filtered_building_ids(chunk.get("building_ids", []))
 	if building_ids.is_empty():
 		return
 	var holder := Node3D.new()

@@ -70,7 +70,7 @@ jobs:
         run: tools/ci/run_tests.sh
 
   color-grade-preview:
-    if: github.event_name == 'push' && !contains(github.event.head_commit.message, '[key-west-preview]') && !contains(github.event.head_commit.message, '[key-west-tps]')
+    if: github.event_name == 'push' && !contains(github.event.head_commit.message, '[key-west-preview]') && !contains(github.event.head_commit.message, '[key-west-tps]') && !contains(github.event.head_commit.message, '[key-west-first-exit]')
     runs-on: ubuntu-latest
     timeout-minutes: 12
     steps:

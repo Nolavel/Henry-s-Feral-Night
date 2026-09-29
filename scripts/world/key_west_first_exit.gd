@@ -56,6 +56,9 @@ func on_world_ready(context: WorldContext) -> void:
 		_city.queue_free()
 		_city = null
 		return
+	var replaced: int = _city.exclude_buildings_near(SHELTER_XZ, 1.0)
+	if replaced != 1:
+		push_warning("KeyWestFirstExit: expected to replace one Fort Street footprint, excluded %d" % replaced)
 	var streaming := context.get_system(STREAMING_SCRIPT) as StreamingSystem
 	if streaming == null:
 		push_error("KeyWestFirstExit: shared StreamingSystem is missing")
