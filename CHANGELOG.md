@@ -5,6 +5,21 @@ Maintained per branch; entries are added by whoever makes the change.
 
 ## [Unreleased] — `codex`
 
+### 2026-09-29 - Key West city meshes and shelter seating from the #138 audit (claudeflow)
+
+Fixed
+- City buildings face out whatever their OSM winding (48 % were inverted), sit
+  on one base height with walls sunk 0.3 m, and roofs meet their walls.
+- Pitched roofs follow the footprint's own box; odd lots keep a flat roof with
+  a parapet; gable ends are closed. Windows and awnings sit on the real wall.
+- Buildings (per active detail chunk) and mapped fences now have collision.
+- The First Exit shelter moved to a vacant Fort Street lot (no house or road
+  under its yard), porch to the street, seated by its stair foot with a walkable
+  ramp and a plinth; the shelter start is in front of the porch.
+
+Added
+- `tests/systems/test_city_meshes.gd`; lot checks in `test_key_west_first_exit.gd`.
+
 ### 2026-09-29 - Henry wades through deep snow (claudeflow)
 
 Added

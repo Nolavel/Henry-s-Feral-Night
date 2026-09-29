@@ -102,6 +102,80 @@ static func roof_shape(building: Dictionary, enrichment: Dictionary) -> String:
 	return "gabled" if float(building.get("area_m2", 0.0)) < 260.0 else "flat"
 
 
+## Footprint as a polygon with positive signed area, so walls built edge by
+## edge face out and caps face up whatever order OSM stored it in.
+static func normalized_footprint(values: Array) -> PackedVector2Array:
+	var polygon := PackedVector2Array()
+	for point_variant: Variant in values:
+		var point := point_variant as Array
+		var p := Vector2(float(point[0]), float(point[1]))
+		if polygon.is_empty() or not polygon[polygon.size() - 1].is_equal_approx(p):
+			polygon.append(p)
+	if polygon.size() > 2 and polygon[0].is_equal_approx(polygon[polygon.size() - 1]):
+		polygon.remove_at(polygon.size() - 1)
+	if signed_area(polygon) < 0.0:
+		polygon.reverse()
+	return polygon
+
+
+static func signed_area(polygon: PackedVector2Array) -> float:
+	var area: float = 0.0
+	for i: int in range(polygon.size()):
+		var a: Vector2 = polygon[i]
+		var b: Vector2 = polygon[(i + 1) % polygon.size()]
+		area += a.x * b.y - b.x * a.y
+	return area * 0.5
+
+
+## One ground height per building: the lowest corner, so no wall floats.
+static func building_base(polygon: PackedVector2Array, terrain: IslandTerrain) -> float:
+	var base: float = INF
+	for p: Vector2 in polygon:
+		base = minf(base, maxf(terrain.get_height(p.x, p.y), 0.0))
+	return base if base != INF else 0.0
+
+
+## The footprint's own oriented box when it is close to a rectangle, else empty.
+static func footprint_box(polygon: PackedVector2Array) -> Dictionary:
+	if polygon.size() != 4:
+		return {}
+	var e0: Vector2 = polygon[1] - polygon[0]
+	var e1: Vector2 = polygon[2] - polygon[1]
+	var width: float = e0.length()
+	var depth: float = e1.length()
+	if width < 0.5 or depth < 0.5 or absf(e0.normalized().dot(e1.normalized())) > 0.2:
+		return {}
+	if absf(signed_area(polygon)) < width * depth * 0.85:
+		return {}
+	var center: Vector2 = (polygon[0] + polygon[1] + polygon[2] + polygon[3]) * 0.25
+	return {"center": center, "width": width, "depth": depth, "angle": atan2(e0.y, e0.x)}
+
+
+## A triangle whose front face points along `facing`, with that as its normal.
+static func emit_tri(
+	vertices: PackedVector3Array,
+	normals: PackedVector3Array,
+	colors: PackedColorArray,
+	indices: PackedInt32Array,
+	a: Vector3,
+	b: Vector3,
+	c: Vector3,
+	facing: Vector3,
+	color: Color
+) -> void:
+	if (b - a).cross(c - a).dot(facing) < 0.0:
+		var swap: Vector3 = b
+		b = c
+		c = swap
+	var normal: Vector3 = facing.normalized()
+	var base: int = vertices.size()
+	for v: Vector3 in [a, b, c]:
+		vertices.append(v)
+		normals.append(normal)
+		colors.append(color)
+	indices.append_array([base, base + 1, base + 2])
+
+
 static func build_roof_mesh(
 	buildings: Array,
 	building_ids: Array,
@@ -119,16 +193,20 @@ static func build_roof_mesh(
 		var shape: String = roof_shape(building, enrichment)
 		if shape == "flat":
 			continue
-		var proxy: Dictionary = building.get("proxy", {})
-		var center := Vector2(float(proxy.get("x", 0.0)), float(proxy.get("z", 0.0)))
-		var width: float = maxf(float(proxy.get("width", 2.5)) + 0.35, 2.8)
-		var depth: float = maxf(float(proxy.get("depth", 2.5)) + 0.35, 2.8)
-		var angle: float = float(proxy.get("angle", 0.0))
+		## Pitched roofs sit on the footprint's own box; other shapes keep a flat
+		## roof with a parapet, as most of old Key West's odd lots do.
+		var polygon: PackedVector2Array = normalized_footprint(building.get("footprint", []))
+		var box: Dictionary = footprint_box(polygon)
+		if box.is_empty():
+			continue
+		var center: Vector2 = box["center"]
+		var width: float = float(box["width"]) + 0.35
+		var depth: float = float(box["depth"]) + 0.35
+		var angle: float = box["angle"]
 		var height: float = effective_height(building, enrichment)
 		var attrs: Dictionary = _building_attrs(building, enrichment)
 		var roof_h: float = clampf(_float_or(attrs.get("roof_height"), minf(2.1, maxf(width, depth) * 0.16)), 0.55, 3.0)
-		var ground: float = maxf(terrain.get_height(center.x, center.y), 0.0)
-		var base_y: float = ground + height + 0.03
+		var base_y: float = building_base(polygon, terrain) + height + 0.03
 		var color: Color = roof_color(building, enrichment)
 
 		if shape in ["hipped", "pyramidal"]:
@@ -159,22 +237,33 @@ static func build_facade_accents(
 		var add_canopy: bool = kind in ["retail", "commercial", "hotel", "terrace"]
 		if street == "Duval Street" and kind not in ["shed", "garage", "roof", "carport"]:
 			add_canopy = true
-		var proxy: Dictionary = building.get("proxy", {})
-		var center := Vector2(float(proxy.get("x", 0.0)), float(proxy.get("z", 0.0)))
-		var width: float = maxf(float(proxy.get("width", 3.0)), 3.0)
-		var depth: float = maxf(float(proxy.get("depth", 3.0)), 3.0)
-		var angle: float = float(proxy.get("angle", 0.0))
-		var front := _rotated(center, angle, 0.0, -depth * 0.5 - 0.42)
-		var ground: float = maxf(terrain.get_height(center.x, center.y), 0.0)
-		if add_canopy:
+		## Accents sit on the footprint's longest wall, flush with it, never on a proxy box.
+		var polygon: PackedVector2Array = normalized_footprint(building.get("footprint", []))
+		if polygon.size() < 3:
+			continue
+		var edge_start: Vector2 = polygon[0]
+		var edge_end: Vector2 = polygon[1 % polygon.size()]
+		for i: int in range(polygon.size()):
+			var a: Vector2 = polygon[i]
+			var b: Vector2 = polygon[(i + 1) % polygon.size()]
+			if a.distance_to(b) > edge_start.distance_to(edge_end):
+				edge_start = a
+				edge_end = b
+		var width: float = edge_start.distance_to(edge_end)
+		var right: Vector2 = (edge_end - edge_start) / maxf(width, 0.001)
+		var outward := Vector2(right.y, -right.x)
+		var angle: float = atan2(-outward.x, -outward.y)
+		var mid: Vector2 = (edge_start + edge_end) * 0.5
+		var ground: float = building_base(polygon, terrain)
+		if add_canopy and width >= 2.5:
+			var front: Vector2 = mid + outward * 0.42
 			var basis := Basis(Vector3.UP, angle).scaled(Vector3(maxf(width * 0.68, 2.2), 0.13, 0.85))
 			transforms.append(Transform3D(basis, Vector3(front.x, ground + 2.65, front.y)))
 		if kind not in ["shed", "garage", "roof", "carport", "warehouse", "hangar"] and width >= 4.0:
 			var windows: int = clampi(int(floor(width / 4.5)), 1, 4)
-			var right := Vector2(cos(angle), sin(angle))
 			for wi: int in range(windows):
 				var ratio: float = (float(wi) + 0.5) / float(windows) - 0.5
-				var wp: Vector2 = front + right * ratio * width * 0.72
+				var wp: Vector2 = mid + right * ratio * width * 0.72 + outward * 0.05
 				var wbasis := Basis(Vector3.UP, angle).scaled(Vector3(minf(1.25, width / float(windows) * 0.42), 0.72, 0.09))
 				window_transforms.append(Transform3D(wbasis, Vector3(wp.x, ground + 1.55, wp.y)))
 	if transforms.is_empty() and window_transforms.is_empty():
@@ -434,6 +523,18 @@ static func build_supplemental_node(terrain: IslandTerrain, enrichment: Dictiona
 	_add_mesh_child(holder, "CoastlineEdge", coast_v, coast_n, PackedColorArray(), coast_i, materials["coast"])
 	_add_mesh_child(holder, "PiersBreakwaters", pier_v, pier_n, PackedColorArray(), pier_i, materials["pier"])
 	_add_mesh_child(holder, "FencesWalls", barrier_v, barrier_n, PackedColorArray(), barrier_i, materials["barrier"])
+	var fences := holder.get_node_or_null(^"FencesWalls") as MeshInstance3D
+	if fences != null:
+		## Mapped fences and walls stop Henry as the buildings do.
+		var shape := ConcavePolygonShape3D.new()
+		shape.set_faces(fences.mesh.get_faces())
+		shape.backface_collision = true
+		var collision := CollisionShape3D.new()
+		collision.shape = shape
+		var body := StaticBody3D.new()
+		body.name = "FenceCollision"
+		body.add_child(collision)
+		fences.add_child(body)
 	_add_poles(holder, "StreetLamps", lamp_points, 4.6, 0.055, terrain, materials["pole"])
 	_add_poles(holder, "PowerPoles", pole_points, 8.5, 0.095, terrain, materials["pole"])
 	_add_poles(holder, "Towers", tower_points, 13.0, 0.16, terrain, materials["pole"])
@@ -747,10 +848,13 @@ static func _append_gable_roof(
 		var d := _rotated(center, angle, hw, hd)
 		var r0 := _rotated(center, angle, -hw, 0.0)
 		var r1 := _rotated(center, angle, hw, 0.0)
-		_append_roof_tri(vertices, normals, colors, indices, a, c, r0, base_y, base_y, base_y + roof_h, color)
+		## Two slopes down from the ridge r0–r1 to the long eaves a–b and c–d.
+		_append_roof_tri(vertices, normals, colors, indices, a, b, r1, base_y, base_y, base_y + roof_h, color)
+		_append_roof_tri(vertices, normals, colors, indices, a, r1, r0, base_y, base_y + roof_h, base_y + roof_h, color)
+		_append_roof_tri(vertices, normals, colors, indices, c, d, r1, base_y, base_y, base_y + roof_h, color)
 		_append_roof_tri(vertices, normals, colors, indices, c, r1, r0, base_y, base_y + roof_h, base_y + roof_h, color)
-		_append_roof_tri(vertices, normals, colors, indices, b, r0, d, base_y, base_y + roof_h, base_y, color)
-		_append_roof_tri(vertices, normals, colors, indices, d, r0, r1, base_y, base_y + roof_h, base_y + roof_h, color)
+		_append_gable_end(vertices, normals, colors, indices, a, c, r0, center, base_y, roof_h, color)
+		_append_gable_end(vertices, normals, colors, indices, b, d, r1, center, base_y, roof_h, color)
 	else:
 		var a := _rotated(center, angle, -hw, -hd)
 		var b := _rotated(center, angle, hw, -hd)
@@ -762,6 +866,30 @@ static func _append_gable_roof(
 		_append_roof_tri(vertices, normals, colors, indices, c, r0, r1, base_y, base_y + roof_h, base_y + roof_h, color)
 		_append_roof_tri(vertices, normals, colors, indices, b, d, r0, base_y, base_y, base_y + roof_h, color)
 		_append_roof_tri(vertices, normals, colors, indices, d, r1, r0, base_y, base_y + roof_h, base_y + roof_h, color)
+		_append_gable_end(vertices, normals, colors, indices, a, b, r0, center, base_y, roof_h, color)
+		_append_gable_end(vertices, normals, colors, indices, c, d, r1, center, base_y, roof_h, color)
+
+
+## The vertical triangle closing one end of a gable, facing away from the house.
+static func _append_gable_end(
+	vertices: PackedVector3Array,
+	normals: PackedVector3Array,
+	colors: PackedColorArray,
+	indices: PackedInt32Array,
+	left: Vector2,
+	right: Vector2,
+	ridge: Vector2,
+	center: Vector2,
+	base_y: float,
+	roof_h: float,
+	color: Color
+) -> void:
+	var out: Vector2 = ((left + right) * 0.5 - center).normalized()
+	emit_tri(
+		vertices, normals, colors, indices,
+		Vector3(left.x, base_y, left.y), Vector3(right.x, base_y, right.y),
+		Vector3(ridge.x, base_y + roof_h, ridge.y), Vector3(out.x, 0.0, out.y), color
+	)
 
 
 static func _append_hip_roof(

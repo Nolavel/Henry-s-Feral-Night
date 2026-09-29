@@ -21,7 +21,8 @@ func _initialize() -> void:
 	var content := KeyWestFirstExit.new()
 	_check(content.get_route_distance_m() > 680.0 and content.get_route_distance_m() < 740.0, "Whitehead to Fort Street route is no longer about 700 m")
 	_check(content.get_bunker_xz().distance_to(Vector2(-3452.88, 2273.84)) < 0.1, "Whitehead Spit anchor changed")
-	_check(content.get_shelter_xz().distance_to(Vector2(-3551.61, 1567.72)) < 0.1, "Fort Street shelter anchor changed")
+	_check(content.get_shelter_xz().distance_to(Vector2(-3579.85, 1574.51)) < 0.1, "Fort Street shelter anchor changed")
+	_check_lot_is_clear(content)
 	var weather := WeatherController.new()
 	weather.profiles = WeatherController.load_profiles_from("res://resources/weather")
 	weather.apply_world_profile(profile)
@@ -42,3 +43,28 @@ func _check(ok: bool, message: String) -> void:
 	if not ok:
 		_failures += 1
 		push_error(message)
+
+
+## The chosen lot holds no OSM building or road inside the fenced yard.
+func _check_lot_is_clear(content: KeyWestFirstExit) -> void:
+	var data: Variant = JSON.parse_string(FileAccess.get_file_as_string("res://data/world/key_west/city_preview.json"))
+	if not data is Dictionary:
+		_check(false, "city data failed to load")
+		return
+	var yaw: float = deg_to_rad(KeyWestFirstExit.SHELTER_YAW_DEG)
+	var yard := PackedVector2Array()
+	for corner: Vector2 in [Vector2(-8, -10), Vector2(10, -10), Vector2(10, 14), Vector2(-8, 14)]:
+		yard.append(content.get_shelter_xz() + corner.rotated(-yaw))
+	var blocking: int = 0
+	for building: Dictionary in data["buildings"]:
+		var polygon: PackedVector2Array = KeyWestCityVisuals.normalized_footprint(building["footprint"])
+		if polygon.size() >= 3 and polygon[0].distance_to(content.get_shelter_xz()) < 120.0:
+			if not Geometry2D.intersect_polygons(polygon, yard).is_empty():
+				blocking += 1
+	_check(blocking == 0, "%d city buildings stand inside the shelter yard" % blocking)
+	for road: Dictionary in data["roads"]:
+		for point: Array in road["points"]:
+			var p := Vector2(float(point[0]), float(point[1]))
+			if p.distance_to(content.get_shelter_xz()) < 60.0 and Geometry2D.is_point_in_polygon(p, yard):
+				_check(false, "road %s runs through the shelter yard" % road.get("name", "?"))
+				return
