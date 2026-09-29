@@ -25,6 +25,80 @@ Added
   displaced rim; they fill back in with snowfall.
 - `MovementController.snow_speed_multiplier`: 1.0 on bare ground to 0.6 at 50 cm.
 - `tests/systems/test_snow_shell.gd` covers the field.
+### 2026-09-29 - Add an inspector toggle for the shelter start (codex)
+
+Changed
+- Export World.spawn_at_shelter, default false. True selects the Fort Street
+  shelter entrance; false keeps the authored Whitehead bunker scenario.
+- Transplant the existing First Exit entrance marker into Key West, preserving
+  its orientation and placing it above the NOAA terrain. Select it before world
+  lifecycle notifications so camera, terrain and city streaming use the start.
+- Weather and Continue restoration retain their existing behavior. Continue the
+  author-approved main workflow for this related startup edit.
+
+Validation
+- Clean Godot import and compilation of all 217 project scripts passed.
+  Real-world checks passed for both false
+  (Whitehead, 3 ACTIVE chunks) and true (Fort Street entrance, 4 ACTIVE chunks):
+  player grounded, matching terrain, 148 registered city chunks, initial blizzard.
+- The shelter mode rendered a non-black Vulkan frame without script errors.
+
+### 2026-09-29 - Start in Key West and archive Graciosa (codex, author-approved main pass)
+
+Changed
+- Set F5 and the title-menu game target to the complete Key West world scene.
+  Pin its world profile in the scene so startup needs no HFN_WORLD override.
+- Commit the real 2 m NOAA crop, source metadata and frozen city/enrichment/ocean
+  mask snapshot. Preserve source receipts; normal startup needs no GIS downloads.
+- Move the Graciosa scene, terrain/source images and WorldData to archive/graciosa.
+  Preserve image bytes and scene UID; pin the archived scene to its own profile.
+  Update dependent capture/bake tools, tests and docs to the archived paths.
+- Keep the shared First Exit bunker/shelter and gameplay systems in place. Key West
+  retains the Whitehead-to-Fort-Street route, blizzard and city streaming. Clear
+  references to the discarded template owner before transplanting its nodes.
+- Match HeightMapShape3D collision spacing to the dataset resolution. The 2 m
+  Key West surface previously had 1 m collision patches and allowed falling
+  below the rendered ground. Preserve real elevation through uniform scaling.
+- Update the CLAUDE.md heightmap-source path and current product/world documents.
+  The author explicitly requested this pass directly on main; branch conventions
+  remain unchanged for subsequent work.
+
+Validation
+- Project script compilation, startup presentation, input-map and archived streaming
+  checks passed. Graciosa source/runtime heightmap hashes match the previous commit.
+- Final lossless Image import and 217-script compilation passed. World profiles,
+  Key West First Exit, startup presentation and stove/world-time suites passed.
+- Real Vulkan startup with no HFN_WORLD override registered 148 city chunks
+  (3 ACTIVE), started blizzard at Whitehead, and rendered a non-black frame.
+  With physics active, the player settles on the visible terrain instead of
+  falling underneath. Raycast checks passed for both 1 m Graciosa and 2 m Key West.
+- The complete NOAA DEM matches its original S3 multipart ETag; every packed
+  heightmap pixel equals the committed 16-bit crop. Receipts use Git-stable LF.
+- Full-suite success remains unverified: the unchanged nightly stove-act and
+  shelter-focus fixture failures are documented in GODOT_AI_INTEGRATION.md.
+  Godot-generated import metadata retains its normal blank line at EOF.
+
+### 2026-09-29 - Resolve Godot AI installation conflicts and integrate main (codex)
+
+Changed
+- Replace the mixed v3.2.1/migration-only addon with the complete Godot AI 4.2.3
+  release. All 313 vendored files match the supplied inventory; retain MIT license
+  and record archive provenance in docs/technical/godot_ai_vendor_receipt.json.
+- Resolve four add/add conflicts with one coherent release, enable the editor
+  plugin and its game helper, and remove superseded v3 files/migration archives.
+- Merge main into codex, preserving PR #137 stove/door/pickup fixes and PR #140
+  Key West First Exit. Add the ten generated UID companions for Key West scripts.
+- Update the world-profile test for configured Key West paths and missing-terrain
+  readiness; document the conflict decision in GODOT_AI_INTEGRATION.md.
+
+Validation
+- Godot 4.8 dev6 .NET build and repeat import passed; 217 project and 155 addon
+  scripts compiled. Input map and filename/UID checks passed. TestScene rendered
+  a non-black Vulkan frame without script errors.
+- Ten focused suites passed. Two unchanged main fixtures (stove act and shelter
+  focus) fail against the nightly guaranteed-strike/external-presentation contract;
+  details are recorded in GODOT_AI_INTEGRATION.md. Full-suite success is unverified.
+- Vendored EOF whitespace is preserved; diff check ignores only blank-at-eof.
 
 ### 2026-09-29 - Complete the pickup requested before walking (codex)
 

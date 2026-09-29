@@ -1,11 +1,13 @@
 # Vertical slice — First Exit A: One Land Night
 
-Status: **current production target; live candidate awaiting a stranger run**, updated 2026-09-28.
+Status: **current production target; live candidate awaiting a stranger run**, updated 2026-09-29.
 Reference: *The Long Dark* for survival decision pressure; *The Road* for tone.
 
 This document is the current scope contract for the first playable slice.
 World coordinates, route lengths and authored placement live in
-`docs/world/FIRST_EXIT.md` and `data/world/first_exit_layout.json`.
+`docs/world/KEY_WEST_FIRST_EXIT.md`. The shared First Exit template retains its
+authored local layout in `data/world/first_exit_layout.json`; the older Graciosa
+route measurements are preserved in `docs/world/FIRST_EXIT.md`.
 
 ## 1. Split: A now, B later
 
@@ -13,7 +15,7 @@ The old "One Night on the Ice" target has been split.
 
 ### A — First Exit: land night
 
-The current milestone is one uninterrupted land survival run on Graciosa:
+The current milestone is one uninterrupted land survival run on Key West:
 
 ```
 bunker exit
@@ -57,10 +59,12 @@ active abilities; his weight is part of what Henry chooses to keep carrying.
 
 ## 3. What already exists in production
 
-- Graciosa runs on `IslandTerrain` built from the heightmap source.
+- Key West runs on `IslandTerrain` built from NOAA-derived height data; the
+  archived Graciosa terrain and scene are retained in `archive/graciosa/`.
 - First Exit is a data-driven suburb/route blockout with resolved coordinates.
-- Land routes are measured at human walk speed:
-  road about 4.8 min, shore about 5.5 min, ruins about 5.7 min.
+- The current Key West route is about 713 m from Whitehead Spit to Fort Street.
+  The archived Graciosa route measurements (road 4.8 min, shore 5.5 min, ruins
+  5.7 min) remain historical; the new continuous route still needs a playtest.
 - Thermal model: ambient cold, wind chill, shelter, wetness and heat.
 - Weather profiles: calm, snowfall, windy and blizzard.
 - Hunger, thirst, energy and carry-weight pressure.

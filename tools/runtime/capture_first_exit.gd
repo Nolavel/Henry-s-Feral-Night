@@ -6,7 +6,7 @@ extends SceneTree
 ## the real main scene with every system running.
 ## Run: xvfb-run godot --path . --rendering-driver vulkan --script res://tools/runtime/capture_first_exit.gd
 
-const SCENE: String = "res://experimental_location/scenes/Graciosa_Island_Terrain.tscn"
+const SCENE: String = "res://archive/graciosa/scenes/Graciosa_Island_Terrain.tscn"
 const BLOCKOUT: String = "res://scenes/world/first_exit/first_exit_blockout.tscn"
 const OUT_DIR: String = "user://shots/first_exit"
 const WARMUP_FRAMES: int = 60

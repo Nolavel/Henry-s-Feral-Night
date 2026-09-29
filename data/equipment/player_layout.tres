@@ -88,16 +88,4 @@ excluded_from_auto_stow = true
 
 [resource]
 script = ExtResource("layout")
-body_slots = Array[ExtResource("slot")]([
-SubResource("Slot_head_outer"),
-SubResource("Slot_torso_base"),
-SubResource("Slot_torso_mid"),
-SubResource("Slot_torso_outer"),
-SubResource("Slot_legs_base"),
-SubResource("Slot_legs_mid"),
-SubResource("Slot_legs_outer"),
-SubResource("Slot_feet_base"),
-SubResource("Slot_feet_outer"),
-SubResource("Slot_pack"),
-SubResource("Slot_fixture")
-])
+body_slots = Array[ExtResource("slot")]([SubResource("Slot_head_outer"), SubResource("Slot_torso_base"), SubResource("Slot_torso_mid"), SubResource("Slot_torso_outer"), SubResource("Slot_legs_base"), SubResource("Slot_legs_mid"), SubResource("Slot_legs_outer"), SubResource("Slot_feet_base"), SubResource("Slot_feet_outer"), SubResource("Slot_pack"), SubResource("Slot_fixture")])

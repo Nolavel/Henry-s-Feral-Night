@@ -3,12 +3,18 @@ extends Node3D
 
 ## The island ground built from the heightmap: square chunks with three
 ## levels of detail, skirts against cracks, and height-field collision only
-## near the focus (HeightMapShape3D spacing is 1 m, as is the map).
+## near the focus, with collision spacing matched to the dataset resolution.
 
 const SHADER: Shader = preload("res://shaders/environment/terrain/island_terrain.gdshader")
 ## Grid spacing of each level of detail, in heightmap pixels.
 const LOD_STEPS: Array[int] = [1, 4, 16]
 
+@export_group("Heightmap")
+## Game-readable LA8 heightmap. Defaults preserve the archived Graciosa test profile.
+@export_file("*.png") var heightmap_image_path: String = IslandHeightmap.DEFAULT_IMAGE
+@export_file("*.json") var heightmap_meta_path: String = IslandHeightmap.DEFAULT_META
+
+@export_group("Terrain")
 @export var chunk_size_px: int = 128
 ## Chunk centre closer than this gets full detail, then the next level.
 @export var lod_distances_m: Array[float] = [192.0, 768.0]
@@ -32,13 +38,35 @@ var _queue: Array = []
 
 
 func _ready() -> void:
-	heightmap = IslandHeightmap.load_default()
+	reload_heightmap(heightmap_image_path, heightmap_meta_path)
+
+
+func reload_heightmap(image_path: String, meta_path: String) -> bool:
+	heightmap_image_path = image_path
+	heightmap_meta_path = meta_path
+	_clear_chunks()
+	heightmap = IslandHeightmap.load_from(heightmap_image_path, heightmap_meta_path)
 	if heightmap == null:
-		return
-	_material = ShaderMaterial.new()
-	_material.shader = SHADER
+		return false
+	if _material == null:
+		_material = ShaderMaterial.new()
+		_material.shader = SHADER
 	_register_chunks()
 	update_now()
+	return true
+
+
+func _clear_chunks() -> void:
+	_queue.clear()
+	for chunk_variant: Variant in _chunks.values():
+		var chunk := chunk_variant as Dictionary
+		for field: String in ["body", "inst"]:
+			var node := chunk.get(field) as Node
+			if is_instance_valid(node):
+				if node.get_parent() != null:
+					node.get_parent().remove_child(node)
+				node.queue_free()
+	_chunks.clear()
 
 
 func _process(delta: float) -> void:
@@ -211,6 +239,7 @@ func _set_collision(key: Vector2i, wanted: bool) -> void:
 		(chunk["body"] as Node).queue_free()
 		chunk["body"] = null
 		return
+	var spacing: float = heightmap.metres_per_px
 	var size: int = chunk_size_px + 1
 	var data := PackedFloat32Array()
 	data.resize(size * size)
@@ -218,13 +247,15 @@ func _set_collision(key: Vector2i, wanted: bool) -> void:
 	var r0: int = key.y * chunk_size_px
 	for r: int in range(size):
 		for c: int in range(size):
-			data[r * size + c] = heightmap.height_at_px(c0 + c, r0 + r)
+			data[r * size + c] = heightmap.height_at_px(c0 + c, r0 + r) / spacing
 	var shape := HeightMapShape3D.new()
 	shape.map_width = size
 	shape.map_depth = size
 	shape.map_data = data
 	var body := StaticBody3D.new()
 	body.name = "Collision_%d_%d" % [key.x, key.y]
+	## Uniform shape scale gives the real XY spacing; divided heights retain metres.
+	body.scale = Vector3.ONE * spacing
 	var col := CollisionShape3D.new()
 	col.shape = shape
 	body.add_child(col)

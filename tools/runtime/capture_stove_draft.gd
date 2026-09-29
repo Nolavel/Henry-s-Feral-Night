@@ -2,7 +2,7 @@ extends SceneTree
 
 ## Native main-scene proof: physical held lighter, filtered SFX output and door snow snapshots.
 const OUT: String = "res://.godot/codex-checks/live-stove-final"
-const SCENE: String = "res://experimental_location/scenes/Graciosa_Island_Terrain.tscn"
+const SCENE: String = "res://archive/graciosa/scenes/Graciosa_Island_Terrain.tscn"
 var _camera: Camera3D
 var _record: AudioEffectRecord
 var _bus: int = -1

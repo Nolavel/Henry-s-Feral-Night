@@ -1,0 +1,13 @@
+[gd_resource type="Resource" script_class="WorldProfile" load_steps=2 format=3]
+
+[ext_resource type="Script" path="res://core/world/resources/world_profile.gd" id="1_profile"]
+
+[resource]
+script = ExtResource("1_profile")
+id = &"graciosa"
+display_name = "Graciosa (archived world)"
+terrain_image_path = "res://archive/graciosa/terrain/graciosa_height_la8.png"
+terrain_meta_path = "res://archive/graciosa/terrain/graciosa_height_la8.json"
+world_data_path = "res://archive/graciosa/data/world_data.tres"
+experimental = false
+source_note = "Archived authored island dataset; retained for direct archive launches and isolated tests."

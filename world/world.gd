@@ -26,6 +26,7 @@ extends Node3D
 ## Optional lifecycle hook. Anything in the three lists below, plus the
 ## player, may implement it; nodes that do not are skipped silently.
 const WORLD_READY_METHOD: StringName = &"on_world_ready"
+const APPLY_WORLD_PROFILE_METHOD: StringName = &"apply_world_profile"
 
 ## Node systems — .new(), parented to World.
 const WORLD_SYSTEM_SCRIPTS: Array[GDScript] = [
@@ -61,6 +62,8 @@ const UI_CANVAS_LAYER_INDEX: int = 40
 const SPAWN_CLEARANCE: float = 1.0
 
 @export_group("Scene wiring")
+## A playable scene may pin its dataset independently of developer test defaults.
+@export var world_profile: WorldProfile
 ## Container the streaming pipeline fills. Created if absent.
 @export var stream_container: Node3D
 ## Player already present in the scene; one is not spawned when this is set.
@@ -69,15 +72,23 @@ const SPAWN_CLEARANCE: float = 1.0
 @export var camera: Camera3D
 ## Where the player starts. Freed after use, as the old GameRouter did.
 @export var first_spawner_marker: Marker3D
+## Start at the shelter entrance instead of the authored scenario spawn.
+@export var spawn_at_shelter: bool = false
 ## Off for a scene with its own floor, such as TestScene, so the island's
 ## chunks are not streamed on top of it.
 @export var streaming_enabled: bool = true
 
 var _systems: Array[Node] = []
 var _context: WorldContext
+var _profile: WorldProfile
+var _profile_content: Node3D
 
 
 func _ready() -> void:
+	_profile = world_profile if world_profile != null else WorldProfileCatalog.load_selected()
+	if _profile != null and _profile.prewarm_before_first_frame:
+		initialize()
+		return
 	await get_tree().process_frame
 	initialize()
 
@@ -88,6 +99,10 @@ func initialize() -> void:
 	if _context != null:
 		return
 	_resolve_scene_nodes()
+	if _profile == null:
+		_profile = world_profile if world_profile != null else WorldProfileCatalog.load_selected()
+	_apply_profile_terrain()
+	_apply_profile_content()
 	_build_systems()
 	_place_player()
 	_context = _build_context()
@@ -121,15 +136,72 @@ func _resolve_scene_nodes() -> void:
 		camera = get_node_or_null("PlayerCamera") as Camera3D
 
 
+func _apply_profile_terrain() -> void:
+	if _profile == null or not _profile.terrain_is_configured():
+		return
+	var terrain := get_node_or_null("IslandTerrain") as IslandTerrain
+	if terrain == null:
+		push_warning("World: selected profile has terrain data but the scene has no IslandTerrain")
+		return
+	if not FileAccess.file_exists(_profile.terrain_image_path) or not FileAccess.file_exists(_profile.terrain_meta_path):
+		push_error("World: terrain for '%s' is not built; run its documented offline bake first" % _profile.id)
+		return
+	if terrain.heightmap != null and terrain.heightmap_image_path == _profile.terrain_image_path \
+		and terrain.heightmap_meta_path == _profile.terrain_meta_path:
+		return
+	if not terrain.reload_heightmap(_profile.terrain_image_path, _profile.terrain_meta_path):
+		push_error("World: failed to load terrain for '%s'" % _profile.id)
+
+
+func _apply_profile_content() -> void:
+	if _profile == null or _profile.content_scene_path == "":
+		return
+	if not ResourceLoader.exists(_profile.content_scene_path):
+		push_error("World: content scene for '%s' is missing: %s" % [_profile.id, _profile.content_scene_path])
+		return
+	var legacy := get_node_or_null("FirstExitBlockout")
+	if legacy != null:
+		first_spawner_marker = null
+		remove_child(legacy)
+		legacy.queue_free()
+	var packed := load(_profile.content_scene_path) as PackedScene
+	if packed == null:
+		push_error("World: cannot load content scene %s" % _profile.content_scene_path)
+		return
+	_profile_content = packed.instantiate() as Node3D
+	if _profile_content == null:
+		push_error("World: content scene root must be Node3D")
+		return
+	_profile_content.name = "ProfileContent"
+	add_child(_profile_content)
+	if _profile_content.has_method(&"prepare_world_content"):
+		_profile_content.call(&"prepare_world_content", self)
+	var marker := _profile_content.find_child(String(_profile.spawn_marker_name), true, false) as Marker3D
+	if marker != null:
+		first_spawner_marker = marker
+	else:
+		push_error("World: profile '%s' has no spawn marker '%s'" % [_profile.id, _profile.spawn_marker_name])
+
+
 func _build_systems() -> void:
 	for system_script: GDScript in WORLD_SYSTEM_SCRIPTS:
 		var instance: Node = system_script.new()
+		if _profile != null and instance.has_method(APPLY_WORLD_PROFILE_METHOD):
+			instance.call(APPLY_WORLD_PROFILE_METHOD, _profile)
 		add_child(instance)
 		_systems.append(instance)
 
 
 ## Moves the player onto the spawn marker, then drops the marker.
 func _place_player() -> void:
+	if spawn_at_shelter:
+		var shelter_spawn := find_child("ShelterSpawnPoint", true, false) as Marker3D
+		if shelter_spawn != null:
+			if first_spawner_marker != null and first_spawner_marker != shelter_spawn:
+				first_spawner_marker.queue_free()
+			first_spawner_marker = shelter_spawn
+		else:
+			push_warning("World: ShelterSpawnPoint is missing; using the scenario spawn")
 	if player == null or first_spawner_marker == null:
 		return
 	player.global_position = (

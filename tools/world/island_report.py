@@ -1,6 +1,6 @@
 """Island report: renders height/slope maps and finds buildable flat sites.
 
-Input: the heightmap PNG (world/terrain/source/graciosa_height.png).
+Input: the heightmap PNG (archive/graciosa/terrain/source/graciosa_height.png).
 Usage: python3 tools/world/island_report.py <png> <out_prefix> [cx cz half_m]
 World axes: +X east, +Z south (Godot); maps draw north up.
 """

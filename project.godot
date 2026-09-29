@@ -12,7 +12,7 @@ config_version=5
 
 config/name="Henry`s Feral Night"
 config/tags=[]
-run/main_scene="res://experimental_location/scenes/Graciosa_Island_Terrain.tscn"
+run/main_scene="res://scenes/world/key_west/key_west.tscn"
 config/features=PackedStringArray("4.8", "C#", "Forward Plus")
 boot_splash/bg_color=Color(0.0627451, 0.0627451, 0.0627451, 1)
 boot_splash/show_image=false
@@ -23,6 +23,7 @@ config/icon="res://icon.svg"
 PlayerState="*res://core/player_state/player_state.gd"
 InputSystems="*res://core/input/input_systems.gd"
 SoundSystem="*res://core/audio/sound_system.gd"
+_mcp_game_helper="*res://addons/godot_ai/runtime/game_helper.gd"
 
 [display]
 
@@ -43,6 +44,10 @@ project/assembly_reload_attempts=3.0
 [editor]
 
 version_control/autoload_on_startup=true
+
+[editor_plugins]
+
+enabled=PackedStringArray("res://addons/godot_ai/plugin.cfg")
 
 [file_customization]
 
