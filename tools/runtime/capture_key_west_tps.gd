@@ -363,9 +363,9 @@ func _capture_current() -> void:
 		"label": shot["label"],
 		"road": shot["road"],
 		"player_position": [
-			round(_player.global_position.x, 2),
-			round(_player.global_position.y, 2),
-			round(_player.global_position.z, 2),
+			snappedf(_player.global_position.x, 0.01),
+			snappedf(_player.global_position.y, 0.01),
+			snappedf(_player.global_position.z, 0.01),
 		],
 		"active_count": active_ids.size(),
 		"active_chunks": active_ids,
