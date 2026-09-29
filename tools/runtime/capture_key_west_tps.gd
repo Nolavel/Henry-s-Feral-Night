@@ -7,6 +7,7 @@ const HEIGHT_IMAGE: String = "res://world/terrain/key_west_preview_2m_la8.png"
 const HEIGHT_META: String = "res://world/terrain/key_west_preview_2m_la8.json"
 const OCEAN_MASK: String = "res://docs/runtime_previews/key_west/ocean_connected_mask.png"
 const CITY_JSON: String = "res://docs/runtime_previews/key_west/city_preview.json"
+const ENRICHMENT_JSON: String = "res://docs/runtime_previews/key_west/visual_enrichment.json"
 const OUT_DIR: String = "res://docs/runtime_previews/key_west_tps"
 const PLAYER_SCENE: String = "res://scenes/actors/player/player.tscn"
 const CAMERA_SCENE: String = "res://scenes/game/systems/camera/tps_camera.tscn"
@@ -103,7 +104,7 @@ func _build_stage() -> void:
 	_city = ChunkedCityMassing.new()
 	_city.name = "KeyWestCitySource"
 	_stream_container.add_child(_city)
-	if not _city.configure(_terrain, CITY_JSON):
+	if not _city.configure(_terrain, CITY_JSON, ENRICHMENT_JSON):
 		push_error("key west TPS capture: city source failed")
 		quit(1)
 		return
@@ -329,7 +330,7 @@ func _add_overlay() -> void:
 	canvas.add_child(_overlay)
 
 	var attribution := Label.new()
-	attribution.text = "TPS: project TpsCamera  •  NOAA terrain  •  © OpenStreetMap contributors — ODbL"
+	attribution.text = "TPS: project TpsCamera  •  NOAA terrain  •  Overture 2026-09-23.1 + © OpenStreetMap contributors — ODbL"
 	attribution.position = Vector2(18.0, 968.0)
 	attribution.add_theme_font_size_override("font_size", 13)
 	attribution.modulate = Color(0.95, 0.95, 0.95, 0.86)
