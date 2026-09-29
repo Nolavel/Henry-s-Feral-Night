@@ -70,6 +70,12 @@ var _known_player_position: Vector3 = Vector3(INF, INF, INF)
 var _container: Node3D
 var _player: Node3D
 var _ring0: Node3D
+## Runtime sources feed generated/in-memory chunks into this same state machine.
+## Static WorldData remains untouched; runtime chunks skip ResourceLoader and
+## activate through their source's callbacks.
+var _runtime_chunks: Dictionary = {}
+var _runtime_sources: Dictionary = {}
+var _runtime_ring0_built: Dictionary = {}
 var _initialized: bool = false
 
 
@@ -97,10 +103,99 @@ func initialize(container: Node3D, player: Node3D) -> void:
 		_chunks[chunk.id] = chunk
 		_states[chunk.id] = CellState.UNLOADED
 	_build_ring0()
+	_build_registered_runtime_ring0()
 	_initialized = true
-	initialized.emit(_chunks.size())
+	initialized.emit(get_chunk_count())
 	if _player != null:
 		scan(_player.global_position)
+
+
+## Runtime-only initialization for tools/experimental worlds that do not use
+## data/world_data.tres. The owner and state machine are still StreamingSystem.
+func initialize_runtime_only(container: Node3D, player: Node3D) -> void:
+	if _initialized:
+		return
+	_container = container
+	_player = player
+	_build_registered_runtime_ring0()
+	_initialized = true
+	initialized.emit(get_chunk_count())
+	if _player != null:
+		scan(_player.global_position)
+
+
+## Registers generated chunks without converting them into PackedScenes.
+## The source must implement:
+##   get_stream_chunks() -> Array[Dictionary{id, position, radius}]
+##   activate_stream_chunk(id, container) -> Node3D
+##   deactivate_stream_chunk(id)
+## Optional:
+##   build_stream_ring0(container)
+func register_runtime_source(source: Node) -> int:
+	if source == null or not source.has_method(&"get_stream_chunks"):
+		push_error("StreamingSystem: runtime source has no get_stream_chunks()")
+		return 0
+	var descriptors: Variant = source.call(&"get_stream_chunks")
+	if not descriptors is Array:
+		push_error("StreamingSystem: runtime source returned non-array descriptors")
+		return 0
+
+	var added: int = 0
+	for descriptor_variant: Variant in descriptors:
+		if not descriptor_variant is Dictionary:
+			continue
+		var descriptor := descriptor_variant as Dictionary
+		var id := StringName(String(descriptor.get("id", "")))
+		if id == &"":
+			continue
+		if _chunks.has(id) or _runtime_chunks.has(id):
+			push_warning("StreamingSystem: duplicate runtime chunk '%s'" % id)
+			continue
+		var position_variant: Variant = descriptor.get("position", Vector3.ZERO)
+		if not position_variant is Vector3:
+			push_warning("StreamingSystem: runtime chunk '%s' has no Vector3 position" % id)
+			continue
+		var radius: float = float(descriptor.get("radius", 0.0))
+		if radius <= 0.0:
+			push_warning("StreamingSystem: runtime chunk '%s' has non-positive radius" % id)
+			continue
+		_runtime_chunks[id] = {
+			"position": position_variant as Vector3,
+			"radius": radius,
+		}
+		_runtime_sources[id] = source
+		_states[id] = CellState.UNLOADED
+		added += 1
+
+	if _container != null:
+		_build_runtime_source_ring0(source)
+	if _initialized and _player != null:
+		scan(_player.global_position)
+	return added
+
+
+func _build_registered_runtime_ring0() -> void:
+	var seen: Dictionary = {}
+	for source_variant: Variant in _runtime_sources.values():
+		var source := source_variant as Node
+		if not is_instance_valid(source):
+			continue
+		var key: int = source.get_instance_id()
+		if seen.has(key):
+			continue
+		seen[key] = true
+		_build_runtime_source_ring0(source)
+
+
+func _build_runtime_source_ring0(source: Node) -> void:
+	if _container == null or not is_instance_valid(source):
+		return
+	var key: int = source.get_instance_id()
+	if _runtime_ring0_built.has(key):
+		return
+	if source.has_method(&"build_stream_ring0"):
+		source.call(&"build_stream_ring0", _container)
+	_runtime_ring0_built[key] = true
 
 
 func _process(_delta: float) -> void:
@@ -120,11 +215,23 @@ func scan(player_position: Vector3) -> void:
 	_known_player_position = player_position
 	for id: StringName in _chunks:
 		var chunk: ChunkData = _chunks[id]
-		var distance: float = _plane_distance(player_position, chunk.position)
-		if distance <= chunk.radius + load_margin_m:
-			_request(id)
-		elif distance > chunk.radius + load_margin_m + unload_hysteresis_m:
-			_release(id)
+		_scan_one(id, player_position, chunk.position, chunk.radius)
+	for id: StringName in _runtime_chunks:
+		var descriptor: Dictionary = _runtime_chunks[id]
+		_scan_one(
+			id,
+			player_position,
+			descriptor["position"] as Vector3,
+			float(descriptor["radius"])
+		)
+
+
+func _scan_one(id: StringName, player_position: Vector3, position: Vector3, radius: float) -> void:
+	var distance: float = _plane_distance(player_position, position)
+	if distance <= radius + load_margin_m:
+		_request(id)
+	elif distance > radius + load_margin_m + unload_hysteresis_m:
+		_release(id)
 
 
 ## Advances loads and instantiations within their budgets. One call per frame.
@@ -159,7 +266,11 @@ func get_active_chunks() -> Array[StringName]:
 
 
 func get_chunk_count() -> int:
-	return _chunks.size()
+	return _chunks.size() + _runtime_chunks.size()
+
+
+func get_runtime_chunk_count() -> int:
+	return _runtime_chunks.size()
 
 
 ## Frees every streamed instance and returns the pipeline to its start state.
@@ -198,6 +309,16 @@ func _build_ring0() -> void:
 
 ## Moves a chunk toward being live, one step per call.
 func _request(id: StringName) -> void:
+	if _runtime_chunks.has(id):
+		match _states.get(id, CellState.UNLOADED):
+			CellState.UNLOADED:
+				_set_state(id, CellState.QUEUED)
+				_set_state(id, CellState.READY)
+			CellState.QUEUED:
+				_set_state(id, CellState.READY)
+			_:
+				pass
+		return
 	match _states.get(id, CellState.UNLOADED):
 		CellState.UNLOADED:
 			_set_state(id, CellState.QUEUED)
@@ -258,6 +379,23 @@ func _poll_loads() -> void:
 
 ## Instantiates a ready chunk. This is the expensive step the budget guards.
 func _activate(id: StringName) -> void:
+	if _runtime_chunks.has(id):
+		var source := _runtime_sources.get(id) as Node
+		if not is_instance_valid(source) or _container == null:
+			_set_state(id, CellState.UNLOADED)
+			return
+		if not source.has_method(&"activate_stream_chunk"):
+			push_warning("StreamingSystem: runtime source cannot activate '%s'" % id)
+			_set_state(id, CellState.UNLOADED)
+			return
+		var instance := source.call(&"activate_stream_chunk", id, _container) as Node3D
+		if instance == null:
+			_set_state(id, CellState.UNLOADED)
+			return
+		_instances[id] = instance
+		_set_state(id, CellState.ACTIVE)
+		return
+
 	var chunk: ChunkData = _chunks[id]
 	var packed := _packed_cache.get(chunk.content_scene_path) as PackedScene
 	if packed == null or _container == null:
@@ -292,12 +430,24 @@ func _release(id: StringName) -> void:
 func _is_within_unload_band(id: StringName) -> bool:
 	if _known_player_position.x == INF:
 		return true
+	if _runtime_chunks.has(id):
+		var descriptor: Dictionary = _runtime_chunks[id]
+		var position := descriptor["position"] as Vector3
+		var radius: float = float(descriptor["radius"])
+		var runtime_distance: float = _plane_distance(_known_player_position, position)
+		return runtime_distance <= radius + load_margin_m + unload_hysteresis_m
 	var chunk: ChunkData = _chunks[id]
 	var distance: float = _plane_distance(_known_player_position, chunk.position)
 	return distance <= chunk.radius + load_margin_m + unload_hysteresis_m
 
 
 func _free_instance(id: StringName) -> void:
+	if _runtime_chunks.has(id):
+		var source := _runtime_sources.get(id) as Node
+		if is_instance_valid(source) and source.has_method(&"deactivate_stream_chunk"):
+			source.call(&"deactivate_stream_chunk", id)
+		_instances.erase(id)
+		return
 	var instance: Node = _instances.get(id)
 	if is_instance_valid(instance):
 		if instance.get_parent() != null:
