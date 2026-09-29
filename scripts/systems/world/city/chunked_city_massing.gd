@@ -24,6 +24,7 @@ var _airport_node: Node3D
 var _labels_node: Node3D
 var _grid_node: Node3D
 var _global_visuals: Node3D
+var _ring0_roads: Node3D
 var _enrichment: Dictionary = {}
 var _visual_materials: Dictionary = {}
 var _stream_to_chunk: Dictionary = {}
@@ -87,6 +88,15 @@ func build_stream_ring0(_container: Node3D) -> void:
 	if _stream_ring0_ready:
 		return
 	_index_stream_chunks()
+	if _ring0_roads == null:
+		_ring0_roads = KeyWestCityVisuals.build_ring0_road_surface(
+			_roads, terrain, _enrichment, _visual_materials
+		)
+		if _ring0_roads != null and _ring0_roads.get_child_count() > 0:
+			add_child(_ring0_roads)
+		elif _ring0_roads != null:
+			_ring0_roads.free()
+			_ring0_roads = null
 	for state_variant: Variant in _chunks.values():
 		var state := state_variant as Dictionary
 		_ensure_massing(state)
