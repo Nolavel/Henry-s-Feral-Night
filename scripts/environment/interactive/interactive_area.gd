@@ -64,6 +64,11 @@ var ground_raycast: RayCast3D
 
 # === НАСТРОЙКИ ПОДСВЕТКИ КРУГА ===
 @export_group("Подсветка круга")
+## Legacy world-space disc. The current interaction grammar already has the
+## proximity check mark + crosshair/action prompt, so the large yellow ground
+## disc is disabled in normal gameplay. Keep this only as an explicit opt-in
+## for a future interaction that genuinely needs a world-space area marker.
+@export var show_ground_highlight: bool = false
 @export var highlight_color: Color = Color(1.0, 1.0, 0.0, 0.45)  # Цвет круга
 @export var circle_radius: float = 1.0  # Размер круга
 @export var circle_animation_duration: float = 0.5  # Длительность анимации
@@ -132,6 +137,8 @@ func _setup_visual_elements() -> void:
 		info_label.outline_size = 8
 
 func _create_highlight_circle() -> void:
+	if not show_ground_highlight:
+		return
 	if not interactive_mesh:
 		if object_on_ground and focus_anchor == null:
 			push_warning("InteractiveArea: ground highlight needs a mesh or focus anchor")
