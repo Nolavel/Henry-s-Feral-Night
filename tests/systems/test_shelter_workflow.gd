@@ -501,7 +501,30 @@ func _has_pocket(id: StringName) -> bool:
 	return false
 
 
+
+## Keeps independent workflow steps independent: finish the previous staged
+## presentation/action clip, then rebuild crosshair focus before the next aim.
+## This prevents one successful interaction from poisoning every assertion after it.
+func _settle_interaction_fixture() -> void:
+	if _actions != null and _actions.is_active():
+		var presentation: float = _actions.get_effective_presentation_seconds()
+		if presentation > 0.0:
+			_actions.advance_presentation(presentation + 0.05)
+	if is_instance_valid(_player):
+		_player._hold_until_ms = 0
+		var visual: HenryUALAnimation = _player.animation_component
+		if is_instance_valid(visual):
+			visual.abort_action()
+			if visual.animation_tree != null:
+				visual.animation_tree.advance(5.0)
+	await process_frame
+	await physics_frame
+	if is_instance_valid(_interact):
+		_interact.detect_target()
+
+
 func _aim(target: InteractiveArea, from: Vector3, point: Vector3) -> void:
+	await _settle_interaction_fixture()
 	var local: Vector3 = _house.to_local(from)
 	if absf(local.x) < 4.0 and absf(local.z) < 5.0:
 		from.y = maxf(from.y, _house.to_global(Vector3(0, 1.91, 0)).y)
