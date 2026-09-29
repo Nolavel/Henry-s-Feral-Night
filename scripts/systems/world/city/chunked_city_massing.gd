@@ -23,6 +23,9 @@ var _airport_features: Array = []
 var _airport_node: Node3D
 var _labels_node: Node3D
 var _grid_node: Node3D
+var _stream_to_chunk: Dictionary = {}
+var _stream_active: Dictionary = {}
+var _stream_ring0_ready: bool = false
 
 var _massing_material: StandardMaterial3D
 var _detail_material: StandardMaterial3D
@@ -50,6 +53,98 @@ func configure(terrain_node: IslandTerrain, data_path: String) -> bool:
 	_create_chunk_states()
 	_build_airport_layer()
 	return true
+
+
+## Runtime-source API consumed by StreamingSystem. The JSON snapshot stays
+## untouched; only exact chunk geometry is created/destroyed around the focus.
+func get_stream_chunks() -> Array:
+	_index_stream_chunks()
+	var descriptors: Array = []
+	var radius: float = chunk_size_m * 0.70710678
+	for stream_id_variant: Variant in _stream_to_chunk:
+		var stream_id := stream_id_variant as StringName
+		var cid: String = String(_stream_to_chunk[stream_id])
+		var state: Dictionary = _chunks[cid]
+		var center: Vector2 = state["center"]
+		descriptors.append({
+			"id": stream_id,
+			"position": Vector3(center.x, 0.0, center.y),
+			"radius": radius,
+		})
+	return descriptors
+
+
+func build_stream_ring0(_container: Node3D) -> void:
+	if _stream_ring0_ready:
+		return
+	_index_stream_chunks()
+	for state_variant: Variant in _chunks.values():
+		var state := state_variant as Dictionary
+		_ensure_massing(state)
+		var massing := state["massing"] as Node3D
+		if massing != null:
+			massing.visible = true
+		var detail := state["detail"] as Node3D
+		if detail != null:
+			detail.visible = false
+		var roads := state["roads"] as Node3D
+		if roads != null:
+			roads.visible = false
+	_stream_ring0_ready = true
+
+
+func activate_stream_chunk(stream_id: StringName, _container: Node3D) -> Node3D:
+	_index_stream_chunks()
+	var cid: String = String(_stream_to_chunk.get(stream_id, ""))
+	if cid.is_empty() or not _chunks.has(cid):
+		return null
+	var state := _chunks[cid] as Dictionary
+	_ensure_massing(state)
+	_ensure_detail(state)
+	_ensure_roads(state)
+	var massing := state["massing"] as Node3D
+	if massing != null:
+		massing.visible = false
+	var detail := state["detail"] as Node3D
+	if detail != null:
+		detail.visible = true
+	var roads := state["roads"] as Node3D
+	if roads != null:
+		roads.visible = true
+	_stream_active[stream_id] = true
+	return state["node"] as Node3D
+
+
+func deactivate_stream_chunk(stream_id: StringName) -> void:
+	var cid: String = String(_stream_to_chunk.get(stream_id, ""))
+	if cid.is_empty() or not _chunks.has(cid):
+		return
+	var state := _chunks[cid] as Dictionary
+	var detail := state["detail"] as Node3D
+	if is_instance_valid(detail):
+		detail.queue_free()
+	state["detail"] = null
+	var roads := state["roads"] as Node3D
+	if is_instance_valid(roads):
+		roads.queue_free()
+	state["roads"] = null
+	var massing := state["massing"] as Node3D
+	if massing != null:
+		massing.visible = true
+	_stream_active.erase(stream_id)
+
+
+func get_stream_active_detail_count() -> int:
+	return _stream_active.size()
+
+
+func _index_stream_chunks() -> void:
+	if not _stream_to_chunk.is_empty():
+		return
+	for cid_variant: Variant in _chunks:
+		var cid: String = String(cid_variant)
+		var stream_id := StringName("kw_city_%s" % cid.replace(":", "_"))
+		_stream_to_chunk[stream_id] = cid
 
 
 func get_stats() -> Dictionary:
