@@ -1,0 +1,11 @@
+[gd_resource type="Resource" script_class="WorldProfile" load_steps=2 format=3]
+
+[ext_resource type="Script" path="res://core/world/resources/world_profile.gd" id="1_profile"]
+
+[resource]
+script = ExtResource("1_profile")
+id = &"key_west_test"
+display_name = "Key West NOAA prototype"
+experimental = true
+source_note = "Placeholder for issue #138. NOAA-derived terrain and world data are intentionally absent; do not substitute Graciosa data."
+source_manifest_path = "res://world/terrain/source/key_west/README.md"
