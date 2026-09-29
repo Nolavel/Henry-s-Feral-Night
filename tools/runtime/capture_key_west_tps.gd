@@ -1,6 +1,6 @@
 extends SceneTree
 
-## TPS streaming + visual enrichment proof for Key West issue #138.
+## TPS streaming + visual enrichment proof for Key West issue #138 — final readable pass.
 ## Uses the frozen Stage 5 city_preview.json snapshot unchanged.
 ## Real Player + TpsCamera, six city points, StreamingSystem owns ACTIVE/UNLOADED.
 const HEIGHT_IMAGE: String = "res://world/terrain/key_west_preview_2m_la8.png"
