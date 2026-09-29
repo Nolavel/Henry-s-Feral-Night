@@ -5,15 +5,18 @@ Maintained per branch; entries are added by whoever makes the change.
 
 ## [Unreleased] — `codex`
 
-### 2026-09-29 - Snow shell: depth, drifts and broken-crust prints (claudeflow)
+### 2026-09-29 - Deformable snow: one field, real contact, Henry wades (claudeflow)
 
 Added
-- `SnowShell`: a local 25.6 m layer of real snow depth that follows Henry. Depth
-  grows with the settled `snow_cover`, drifts ridge along the wind and overlap,
-  and snow piles in the lee of walls and boxes.
-- Footsteps pack the snow down (deeper when sprinting) and break the crust
-  around each print into slabs of different heights; snowfall fills them in.
-- `tests/systems/test_snow_shell.gd`.
+- `SnowField`: settled snow computed once on the CPU (5-25 cm cover, wind
+  drifts, lee piles behind obstacles, scoured windward slopes, none at the
+  water). Shaders and gameplay read the same numbers.
+- Real contact: an upward orthographic camera renders render layer 20 (Henry's
+  mesh, resting pickups) into a persistent packed-snow field. Prints are the
+  real boot shape at the real depth, capped at 85 % of the snowpack, with a
+  displaced rim; they fill back in with snowfall.
+- `MovementController.snow_speed_multiplier`: 1.0 on bare ground to 0.6 at 50 cm.
+- `tests/systems/test_snow_shell.gd` covers the field.
 
 ### 2026-09-29 - Complete the pickup requested before walking (codex)
 

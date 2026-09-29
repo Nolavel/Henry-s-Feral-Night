@@ -47,6 +47,8 @@ class_name MovementController
 @export var debug_label_path: NodePath
 
 # === СЛУЖЕБНЫЕ ПЕРЕМЕННЫЕ ===
+## Set by SnowShell each physics frame from the snow depth; 1.0 on bare ground.
+var snow_speed_multiplier: float = 1.0
 var _was_idle: bool = true
 var _sprint_blend: float = 1.0
 var _sprint_inertia_timer: float = 0.0
@@ -192,7 +194,7 @@ func process_movement(
 
 	# === 7) Целевая скорость С учётом уклона ===
 	var base_speed: float = crouch_speed if _crouching else walk_speed
-	var target_speed: float = base_speed * (_sprint_blend if not _crouching else 1.0) * slope_modifier * get_load_speed_multiplier() * get_status_speed_multiplier()
+	var target_speed: float = base_speed * (_sprint_blend if not _crouching else 1.0) * slope_modifier * get_load_speed_multiplier() * get_status_speed_multiplier() * snow_speed_multiplier
 	var target_vel: Vector3 = planar_dir * target_speed
 
 	# === 8) Разгон / торможение ===
