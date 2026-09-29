@@ -72,3 +72,66 @@ Visual/data result:
 
 The Stage 4 assets are still disposable preview outputs. They prove scale,
 coverage and spatial rhythm; they are not final production buildings or roads.
+
+
+## Stage 5 chunk-aware city rebuild — 2026-09-29
+
+Final verified preview run: `36524001180` on `codex`.
+
+The Stage 4 one-global-MultiMesh proof has been replaced by a richer city dataset
+and an isolated chunk-aware renderer:
+
+- content chunk size: **512 m**;
+- content-bearing chunks: **148**;
+- buildings: **12,354**;
+- named buildings: **577**;
+- buildings with a resolved OSM house number: **379**;
+- separately mapped address nodes assigned to buildings: **141**;
+- nearest named-road hints (explicitly marked as inferred hints): **10,947**;
+- roads: **2,681**;
+- named roads: **956**;
+- road points: **15,511**;
+- maximum buildings in one 512 m chunk: **577**.
+
+Each building now keeps:
+- OSM id;
+- content chunk id;
+- real OSM footprint polygon;
+- far-massing oriented proxy;
+- height and the height source (OSM height / OSM levels / fallback);
+- name and available address/POI metadata.
+
+Each road keeps:
+- OSM id;
+- name/ref/class;
+- lanes/surface/oneway/bridge/tunnel metadata when present;
+- real projected polyline;
+- chunk-aware road segments.
+
+### Airport block
+
+The preview explicitly selects **Key West International Airport**:
+- IATA: **EYW**;
+- ICAO: **KEYW**;
+- operator metadata: **Monroe County**;
+- 2 aerodromes were found in the crop, and EYW/KEYW has explicit priority;
+- **92** aeroway features remain in the 2.6 km EYW airport neighbourhood.
+
+The EYW block includes:
+- 1 runway;
+- 52 taxiways;
+- 9 taxilanes;
+- 3 aprons;
+- 5 terminal features;
+- 9 hangar features;
+- parking positions and other aeroway support geometry.
+
+The experimental renderer `ChunkedCityMassing` provides:
+- per-chunk Ring-0 oriented proxies;
+- lazily built exact OSM footprint extrusion near the focus;
+- per-chunk road batches;
+- explicit airport runway/taxiway/apron geometry;
+- metadata debug hooks.
+
+This is still isolated research code. It does not replace the production
+`StreamingSystem` yet, and Graciosa / First Exit remain unchanged.
