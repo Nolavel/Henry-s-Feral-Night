@@ -18,12 +18,16 @@ const CONTACT_LAYER: int = 1 << 19
 @export_group("Window")
 ## Side of the square window around the player, in metres.
 @export var window_m: float = 25.6
-## Vertices along one side of the shell mesh.
-@export_range(32, 512) var mesh_cells: int = 384
+## Mesh spacing around Henry, where prints are read up close, in metres.
+@export var near_spacing_m: float = 0.03
+## Half width of that dense core; spacing grows towards the window edge.
+@export var near_half_m: float = 3.5
+## Mesh spacing at the window edge, in metres.
+@export var far_spacing_m: float = 0.25
 ## Texels along one side of the settled field.
 @export_range(32, 256) var field_res: int = 128
 ## Texels along one side of the packed-snow field.
-@export_range(128, 1024) var packed_res: int = 512
+@export_range(128, 2048) var packed_res: int = 1024
 ## The window moves in steps of this size, so the snow never swims.
 @export var recentre_step_m: float = 3.2
 
@@ -220,16 +224,55 @@ func _build_surface() -> void:
 	_surface.set_shader_parameter("field", _field_tex)
 	_surface.set_shader_parameter("window_m", window_m)
 	_surface.set_shader_parameter("packed_texel_m", window_m / float(packed_res))
-	var plane := PlaneMesh.new()
-	plane.size = Vector2(window_m, window_m)
-	plane.subdivide_width = mesh_cells - 1
-	plane.subdivide_depth = mesh_cells - 1
 	_mesh = MeshInstance3D.new()
 	_mesh.name = "SnowShellMesh"
-	_mesh.mesh = plane
+	_mesh.mesh = _graded_grid()
 	_mesh.material_override = _surface
 	_mesh.extra_cull_margin = 400.0
 	add_child(_mesh)
+
+
+## A square grid, dense near the middle where Henry stands and coarser outwards.
+func _graded_grid() -> ArrayMesh:
+	var half: float = window_m * 0.5
+	var side: PackedFloat32Array = [0.0]
+	var at: float = 0.0
+	var step: float = near_spacing_m
+	while at < half:
+		if at >= near_half_m:
+			step = minf(step * 1.025, far_spacing_m)
+		at = minf(at + step, half)
+		side.append(at)
+	var axis: PackedFloat32Array = []
+	for i: int in range(side.size() - 1, 0, -1):
+		axis.append(-side[i])
+	axis.append_array(side)
+	var n: int = axis.size()
+	var verts := PackedVector3Array()
+	verts.resize(n * n)
+	for iz: int in range(n):
+		for ix: int in range(n):
+			verts[iz * n + ix] = Vector3(axis[ix], 0.0, axis[iz])
+	var indices := PackedInt32Array()
+	indices.resize((n - 1) * (n - 1) * 6)
+	var k: int = 0
+	for iz: int in range(n - 1):
+		for ix: int in range(n - 1):
+			var a: int = iz * n + ix
+			indices[k] = a
+			indices[k + 1] = a + 1
+			indices[k + 2] = a + n
+			indices[k + 3] = a + 1
+			indices[k + 4] = a + n + 1
+			indices[k + 5] = a + n
+			k += 6
+	var arrays: Array = []
+	arrays.resize(Mesh.ARRAY_MAX)
+	arrays[Mesh.ARRAY_VERTEX] = verts
+	arrays[Mesh.ARRAY_INDEX] = indices
+	var mesh := ArrayMesh.new()
+	mesh.add_surface_from_arrays(Mesh.PRIMITIVE_TRIANGLES, arrays)
+	return mesh
 
 
 func _build_capture() -> void:
