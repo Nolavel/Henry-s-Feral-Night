@@ -210,9 +210,9 @@ func _add_label(text: String, position: Vector2, lift: float) -> void:
 		maxf(terrain.get_height(position.x, position.y), 0.0) + lift,
 		position.y
 	)
-	label.font_size = 22
-	label.outline_size = 5
-	label.pixel_size = 0.035
+	label.font_size = 28
+	label.outline_size = 7
+	label.pixel_size = 0.075
 	label.billboard = BaseMaterial3D.BILLBOARD_ENABLED
 	label.no_depth_test = true
 	_labels_node.add_child(label)
@@ -547,7 +547,7 @@ func _build_chunk_grid() -> Node3D:
 	var vertices := PackedVector3Array()
 	var normals := PackedVector3Array()
 	var indices := PackedInt32Array()
-	var half: float = 1.0
+	var half: float = 2.5
 	for state_variant: Variant in _chunks.values():
 		var state := state_variant as Dictionary
 		var chunk: Dictionary = state["data"]
@@ -564,7 +564,10 @@ func _build_chunk_grid() -> Node3D:
 		_append_ribbon_segment(vertices, normals, indices, b, c, half, 0.35)
 		_append_ribbon_segment(vertices, normals, indices, c, d, half, 0.35)
 		_append_ribbon_segment(vertices, normals, indices, d, a, half, 0.35)
-	var material := _standard_material(Color(0.72, 0.25, 0.20), 0.9)
+	var material := _standard_material(Color(0.92, 0.08, 0.06), 0.82)
+	material.emission_enabled = true
+	material.emission = Color(0.92, 0.08, 0.06)
+	material.emission_energy_multiplier = 1.8
 	var instance := MeshInstance3D.new()
 	instance.mesh = _mesh_from_arrays(vertices, normals, indices, material)
 	holder.add_child(instance)
