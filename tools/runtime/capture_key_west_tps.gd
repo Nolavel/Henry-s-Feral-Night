@@ -294,9 +294,7 @@ func _airport_runway_shot() -> Dictionary:
 		var a := Vector2(float(first[0]), float(first[1]))
 		var b := Vector2(float(last[0]), float(last[1]))
 		var direction := (b - a).normalized()
-		var side := Vector2(-direction.y, direction.x)
-		var width: float = maxf(float(feature.get("width", 30.0)), 20.0)
-		var position := a - direction * 12.0 + side * (width * 0.5 + 6.0)
+		var position := a + direction * 9.0
 		return {
 			"file": "05_eyw_runway",
 			"label": "EYW runway 09/27 — runway/taxiway grammar",
