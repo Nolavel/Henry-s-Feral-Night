@@ -1,0 +1,248 @@
+class_name KeyWestFirstExit
+extends Node3D
+
+const FIRST_EXIT_TEMPLATE: PackedScene = preload("res://scenes/world/first_exit/first_exit_blockout.tscn")
+const STREAMING_SCRIPT: GDScript = preload("res://core/world/streaming_system.gd")
+const CITY_SCRIPT: GDScript = preload("res://scripts/systems/world/city/chunked_city_massing.gd")
+
+const CITY_JSON: String = "res://docs/runtime_previews/key_west/city_preview.json"
+const ENRICHMENT_JSON: String = "res://docs/runtime_previews/key_west/visual_enrichment.json"
+const OCEAN_MASK: String = "res://docs/runtime_previews/key_west/ocean_connected_mask.png"
+const HEIGHT_META: String = "res://world/terrain/key_west_preview_2m_la8.json"
+
+const BUNKER_XZ := Vector2(-3452.88, 2273.84)
+const SHELTER_XZ := Vector2(-3551.61, 1567.72)
+const SHELTER_YAW_DEG: float = 55.7
+const ROUTE_PICKUP_SCALE: float = 0.35
+const SHELTER_EXACT_RADIUS_M: float = 38.0
+
+var _world: Node3D
+var _terrain: IslandTerrain
+var _city: ChunkedCityMassing
+var _prepared: bool = false
+var _source_shelter: Vector3 = Vector3.ZERO
+var _target_shelter: Vector3 = Vector3.ZERO
+var _target_bunker: Vector3 = Vector3.ZERO
+
+
+func prepare_world_content(world: Node3D) -> void:
+	if _prepared:
+		return
+	_prepared = true
+	_world = world
+	_terrain = world.get_node_or_null("IslandTerrain") as IslandTerrain
+	if _terrain == null or _terrain.heightmap == null:
+		push_error("KeyWestFirstExit: Key West terrain is not loaded")
+		return
+	_hide_graciosa_sea()
+	_build_masked_ice()
+	_transplant_first_exit()
+
+
+func on_world_ready(context: WorldContext) -> void:
+	if _terrain == null:
+		_terrain = context.world.get_node_or_null("IslandTerrain") as IslandTerrain
+	if _terrain == null or not FileAccess.file_exists(CITY_JSON):
+		push_warning("KeyWestFirstExit: city preview is not built; terrain/First Exit still run")
+		return
+	if not FileAccess.file_exists(ENRICHMENT_JSON):
+		push_warning("KeyWestFirstExit: visual enrichment is not built; city streaming is skipped")
+		return
+	_city = CITY_SCRIPT.new() as ChunkedCityMassing
+	_city.name = "KeyWestCity"
+	context.stream_container.add_child(_city)
+	if not _city.configure(_terrain, CITY_JSON, ENRICHMENT_JSON):
+		push_error("KeyWestFirstExit: failed to configure chunked city")
+		_city.queue_free()
+		_city = null
+		return
+	var streaming := context.get_system(STREAMING_SCRIPT) as StreamingSystem
+	if streaming == null:
+		push_error("KeyWestFirstExit: shared StreamingSystem is missing")
+		return
+	var registered: int = streaming.register_runtime_source(_city)
+	if registered != 148:
+		push_warning("KeyWestFirstExit: expected 148 city chunks, registered %d" % registered)
+
+
+func get_bunker_xz() -> Vector2:
+	return BUNKER_XZ
+
+
+func get_shelter_xz() -> Vector2:
+	return SHELTER_XZ
+
+
+func get_route_distance_m() -> float:
+	return BUNKER_XZ.distance_to(SHELTER_XZ)
+
+
+func _transplant_first_exit() -> void:
+	var template := FIRST_EXIT_TEMPLATE.instantiate() as Node3D
+	if template == null:
+		push_error("KeyWestFirstExit: First Exit template failed to instantiate")
+		return
+	var shelter := template.get_node_or_null(^"ShelterHouse") as Node3D
+	var house := template.get_node_or_null(^"ShelterHouse/House") as Node3D
+	var bunker := template.get_node_or_null(^"BunkerPortal") as Node3D
+	if shelter == null or house == null or bunker == null:
+		push_error("KeyWestFirstExit: reusable shelter/bunker anchors are missing")
+		template.free()
+		return
+	_source_shelter = shelter.transform * house.position
+	var shelter_ground: float = maxf(_terrain.get_height(SHELTER_XZ.x, SHELTER_XZ.y), 0.0)
+	_target_shelter = Vector3(SHELTER_XZ.x, shelter_ground, SHELTER_XZ.y)
+	var shelter_target_yaw: float = deg_to_rad(SHELTER_YAW_DEG)
+	var shelter_delta_yaw: float = shelter_target_yaw - shelter.rotation.y
+	var house_offset: Vector3 = _source_shelter - shelter.position
+	house_offset = house_offset.rotated(Vector3.UP, shelter_delta_yaw)
+	template.remove_child(shelter)
+	add_child(shelter)
+	shelter.rotation.y = shelter_target_yaw
+	shelter.position = _target_shelter - house_offset
+	var bunker_ground: float = maxf(_terrain.get_height(BUNKER_XZ.x, BUNKER_XZ.y), 0.0)
+	_target_bunker = Vector3(BUNKER_XZ.x, bunker_ground, BUNKER_XZ.y)
+	var route_dir: Vector2 = (SHELTER_XZ - BUNKER_XZ).normalized()
+	var bunker_target_yaw: float = atan2(route_dir.x, route_dir.y)
+	var bunker_source_anchor: Vector3 = bunker.position
+	var bunker_delta_yaw: float = bunker_target_yaw - bunker.rotation.y
+	var bunker_names: Array[StringName] = [&"BunkerPortal", &"BunkerVent", &"BedrollBunker", &"RoadFlareBunker"]
+	var direct_children: Array[Node] = template.get_children()
+	for child: Node in direct_children:
+		if not child is Node3D:
+			continue
+		var node := child as Node3D
+		if bunker_names.has(StringName(node.name)):
+			_move_from_anchor(node, bunker_source_anchor, _target_bunker, bunker_delta_yaw, 1.0)
+			template.remove_child(node)
+			add_child(node)
+			continue
+		if child is ItemPickup:
+			var flat_distance: float = Vector2(node.position.x - _source_shelter.x, node.position.z - _source_shelter.z).length()
+			var scale: float = 1.0 if flat_distance <= SHELTER_EXACT_RADIUS_M else ROUTE_PICKUP_SCALE
+			_move_from_anchor(node, _source_shelter, _target_shelter, shelter_delta_yaw, scale)
+			_snap_pickup_to_ground(node)
+			template.remove_child(node)
+			add_child(node)
+	_build_bunker_vestibule(bunker_target_yaw)
+	_build_spawn_marker(route_dir)
+	template.free()
+
+
+func _move_from_anchor(node: Node3D, source_anchor: Vector3, target_anchor: Vector3, yaw_delta: float, horizontal_scale: float) -> void:
+	var rel: Vector3 = node.position - source_anchor
+	rel.x *= horizontal_scale
+	rel.z *= horizontal_scale
+	rel = rel.rotated(Vector3.UP, yaw_delta)
+	node.position = target_anchor + rel
+	node.rotation.y += yaw_delta
+
+
+func _snap_pickup_to_ground(node: Node3D) -> void:
+	var relative_height: float = node.position.y - _target_shelter.y
+	if absf(relative_height) < 1.6:
+		var ground: float = maxf(_terrain.get_height(node.position.x, node.position.z), 0.0)
+		node.position.y = ground + maxf(relative_height, 0.35)
+
+
+func _build_spawn_marker(route_dir: Vector2) -> void:
+	var route_yaw: float = atan2(route_dir.x, route_dir.y)
+	var front := Vector3(route_dir.x, 0.0, route_dir.y)
+	var marker := Marker3D.new()
+	marker.name = "SpawnPoint"
+	marker.position = _target_bunker + front * 5.6 + Vector3.UP * 0.15
+	marker.rotation.y = route_yaw + PI
+	add_child(marker)
+
+
+func _build_bunker_vestibule(yaw: float) -> void:
+	var chamber := Node3D.new()
+	chamber.name = "WhiteheadBunkerVestibule"
+	chamber.position = _target_bunker
+	chamber.rotation.y = yaw
+	add_child(chamber)
+	var concrete := StandardMaterial3D.new()
+	concrete.albedo_color = Color(0.19, 0.21, 0.22)
+	concrete.roughness = 0.92
+	var dark := StandardMaterial3D.new()
+	dark.albedo_color = Color(0.055, 0.06, 0.065)
+	dark.metallic = 0.55
+	dark.roughness = 0.58
+	_box(chamber, Vector3(-3.05, 1.35, 6.6), Vector3(0.28, 2.7, 6.2), concrete)
+	_box(chamber, Vector3(3.05, 1.35, 6.6), Vector3(0.28, 2.7, 6.2), concrete)
+	_box(chamber, Vector3(0.0, 2.72, 6.6), Vector3(6.35, 0.28, 6.2), concrete)
+	var leaf := _box(chamber, Vector3(2.78, 1.35, 9.55), Vector3(0.18, 2.55, 2.5), dark)
+	leaf.rotation.y = deg_to_rad(82.0)
+
+
+func _box(parent: Node3D, at: Vector3, size: Vector3, material: Material) -> MeshInstance3D:
+	var mesh := BoxMesh.new()
+	mesh.size = size
+	mesh.material = material
+	var visual := MeshInstance3D.new()
+	visual.mesh = mesh
+	visual.position = at
+	parent.add_child(visual)
+	var body := StaticBody3D.new()
+	body.position = at
+	var collision := CollisionShape3D.new()
+	var shape := BoxShape3D.new()
+	shape.size = size
+	collision.shape = shape
+	body.add_child(collision)
+	parent.add_child(body)
+	return visual
+
+
+func _hide_graciosa_sea() -> void:
+	var legacy_sea := _world.get_node_or_null(^"MeshInstance3D") as MeshInstance3D
+	if legacy_sea != null:
+		legacy_sea.visible = false
+
+
+func _build_masked_ice() -> void:
+	if not FileAccess.file_exists(OCEAN_MASK) or not FileAccess.file_exists(HEIGHT_META):
+		push_warning("KeyWestFirstExit: ocean mask is not built")
+		return
+	var mask_image: Image = Image.load_from_file(OCEAN_MASK)
+	if mask_image == null or mask_image.is_empty():
+		return
+	var meta_variant: Variant = JSON.parse_string(FileAccess.get_file_as_string(HEIGHT_META))
+	if not meta_variant is Dictionary:
+		return
+	var meta := meta_variant as Dictionary
+	var mask_texture := ImageTexture.create_from_image(mask_image)
+	var width_m: float = float(int(meta["width"]) - 1) * float(meta["m_per_px"])
+	var depth_m: float = float(int(meta["height"]) - 1) * float(meta["m_per_px"])
+	var origin := Vector2(float(meta["origin_x"]), float(meta["origin_z"]))
+	var shader := Shader.new()
+	shader.code = """
+shader_type spatial;
+render_mode cull_disabled, depth_draw_opaque;
+uniform sampler2D ocean_mask : filter_nearest, repeat_disable;
+uniform vec2 world_origin;
+uniform vec2 world_size;
+varying vec3 world_pos;
+void vertex() { world_pos = (MODEL_MATRIX * vec4(VERTEX, 1.0)).xyz; }
+void fragment() {
+	vec2 uv = (world_pos.xz - world_origin) / world_size;
+	if (uv.x < 0.0 || uv.y < 0.0 || uv.x > 1.0 || uv.y > 1.0) discard;
+	if (texture(ocean_mask, uv).r < 0.5) discard;
+	ALBEDO = vec3(0.38, 0.46, 0.54);
+	ROUGHNESS = 0.38;
+	METALLIC = 0.05;
+}
+"""
+	var material := ShaderMaterial.new()
+	material.shader = shader
+	material.set_shader_parameter("ocean_mask", mask_texture)
+	material.set_shader_parameter("world_origin", origin)
+	material.set_shader_parameter("world_size", Vector2(width_m, depth_m))
+	var plane := PlaneMesh.new()
+	plane.size = Vector2(width_m, depth_m)
+	plane.material = material
+	var ice := MeshInstance3D.new()
+	ice.name = "FrozenSea"
+	ice.mesh = plane
+	ice.position = Vector3(origin.x + width_m * 0.5, -0.04, origin.y + depth_m * 0.5)
+	add_child(ice)

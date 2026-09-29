@@ -14,6 +14,15 @@ extends Resource
 @export_group("Streaming")
 @export_file("*.tres") var world_data_path: String = ""
 
+@export_group("Runtime content")
+@export_file("*.tscn") var content_scene_path: String = ""
+@export var spawn_marker_name: StringName = &"SpawnPoint"
+
+@export_group("Initial weather")
+@export var initial_weather_profile_id: StringName = &""
+@export_range(-1.0, 360.0, 0.1) var wind_direction_override_deg: float = -1.0
+@export var prewarm_before_first_frame: bool = false
+
 @export_group("Provenance")
 @export var experimental: bool = false
 @export var source_note: String = ""
@@ -36,5 +45,10 @@ func world_data_exists() -> bool:
 	return world_data_path != "" and ResourceLoader.exists(world_data_path)
 
 
+func content_scene_exists() -> bool:
+	return content_scene_path == "" or ResourceLoader.exists(content_scene_path)
+
+
 func is_runtime_ready() -> bool:
-	return id != &"" and terrain_files_exist() and world_data_exists()
+	var streaming_ready: bool = world_data_path == "" or world_data_exists()
+	return id != &"" and terrain_files_exist() and streaming_ready and content_scene_exists()

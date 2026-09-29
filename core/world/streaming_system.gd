@@ -77,6 +77,15 @@ var _runtime_chunks: Dictionary = {}
 var _runtime_sources: Dictionary = {}
 var _runtime_ring0_built: Dictionary = {}
 var _initialized: bool = false
+var _runtime_only_profile: bool = false
+
+
+func apply_world_profile(profile: WorldProfile) -> void:
+	if profile == null:
+		return
+	_runtime_only_profile = profile.world_data_path == ""
+	if not _runtime_only_profile:
+		world_data_path = profile.world_data_path
 
 
 ## The composition root's lifecycle hook.
@@ -85,7 +94,10 @@ func on_world_ready(context: WorldContext) -> void:
 	if not context.streaming_enabled:
 		set_process(false)
 		return
-	initialize(context.stream_container, context.player)
+	if _runtime_only_profile:
+		initialize_runtime_only(context.stream_container, context.player)
+	else:
+		initialize(context.stream_container, context.player)
 
 
 ## Loads the data, builds ring 0 and starts streaming. Public and idempotent

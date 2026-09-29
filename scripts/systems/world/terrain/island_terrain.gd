@@ -38,13 +38,35 @@ var _queue: Array = []
 
 
 func _ready() -> void:
+	reload_heightmap(heightmap_image_path, heightmap_meta_path)
+
+
+func reload_heightmap(image_path: String, meta_path: String) -> bool:
+	heightmap_image_path = image_path
+	heightmap_meta_path = meta_path
+	_clear_chunks()
 	heightmap = IslandHeightmap.load_from(heightmap_image_path, heightmap_meta_path)
 	if heightmap == null:
-		return
-	_material = ShaderMaterial.new()
-	_material.shader = SHADER
+		return false
+	if _material == null:
+		_material = ShaderMaterial.new()
+		_material.shader = SHADER
 	_register_chunks()
 	update_now()
+	return true
+
+
+func _clear_chunks() -> void:
+	_queue.clear()
+	for chunk_variant: Variant in _chunks.values():
+		var chunk := chunk_variant as Dictionary
+		for field: String in ["body", "inst"]:
+			var node := chunk.get(field) as Node
+			if is_instance_valid(node):
+				if node.get_parent() != null:
+					node.get_parent().remove_child(node)
+				node.queue_free()
+	_chunks.clear()
 
 
 func _process(delta: float) -> void:
