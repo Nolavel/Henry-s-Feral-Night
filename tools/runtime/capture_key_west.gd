@@ -185,6 +185,7 @@ func _build_building_multimesh(buildings: Array) -> void:
 
 	var multimesh := MultiMesh.new()
 	multimesh.transform_format = MultiMesh.TRANSFORM_3D
+	multimesh.mesh = box
 	multimesh.instance_count = buildings.size()
 
 	for i: int in range(buildings.size()):
