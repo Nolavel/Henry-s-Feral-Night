@@ -189,6 +189,14 @@ snow_ground.gdshader: top − packed + rim          MovementController speed
 - **Henry stays consistent.** His collider stands on firm ground; his boots
   reach the bottom of the pit they made. `MovementController.snow_speed_multiplier`
   falls from 1.0 at 5 cm to 0.6 at 50 cm of snow.
+- **What the rays find.** Each field cell casts a ray down. A steep face, or
+  anything over 1 m above the ground, is a wall: the shell is cut there and
+  snow piles in its lee, scaled by how much wall is around (a lone post
+  shelters little). A broad, low, open surface (deck, crate) carries snow. A
+  surface with a roof above is indoors: no snow and no lee pile. Where the
+  ground under the snow jumps, the shell is discarded rather than hanging a
+  curtain between levels. Depth is softened over ~0.5 m, so wind never leaves
+  one-cell spikes.
 - **Snow bed.** Snow settles on the ground box-blurred over ~1 m and never
   below it, so terrain facets and small hollows fill in. Where the snow thins
   under ~2 cm the shell is discarded and the ground shows, instead of the two

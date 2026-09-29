@@ -419,21 +419,48 @@ func _exclude() -> Array[RID]:
 	return out
 
 
-## Ground height and whether something stands on it, for SnowField.
+## Ground height and what covers it, for SnowField: 0 open, 1 a wall that
+## shelters its lee, 2 under a roof (no snow, no lee pile).
 func _sample_ground(at: Vector2) -> Vector2:
 	var ground_y: float = _base_y
 	if _terrain != null:
 		ground_y = _terrain.get_height(at.x, at.y)
 	if not is_inside_tree():
 		return Vector2(ground_y, 0.0)
+	var space: PhysicsDirectSpaceState3D = get_world_3d().direct_space_state
 	var query := PhysicsRayQueryParameters3D.create(
 		Vector3(at.x, ground_y + 6.0, at.y), Vector3(at.x, ground_y - 4.0, at.y)
 	)
 	query.exclude = _exclude()
-	var hit: Dictionary = get_world_3d().direct_space_state.intersect_ray(query)
+	var hit: Dictionary = space.intersect_ray(query)
 	if hit.is_empty():
 		return Vector2(ground_y, 0.0 if _terrain != null else 1.0)
-	var hit_y: float = (hit["position"] as Vector3).y
-	if hit_y > ground_y + 0.3:
+	var hit_at: Vector3 = hit["position"]
+	var normal: Vector3 = hit["normal"]
+	## Steep faces, and anything standing over a metre high, are walls: snow
+	## drapes low decks and crates, never a house.
+	if hit_at.y > ground_y + 0.3 and (
+		normal.y < 0.7 or hit_at.y > ground_y + 1.0 or not _is_broad(space, hit_at)
+	):
 		return Vector2(ground_y, 1.0)
-	return Vector2(hit_y if _terrain == null else ground_y, 0.0)
+	## A floor, deck or crate top: snow lies on it unless a roof covers it.
+	var up := PhysicsRayQueryParameters3D.create(hit_at + Vector3.UP * 0.2, hit_at + Vector3.UP * 12.0)
+	up.exclude = _exclude()
+	if not space.intersect_ray(up).is_empty():
+		return Vector2(hit_at.y, 2.0)
+	if _terrain != null and hit_at.y <= ground_y + 0.3:
+		return Vector2(ground_y, 0.0)
+	return Vector2(hit_at.y, 0.0)
+
+
+## True when a raised surface is wide enough to hold snow, not a rail or post top.
+func _is_broad(space: PhysicsDirectSpaceState3D, at: Vector3) -> bool:
+	for offset: Vector3 in [Vector3(0.15, 0, 0), Vector3(-0.15, 0, 0), Vector3(0, 0, 0.15), Vector3(0, 0, -0.15)]:
+		var query := PhysicsRayQueryParameters3D.create(
+			at + offset + Vector3.UP * 0.5, at + offset + Vector3.DOWN * 0.2
+		)
+		query.exclude = _exclude()
+		var hit: Dictionary = space.intersect_ray(query)
+		if hit.is_empty() or absf((hit["position"] as Vector3).y - at.y) > 0.05:
+			return false
+	return true

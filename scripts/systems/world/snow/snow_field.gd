@@ -52,11 +52,18 @@ func rebuild(new_origin: Vector2, cover: float, wind: Vector2) -> void:
 	var side := Vector2(-wind.y, wind.x)
 	var settled: float = lerpf(cover_depth_m.x, cover_depth_m.y, cover)
 	var step: int = maxi(1, roundi(0.35 / texel_m()))
+	var n: int = res * res
+	var depth_sum := PackedFloat32Array()
+	var weight := PackedFloat32Array()
+	var fill := PackedFloat32Array()
+	depth_sum.resize(n)
+	weight.resize(n)
+	fill.resize(n)
 	for ty: int in range(res):
 		for tx: int in range(res):
-			var g: Vector2 = _ground[ty * res + tx]
+			var i: int = ty * res + tx
+			var g: Vector2 = _ground[i]
 			if g.y > 0.5:
-				image.set_pixel(tx, ty, Color(g.x, 0.0, 1.0))
 				continue
 			var at: Vector2 = _world_of(tx, ty)
 			var along: float = at.dot(wind)
@@ -65,18 +72,36 @@ func rebuild(new_origin: Vector2, cover: float, wind: Vector2) -> void:
 			var drift: float = pow(cover, 1.5) * drift_m * ridge
 			var lee: float = cover * lee_m * _lee(tx, ty, wind, step)
 			## Wind scours the face that rises into it and fills hollows.
-			var bed: float = _bed[ty * res + tx]
+			var bed: float = _bed[i]
 			var rise: float = _bed_at(tx + roundi(wind.x * step), ty + roundi(wind.y * step)) - bed
 			var scour: float = clampf(1.0 - rise / (0.35 * float(step) * texel_m()) * 0.5, 0.35, 1.25)
 			var depth: float = (settled + max(drift, lee) + min(drift, lee) * 0.3) * scour
 			depth += settled * 0.15 * _noise.get_noise_2d(at.x * 1.3, at.y * 1.3)
 			## Snow thins to nothing at the water's edge and never lies below it.
 			var shore: float = smoothstep(sea_level_m + 0.05, sea_level_m + 0.8, g.x)
-			depth *= shore
+			depth_sum[i] = maxf(depth * shore, 0.0)
+			weight[i] = 1.0
+			fill[i] = (bed - g.x) * shore
+	## Wind never leaves one-cell spikes: soften depth over ~0.5 m, ignoring
+	## cells nothing lies on so snow still meets walls at full height.
+	var r: int = maxi(1, roundi(0.25 / texel_m()))
+	var tmp := PackedFloat32Array()
+	tmp.resize(n)
+	_blur_rows(depth_sum, tmp, r)
+	_blur_cols(tmp, depth_sum, r)
+	_blur_rows(weight, tmp, r)
+	_blur_cols(tmp, weight, r)
+	for ty: int in range(res):
+		for tx: int in range(res):
+			var i: int = ty * res + tx
+			var g: Vector2 = _ground[i]
+			if g.y > 0.5:
+				image.set_pixel(tx, ty, Color(g.x, 0.0, 1.0))
+				continue
+			var depth: float = depth_sum[i] / maxf(weight[i], 0.0001)
 			var cut: float = 1.0 if g.x < sea_level_m + 0.02 else 0.0
-			depth = maxf(depth, 0.0)
 			## Depth is measured from the real ground, so the shader's ground stays true.
-			var top: float = g.x + (bed - g.x) * shore + depth
+			var top: float = g.x + fill[i] + depth
 			image.set_pixel(tx, ty, Color(top, top - g.x, cut))
 
 
@@ -109,6 +134,22 @@ func _sample(x: float, z: float) -> Vector2:
 
 func _world_of(tx: int, ty: int) -> Vector2:
 	return origin + (Vector2(tx, ty) + Vector2(0.5, 0.5)) * texel_m()
+
+
+## Only walls shelter a lee; a roofed floor is cut away but piles nothing.
+func _is_wall(tx: int, ty: int) -> bool:
+	var kind: float = _ground[ty * res + tx].y
+	return kind > 0.5 and kind < 1.5
+
+
+## Share of wall around a cell: a lone fence post shelters far less than a wall.
+func _wall_share(tx: int, ty: int) -> float:
+	var walls: int = 0
+	for dy: int in range(-1, 2):
+		for dx: int in range(-1, 2):
+			if _is_wall(clampi(tx + dx, 0, res - 1), clampi(ty + dy, 0, res - 1)):
+				walls += 1
+	return clampf(float(walls) / 3.0, 0.0, 1.0)
 
 
 func _bed_at(tx: int, ty: int) -> float:
@@ -165,10 +206,8 @@ func _lee(tx: int, ty: int, wind: Vector2, step: int) -> float:
 		var sy: int = ty - roundi(wind.y * step * k)
 		if sx < 0 or sy < 0 or sx >= res or sy >= res:
 			break
-		if _ground[sy * res + sx].y > 0.5:
-			pile = maxf(pile, smoothstep(0.0, 1.5, float(k)) * (1.0 - float(k) / 9.0))
+		pile = maxf(pile, _wall_share(sx, sy) * smoothstep(0.0, 1.5, float(k)) * (1.0 - float(k) / 9.0))
 	var fx: int = clampi(tx + roundi(wind.x * step), 0, res - 1)
 	var fy: int = clampi(ty + roundi(wind.y * step), 0, res - 1)
-	if _ground[fy * res + fx].y > 0.5:
-		pile = maxf(pile, 0.6)
+	pile = maxf(pile, 0.6 * _wall_share(fx, fy))
 	return pile

@@ -21,6 +21,7 @@ varying float v_rim;
 varying float v_cut;
 varying float v_edge;
 varying float v_depth;
+varying float v_ground;
 
 float packed_at(vec2 uv) {
 	return texture(packed_field, uv).r;
@@ -52,6 +53,7 @@ void vertex() {
 	vec2 to_edge = min(uv, 1.0 - uv) * window_m;
 	v_edge = smoothstep(0.0, 2.5, min(to_edge.x, to_edge.y));
 	float ground = f.r - f.g;
+	v_ground = ground;
 	float top = ground + (f.g - v_packed + v_rim) * v_edge;
 	VERTEX.y = max(top, ground + 0.004) - MODEL_MATRIX[3].y;
 	v_world = vec3(world.x, top, world.z);
@@ -61,7 +63,10 @@ void fragment() {
 	vec2 uv = (v_world.xz - origin) / window_m;
 	float grain = snow_hash(floor(v_world.xz * 40.0));
 	// Where snow thins to a skin it would z-fight the ground: let the ground show.
-	if (v_cut > 0.5 || grain > v_edge * 1.05 || v_depth < 0.012 + grain * 0.02) {
+	// Where the ground under the snow jumps (a kerb, a wall foot) the mesh would
+	// hang a curtain between levels: no snow surface is that steep.
+	float ground_slope = fwidth(v_ground) / max(length(fwidth(v_world.xz)), 0.001);
+	if (v_cut > 0.5 || grain > v_edge * 1.05 || v_depth < 0.012 + grain * 0.02 || ground_slope > 1.5) {
 		discard;
 	}
 	// Pit walls are sharper than the mesh, so they also come in through the normal.
