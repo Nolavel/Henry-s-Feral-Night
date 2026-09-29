@@ -155,7 +155,15 @@ PYTHONPATH=tools/world python3 tools/world/bake_terrain.py \
   --out-json "$RUNTIME_JSON"
 
 echo "[key-west] OpenStreetMap roads + building massing"
-python3 tools/world/build_key_west_city_preview.py --report "$REPORT" --out "$CITY_JSON"
+if [[ "${HFN_REUSE_CITY_JSON:-0}" == "1" ]]; then
+  if [[ ! -s "$CITY_JSON" ]]; then
+    echo "[key-west] requested frozen city snapshot is missing: $CITY_JSON" >&2
+    exit 1
+  fi
+  echo "[key-west] reusing frozen city_preview.json; OSM is not queried"
+else
+  python3 tools/world/build_key_west_city_preview.py --report "$REPORT" --out "$CITY_JSON"
+fi
 
 echo "[key-west] generated:"
 ls -lh "$SOURCE_PNG" "$SOURCE_JSON" "$RUNTIME_PNG" "$RUNTIME_JSON" "$OCEAN_MASK" "$CITY_JSON" "$REPORT"
