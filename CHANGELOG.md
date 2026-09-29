@@ -5,6 +5,16 @@ Maintained per branch; entries are added by whoever makes the change.
 
 ## [Unreleased] — `codex`
 
+### 2026-09-29 - Snow shell: depth, drifts and broken-crust prints (claudeflow)
+
+Added
+- `SnowShell`: a local 25.6 m layer of real snow depth that follows Henry. Depth
+  grows with the settled `snow_cover`, drifts ridge along the wind and overlap,
+  and snow piles in the lee of walls and boxes.
+- Footsteps pack the snow down (deeper when sprinting) and break the crust
+  around each print into slabs of different heights; snowfall fills them in.
+- `tests/systems/test_snow_shell.gd`.
+
 ### 2026-09-29 - Complete the pickup requested before walking (codex)
 
 Fixed

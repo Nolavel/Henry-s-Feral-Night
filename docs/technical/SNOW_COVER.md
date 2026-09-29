@@ -155,3 +155,23 @@ Walking at `MovementController.walk_speed` (4 m/s) with the current walk clip
 plants a foot roughly every 1.3–2.7 m. The prints are honest about that: the
 clip's cadence is slow for the ground speed, so Henry glides. Tightening it is
 an animation/locomotion blend change in `HenryUALAnimation`, not in this system.
+
+## Snow shell (high tier)
+
+`SnowShell` (`scripts/systems/world/snow/snow_shell.gd`, built by `world.gd`)
+is the local layer the decals defer to. It reads `snow_cover` and never writes it.
+
+- **Window.** A 25.6 m grid mesh around Henry, moved in 3.2 m steps so the snow
+  never swims. Prints already made are shifted with it.
+- **Ground.** Heights come from `IslandTerrain.get_height()` when present, else
+  from a ray down. Anything standing more than 0.3 m above the ground is an
+  obstacle: the shell is cut away there and snow piles in its lee.
+- **Depth** = settled (`snow_cover` × 0.14 m) + wind drifts + lee piles, all in
+  `snow_ground.gdshader`. Drifts are two overlapping ridge fields stretched
+  along `WeatherController.get_wind_direction()`.
+- **Prints.** `press()` listens to `foot_planted`. It writes a 5 cm field:
+  R packed share, G raised crust share, B fill clock. The crust breaks into
+  seven slabs of random height, so no two prints look alike.
+- **Fill.** A print fills in 900 s calm, 45 s in a whiteout. The fill is done in
+  the shader against a monotonic clock, so nothing ticks per texel on the CPU.
+- **Visual only.** No collision; feet sink into it.
