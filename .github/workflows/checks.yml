@@ -15,6 +15,9 @@ on:
       - "assets/textures/color_grading/**"
       - "tools/runtime/capture_color_grading.gd"
       - "tools/runtime/capture_key_west.gd"
+      - "tools/runtime/capture_key_west_tps.gd"
+      - "core/world/streaming_system.gd"
+      - "tests/systems/test_streaming.gd"
       - "scripts/systems/world/city/chunked_city_massing.gd"
       - "tools/world/build_key_west_preview.sh"
       - "tools/world/build_key_west_city_preview.py"
@@ -60,7 +63,7 @@ jobs:
         run: tools/ci/run_tests.sh
 
   color-grade-preview:
-    if: github.event_name == 'push' && !contains(github.event.head_commit.message, '[key-west-preview]')
+    if: github.event_name == 'push' && !contains(github.event.head_commit.message, '[key-west-preview]') && !contains(github.event.head_commit.message, '[key-west-tps]')
     runs-on: ubuntu-latest
     timeout-minutes: 12
     steps:
@@ -100,7 +103,7 @@ jobs:
           retention-days: 3
 
   key-west-preview:
-    if: github.event_name == 'push' && contains(github.event.head_commit.message, '[key-west-preview]')
+    if: github.event_name == 'push' && (contains(github.event.head_commit.message, '[key-west-preview]') || contains(github.event.head_commit.message, '[key-west-tps]'))
     runs-on: ubuntu-latest
     timeout-minutes: 20
     steps:
@@ -121,27 +124,68 @@ jobs:
           sudo apt-get update -qq
           sudo apt-get install -y -qq gdal-bin python3-numpy python3-pil python3-pyproj
 
+      - name: Download frozen Stage 5 city snapshot
+        if: contains(github.event.head_commit.message, '[key-west-tps]')
+        uses: actions/download-artifact@v4
+        with:
+          name: rimewatch-key-west-preview
+          run-id: 36524001180
+          github-token: ${{ github.token }}
+          path: /tmp/keywest-stage5
+
+      - name: Restore frozen city_preview.json
+        if: contains(github.event.head_commit.message, '[key-west-tps]')
+        run: |
+          mkdir -p docs/runtime_previews/key_west
+          cp /tmp/keywest-stage5/city_preview.json docs/runtime_previews/key_west/city_preview.json
+
       - name: Build NOAA Key West preview terrain
-        run: bash tools/world/build_key_west_preview.sh
+        env:
+          COMMIT_MESSAGE: ${{ github.event.head_commit.message }}
+        run: |
+          if [[ "$COMMIT_MESSAGE" == *"[key-west-tps]"* ]]; then
+            HFN_REUSE_CITY_JSON=1 bash tools/world/build_key_west_preview.sh
+          else
+            bash tools/world/build_key_west_preview.sh
+          fi
 
       - name: Import generated preview assets
         run: tools/ci/import_gate.sh
 
-      - name: Capture Key West on ice
+      - name: Verify StreamingSystem runtime chunks
+        if: contains(github.event.head_commit.message, '[key-west-tps]')
+        run: |
+          "$HOME/.local/bin/godot" --headless --path . --script tests/systems/test_streaming.gd
+
+      - name: Capture Key West
+        env:
+          COMMIT_MESSAGE: ${{ github.event.head_commit.message }}
         run: |
           export VK_DRIVER_FILES=/usr/share/vulkan/icd.d/lvp_icd.json
           export XDG_RUNTIME_DIR=/tmp/xdg
           mkdir -p "$XDG_RUNTIME_DIR"
-          xvfb-run -a "$HOME/.local/bin/godot"             --path .             --resolution 1600x1000             --rendering-driver vulkan             --rendering-method forward_plus             --audio-driver Dummy             --script tools/runtime/capture_key_west.gd
+          SCRIPT="tools/runtime/capture_key_west.gd"
+          if [[ "$COMMIT_MESSAGE" == *"[key-west-tps]"* ]]; then
+            SCRIPT="tools/runtime/capture_key_west_tps.gd"
+          fi
+          xvfb-run -a "$HOME/.local/bin/godot" \
+            --path . \
+            --resolution 1600x1000 \
+            --rendering-driver vulkan \
+            --rendering-method forward_plus \
+            --audio-driver Dummy \
+            --script "$SCRIPT"
 
       - name: Upload Key West previews
         uses: actions/upload-artifact@v4
         with:
-          name: rimewatch-key-west-preview
+          name: ${{ contains(github.event.head_commit.message, '[key-west-tps]') && 'rimewatch-key-west-tps' || 'rimewatch-key-west-preview' }}
           path: |
             docs/runtime_previews/key_west/*.png
             docs/runtime_previews/key_west/source_report.json
             docs/runtime_previews/key_west/city_preview.json
             docs/runtime_previews/key_west/ocean_connected_mask.png
+            docs/runtime_previews/key_west_tps/*.png
+            docs/runtime_previews/key_west_tps/stream_report.json
           if-no-files-found: error
           retention-days: 3
