@@ -424,6 +424,11 @@ func _ensure_detail(state: Dictionary) -> void:
 		roof_instance.name = "Roofs"
 		roof_instance.mesh = roof_mesh
 		holder.add_child(roof_instance)
+	var facade_node := KeyWestCityVisuals.build_facade_accents(
+		_buildings, building_ids, terrain, _visual_materials.get("awning")
+	)
+	if facade_node != null:
+		holder.add_child(facade_node)
 	if holder.get_child_count() == 0:
 		holder.free()
 		return
