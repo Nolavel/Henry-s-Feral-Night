@@ -1,8 +1,7 @@
 extends SceneTree
 
-## Stage 0 of #138: profiles exist without changing the Graciosa default,
-## and IslandTerrain exposes generic dataset paths while retaining old defaults.
-## Run: godot --headless --script tests/systems/test_world_profiles.gd
+## Dataset profiles retain the Graciosa default and gate Key West runtime
+## readiness on real terrain files rather than configured paths alone.
 
 var _failures: int = 0
 var _ran: bool = false
@@ -27,11 +26,23 @@ func _run() -> void:
 		_check(graciosa.is_runtime_ready(), "existing Graciosa profile is not runtime-ready")
 
 	var key_west: WorldProfile = WorldProfileCatalog.load_profile(&"key_west_test")
-	_check(key_west != null, "Key West placeholder profile does not load")
+	_check(key_west != null, "Key West profile does not load")
 	if key_west != null:
-		_check(key_west.experimental, "Key West placeholder is not marked experimental")
-		_check(not key_west.terrain_is_configured(), "Key West placeholder must not fake terrain data")
-		_check(not key_west.is_runtime_ready(), "Key West placeholder became runtime-ready before NOAA import")
+		_check(key_west.experimental, "Key West profile is not marked experimental")
+		_check(key_west.terrain_is_configured(), "Key West terrain paths are not configured")
+		_check(key_west.terrain_image_path != IslandHeightmap.DEFAULT_IMAGE, "Key West reuses the Graciosa image")
+		_check(key_west.terrain_meta_path != IslandHeightmap.DEFAULT_META, "Key West reuses the Graciosa metadata")
+		_check(key_west.content_scene_exists(), "Key West content scene does not exist")
+		if key_west.terrain_files_exist():
+			_check(key_west.is_runtime_ready(), "Key West with imported NOAA terrain is not runtime-ready")
+		else:
+			_check(not key_west.is_runtime_ready(), "Key West became runtime-ready without NOAA terrain")
+
+	var missing_terrain := WorldProfile.new()
+	missing_terrain.id = &"missing_terrain"
+	missing_terrain.terrain_image_path = "res://tests/missing_noaa_terrain.png"
+	missing_terrain.terrain_meta_path = "res://tests/missing_noaa_terrain.json"
+	_check(not missing_terrain.is_runtime_ready(), "configured missing terrain must not be runtime-ready")
 
 	var terrain := IslandTerrain.new()
 	_check(terrain.heightmap_image_path == IslandHeightmap.DEFAULT_IMAGE, "IslandTerrain no longer defaults to Graciosa image")
