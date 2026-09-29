@@ -5,6 +5,14 @@ Maintained per branch; entries are added by whoever makes the change.
 
 ## [Unreleased] — `codex`
 
+### 2026-09-29 - Henry wades through deep snow (claudeflow)
+
+Added
+- `WadeModifier` on Henry's skeleton: in snow deeper than 10 cm the swinging
+  leg lifts its knee and folds its shin, and the torso leans into the effort,
+  fully at 28 cm. Swing is read from the foot moving forward in rig space, so
+  the push-off leg is left alone. `SnowShell` drives it from the snow depth.
+
 ### 2026-09-29 - Deformable snow: one field, real contact, Henry wades (claudeflow)
 
 Added

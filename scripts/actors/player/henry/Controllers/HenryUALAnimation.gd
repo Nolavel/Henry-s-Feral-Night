@@ -213,6 +213,7 @@ func _ready() -> void:
 	_attach_carry_props()
 	_bind_equipment()
 	_setup_head_look()
+	_setup_wade()
 	_make_animation_library_local()
 	_add_secondary_library()
 	_setup_animation_tree()
@@ -515,6 +516,15 @@ func update_head_look(delta: float) -> void:
 	_head_influence = move_toward(_head_influence, 1.0 if want else 0.0, delta * head_look_fade_speed)
 	_head_lookat.influence = _head_influence
 	_head_lookat.active = _head_influence > 0.001
+
+
+## Deep-snow wading on top of whatever clip plays; SnowShell drives its `wade`.
+func _setup_wade() -> void:
+	if skeleton == null or skeleton.get_node_or_null(^"Wade") != null:
+		return
+	var wade := WadeModifier.new()
+	wade.name = "Wade"
+	skeleton.add_child(wade)
 
 
 func _setup_head_look() -> void:

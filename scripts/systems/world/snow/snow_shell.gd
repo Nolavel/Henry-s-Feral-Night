@@ -56,6 +56,8 @@ const CONTACT_LAYER: int = 1 << 19
 ## Deeper than this Henry wades: his whole body ploughs a trench. Shallower,
 ## only planted soles press, so steps stay separate prints.
 @export var wade_depth_m: float = 0.3
+## Henry starts high-stepping at the first depth and fully wades by the second.
+@export var wade_gait_m: Vector2 = Vector2(0.1, 0.28)
 ## Width of one sole and how far it reaches past the heel and toe bones.
 @export var sole_width_m: float = 0.11
 @export var sole_margin_m: float = 0.05
@@ -86,6 +88,7 @@ var _sensor: FootContactSensor
 var _soles: Array[MeshInstance3D] = []
 var _drags: Array[MeshInstance3D] = []
 var _wading: bool = false
+var _gait: Node
 
 
 func _ready() -> void:
@@ -110,6 +113,7 @@ func on_world_ready(context: WorldContext) -> void:
 	field.sea_level_m = sea_level_m if _terrain != null else -INF
 	if _player != null:
 		_mover = _player.get_node_or_null(^"MovementController")
+		_gait = _player.find_child("Wade", true, false)
 	_sensor = context.find_in_scene(SENSOR_SCRIPT) as FootContactSensor
 
 
@@ -130,6 +134,8 @@ func _physics_process(_delta: float) -> void:
 	var depth: float = field.get_depth(at.x, at.z)
 	if _mover != null and &"snow_speed_multiplier" in _mover:
 		_mover.set(&"snow_speed_multiplier", get_speed_multiplier(depth))
+	if _gait != null:
+		_gait.set(&"wade", clampf(inverse_lerp(wade_gait_m.x, wade_gait_m.y, depth), 0.0, 1.0))
 	var wading: bool = depth > wade_depth_m
 	if wading != _wading:
 		_wading = wading
