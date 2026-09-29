@@ -463,6 +463,32 @@ static func build_road_node(
 	return holder
 
 
+## Height and colour per barrier style: wood light brown, chain link grey,
+## metal dark, masonry pale concrete, hedge dead green.
+const BARRIER_STYLES: Dictionary = {
+	"wood": [1.3, Color(0.56, 0.44, 0.31)],
+	"chain_link": [1.9, Color(0.56, 0.58, 0.59)],
+	"metal": [1.6, Color(0.14, 0.15, 0.16)],
+	"wall": [1.5, Color(0.64, 0.62, 0.57)],
+	"hedge": [1.3, Color(0.27, 0.29, 0.2)],
+}
+
+
+## Picks a barrier style from OSM kind and tags; untagged fences read as chain link.
+static func barrier_style(kind: String, tags: Dictionary) -> String:
+	if kind == "barrier:hedge":
+		return "hedge"
+	var material: String = String(tags.get("material", ""))
+	var fence_type: String = String(tags.get("fence_type", ""))
+	if kind == "barrier:wall" or material in ["concrete", "stone", "brick", "masonry"] or fence_type in ["concrete", "stone", "brick"]:
+		return "wall"
+	if material == "wood" or fence_type in ["wood", "picket", "split_rail", "board", "pales"]:
+		return "wood"
+	if material in ["metal", "steel", "iron"] or fence_type in ["metal", "metal_bars", "railing", "bars"]:
+		return "metal"
+	return "chain_link"
+
+
 static func build_supplemental_node(terrain: IslandTerrain, enrichment: Dictionary, materials: Dictionary) -> Node3D:
 	var holder := Node3D.new()
 	holder.name = "OpenDataStreetAndCoast"
@@ -477,9 +503,12 @@ static func build_supplemental_node(terrain: IslandTerrain, enrichment: Dictiona
 	var pier_v := PackedVector3Array()
 	var pier_n := PackedVector3Array()
 	var pier_i := PackedInt32Array()
-	var barrier_v := PackedVector3Array()
-	var barrier_n := PackedVector3Array()
-	var barrier_i := PackedInt32Array()
+	## Barrier style -> [vertices, normals, indices]; style picks height and colour.
+	var barriers: Dictionary = {}
+	for feature_variant: Variant in enrichment.get("infrastructure", []):
+		var hedge := feature_variant as Dictionary
+		if String(hedge.get("class", "")) == "hedge":
+			features = features + [{"kind": "barrier:hedge", "tags": {}, "geometry": hedge.get("geometry", {})}]
 	var tower_points: Array[Vector2] = []
 
 	for feature_variant: Variant in features:
@@ -514,24 +543,35 @@ static func build_supplemental_node(terrain: IslandTerrain, enrichment: Dictiona
 				var half_width: float = 3.2 if kind == "pier" else 4.2
 				_append_ribbon(pier_v, pier_n, pier_i, a, b, half_width, 0.42, terrain)
 			elif kind.begins_with("barrier:"):
-				_append_wall(barrier_v, barrier_n, barrier_i, a, b, 1.35, terrain)
+				var style: String = barrier_style(kind, feature.get("tags", {}))
+				if not barriers.has(style):
+					barriers[style] = [PackedVector3Array(), PackedVector3Array(), PackedInt32Array()]
+				var bucket: Array = barriers[style]
+				_append_wall(bucket[0], bucket[1], bucket[2], a, b, float(BARRIER_STYLES[style][0]), terrain)
 
 	_add_mesh_child(holder, "MappedSidewalks", sidewalk_v, sidewalk_n, PackedColorArray(), sidewalk_i, materials["sidewalk"])
 	_add_mesh_child(holder, "CoastlineEdge", coast_v, coast_n, PackedColorArray(), coast_i, materials["coast"])
 	_add_mesh_child(holder, "PiersBreakwaters", pier_v, pier_n, PackedColorArray(), pier_i, materials["pier"])
-	_add_mesh_child(holder, "FencesWalls", barrier_v, barrier_n, PackedColorArray(), barrier_i, materials["barrier"])
-	var fences := holder.get_node_or_null(^"FencesWalls") as MeshInstance3D
-	if fences != null:
+	var faces := PackedVector3Array()
+	for style: String in barriers:
+		var bucket: Array = barriers[style]
+		var node_name: String = "Barrier_%s" % style.to_pascal_case()
+		_add_mesh_child(holder, node_name, bucket[0], bucket[1], PackedColorArray(), bucket[2],
+			_material(BARRIER_STYLES[style][1], 0.9, false, true))
+		var mesh_node := holder.get_node_or_null(NodePath(node_name)) as MeshInstance3D
+		if mesh_node != null:
+			faces.append_array(mesh_node.mesh.get_faces())
+	if not faces.is_empty():
 		## Mapped fences and walls stop Henry as the buildings do.
 		var shape := ConcavePolygonShape3D.new()
-		shape.set_faces(fences.mesh.get_faces())
+		shape.set_faces(faces)
 		shape.backface_collision = true
 		var collision := CollisionShape3D.new()
 		collision.shape = shape
 		var body := StaticBody3D.new()
 		body.name = "FenceCollision"
 		body.add_child(collision)
-		fences.add_child(body)
+		holder.add_child(body)
 	_add_poles(holder, "Towers", tower_points, 13.0, 0.16, terrain, materials["pole"])
 	return holder
 

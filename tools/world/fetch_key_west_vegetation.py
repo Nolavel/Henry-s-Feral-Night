@@ -1,5 +1,5 @@
 #!/usr/bin/env python3
-"""Fetch mapped trees, tree rows and woods for Key West from Overture base/land.
+"""Fetch mapped trees, woods and cemeteries for Key West from Overture base/land and land_use.
 
 Writes data/world/key_west/vegetation.json in the city's local metres.
 Run: python3 tools/world/fetch_key_west_vegetation.py  (needs pyarrow, pyproj)
@@ -19,7 +19,7 @@ OVERTURE_RELEASE = "2026-09-23.1"
 REPORT = Path("data/world/key_west/source_report.json")
 CITY = Path("data/world/key_west/city_preview.json")
 OUT = Path("data/world/key_west/vegetation.json")
-KINDS = {"tree": "tree", "tree_row": "tree_row", "wood": "wood", "forest": "wood", "scrub": "scrub"}
+KINDS = {"tree": "tree", "tree_row": "tree_row", "wood": "wood", "forest": "wood", "scrub": "scrub", "cemetery": "cemetery"}
 
 
 def projector(report: dict):
@@ -46,9 +46,11 @@ def main() -> None:
         (pc.field("bbox", "xmin") > bbox["west"]) & (pc.field("bbox", "xmax") < bbox["east"])
         & (pc.field("bbox", "ymin") > bbox["south"]) & (pc.field("bbox", "ymax") < bbox["north"])
     )
-    table = land.to_table(columns=["id", "class", "geometry"], filter=inside)
+    rows = land.to_table(columns=["id", "class", "geometry"], filter=inside).to_pylist()
+    land_use = ds.dataset(f"overturemaps-us-west-2/release/{OVERTURE_RELEASE}/theme=base/type=land_use", filesystem=s3, format="parquet")
+    rows += land_use.to_table(columns=["id", "class", "geometry"], filter=inside & (pc.field("class") == "cemetery")).to_pylist()
     features = []
-    for row in table.to_pylist():
+    for row in rows:
         kind = KINDS.get(row["class"])
         if kind is None:
             continue

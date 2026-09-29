@@ -17,6 +17,7 @@ func _run() -> void:
 	_test_triangles_face_where_asked()
 	_test_rectangles_get_a_box_and_odd_lots_do_not()
 	_test_gables_are_closed()
+	_test_barriers_pick_their_material()
 	if _failures > 0:
 		push_error("city meshes: %d check(s) failed" % _failures)
 		quit(1)
@@ -101,3 +102,11 @@ func _test_gables_are_closed() -> void:
 		if (faces[t + 1] - faces[t]).cross(faces[t + 2] - faces[t]).normalized().y < -0.2:
 			up += 1
 	_check(up == 4, "a gable roof does not cover both sides, %d slope triangles" % up)
+
+
+func _test_barriers_pick_their_material() -> void:
+	_check(KeyWestCityVisuals.barrier_style("barrier:fence", {"material": "wood"}) == "wood", "a wooden fence is not wood")
+	_check(KeyWestCityVisuals.barrier_style("barrier:fence", {"fence_type": "metal_bars"}) == "metal", "metal bars are not metal")
+	_check(KeyWestCityVisuals.barrier_style("barrier:fence", {}) == "chain_link", "an untagged fence is not chain link")
+	_check(KeyWestCityVisuals.barrier_style("barrier:wall", {}) == "wall", "a wall is not masonry")
+	_check(KeyWestCityVisuals.barrier_style("barrier:hedge", {}) == "hedge", "a hedge is not a hedge")

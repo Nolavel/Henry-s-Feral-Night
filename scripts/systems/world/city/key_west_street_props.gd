@@ -7,10 +7,14 @@ const VEGETATION_PATH: String = "res://data/world/key_west/vegetation.json"
 const ROAD_CELL_M: float = 40.0
 const ROAD_SEARCH_M: float = 25.0
 const TREE_ROW_SPACING_M: float = 7.0
-const WOOD_SPACING_M: float = 8.0
+const WOOD_SPACING_M: float = 12.0
 const SCRUB_SPACING_M: float = 5.0
 const CROSSING_LENGTH_M: float = 3.0
 const PALM_BASE_HEIGHT_M: float = 9.0
+const TOMB_SPACING_M: float = 4.5
+## Wire height above ground for mapped power and distribution lines.
+const POWER_LINE_M: float = 12.5
+const MINOR_LINE_M: float = 8.3
 
 
 ## Builds every prop layer; returns an empty node when there is no data.
@@ -40,14 +44,23 @@ static func build(terrain: IslandTerrain, enrichment: Dictionary, roads: Array) 
 			points[key] = []
 		(points[key] as Array).append(Vector2(float(c[0]), float(c[1])))
 
-	_add_facing(holder, "PowerPoles", points.get("osm_pole", []), _power_pole_mesh(mats), index, terrain, false)
-	_add_facing(holder, "StreetLamps", points.get("osm_lamp", []), _lamp_mesh(mats), index, terrain, true)
-	_add_facing(holder, "TrafficSignals", points.get("traffic_signals", []), _signal_mesh(mats), index, terrain, true)
-	_add_facing(holder, "StopSigns", points.get("stop", []), _stop_mesh(mats), index, terrain, true)
-	_add_facing(holder, "BusStops", points.get("bus_stop", []), _bus_stop_mesh(mats), index, terrain, true)
-	_add_facing(holder, "Benches", points.get("bench", []), _bench_mesh(mats), index, terrain, true)
-	_add_facing(holder, "WasteBaskets", points.get("waste_basket", []), _basket_mesh(mats), index, terrain, true)
+	var pole := _cyl_shape(0.15, 8.0)
+	_add_facing(holder, "PowerPoles", points.get("osm_pole", []), _power_pole_mesh(mats), index, terrain, false, [pole, Vector3(0, 4.0, 0)])
+	_add_facing(holder, "StreetLamps", points.get("osm_lamp", []), _lamp_mesh(mats), index, terrain, true, [_cyl_shape(0.1, 6.0), Vector3(0, 3.0, 0)])
+	_add_facing(holder, "TrafficSignals", points.get("traffic_signals", []), _signal_mesh(mats), index, terrain, true, [_cyl_shape(0.15, 5.0), Vector3(0, 2.5, 0)])
+	var post := [_cyl_shape(0.06, 2.2), Vector3(0, 1.1, 0)]
+	_add_facing(holder, "StopSigns", points.get("stop", []), _stop_mesh(mats), index, terrain, true, post)
+	var bench := [_box_shape(Vector3(1.8, 0.9, 0.5)), Vector3(0, 0.45, 0)]
+	_add_facing(holder, "BusStops", points.get("bus_stop", []), _bus_stop_mesh(mats), index, terrain, true, bench)
+	_add_facing(holder, "Benches", points.get("bench", []), _bench_mesh(mats), index, terrain, true, bench)
+	var low := [_cyl_shape(0.28, 0.9), Vector3(0, 0.45, 0)]
+	_add_facing(holder, "WasteBaskets", points.get("waste_basket", []), _basket_mesh(mats), index, terrain, true, low)
+	_add_facing(holder, "FireHydrants", points.get("fire_hydrant", []), _hydrant_mesh(mats), index, terrain, true, [_cyl_shape(0.18, 0.8), Vector3(0, 0.4, 0)])
+	_add_facing(holder, "Bollards", points.get("bollard", []), _bollard_mesh(mats), index, terrain, false, [_cyl_shape(0.1, 1.0), Vector3(0, 0.5, 0)])
+	_add_facing(holder, "PostBoxes", points.get("post_box", []), _post_box_mesh(mats), index, terrain, true, [_box_shape(Vector3(0.55, 1.2, 0.55)), Vector3(0, 0.6, 0)])
 	_add_crossings(holder, points.get("crossing", []), index, terrain)
+	_add_wires(holder, enrichment, terrain, mats)
+	_add_tanks(holder, enrichment, terrain, mats)
 	_add_vegetation(holder, index, terrain, mats)
 	return holder
 
@@ -92,9 +105,10 @@ static func nearest_road(index: Dictionary, p: Vector2) -> Dictionary:
 
 ## Places a prop at each point; its local +Z looks at the nearest road.
 static func _add_facing(parent: Node3D, node_name: String, pts: Array, mesh: Mesh, index: Dictionary,
-		terrain: IslandTerrain, face_road: bool) -> void:
+		terrain: IslandTerrain, face_road: bool, collider: Array = []) -> void:
 	if pts.is_empty():
 		return
+	var xfs: Array[Transform3D] = []
 	var mm := _multimesh(mesh, pts.size())
 	for i: int in range(pts.size()):
 		var p: Vector2 = pts[i]
@@ -110,8 +124,11 @@ static func _add_facing(parent: Node3D, node_name: String, pts: Array, mesh: Mes
 		elif not road.is_empty():
 			var d: Vector2 = road["dir"]
 			yaw = atan2(d.x, d.y)
-		mm.set_instance_transform(i, Transform3D(Basis(Vector3.UP, yaw), _ground(terrain, p)))
+		xfs.append(Transform3D(Basis(Vector3.UP, yaw), _ground(terrain, p)))
+		mm.set_instance_transform(i, xfs[i])
 	_add_instance(parent, node_name, mm)
+	if not collider.is_empty():
+		_add_bodies(parent, node_name + "Collision", collider[0], collider[1], xfs)
 
 
 ## Zebra stripes across the road at each mapped crossing.
@@ -158,7 +175,9 @@ static func _add_vegetation(parent: Node3D, index: Dictionary, terrain: IslandTe
 	if typeof(parsed) != TYPE_DICTIONARY:
 		return
 	var trees: Array[Vector2] = []
+	var woods: Array[Vector2] = []
 	var bushes: Array[Vector2] = []
+	var tombs: Array[Vector2] = []
 	for f: Dictionary in (parsed as Dictionary).get("features", []):
 		var coords: Array = f.get("coordinates", [])
 		match String(f.get("kind", "")):
@@ -172,9 +191,11 @@ static func _add_vegetation(parent: Node3D, index: Dictionary, terrain: IslandTe
 					for k: int in range(count):
 						trees.append(a.lerp(b, (float(k) + 0.5) / float(count)))
 			"wood":
-				trees.append_array(_scatter(coords, WOOD_SPACING_M, index))
+				woods.append_array(_scatter(coords, WOOD_SPACING_M, index))
 			"scrub":
 				bushes.append_array(_scatter(coords, SCRUB_SPACING_M, index))
+			"cemetery":
+				tombs.append_array(_scatter(coords, TOMB_SPACING_M, index))
 	var palms: Array[Transform3D] = []
 	var broad: Array[Transform3D] = []
 	for p: Vector2 in trees:
@@ -187,14 +208,32 @@ static func _add_vegetation(parent: Node3D, index: Dictionary, terrain: IslandTe
 			## Palms from 5 to 12 m.
 			var s: float = lerpf(5.0, 12.0, float((h / 11) % 100) * 0.01) / PALM_BASE_HEIGHT_M
 			palms.append(Transform3D(Basis(Vector3.UP, yaw).scaled(Vector3.ONE * s), _ground(terrain, p)))
+	## Hammocks and mangroves are hardwood: bare in this winter.
+	for p: Vector2 in woods:
+		var h: int = absi(hash(p))
+		var s: float = 0.6 + float((h / 7) % 60) * 0.01
+		broad.append(Transform3D(Basis(Vector3.UP, float(h % 628) * 0.01).scaled(Vector3.ONE * s), _ground(terrain, p)))
 	var bush_xf: Array[Transform3D] = []
 	for p: Vector2 in bushes:
 		var h: int = absi(hash(p))
 		var s: float = 0.6 + float(h % 70) * 0.01
 		bush_xf.append(Transform3D(Basis(Vector3.UP, float(h % 628) * 0.01).scaled(Vector3(s, s * 0.7, s)), _ground(terrain, p)))
 	_add_transforms(parent, "Palms", _palm_mesh(mats), palms)
-	_add_transforms(parent, "BroadleafTrees", _broadleaf_mesh(mats), broad)
+	_add_transforms(parent, "BareTrees", _bare_tree_mesh(mats), broad)
 	_add_transforms(parent, "Scrub", _bush_mesh(mats), bush_xf)
+	var trunk := _cyl_shape(0.22, 3.0)
+	_add_bodies(parent, "PalmCollision", trunk, Vector3(0, 1.5, 0), _unscaled(palms))
+	_add_bodies(parent, "BareTreeCollision", trunk, Vector3(0, 1.5, 0), _unscaled(broad))
+	## Key West Cemetery: rows of whitewashed above-ground vaults.
+	var vaults: Array[Transform3D] = []
+	for p: Vector2 in tombs:
+		var h: int = absi(hash(p))
+		var road: Dictionary = nearest_road(index, p)
+		var yaw: float = 0.0 if road.is_empty() else atan2((road["dir"] as Vector2).x, (road["dir"] as Vector2).y)
+		var tall: float = 0.7 + float(h % 8) * 0.08
+		vaults.append(Transform3D(Basis(Vector3.UP, yaw).scaled(Vector3(1.0, tall, 1.0)), _ground(terrain, p)))
+	_add_transforms(parent, "CemeteryVaults", _vault_mesh(mats), vaults)
+	_add_bodies(parent, "CemeteryVaultCollision", _box_shape(Vector3(0.9, 1.0, 2.0)), Vector3(0, 0.5, 0), _unscaled(vaults))
 
 
 ## Grid points inside a polygon, jittered, kept off roads.
@@ -224,6 +263,103 @@ static func _scatter(coords: Array, spacing: float, index: Dictionary) -> Array[
 			y += spacing
 		x += spacing
 	return out
+
+
+## Sagging wires between the vertices of mapped power lines.
+static func _add_wires(parent: Node3D, enrichment: Dictionary, terrain: IslandTerrain, mats: Dictionary) -> void:
+	var spans: Array[Transform3D] = []
+	for f: Dictionary in enrichment.get("infrastructure", []):
+		var kind: String = String(f.get("class", ""))
+		var geometry: Dictionary = f.get("geometry", {})
+		if not kind in ["power_line", "minor_line", "cable", "communication_line"] or String(geometry.get("type", "")) != "LineString":
+			continue
+		var lift: float = POWER_LINE_M if kind == "power_line" else MINOR_LINE_M
+		var c: Array = geometry.get("coordinates", [])
+		for i: int in range(c.size() - 1):
+			var a: Vector3 = _ground(terrain, Vector2(float(c[i][0]), float(c[i][1]))) + Vector3.UP * lift
+			var b: Vector3 = _ground(terrain, Vector2(float(c[i + 1][0]), float(c[i + 1][1]))) + Vector3.UP * lift
+			var length: float = a.distance_to(b)
+			if length < 1.0:
+				continue
+			## Two straight halves dipping to a mid-span sag.
+			var mid: Vector3 = (a + b) * 0.5 + Vector3.DOWN * minf(length * 0.03, 1.5)
+			for pair: Array in [[a, mid], [mid, b]]:
+				for side: float in [-0.5, 0.5]:
+					var from: Vector3 = pair[0]
+					var to: Vector3 = pair[1]
+					var shift := (to - from).cross(Vector3.UP).normalized() * side
+					var z: Vector3 = to - from
+					var basis := Basis.looking_at(z.normalized(), Vector3.UP).scaled_local(Vector3(1, 1, z.length()))
+					spans.append(Transform3D(basis, (from + to) * 0.5 + shift))
+	_add_transforms(parent, "PowerWires", _compose([[_box(Vector3(0.03, 0.03, 1.0)), Transform3D.IDENTITY, mats["wire"]]]), spans)
+
+
+## Mapped storage tanks and water towers as cylinders sized to their outline.
+static func _add_tanks(parent: Node3D, enrichment: Dictionary, terrain: IslandTerrain, mats: Dictionary) -> void:
+	var tanks: Array[Transform3D] = []
+	for f: Dictionary in enrichment.get("infrastructure", []):
+		var kind: String = String(f.get("class", ""))
+		var geometry: Dictionary = f.get("geometry", {})
+		if not kind in ["storage_tank", "water_tower"] or String(geometry.get("type", "")) != "Polygon":
+			continue
+		var ring: Array = (geometry.get("coordinates", [[]]) as Array)[0]
+		var lo := Vector2(INF, INF)
+		var hi := Vector2(-INF, -INF)
+		for c: Array in ring:
+			lo = lo.min(Vector2(float(c[0]), float(c[1])))
+			hi = hi.max(Vector2(float(c[0]), float(c[1])))
+		var r: float = clampf((hi - lo).length() * 0.35, 2.0, 30.0)
+		var h: float = 30.0 if kind == "water_tower" else clampf(r * 0.8, 4.0, 14.0)
+		tanks.append(Transform3D(Basis.IDENTITY.scaled(Vector3(r, h, r)), _ground(terrain, (lo + hi) * 0.5)))
+	_add_transforms(parent, "StorageTanks", _compose([[_cyl(1.0, 1.0, 16), _at(0, 0.5, 0), mats["tank"]]]), tanks)
+	var body := StaticBody3D.new()
+	body.name = "StorageTankCollision"
+	for xf: Transform3D in tanks:
+		var shape := CylinderShape3D.new()
+		shape.radius = xf.basis.x.length()
+		shape.height = xf.basis.y.length()
+		var col := CollisionShape3D.new()
+		col.shape = shape
+		col.position = xf.origin + Vector3.UP * shape.height * 0.5
+		body.add_child(col)
+	if body.get_child_count() > 0:
+		parent.add_child(body)
+	else:
+		body.free()
+
+
+## One static body per layer; shapes stay unscaled so physics stays exact.
+static func _add_bodies(parent: Node3D, node_name: String, shape: Shape3D, offset: Vector3, xfs: Array[Transform3D]) -> void:
+	if xfs.is_empty():
+		return
+	var body := StaticBody3D.new()
+	body.name = node_name
+	for xf: Transform3D in xfs:
+		var col := CollisionShape3D.new()
+		col.shape = shape
+		col.transform = xf * Transform3D(Basis.IDENTITY, offset)
+		body.add_child(col)
+	parent.add_child(body)
+
+
+static func _unscaled(xfs: Array[Transform3D]) -> Array[Transform3D]:
+	var out: Array[Transform3D] = []
+	for xf: Transform3D in xfs:
+		out.append(Transform3D(xf.basis.orthonormalized(), xf.origin))
+	return out
+
+
+static func _cyl_shape(radius: float, height: float) -> CylinderShape3D:
+	var c := CylinderShape3D.new()
+	c.radius = radius
+	c.height = height
+	return c
+
+
+static func _box_shape(size: Vector3) -> BoxShape3D:
+	var b := BoxShape3D.new()
+	b.size = size
+	return b
 
 
 static func _ground(terrain: IslandTerrain, p: Vector2) -> Vector3:
@@ -269,8 +405,12 @@ static func _materials() -> Dictionary:
 		"palm_trunk": _mat(Color(0.36, 0.33, 0.29), 0.95),
 		"palm_frond": _mat(Color(0.34, 0.33, 0.24), 0.9, true),
 		"bark": _mat(Color(0.27, 0.24, 0.21), 0.95),
-		"crown": _mat(Color(0.2, 0.25, 0.18), 0.95),
-		"bush": _mat(Color(0.24, 0.27, 0.2), 0.95),
+		"twig": _mat(Color(0.3, 0.27, 0.24), 0.95),
+		"hydrant": _mat(Color(0.62, 0.52, 0.12), 0.6),
+		"postbox": _mat(Color(0.12, 0.2, 0.42), 0.6),
+		"wire": _mat(Color(0.08, 0.08, 0.08), 0.8),
+		"tank": _mat(Color(0.7, 0.71, 0.69), 0.6),
+		"vault": _mat(Color(0.8, 0.79, 0.75), 0.9),
 	}
 
 
@@ -406,22 +546,55 @@ static func _palm_mesh(m: Dictionary) -> ArrayMesh:
 	return _compose(parts)
 
 
-static func _broadleaf_mesh(m: Dictionary) -> ArrayMesh:
-	var crown := SphereMesh.new()
-	crown.radius = 2.6
-	crown.height = 3.6
-	crown.radial_segments = 8
-	crown.rings = 4
+## Leafless winter tree: trunk, five limbs and a second tier of twigs.
+static func _bare_tree_mesh(m: Dictionary) -> ArrayMesh:
+	var parts: Array = [[_cyl(0.22, 3.2, 7, 0.15), _at(0, 1.6, 0), m["bark"]]]
+	for k: int in range(5):
+		var yaw: float = TAU * float(k) / 5.0 + 0.3
+		var limb := Basis(Vector3.UP, yaw) * Basis(Vector3.RIGHT, deg_to_rad(38.0 + float(k % 2) * 12.0))
+		var base := Vector3(0, 2.6 + float(k % 3) * 0.3, 0)
+		parts.append([_cyl(0.1, 2.6, 5, 0.05), Transform3D(limb, base + limb * Vector3(0, 1.3, 0)), m["bark"]])
+		var tip: Vector3 = base + limb * Vector3(0, 2.4, 0)
+		for j: int in range(2):
+			var twig := Basis(Vector3.UP, yaw + (float(j) - 0.5) * 1.1) * Basis(Vector3.RIGHT, deg_to_rad(25.0))
+			parts.append([_cyl(0.04, 1.4, 4, 0.015), Transform3D(twig, tip + twig * Vector3(0, 0.7, 0)), m["twig"]])
+	return _compose(parts)
+
+
+## Bare shrub: a fan of thin stems.
+static func _bush_mesh(m: Dictionary) -> ArrayMesh:
+	var parts: Array = []
+	for k: int in range(7):
+		var b := Basis(Vector3.UP, TAU * float(k) / 7.0) * Basis(Vector3.RIGHT, deg_to_rad(20.0 + float(k % 3) * 12.0))
+		parts.append([_cyl(0.03, 1.4, 4, 0.01), Transform3D(b, b * Vector3(0, 0.7, 0)), m["twig"]])
+	return _compose(parts)
+
+
+static func _hydrant_mesh(m: Dictionary) -> ArrayMesh:
 	return _compose([
-		[_cyl(0.22, 3.2, 7, 0.16), _at(0, 1.6, 0), m["bark"]],
-		[crown, _at(0, 4.4, 0), m["crown"]],
+		[_cyl(0.13, 0.7, 8), _at(0, 0.35, 0), m["hydrant"]],
+		[_cyl(0.16, 0.08, 8), _at(0, 0.72, 0), m["hydrant"]],
+		[_cyl(0.06, 0.34, 6), _at(0, 0.45, 0, Basis(Vector3.FORWARD, PI * 0.5)), m["hydrant"]],
 	])
 
 
-static func _bush_mesh(m: Dictionary) -> ArrayMesh:
-	var s := SphereMesh.new()
-	s.radius = 1.0
-	s.height = 1.4
-	s.radial_segments = 7
-	s.rings = 3
-	return _compose([[s, _at(0, 0.5, 0), m["bush"]]])
+static func _bollard_mesh(m: Dictionary) -> ArrayMesh:
+	return _compose([[_cyl(0.1, 1.0, 8), _at(0, 0.5, 0), m["metal"]]])
+
+
+static func _post_box_mesh(m: Dictionary) -> ArrayMesh:
+	return _compose([
+		[_box(Vector3(0.5, 0.9, 0.5)), _at(0, 0.75, 0), m["postbox"]],
+		[_cyl(0.25, 0.5, 10), _at(0, 1.2, 0, Basis(Vector3.RIGHT, PI * 0.5)), m["postbox"]],
+		[_box(Vector3(0.08, 0.3, 0.08)), _at(0.18, 0.15, 0.18), m["metal"]],
+		[_box(Vector3(0.08, 0.3, 0.08)), _at(-0.18, 0.15, -0.18), m["metal"]],
+	])
+
+
+## Above-ground vault with a pitched cap, 1 m tall before per-instance height.
+static func _vault_mesh(m: Dictionary) -> ArrayMesh:
+	return _compose([
+		[_box(Vector3(0.9, 0.9, 2.0)), _at(0, 0.45, 0), m["vault"]],
+		[_box(Vector3(1.0, 0.1, 2.1)), _at(0, 0.95, 0), m["vault"]],
+		[_box(Vector3(0.5, 0.5, 0.08)), _at(0, 1.2, -0.95), m["vault"]],
+	])

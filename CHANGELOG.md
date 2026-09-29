@@ -5,6 +5,16 @@ Maintained per branch; entries are added by whoever makes the change.
 
 ## [Unreleased] — `codex`
 
+### 2026-09-29 - Key West props collide, winter trees, typed fences (claudeflow)
+
+- Poles, signals, signs, benches, bins, hydrants, bollards, tanks, tree trunks
+  and cemetery vaults now have collision.
+- Broadleaf trees and scrub are bare for the winter; mapped woods are bare hardwood.
+- Fences take their OSM material: wood light brown, chain link grey, metal dark,
+  walls pale concrete; mapped hedges added.
+- Mapped power and distribution lines hang sagging wires; storage tanks and water
+  towers stand as cylinders; Key West Cemetery fills with whitewashed vaults.
+
 ### 2026-09-29 - Key West street props and trees (claudeflow)
 
 - `KeyWestStreetProps` places mapped power poles, street lamps, traffic signals,
