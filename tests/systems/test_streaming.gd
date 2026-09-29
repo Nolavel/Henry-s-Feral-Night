@@ -11,6 +11,41 @@ const SETTLE_DEADLINE_MS: int = 5000
 ## Consecutive pumps with no state change before a settle counts as done.
 const SETTLE_QUIET_PUMPS: int = 60
 
+class RuntimeSource:
+	extends Node
+
+	var ring0_built: bool = false
+	var active: Dictionary = {}
+
+	func get_stream_chunks() -> Array:
+		return [{
+			"id": &"runtime_test",
+			"position": Vector3.ZERO,
+			"radius": 30.0,
+		}]
+
+	func build_stream_ring0(container: Node3D) -> void:
+		ring0_built = true
+		var marker := Node3D.new()
+		marker.name = "RuntimeRing0"
+		container.add_child(marker)
+
+	func activate_stream_chunk(id: StringName, container: Node3D) -> Node3D:
+		var instance := Node3D.new()
+		instance.name = "RuntimeActive_%s" % id
+		container.add_child(instance)
+		active[id] = instance
+		return instance
+
+	func deactivate_stream_chunk(id: StringName) -> void:
+		var instance := active.get(id) as Node3D
+		if is_instance_valid(instance):
+			if instance.get_parent() != null:
+				instance.get_parent().remove_child(instance)
+			instance.free()
+		active.erase(id)
+
+
 var _failures: int = 0
 
 
@@ -27,6 +62,7 @@ func _run() -> void:
 	_test_instantiation_budget_is_respected()
 	_test_leaving_early_rolls_back_without_instantiating()
 	_test_reset_clears_everything()
+	_test_runtime_source_uses_same_state_machine()
 	if _failures > 0:
 		push_error("streaming: %d check(s) failed" % _failures)
 		quit(1)
@@ -238,3 +274,40 @@ func _test_reset_clears_everything() -> void:
 		"reset left a chunk in a loaded state"
 	)
 	_dispose_rig(rig)
+
+
+func _test_runtime_source_uses_same_state_machine() -> void:
+	var container := Node3D.new()
+	root.add_child(container)
+	var player := Node3D.new()
+	root.add_child(player)
+	var source := RuntimeSource.new()
+	root.add_child(source)
+	var system := StreamingSystem.new()
+	root.add_child(system)
+
+	var added: int = system.register_runtime_source(source)
+	_check(added == 1, "runtime source did not register its chunk")
+	system.initialize_runtime_only(container, player)
+	_check(source.ring0_built, "runtime source Ring 0 was not built")
+	_check(system.get_runtime_chunk_count() == 1, "runtime chunk count is wrong")
+
+	system.scan(Vector3.ZERO)
+	system.pump()
+	_check(
+		system.get_state(&"runtime_test") == StreamingSystem.CellState.ACTIVE,
+		"runtime chunk did not reach ACTIVE"
+	)
+	_check(source.active.has(&"runtime_test"), "runtime source did not create active content")
+
+	system.scan(Vector3(1000.0, 0.0, 1000.0))
+	system.pump()
+	_check(
+		system.get_state(&"runtime_test") == StreamingSystem.CellState.UNLOADED,
+		"runtime chunk did not unload after leaving its band"
+	)
+	_check(source.active.is_empty(), "runtime source kept active geometry after unload")
+
+	system.reset()
+	for node: Node in [system, source, player, container]:
+		_dispose(node)
