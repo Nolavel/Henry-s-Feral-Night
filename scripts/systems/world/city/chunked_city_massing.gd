@@ -23,6 +23,9 @@ var _airport_features: Array = []
 var _airport_node: Node3D
 var _labels_node: Node3D
 var _grid_node: Node3D
+var _global_visuals: Node3D
+var _enrichment: Dictionary = {}
+var _visual_materials: Dictionary = {}
 var _stream_to_chunk: Dictionary = {}
 var _stream_active: Dictionary = {}
 var _stream_ring0_ready: bool = false
@@ -35,7 +38,7 @@ var _taxiway_material: StandardMaterial3D
 var _apron_material: StandardMaterial3D
 
 
-func configure(terrain_node: IslandTerrain, data_path: String) -> bool:
+func configure(terrain_node: IslandTerrain, data_path: String, enrichment_path: String = "") -> bool:
 	terrain = terrain_node
 	var parsed: Variant = JSON.parse_string(FileAccess.get_file_as_string(data_path))
 	if typeof(parsed) != TYPE_DICTIONARY:
@@ -49,9 +52,15 @@ func configure(terrain_node: IslandTerrain, data_path: String) -> bool:
 	_buildings = data.get("buildings", [])
 	_roads = data.get("roads", [])
 	_airport_features = data.get("airport_features", [])
+	if not enrichment_path.is_empty() and FileAccess.file_exists(enrichment_path):
+		var parsed_enrichment: Variant = JSON.parse_string(FileAccess.get_file_as_string(enrichment_path))
+		if typeof(parsed_enrichment) == TYPE_DICTIONARY:
+			_enrichment = parsed_enrichment as Dictionary
+	_visual_materials = KeyWestCityVisuals.make_materials()
 	_make_materials()
 	_create_chunk_states()
 	_build_airport_layer()
+	_build_global_visuals()
 	return true
 
 
@@ -314,12 +323,12 @@ func _add_label(text: String, position: Vector2, lift: float) -> void:
 
 
 func _make_materials() -> void:
-	_massing_material = _standard_material(Color(0.62, 0.64, 0.66), 0.90)
-	_detail_material = _standard_material(Color(0.77, 0.78, 0.78), 0.88)
-	_road_material = _standard_material(Color(0.19, 0.20, 0.21), 0.97)
-	_runway_material = _standard_material(Color(0.12, 0.13, 0.14), 0.94)
-	_taxiway_material = _standard_material(Color(0.25, 0.26, 0.27), 0.94)
-	_apron_material = _standard_material(Color(0.38, 0.39, 0.40), 0.93)
+	_massing_material = _standard_material(Color(0.48, 0.51, 0.53), 0.92)
+	_detail_material = _visual_materials.get("building", _standard_material(Color(0.72, 0.74, 0.74), 0.88))
+	_road_material = _visual_materials.get("asphalt", _standard_material(Color(0.13, 0.14, 0.15), 0.97))
+	_runway_material = _standard_material(Color(0.10, 0.11, 0.12), 0.94)
+	_taxiway_material = _standard_material(Color(0.20, 0.21, 0.22), 0.94)
+	_apron_material = _standard_material(Color(0.31, 0.32, 0.33), 0.93)
 
 
 func _standard_material(color: Color, roughness: float) -> StandardMaterial3D:
@@ -399,19 +408,33 @@ func _ensure_detail(state: Dictionary) -> void:
 	var building_ids: Array = chunk.get("building_ids", [])
 	if building_ids.is_empty():
 		return
+	var holder := Node3D.new()
+	holder.name = "BuildingDetail"
 	var mesh := _build_exact_building_mesh(building_ids)
-	if mesh == null:
+	if mesh != null:
+		var instance := MeshInstance3D.new()
+		instance.name = "FootprintWalls"
+		instance.mesh = mesh
+		holder.add_child(instance)
+	var roof_mesh := KeyWestCityVisuals.build_roof_mesh(
+		_buildings, building_ids, terrain, _enrichment, _visual_materials.get("roof")
+	)
+	if roof_mesh != null:
+		var roof_instance := MeshInstance3D.new()
+		roof_instance.name = "Roofs"
+		roof_instance.mesh = roof_mesh
+		holder.add_child(roof_instance)
+	if holder.get_child_count() == 0:
+		holder.free()
 		return
-	var instance := MeshInstance3D.new()
-	instance.name = "FootprintDetail"
-	instance.mesh = mesh
-	(state["node"] as Node3D).add_child(instance)
-	state["detail"] = instance
+	(state["node"] as Node3D).add_child(holder)
+	state["detail"] = holder
 
 
 func _build_exact_building_mesh(building_ids: Array) -> ArrayMesh:
 	var vertices := PackedVector3Array()
 	var normals := PackedVector3Array()
+	var colors := PackedColorArray()
 	var indices := PackedInt32Array()
 
 	for id_variant: Variant in building_ids:
@@ -426,13 +449,16 @@ func _build_exact_building_mesh(building_ids: Array) -> ArrayMesh:
 		var triangles: PackedInt32Array = Geometry2D.triangulate_polygon(polygon)
 		if triangles.is_empty():
 			continue
-		var height: float = maxf(float(building.get("height", 3.0)), 3.0)
+		var height: float = KeyWestCityVisuals.effective_height(building, _enrichment)
+		var facade: Color = KeyWestCityVisuals.facade_color(building, _enrichment)
+		var roof: Color = KeyWestCityVisuals.roof_color(building, _enrichment)
 
 		var roof_base: int = vertices.size()
 		for p: Vector2 in polygon:
 			var ground: float = maxf(terrain.get_height(p.x, p.y), 0.0)
 			vertices.append(Vector3(p.x, ground + height + 0.05, p.y))
 			normals.append(Vector3.UP)
+			colors.append(roof)
 		for triangle_index: int in triangles:
 			indices.append(roof_base + triangle_index)
 
@@ -450,6 +476,7 @@ func _build_exact_building_mesh(building_ids: Array) -> ArrayMesh:
 			vertices.append(Vector3(b.x, ground_b + height + 0.05, b.y))
 			for _j: int in range(4):
 				normals.append(normal)
+				colors.append(facade)
 			indices.append_array([
 				base, base + 1, base + 2,
 				base + 2, base + 1, base + 3,
@@ -461,6 +488,7 @@ func _build_exact_building_mesh(building_ids: Array) -> ArrayMesh:
 	arrays.resize(Mesh.ARRAY_MAX)
 	arrays[Mesh.ARRAY_VERTEX] = vertices
 	arrays[Mesh.ARRAY_NORMAL] = normals
+	arrays[Mesh.ARRAY_COLOR] = colors
 	arrays[Mesh.ARRAY_INDEX] = indices
 	var mesh := ArrayMesh.new()
 	mesh.add_surface_from_arrays(Mesh.PRIMITIVE_TRIANGLES, arrays)
@@ -475,14 +503,15 @@ func _ensure_roads(state: Dictionary) -> void:
 	var segments: Array = chunk.get("road_segments", [])
 	if segments.is_empty():
 		return
-	var mesh := _build_road_mesh(segments)
-	if mesh == null:
+	var node := KeyWestCityVisuals.build_road_node(
+		segments, _roads, terrain, _enrichment, _visual_materials
+	)
+	if node == null or node.get_child_count() == 0:
+		if node != null:
+			node.free()
 		return
-	var instance := MeshInstance3D.new()
-	instance.name = "RoadBatch"
-	instance.mesh = mesh
-	(state["node"] as Node3D).add_child(instance)
-	state["roads"] = instance
+	(state["node"] as Node3D).add_child(node)
+	state["roads"] = node
 
 
 func _build_road_mesh(segments: Array) -> ArrayMesh:
@@ -529,6 +558,18 @@ func _build_airport_layer() -> void:
 	_add_airport_ribbons(runway_segments, _runway_material, 0.22, "Runways")
 	_add_airport_ribbons(taxiway_segments, _taxiway_material, 0.20, "Taxiways")
 	_add_airport_areas(areas)
+	KeyWestCityVisuals.add_airport_markings(_airport_node, _airport_features, terrain, _visual_materials)
+
+
+func _build_global_visuals() -> void:
+	if _enrichment.is_empty():
+		return
+	_global_visuals = KeyWestCityVisuals.build_supplemental_node(terrain, _enrichment, _visual_materials)
+	if _global_visuals != null and _global_visuals.get_child_count() > 0:
+		add_child(_global_visuals)
+	elif _global_visuals != null:
+		_global_visuals.free()
+		_global_visuals = null
 
 
 func _add_airport_ribbons(features: Array, material: Material, lift: float, node_name: String) -> void:
