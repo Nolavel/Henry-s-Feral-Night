@@ -1,7 +1,7 @@
 extends SceneTree
 
 ## Godot-first geographic/city proof for issue #138.
-## NOAA terrain + ocean-connected ice mask + OSM road/building massing.
+## NOAA terrain + ocean-connected ice mask + OSM road/building massing. Stage 4 run.
 ## No Blender edits, no First Exit move, no production city assets.
 const HEIGHT_IMAGE: String = "res://world/terrain/key_west_preview_2m_la8.png"
 const HEIGHT_META: String = "res://world/terrain/key_west_preview_2m_la8.json"
