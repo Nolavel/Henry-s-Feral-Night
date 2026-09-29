@@ -5,6 +5,28 @@ Maintained per branch; entries are added by whoever makes the change.
 
 ## [Unreleased] — `codex`
 
+### 2026-09-29 - Resolve Godot AI installation conflicts and integrate main (codex)
+
+Changed
+- Replace the mixed v3.2.1/migration-only addon with the complete Godot AI 4.2.3
+  release. All 313 vendored files match the supplied inventory; retain MIT license
+  and record archive provenance in docs/technical/godot_ai_vendor_receipt.json.
+- Resolve four add/add conflicts with one coherent release, enable the editor
+  plugin and its game helper, and remove superseded v3 files/migration archives.
+- Merge main into codex, preserving PR #137 stove/door/pickup fixes and PR #140
+  Key West First Exit. Add the ten generated UID companions for Key West scripts.
+- Update the world-profile test for configured Key West paths and missing-terrain
+  readiness; document the conflict decision in GODOT_AI_INTEGRATION.md.
+
+Validation
+- Godot 4.8 dev6 .NET build and repeat import passed; 217 project and 155 addon
+  scripts compiled. Input map and filename/UID checks passed. TestScene rendered
+  a non-black Vulkan frame without script errors.
+- Ten focused suites passed. Two unchanged main fixtures (stove act and shelter
+  focus) fail against the nightly guaranteed-strike/external-presentation contract;
+  details are recorded in GODOT_AI_INTEGRATION.md. Full-suite success is unverified.
+- Vendored EOF whitespace is preserved; diff check ignores only blank-at-eof.
+
 ### 2026-09-29 - Complete the pickup requested before walking (codex)
 
 Fixed
