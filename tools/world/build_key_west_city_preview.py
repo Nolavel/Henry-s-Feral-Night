@@ -516,18 +516,27 @@ def main() -> None:
                 "b": [round(b[0], 2), round(b[1], 2)],
             })
 
-    for feature in airport_features:
-        for cid in feature["chunk_ids"]:
-            ensure_chunk(cid)["airport_feature_ids"].append(feature["id"])
-
     airport_center = None
     airport_meta = {}
-    preferred = [
+    exact_airport = [
         item for item in aerodrome_candidates
         if item.get("iata") == "EYW" or item.get("icao") == "KEYW"
-        or "key west" in item.get("name", "").lower()
     ]
-    selected = preferred[0] if preferred else (aerodrome_candidates[0] if aerodrome_candidates else None)
+    international_airport = [
+        item for item in aerodrome_candidates
+        if "key west international" in item.get("name", "").lower()
+    ]
+    key_west_airport = [
+        item for item in aerodrome_candidates
+        if "key west" in item.get("name", "").lower()
+    ]
+    selected = (
+        exact_airport[0] if exact_airport
+        else international_airport[0] if international_airport
+        else key_west_airport[0] if key_west_airport
+        else aerodrome_candidates[0] if aerodrome_candidates
+        else None
+    )
     if selected is not None:
         airport_center = selected.get("center")
         airport_meta = {
@@ -547,6 +556,36 @@ def main() -> None:
                 round(sum(float(p[1]) for p in all_points) / len(all_points), 2),
             ]
 
+    all_aeroway_features = airport_features
+    if airport_center is not None:
+        selected_features: list[dict] = []
+        airport_x = float(airport_center[0])
+        airport_z = float(airport_center[1])
+        for feature in all_aeroway_features:
+            points = feature.get("points", [])
+            if not points:
+                continue
+            fx = sum(float(p[0]) for p in points) / len(points)
+            fz = sum(float(p[1]) for p in points) / len(points)
+            if math.hypot(fx - airport_x, fz - airport_z) > 2600.0:
+                continue
+            filtered = dict(feature)
+            filtered["id"] = len(selected_features)
+            selected_features.append(filtered)
+        airport_features = selected_features
+
+    # Rebuild airport chunk membership after choosing the EYW/KEYW airport block.
+    for chunk in chunks.values():
+        chunk["airport_feature_ids"] = []
+    for feature in airport_features:
+        for cid in feature["chunk_ids"]:
+            ensure_chunk(cid)["airport_feature_ids"].append(feature["id"])
+
+    other_aerodromes = [
+        item for item in aerodrome_candidates
+        if selected is None or item.get("osm_id") != selected.get("osm_id")
+    ]
+
     stats = {
         "buildings": len(buildings),
         "named_buildings": sum(bool(b["metadata"].get("name")) for b in buildings),
@@ -557,6 +596,8 @@ def main() -> None:
         "named_roads": sum(bool(road["name"]) for road in roads),
         "road_points": sum(len(road["points"]) for road in roads),
         "airport_features": len(airport_features),
+        "aeroway_features_total": len(all_aeroway_features),
+        "aerodromes_found": len(aerodrome_candidates),
         "chunks": len(chunks),
         "max_buildings_in_chunk": max((len(chunk["building_ids"]) for chunk in chunks.values()), default=0),
     }
@@ -578,7 +619,9 @@ def main() -> None:
             "center": airport_center,
             "metadata": airport_meta,
             "feature_ids": [feature["id"] for feature in airport_features],
+            "selection_rule": "prefer EYW / KEYW; 2.6 km aeroway neighbourhood",
         },
+        "other_aerodromes": other_aerodromes,
         "buildings": buildings,
         "roads": roads,
         "airport_features": airport_features,
