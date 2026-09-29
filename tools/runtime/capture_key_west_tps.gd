@@ -17,6 +17,7 @@ const BETWEEN_SHOTS_FRAMES: int = 105
 var _frame: int = 0
 var _shot: int = 0
 var _next_capture_frame: int = FIRST_WARMUP_FRAMES
+var _booted: bool = false
 
 var _terrain: IslandTerrain
 var _stream_container: Node3D
@@ -38,19 +39,21 @@ func _initialize() -> void:
 	if _meta.is_empty() or _city_data.is_empty():
 		push_error("key west TPS capture: missing frozen terrain/city data")
 		quit(1)
-		return
-
-	_build_stage()
-	_shots = _build_shots()
-	if _shots.size() != 6:
-		push_error("key west TPS capture: expected 6 shots, got %d" % _shots.size())
-		quit(1)
-		return
-	_apply_shot(0)
 
 
 func _process(_delta: float) -> bool:
 	_frame += 1
+	if not _booted:
+		_build_stage()
+		_shots = _build_shots()
+		if _shots.size() != 6:
+			push_error("key west TPS capture: expected 6 shots, got %d" % _shots.size())
+			quit(1)
+			return true
+		_apply_shot(0)
+		_booted = true
+		_next_capture_frame = _frame + FIRST_WARMUP_FRAMES
+		return false
 	if _streaming != null:
 		_update_overlay()
 	if _frame < _next_capture_frame:
@@ -90,6 +93,12 @@ func _build_stage() -> void:
 	root.add_child(_player)
 	_player.set_physics_process(false)
 	_hide_player_hud()
+	var movement := _player.get_node_or_null(^"MovementController") as MovementController
+	if movement != null:
+		movement.debug_show_speed = false
+	var stamina := _player.get_node_or_null(^"MovementController/StaminaManager") as StaminaManager
+	if stamina != null:
+		stamina.debug_show_stamina = false
 
 	_city = ChunkedCityMassing.new()
 	_city.name = "KeyWestCitySource"
