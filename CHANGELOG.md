@@ -5,6 +5,11 @@ Maintained per branch; entries are added by whoever makes the change.
 
 ## [Unreleased] — `codex`
 
+### 2026-09-29 - Snow window matches the terrain snow (claudeflow)
+
+- `snow_ground.gdshader` uses the terrain snow colour and roughness, so the
+  deformable window no longer reads as a grey square around Henry.
+
 ### 2026-09-29 - Key West city meshes and shelter seating from the #138 audit (claudeflow)
 
 Fixed

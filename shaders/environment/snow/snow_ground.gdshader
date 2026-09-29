@@ -12,7 +12,8 @@ uniform sampler2D packed_field : filter_linear, repeat_disable;
 uniform vec2 origin = vec2(0.0);
 uniform float window_m = 25.6;
 uniform float packed_texel_m = 0.05;
-uniform vec3 fresh_color : source_color = vec3(0.78, 0.8, 0.85);
+// Matches island_terrain snow_color so the window edge does not read as a patch.
+uniform vec3 fresh_color : source_color = vec3(0.8, 0.83, 0.88);
 uniform vec3 packed_color : source_color = vec3(0.5, 0.56, 0.68);
 
 varying vec3 v_world;
@@ -81,12 +82,11 @@ void fragment() {
 	float packed = smoothstep(0.01, 0.08, v_packed);
 	float crust = smoothstep(0.005, 0.04, v_rim);
 	vec3 color = mix(fresh_color, packed_color, packed);
-	color *= 1.0 + crust * 0.06 - snow_breakup(v_world, 5.0) * 0.05;
-	// Deep drifts read brighter on the crest, shallow cover a touch greyer.
-	color *= mix(0.84, 1.03, smoothstep(0.03, 0.4, v_depth));
+	color *= 1.0 + crust * 0.06 - snow_breakup(v_world, 5.0) * 0.03;
+	// Deep drifts read a touch brighter on the crest; shallow cover equals the terrain.
+	color *= mix(1.0, 1.03, smoothstep(0.1, 0.4, v_depth));
 	ALBEDO = color;
-	ROUGHNESS = mix(0.82, 0.6, packed);
-	SPECULAR = 0.35;
+	ROUGHNESS = mix(0.85, 0.6, packed);
 	float glint = step(0.996, snow_hash(floor(v_world.xz * 140.0)));
 	EMISSION = vec3(glint * 0.25 * (1.0 - packed));
 }
