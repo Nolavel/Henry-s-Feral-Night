@@ -2,7 +2,7 @@ extends SceneTree
 
 ## Godot-first geographic proof for issue #138.
 ## NOAA-derived terrain only: no Blender edits, no First Exit, no city content.
-## Output: docs/runtime_previews/key_west/*.png.\n## CI marker run: NOAA terrain + ice proof.
+## Output: docs/runtime_previews/key_west/*.png.\n## CI marker run: NOAA terrain + ice proof. Raw-height loader verified.
 const HEIGHT_IMAGE: String = "res://world/terrain/key_west_preview_2m_la8.png"
 const HEIGHT_META: String = "res://world/terrain/key_west_preview_2m_la8.json"
 const OUT_DIR: String = "res://docs/runtime_previews/key_west"
