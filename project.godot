@@ -23,6 +23,7 @@ config/icon="res://icon.svg"
 PlayerState="*res://core/player_state/player_state.gd"
 InputSystems="*res://core/input/input_systems.gd"
 SoundSystem="*res://core/audio/sound_system.gd"
+_mcp_game_helper="*res://addons/godot_ai/runtime/game_helper.gd"
 
 [display]
 
