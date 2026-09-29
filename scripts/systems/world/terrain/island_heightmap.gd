@@ -23,8 +23,7 @@ static func load_default() -> IslandHeightmap:
 static func load_from(image_path: String, meta_path: String) -> IslandHeightmap:
 	var map := IslandHeightmap.new()
 	var meta: Dictionary = JSON.parse_string(FileAccess.get_file_as_string(meta_path))
-	var image: Image = load(image_path)
-	if image == null or meta.is_empty():
+	## Height data must bypass Texture2D import settings. New world datasets may\n\t## otherwise import as CompressedTexture2D, which can alter the packed LA8 bytes.\n\tvar image: Image = Image.load_from_file(image_path)\n\tif image == null or image.is_empty() or meta.is_empty():
 		push_error("IslandHeightmap: cannot read %s" % image_path)
 		return null
 	map.origin = Vector2(float(meta["origin_x"]), float(meta["origin_z"]))
