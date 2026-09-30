@@ -281,6 +281,8 @@ func _focus_hit_is_visible(from: Vector3, hit_position: Vector3, target: Interac
 func _is_focus_aligned(from: Vector3, direction: Vector3, area: InteractiveArea) -> bool:
 	if not is_instance_valid(area) or area.is_queued_for_deletion():
 		return false
+	if area is HingedDoor:
+		return is_finite((area as HingedDoor).get_handle_aim_distance(from, direction))
 	if area is HeatSourceFeed and (area as HeatSourceFeed).is_acting():
 		var door: StoveDoorControl = (area as HeatSourceFeed).door_control
 		if is_instance_valid(door):
@@ -326,6 +328,8 @@ func _has_focus_line(camera: Camera3D, area: InteractiveArea) -> bool:
 func _focus_point(area: InteractiveArea) -> Vector3:
 	if not is_instance_valid(area):
 		return Vector3.ZERO
+	if area is HingedDoor:
+		return (area as HingedDoor).get_preferred_handle_position(from)
 	if is_instance_valid(area.focus_anchor):
 		return area.focus_anchor.global_position
 	var mesh: MeshInstance3D = area.interactive_mesh
