@@ -7,6 +7,7 @@ extends Node
 ## Global names, declared in project.godot under [shader_globals].
 const GLOBAL_SNOW_COVER: StringName = &"snow_cover"
 const GLOBAL_FROST_AMOUNT: StringName = &"frost_amount"
+const GLOBAL_STORM_SHARE: StringName = &"snow_storm_share"
 
 ## Looked up through the world context, never by node path.
 const WEATHER_SCRIPT: GDScript = preload("res://scripts/systems/world/WeatherController.gd")
@@ -26,6 +27,16 @@ const EPSILON: float = 0.002
 ## Extra loss per game hour for each degree the outdoor air sits above zero.
 @export var melt_per_hour_per_c: float = 0.02
 
+@export_group("Storm layer")
+## Share of fresh storm snow in a world that has seen no storm yet.
+@export_range(0.0, 1.0) var calm_storm_share: float = 0.4
+## Wind at which falling snow is laid wholly in the storm pattern, m/s.
+@export var storm_wind_mps: float = 14.0
+## How fast fresh storm snow builds in a full whiteout, share per game hour.
+@export var storm_build_per_hour: float = 0.2
+## How fast fresh storm snow settles into the old base once it stops, per hour.
+@export var storm_consolidate_per_hour: float = 0.05
+
 @export_group("Frost")
 ## Outdoor air at which rime starts to form on vertical surfaces.
 @export var frost_starts_c: float = -2.0
@@ -44,6 +55,8 @@ var _clock: DayNightManager
 var _hours: GameHourTracker = GameHourTracker.new()
 var _settled: float = -1.0
 var _frost: float = -1.0
+var _storm: float = -1.0
+var _written_storm: float = -1.0
 var _written_cover: float = -1.0
 var _written_frost: float = -1.0
 
@@ -60,6 +73,9 @@ func refresh() -> void:
 	_seed_if_needed()
 	_write(GLOBAL_SNOW_COVER, _settled, true)
 	_write(GLOBAL_FROST_AMOUNT, _frost, false)
+	if _written_storm < 0.0 or absf(_storm - _written_storm) >= EPSILON:
+		_written_storm = _storm
+		RenderingServer.global_shader_parameter_set(GLOBAL_STORM_SHARE, _storm)
 
 
 ## Moves settled snow and rime on by a span of game time, then writes.
@@ -77,7 +93,19 @@ func advance_hours(hours: float) -> void:
 	if air > 0.0:
 		_settled = maxf(0.0, _settled - melt_per_hour_per_c * air * hours)
 	_frost = move_toward(_frost, target_frost(), frost_per_hour * hours)
+	_storm = _advance_storm(_storm, density, hours)
 	refresh()
+
+
+## Fresh snow falls in the storm's pattern as hard as the wind blows; once the
+## snow stops it slowly settles into the old base over hours.
+func _advance_storm(storm: float, density: float, hours: float) -> float:
+	var wind: float = _weather.get_wind_speed_mps() if _weather != null else 0.0
+	var falling: float = clampf(density, 0.0, 1.0)
+	if falling > 0.05:
+		var target: float = clampf(wind / maxf(storm_wind_mps, 0.1), 0.0, 1.0)
+		return move_toward(storm, target, storm_build_per_hour * falling * hours)
+	return move_toward(storm, calm_storm_share, storm_consolidate_per_hour * hours)
 
 
 ## Cover the current weather would leave if it lasted forever.
@@ -102,6 +130,11 @@ func get_frost() -> float:
 	return _frost
 
 
+## Share of the settled snow laid in the storm's pattern, 0 old base to 1 fresh.
+func get_storm_share() -> float:
+	return _storm
+
+
 ## The last values written, for tests and debug overlays; never read back
 ## from RenderingServer, which would stall on the render thread.
 func get_written_snow_cover() -> float:
@@ -119,12 +152,13 @@ func get_save_key() -> StringName:
 
 
 func get_save_data() -> Dictionary:
-	return {"settled": _settled, "frost": _frost}
+	return {"settled": _settled, "frost": _frost, "storm": _storm}
 
 
 func load_save_data(data: Dictionary) -> void:
 	_settled = clampf(float(data.get("settled", weather_snow_cover())), 0.0, 1.0)
 	_frost = clampf(float(data.get("frost", target_frost())), 0.0, 1.0)
+	_storm = clampf(float(data.get("storm", calm_storm_share)), 0.0, 1.0)
 	_hours.reset()
 	refresh()
 
@@ -148,6 +182,8 @@ func _seed_if_needed() -> void:
 		_settled = weather_snow_cover()
 	if _frost < 0.0:
 		_frost = target_frost()
+	if _storm < 0.0:
+		_storm = calm_storm_share
 
 
 func _write(global_name: StringName, value: float, is_cover: bool) -> void:

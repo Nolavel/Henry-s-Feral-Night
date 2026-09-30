@@ -5,6 +5,28 @@ Maintained per branch; entries are added by whoever makes the change.
 
 ## [Unreleased] — `codex`
 
+### 2026-09-30 - Packed snow persists in world tiles (claudeflow)
+
+- SnowTrackStore keeps packed snow that leaves Henry's window as 3.2 m tiles
+  at 10 cm (one byte per texel, 5 mm steps) with the fill clock they were
+  stored at. The clock sums -ln(1 - fill) per frame, so a restored trail comes
+  back already filled in for the weather it waited through: exp(-Δclock).
+- On each window move the leaving tiles are read back and filed; the new window
+  restores stored tiles where it has no previous packing. A fresh window or a
+  load restores every texel. Up to 4096 tiles; the most filled go first.
+- SnowShell saves the tiles and clock under `snow_tracks`.
+
+### 2026-09-30 - Weather-driven storm snow layer (claudeflow)
+
+- SnowPresentationSystem keeps a storm share (0 old prevailing base, 1 fresh
+  storm snow) and writes the new `snow_storm_share` global. Falling snow pulls
+  it toward wind/14 m/s at 0.2 per hour of whiteout; once the snow stops it
+  settles back to the calm base (0.4, today's look) at 0.05 per hour. Saved.
+- SnowField caches prevailing and storm wind factors apart and mixes them per
+  rebuild, so a storm reshapes the drifts without resampling the ground; the
+  window rebuilds in place when the share moves by 0.05. Chunk snow reads the
+  global per pixel.
+
 ### 2026-09-30 - Trench walls slump to the angle of repose (claudeflow)
 
 - Packed-snow accumulation lets no texel sit deeper than its neighbours by more

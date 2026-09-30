@@ -22,6 +22,7 @@ func _run() -> void:
 	_test_warm_air_melts_it()
 	_test_frost_grows_over_hours_not_instantly()
 	_test_state_survives_a_save_round_trip()
+	_test_storm_snow_builds_and_settles()
 	_test_the_globals_are_declared()
 	_test_there_is_one_writer()
 	_test_the_world_builds_it()
@@ -173,7 +174,7 @@ func _test_state_survives_a_save_round_trip() -> void:
 ## A shader that declares `global uniform` will not compile if the name is
 ## missing from project settings, so the declaration is part of the contract.
 func _test_the_globals_are_declared() -> void:
-	for name: StringName in [SnowPresentationSystem.GLOBAL_SNOW_COVER, SnowPresentationSystem.GLOBAL_FROST_AMOUNT]:
+	for name: StringName in [SnowPresentationSystem.GLOBAL_SNOW_COVER, SnowPresentationSystem.GLOBAL_FROST_AMOUNT, SnowPresentationSystem.GLOBAL_STORM_SHARE]:
 		_check(
 			ProjectSettings.has_setting("shader_globals/%s" % name),
 			"shader global '%s' is not declared in project.godot" % name
@@ -218,3 +219,28 @@ func _test_the_world_builds_it() -> void:
 		World.WORLD_SYSTEM_SCRIPTS.has(load(SYSTEM_PATH)),
 		"the composition root does not build the snow system"
 	)
+
+
+## A blizzard lays fresh snow in the storm pattern; calm lets it settle into the
+## old base over hours, and the share survives a save.
+func _test_storm_snow_builds_and_settles() -> void:
+	var weather := _make_weather(&"calm")
+	var system := _make_system(weather, null)
+	var calm: float = system.get_storm_share()
+	weather.set_weather(&"blizzard", true)
+	system.advance_hours(3.0)
+	var stormy: float = system.get_storm_share()
+	_check(stormy > calm + 0.3, "a 3 h blizzard left the storm share at %.2f" % stormy)
+	weather.set_weather(&"calm", true)
+	system.advance_hours(1.0)
+	_check(system.get_storm_share() > stormy - 0.1, "fresh storm snow settled within an hour")
+	system.advance_hours(48.0)
+	_check(absf(system.get_storm_share() - calm) < 0.01, "storm snow never settled into the base")
+	var saved: Dictionary = system.get_save_data()
+	var other := _make_system(weather, null)
+	saved["storm"] = 0.8
+	other.load_save_data(saved)
+	_check(is_equal_approx(other.get_storm_share(), 0.8), "the storm share was not restored from a save")
+	_dispose(other)
+	_dispose(system)
+	_dispose(weather)

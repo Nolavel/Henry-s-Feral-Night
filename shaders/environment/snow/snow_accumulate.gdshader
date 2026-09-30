@@ -4,6 +4,9 @@ render_mode blend_disabled;
 // Persistent packed-snow field, ping-ponged between two viewports.
 // R: metres packed below the settled top. Fills back in with snowfall.
 uniform sampler2D previous : filter_nearest, repeat_disable;
+// Packing restored from stored tiles, already filled in for their age; read where
+// the window has just moved onto ground the previous frame did not cover.
+uniform sampler2D restore : filter_linear, repeat_disable;
 uniform sampler2D contact_tex : filter_nearest, repeat_disable;
 // Settled field: R snow top (world y), G depth, B cut away.
 uniform sampler2D field : filter_linear, repeat_disable;
@@ -20,7 +23,7 @@ uniform float slump_m = 0.02;
 void fragment() {
 	vec2 uv = UV;
 	vec2 from = uv + shift_uv;
-	float packed = 0.0;
+	float packed = texture(restore, uv).r;
 	if (from.x >= 0.0 && from.y >= 0.0 && from.x <= 1.0 && from.y <= 1.0) {
 		packed = texture(previous, from).r;
 	}
