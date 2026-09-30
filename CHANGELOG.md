@@ -5,6 +5,14 @@ Maintained per branch; entries are added by whoever makes the change.
 
 ## [Unreleased] — `codex`
 
+### 2026-09-30 - Smoother prints: no stair-stepping (claudeflow)
+
+- Contact is read with four sub-texel taps, so a boot edge presses part of a
+  texel part-way and print outlines are smooth rather than stepped.
+- The drawn slope samples twelve bearings turned per point (no polygon facets),
+  and pit shading comes from the smooth packed field clamped to the repose
+  slope instead of per-triangle derivatives.
+
 ### 2026-09-30 - Henry's body is a capsule: no more stalling by the shelter (claudeflow)
 
 - Henry's collider was a cylinder. On the HeightMapShape terrain its flat rim
