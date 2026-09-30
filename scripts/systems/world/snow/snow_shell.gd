@@ -51,6 +51,8 @@ const CONTACT_LAYER: int = RenderLayers.SNOW_CONTACT
 @export_file("*.png") var wind_field_path: String = "res://data/world/key_west/snow_wind.png"
 ## Share of the settled depth a foot or body packs down.
 @export_range(0.0, 1.0) var max_pack: float = 0.85
+## Steepest a trench wall stands before it slumps in, degrees (loose snow ~40).
+@export_range(20.0, 80.0) var repose_deg: float = 40.0
 
 @export_group("Fill")
 ## Seconds packed snow takes to fill back in with no snow falling.
@@ -435,6 +437,7 @@ func _build_capture() -> void:
 		mat.set_shader_parameter("contact_tex", _contact.get_texture())
 		mat.set_shader_parameter("field", _field_tex)
 		mat.set_shader_parameter("max_pack", max_pack)
+		mat.set_shader_parameter("slump_m", tan(deg_to_rad(repose_deg)) * window_m / float(packed_res))
 		var rect := ColorRect.new()
 		rect.size = Vector2(packed_res, packed_res)
 		rect.material = mat

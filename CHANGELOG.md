@@ -5,6 +5,12 @@ Maintained per branch; entries are added by whoever makes the change.
 
 ## [Unreleased] — `codex`
 
+### 2026-09-30 - Trench walls slump to the angle of repose (claudeflow)
+
+- Packed-snow accumulation lets no texel sit deeper than its neighbours by more
+  than tan(repose) per texel (`SnowShell.repose_deg`, 40° default): steep
+  footprint walls slump into sloped sides one texel per frame.
+
 ### 2026-09-30 - Swept shelter stairs, slowed walk in deep snow (claudeflow)
 
 - The shelter's stair ramp is in the `snow_swept` group: no snow lies on the
