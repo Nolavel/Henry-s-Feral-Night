@@ -13,6 +13,8 @@ const PRESENTATION_SCRIPT: GDScript = preload("res://scripts/systems/world/snow/
 const PICKUP_SCRIPT: GDScript = preload("res://scripts/environment/interactive/item_pickup.gd")
 ## Contact capture side on the medium tier; the packed field keeps its resolution.
 const MEDIUM_CONTACT_RES: int = 512
+## Colliders in this group are kept clear of snow, like swept steps.
+const SWEPT_GROUP: StringName = &"snow_swept"
 const SENSOR_SCRIPT: GDScript = preload("res://scripts/actors/player/henry/components/foot_contact_sensor.gd")
 ## Render layer 19 (snow_contact): meshes on it press into the snow.
 const CONTACT_LAYER: int = RenderLayers.SNOW_CONTACT
@@ -507,6 +509,9 @@ func _sample_ground(at: Vector2) -> Vector2:
 		return Vector2(ground_y, 0.0 if _terrain != null else 1.0)
 	var hit_at: Vector3 = hit["position"]
 	var normal: Vector3 = hit["normal"]
+	var collider: Object = hit.get("collider")
+	if collider is Node and (collider as Node).is_in_group(SWEPT_GROUP):
+		return Vector2(hit_at.y, 2.0)
 	## Steep faces, and anything standing over a metre high, are walls: snow
 	## drapes low decks and crates, never a house.
 	if hit_at.y > ground_y + 0.3 and (

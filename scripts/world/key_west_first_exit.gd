@@ -355,6 +355,8 @@ func _add_stair_ramp(house: Node3D, stairs: AABB) -> void:
 	collision.shape = shape
 	var body := StaticBody3D.new()
 	body.name = "StairRamp"
+	## Steps are swept: no snow lies on them to bury the climb.
+	body.add_to_group(SnowShell.SWEPT_GROUP)
 	body.add_child(collision)
 	## The box's -Z runs from the stair foot up to the veranda.
 	var forward: Vector3 = -run.normalized()

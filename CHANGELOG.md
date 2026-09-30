@@ -5,6 +5,13 @@ Maintained per branch; entries are added by whoever makes the change.
 
 ## [Unreleased] — `codex`
 
+### 2026-09-30 - Swept shelter stairs, slowed walk in deep snow (claudeflow)
+
+- The shelter's stair ramp is in the `snow_swept` group: no snow lies on the
+  steps, so Henry climbs them at full speed instead of wading.
+- Below walking speed (deep snow, heavy load) the walk clip plays slowed
+  instead of blending with idle, so feet keep pace and the torso stays upright.
+
 ### 2026-09-30 - Street props stream per city chunk (claudeflow)
 
 - Small props (benches, hydrants, signs, gates, cars, boats, scrub, vaults,
