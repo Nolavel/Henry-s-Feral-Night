@@ -91,7 +91,10 @@ func _run() -> void:
 	var body_source := FileAccess.get_file_as_string(
 		"res://shaders/environment/materials/stylized_environment_body.gdshaderinc"
 	)
-	_check(not body_source.contains("LIGHT_VERTEX ="), "generic environment still uses the old LIGHT_VERTEX workaround")
+	_check(body_source.contains("HFN_STYLIZED_SHADOW_WARP"), "generic environment lost the stock shadow-lookup warp")
+	## Stock Godot is the baseline: the patched sampler must stay behind its define.
+	_check(contract_source.contains("// #define HFN_PATCHED_SHADOW_SAMPLER"), "the patched shadow sampler is switched on by default")
+	_check(contract_source.contains("coarse_islands"), "stock contract lost hard noise islands")
 
 	if _failures > 0:
 		push_error("stylized shadows: %d check(s) failed" % _failures)

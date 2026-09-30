@@ -23,6 +23,9 @@ void vertex() {
 }
 
 void fragment() {
+	if (stylized_shadow_warp_enabled) {
+		LIGHT_VERTEX = VERTEX + HFN_STYLIZED_SHADOW_WARP(stylized_world_pos, VIEW_MATRIX);
+	}
 	vec2 uv = UV * uv_scale + uv_offset;
 	vec4 base = albedo_color;
 	if (use_vertex_color) {
@@ -47,7 +50,7 @@ void light() {
 		ATTENUATION,
 		stylized_world_pos,
 		LIGHT_IS_DIRECTIONAL,
-		LIGHT_INDEX,
+		HFN_LIGHT_INDEX,
 		VIEW_MATRIX,
 		stylized_shadow_warp_enabled
 	);

@@ -1,6 +1,11 @@
 # HFN custom directional-shadow sampler
 
-Hoarbound's production stylized shadows require a small custom Godot build.
+Optional. The project runs on stock Godot 4.8-dev6 (CLAUDE.md engine baseline):
+the default stylized-shadow path warps LIGHT_VERTEX and tears ATTENUATION into
+ink. This patch is an opt-in upgrade for a local editor build; enable it by
+uncommenting `#define HFN_PATCHED_SHADOW_SAMPLER` in
+`shaders/environment/stylized_shadow.gdshaderinc`. Never commit it enabled:
+CI, other machines and export templates run stock Godot.
 
 ## Engine base
 
