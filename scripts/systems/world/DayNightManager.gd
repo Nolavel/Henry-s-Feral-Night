@@ -59,6 +59,7 @@ const DUSK_END_HOUR: float = 22.0
 @export var world_environment_node: WorldEnvironment
 @export var time_accelerator: TimeAccelerator
 @export var color_grade_controller: ColorGradeController
+@export_range(0.0, 1.0, 0.01) var shelter_ambient_energy_cap: float = 0.20
 
 @export_group("Debug-Visual Component")
 @export var time_label: Label
@@ -93,6 +94,8 @@ func _ready() -> void:
 		total_game_time_hours = start_hour
 	_setup_default_settings()
 	_initialize_sky()
+	if is_instance_valid(color_grade_controller) and not color_grade_controller.interior_state_changed.is_connected(_on_interior_state_changed):
+		color_grade_controller.interior_state_changed.connect(_on_interior_state_changed)
 
 	if has_node("DebugTime"):
 		$DebugTime.visible = perfomance_visible_display
@@ -315,6 +318,7 @@ func _update_environment_visuals(game_hour: float) -> void:
 		)
 		ambient_energy *= lerpf(1.0, 0.12, critical_factor)
 
+	ambient_energy = _ambient_energy_for_context(ambient_energy)
 	environment.ambient_light_source = Environment.AMBIENT_SOURCE_SKY
 	environment.ambient_light_color = ambient_color
 	environment.ambient_light_energy = ambient_energy
@@ -571,6 +575,18 @@ func apply_weather_visual_profile(profile: WeatherProfile) -> void:
 		"cloud_opacity",
 		clampf(settings.cloud_opacity + snow * 0.08, 0.72, 0.98)
 	)
+
+
+func _ambient_energy_for_context(outdoor_ambient_energy: float) -> float:
+	if is_instance_valid(color_grade_controller) and color_grade_controller.is_inside_shelter():
+		return minf(outdoor_ambient_energy, shelter_ambient_energy_cap)
+	return outdoor_ambient_energy
+
+
+func _on_interior_state_changed(_is_inside: bool) -> void:
+	## DayNightManager is the single owner of Environment ambient energy. Reapply
+	## immediately on a shelter edge instead of waiting for the next game-minute tick.
+	_update_environment_visuals(get_current_hour_float())
 
 
 func force_update_lighting() -> void:

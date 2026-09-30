@@ -6,6 +6,7 @@ class_name ColorGradeController
 ## only adjusts the selected outdoor profile when the weather state itself changes.
 
 signal profile_changed(profile_id: StringName)
+signal interior_state_changed(is_inside: bool)
 
 const DAY_PROFILE_ID: StringName = &"HFN_ColdAsh_Day"
 const DUSK_PROFILE_ID: StringName = &"HFN_ColdAsh_Dusk"
@@ -23,7 +24,6 @@ const DAWN_START_HOUR: float = 5.0
 @export var night_profile: ColorGradeProfile
 @export var shelter_profile: ColorGradeProfile
 @export var default_profile_id: StringName = DAY_PROFILE_ID
-@export_range(0.0, 1.0, 0.01) var shelter_ambient_energy_cap: float = 0.20
 
 var _current_profile: ColorGradeProfile
 var _outdoor_profile_id: StringName = DAY_PROFILE_ID
@@ -31,21 +31,6 @@ var _inside_shelter: bool = false
 var _weather_brightness: float = 1.0
 var _weather_contrast: float = 1.0
 var _weather_saturation: float = 1.0
-var _outdoor_ambient_energy: float = 1.0
-var _last_shelter_ambient_energy: float = -1.0
-
-func _process(_delta: float) -> void:
-	if not _inside_shelter or not is_instance_valid(world_environment) or world_environment.environment == null:
-		return
-	var environment: Environment = world_environment.environment
-	var current: float = environment.ambient_light_energy
-	## DayNightManager may update ambient while Henry is inside. If the value no
-	## longer equals our last cap, remember it as the new outdoor baseline.
-	if _last_shelter_ambient_energy < 0.0 or not is_equal_approx(current, _last_shelter_ambient_energy):
-		_outdoor_ambient_energy = current
-	var target: float = minf(_outdoor_ambient_energy, shelter_ambient_energy_cap)
-	environment.ambient_light_energy = target
-	_last_shelter_ambient_energy = target
 
 
 func _ready() -> void:
@@ -58,18 +43,9 @@ func _ready() -> void:
 func initialize_for_interior(is_inside: bool) -> void:
 	if _inside_shelter == is_inside and _current_profile != null:
 		return
-	if is_instance_valid(world_environment) and world_environment.environment != null:
-		var environment: Environment = world_environment.environment
-		if is_inside:
-			_outdoor_ambient_energy = environment.ambient_light_energy
-			_last_shelter_ambient_energy = -1.0
-		else:
-			environment.ambient_light_energy = _outdoor_ambient_energy
-			_last_shelter_ambient_energy = -1.0
-	_inside_shelter = is_inside
+	_set_interior_state(is_inside)
 	if is_inside:
 		use_shelter_profile()
-		_process(0.0)
 	else:
 		use_outdoor_profile()
 
@@ -121,18 +97,27 @@ func use_shelter_profile() -> bool:
 
 func set_profile(profile_id: StringName) -> bool:
 	if profile_id == SHELTER_PROFILE_ID:
-		_inside_shelter = true
+		_set_interior_state(true)
 		return use_shelter_profile()
 	var profile: ColorGradeProfile = _resolve_profile(profile_id)
 	if profile == null:
 		push_warning("ColorGradeController: unknown profile '%s'." % profile_id)
 		return false
-	_inside_shelter = false
+	_set_interior_state(false)
 	_outdoor_profile_id = profile_id
 	return _apply_profile(profile, true)
 
 func get_current_profile_id() -> StringName:
 	return _current_profile.profile_id if _current_profile != null else &""
+
+func is_inside_shelter() -> bool:
+	return _inside_shelter
+
+func _set_interior_state(is_inside: bool) -> void:
+	if _inside_shelter == is_inside:
+		return
+	_inside_shelter = is_inside
+	interior_state_changed.emit(_inside_shelter)
 
 func _profile_id_for_hour(game_hour: float) -> StringName:
 	var hour: float = fmod(game_hour + 24.0, 24.0)
