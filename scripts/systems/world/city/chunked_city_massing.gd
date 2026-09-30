@@ -37,12 +37,12 @@ var _stream_active: Dictionary = {}
 var _stream_ring0_ready: bool = false
 var _excluded_building_ids: Dictionary = {}
 
-var _massing_material: StandardMaterial3D
-var _detail_material: StandardMaterial3D
-var _road_material: StandardMaterial3D
-var _runway_material: StandardMaterial3D
-var _taxiway_material: StandardMaterial3D
-var _apron_material: StandardMaterial3D
+var _massing_material: Material
+var _detail_material: Material
+var _road_material: Material
+var _runway_material: Material
+var _taxiway_material: Material
+var _apron_material: Material
 
 
 func configure(terrain_node: IslandTerrain, data_path: String, enrichment_path: String = "") -> bool:
@@ -497,11 +497,8 @@ func _make_materials() -> void:
 	_apron_material = _standard_material(Color(0.31, 0.32, 0.33), 0.93)
 
 
-func _standard_material(color: Color, roughness: float) -> StandardMaterial3D:
-	var material := StandardMaterial3D.new()
-	material.albedo_color = color
-	material.roughness = roughness
-	return material
+func _standard_material(color: Color, roughness: float) -> Material:
+	return StylizedEnvironmentMaterial.make(color, roughness)
 
 
 func _create_chunk_states() -> void:

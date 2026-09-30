@@ -33,6 +33,21 @@ on:
       - "scripts/systems/world/city/chunked_city_massing.gd"
       - "tools/world/build_key_west_preview.sh"
       - "tools/world/build_key_west_city_preview.py"
+      - "project.godot"
+      - "shaders/environment/stylized_shadow.gdshaderinc"
+      - "shaders/environment/stylized_shadows.gdshader"
+      - "shaders/environment/materials/**"
+      - "shaders/environment/terrain/island_terrain.gdshader"
+      - "shaders/environment/snow/**"
+      - "shaders/environment/ice/**"
+      - "scripts/systems/world/materials/**"
+      - "scripts/systems/world/city/key_west_city_visuals.gd"
+      - "scripts/systems/world/city/key_west_street_props.gd"
+      - "scripts/environment/interactive/hinged_door.gd"
+      - "scripts/environment/interactive/meal_table.gd"
+      - "scripts/systems/survival/shelter_breach.gd"
+      - "tools/runtime/capture_stylized_shadows.gd"
+      - "tests/systems/test_stylized_shadows.gd"
   pull_request:
     branches: [main]
     paths-ignore:
@@ -75,7 +90,7 @@ jobs:
         run: tools/ci/run_tests.sh
 
   color-grade-preview:
-    if: github.event_name == 'push' && !contains(github.event.head_commit.message, '[key-west-preview]') && !contains(github.event.head_commit.message, '[key-west-tps]') && !contains(github.event.head_commit.message, '[key-west-first-exit]') && !contains(github.event.head_commit.message, '[dev-map-preview]')
+    if: github.event_name == 'push' && !contains(github.event.head_commit.message, '[key-west-preview]') && !contains(github.event.head_commit.message, '[key-west-tps]') && !contains(github.event.head_commit.message, '[key-west-first-exit]') && !contains(github.event.head_commit.message, '[dev-map-preview]') && !contains(github.event.head_commit.message, '[stylized-shadows]')
     runs-on: ubuntu-latest
     timeout-minutes: 12
     steps:
@@ -156,7 +171,7 @@ jobs:
           retention-days: 3
 
   key-west-preview:
-    if: github.event_name == 'push' && (contains(github.event.head_commit.message, '[key-west-preview]') || contains(github.event.head_commit.message, '[key-west-tps]') || contains(github.event.head_commit.message, '[key-west-first-exit]'))
+    if: github.event_name == 'push' && (contains(github.event.head_commit.message, '[key-west-preview]') || contains(github.event.head_commit.message, '[key-west-tps]') || contains(github.event.head_commit.message, '[key-west-first-exit]') || contains(github.event.head_commit.message, '[stylized-shadows]'))
     runs-on: ubuntu-latest
     timeout-minutes: 20
     steps:
@@ -178,7 +193,7 @@ jobs:
           sudo apt-get install -y -qq gdal-bin python3-numpy python3-pil python3-pyproj python3-venv
 
       - name: Download frozen Stage 5 city snapshot
-        if: contains(github.event.head_commit.message, '[key-west-tps]') || contains(github.event.head_commit.message, '[key-west-first-exit]')
+        if: contains(github.event.head_commit.message, '[key-west-tps]') || contains(github.event.head_commit.message, '[key-west-first-exit]') || contains(github.event.head_commit.message, '[stylized-shadows]')
         uses: actions/download-artifact@v4
         with:
           name: hoarbound-key-west-preview
@@ -187,7 +202,7 @@ jobs:
           path: /tmp/keywest-stage5
 
       - name: Restore frozen city_preview.json
-        if: contains(github.event.head_commit.message, '[key-west-tps]') || contains(github.event.head_commit.message, '[key-west-first-exit]')
+        if: contains(github.event.head_commit.message, '[key-west-tps]') || contains(github.event.head_commit.message, '[key-west-first-exit]') || contains(github.event.head_commit.message, '[stylized-shadows]')
         run: |
           mkdir -p docs/runtime_previews/key_west
           cp /tmp/keywest-stage5/city_preview.json docs/runtime_previews/key_west/city_preview.json
@@ -196,20 +211,20 @@ jobs:
         env:
           COMMIT_MESSAGE: ${{ github.event.head_commit.message }}
         run: |
-          if [[ "$COMMIT_MESSAGE" == *"[key-west-tps]"* || "$COMMIT_MESSAGE" == *"[key-west-first-exit]"* ]]; then
+          if [[ "$COMMIT_MESSAGE" == *"[key-west-tps]"* || "$COMMIT_MESSAGE" == *"[key-west-first-exit]"* || "$COMMIT_MESSAGE" == *"[stylized-shadows]"* ]]; then
             HFN_REUSE_CITY_JSON=1 bash tools/world/build_key_west_preview.sh
           else
             bash tools/world/build_key_west_preview.sh
           fi
 
       - name: Install Overture client
-        if: contains(github.event.head_commit.message, '[key-west-tps]') || contains(github.event.head_commit.message, '[key-west-first-exit]')
+        if: contains(github.event.head_commit.message, '[key-west-tps]') || contains(github.event.head_commit.message, '[key-west-first-exit]') || contains(github.event.head_commit.message, '[stylized-shadows]')
         run: |
           python3 -m venv /tmp/overture-venv
           /tmp/overture-venv/bin/pip install -q overturemaps
 
       - name: Download Overture Key West visual data
-        if: contains(github.event.head_commit.message, '[key-west-tps]') || contains(github.event.head_commit.message, '[key-west-first-exit]')
+        if: contains(github.event.head_commit.message, '[key-west-tps]') || contains(github.event.head_commit.message, '[key-west-first-exit]') || contains(github.event.head_commit.message, '[stylized-shadows]')
         run: |
           BBOX="-81.835,24.535,-81.705,24.595"
           /tmp/overture-venv/bin/overturemaps download --bbox="$BBOX" -f geojson --type=building -o /tmp/keywest_overture_buildings.geojson
@@ -217,7 +232,7 @@ jobs:
           /tmp/overture-venv/bin/overturemaps download --bbox="$BBOX" -f geojson --type=infrastructure -o /tmp/keywest_overture_infrastructure.geojson
 
       - name: Build visual enrichment sidecar
-        if: contains(github.event.head_commit.message, '[key-west-tps]') || contains(github.event.head_commit.message, '[key-west-first-exit]')
+        if: contains(github.event.head_commit.message, '[key-west-tps]') || contains(github.event.head_commit.message, '[key-west-first-exit]') || contains(github.event.head_commit.message, '[stylized-shadows]')
         run: |
           python3 tools/world/build_key_west_visual_enrichment.py \
             --report docs/runtime_previews/key_west/source_report.json \
@@ -231,7 +246,7 @@ jobs:
         run: tools/ci/import_gate.sh
 
       - name: Verify StreamingSystem runtime chunks
-        if: contains(github.event.head_commit.message, '[key-west-tps]') || contains(github.event.head_commit.message, '[key-west-first-exit]')
+        if: contains(github.event.head_commit.message, '[key-west-tps]') || contains(github.event.head_commit.message, '[key-west-first-exit]') || contains(github.event.head_commit.message, '[stylized-shadows]')
         run: |
           "$HOME/.local/bin/godot" --headless --path . --script tests/systems/test_streaming.gd
 
@@ -243,7 +258,10 @@ jobs:
           export XDG_RUNTIME_DIR=/tmp/xdg
           mkdir -p "$XDG_RUNTIME_DIR"
           SCRIPT="tools/runtime/capture_key_west.gd"
-          if [[ "$COMMIT_MESSAGE" == *"[key-west-first-exit]"* ]]; then
+          if [[ "$COMMIT_MESSAGE" == *"[stylized-shadows]"* ]]; then
+            "$HOME/.local/bin/godot" --headless --path . --script tests/systems/test_stylized_shadows.gd
+            SCRIPT="tools/runtime/capture_stylized_shadows.gd"
+          elif [[ "$COMMIT_MESSAGE" == *"[key-west-first-exit]"* ]]; then
             "$HOME/.local/bin/godot" --headless --path . --script tests/systems/test_key_west_first_exit.gd
             SCRIPT="tools/runtime/capture_key_west_first_exit.gd"
           elif [[ "$COMMIT_MESSAGE" == *"[key-west-tps]"* ]]; then
@@ -260,7 +278,7 @@ jobs:
       - name: Upload Key West previews
         uses: actions/upload-artifact@v4
         with:
-          name: ${{ contains(github.event.head_commit.message, '[key-west-first-exit]') && 'hoarbound-key-west-first-exit' || (contains(github.event.head_commit.message, '[key-west-tps]') && 'hoarbound-key-west-tps' || 'hoarbound-key-west-preview') }}
+          name: ${{ contains(github.event.head_commit.message, '[stylized-shadows]') && 'hoarbound-stylized-shadows' || (contains(github.event.head_commit.message, '[key-west-first-exit]') && 'hoarbound-key-west-first-exit' || (contains(github.event.head_commit.message, '[key-west-tps]') && 'hoarbound-key-west-tps' || 'hoarbound-key-west-preview')) }}
           path: |
             docs/runtime_previews/key_west/*.png
             docs/runtime_previews/key_west/source_report.json
@@ -271,5 +289,7 @@ jobs:
             docs/runtime_previews/key_west_tps/stream_report.json
             docs/runtime_previews/key_west_first_exit/*.png
             docs/runtime_previews/key_west_first_exit/report.json
+            docs/runtime_previews/stylized_shadows/*.png
+            docs/runtime_previews/stylized_shadows/report.json
           if-no-files-found: error
           retention-days: 3

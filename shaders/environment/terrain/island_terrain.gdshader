@@ -3,6 +3,7 @@
 shader_type spatial;
 
 #include "res://shaders/environment/snow/snow_surface.gdshaderinc"
+#include "res://shaders/environment/stylized_shadow.gdshaderinc"
 
 uniform vec4 sand_color : source_color = vec4(0.62, 0.58, 0.49, 1.0);
 uniform vec4 turf_color : source_color = vec4(0.38, 0.40, 0.33, 1.0);
@@ -30,4 +31,15 @@ void fragment() {
 	float snow = snow_weight(world_normal, world_pos, snow_softness);
 	ALBEDO = mix(ground, snow_color.rgb, snow);
 	ROUGHNESS = mix(0.95, 0.85, snow);
+}
+
+
+void light() {
+	float ndotl = max(dot(NORMAL, LIGHT), 0.0);
+	float attenuation = hfn_stylized_shadow_attenuation(
+		ATTENUATION,
+		world_pos,
+		LIGHT_IS_DIRECTIONAL
+	);
+	DIFFUSE_LIGHT += ndotl * attenuation * LIGHT_COLOR / PI;
 }

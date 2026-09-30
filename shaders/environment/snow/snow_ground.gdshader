@@ -4,6 +4,7 @@ render_mode cull_back, depth_draw_opaque;
 // Snow surface around Henry. Height comes from SnowField, packing from the
 // contact accumulator. See docs/technical/SNOW_COVER.md.
 #include "res://shaders/environment/snow/snow_surface.gdshaderinc"
+#include "res://shaders/environment/stylized_shadow.gdshaderinc"
 
 // R: snow top (world y), G: settled depth, B: 1 where cut away, A: city wind factor.
 uniform sampler2D field : filter_linear, repeat_disable;
@@ -112,4 +113,15 @@ void fragment() {
 	ROUGHNESS = mix(0.85, 0.6, packed);
 	float glint = step(0.996, snow_hash(floor(v_world.xz * 140.0)));
 	EMISSION = vec3(glint * 0.25 * (1.0 - packed));
+}
+
+
+void light() {
+	float ndotl = max(dot(NORMAL, LIGHT), 0.0);
+	float attenuation = hfn_stylized_shadow_attenuation(
+		ATTENUATION,
+		v_world,
+		LIGHT_IS_DIRECTIONAL
+	);
+	DIFFUSE_LIGHT += ndotl * attenuation * LIGHT_COLOR / PI;
 }
