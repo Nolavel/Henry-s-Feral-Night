@@ -7,7 +7,7 @@ param(
 $ErrorActionPreference = "Stop"
 $UpstreamCommit = "8898c2b3db32adf6f92c694ffb6dac19af672e5f"
 $RepoUrl = "https://github.com/godotengine/godot.git"
-$Patch = Join-Path $PSScriptRoot "patches\godot-4.8-dev6-directional-shadow-sampler.patch"
+$Patcher = Join-Path $PSScriptRoot "apply_directional_shadow_sampler.py"
 $GodotDir = Join-Path $WorkRoot "godot"
 
 foreach ($tool in @("git", "python", "scons", "dotnet")) {
@@ -20,23 +20,37 @@ New-Item -ItemType Directory -Force -Path $WorkRoot | Out-Null
 
 if (-not (Test-Path (Join-Path $GodotDir ".git"))) {
     git clone $RepoUrl $GodotDir
+    if ($LASTEXITCODE -ne 0) { throw "Godot clone failed." }
 }
 
 Push-Location $GodotDir
 try {
-    if ((git status --porcelain).Length -ne 0) {
-        throw "Godot source tree is dirty. Use a clean dedicated WorkRoot: $GodotDir"
-    }
-
     git fetch origin $UpstreamCommit
-    git checkout --detach $UpstreamCommit
+    if ($LASTEXITCODE -ne 0) { throw "Fetching pinned Godot 4.8-dev6 commit failed." }
 
-    git apply --check $Patch
-    git apply $Patch
+    git checkout --detach $UpstreamCommit
+    if ($LASTEXITCODE -ne 0) { throw "Checking out pinned Godot commit failed." }
+
+    # Always restore tracked engine sources before applying HFN's deterministic
+    # source patch. Untracked SCons/bin outputs are intentionally kept so a
+    # retry does not throw away already compiled objects.
+    git reset --hard $UpstreamCommit
+    if ($LASTEXITCODE -ne 0) { throw "Resetting Godot source tree failed." }
+
+    python $Patcher --godot-dir $GodotDir
+    if ($LASTEXITCODE -ne 0) { throw "Applying HFN directional-shadow engine patch failed." }
+
+    git diff --check
+    if ($LASTEXITCODE -ne 0) { throw "Patched Godot source failed git diff --check." }
+
+    Write-Host ""
+    Write-Host "HFN engine source patch validated. Building with $Jobs jobs..."
 
     $env:GODOT_VERSION_STATUS = "dev6"
 
-    scons platform=windows target=editor module_mono_enabled=yes -j$Jobs
+    # Pass -j and its integer as separate native arguments. '-j$Jobs' can be
+    # forwarded literally by PowerShell and makes SCons reject the value.
+    scons platform=windows target=editor module_mono_enabled=yes -j $Jobs
     if ($LASTEXITCODE -ne 0) { throw "SCons editor build failed." }
 
     $Editor = Get-ChildItem -Path (Join-Path $GodotDir "bin") -Filter "godot.windows.editor*.mono.exe" |
@@ -58,14 +72,11 @@ try {
     if ($VerifyProject) {
         $ProjectRoot = (Resolve-Path (Join-Path $PSScriptRoot "..\..")).Path
 
-        # First let Godot import the project and generate shader/cache metadata.
         & $Editor.FullName --headless --path $ProjectRoot --editor --quit-after 3
         if ($LASTEXITCODE -ne 0) {
             throw "Project import/compile verification failed under patched Godot."
         }
 
-        # Then run the contract test with the patched executable. This loads all
-        # production receiver shaders that use LIGHT_INDEX/sample_directional_shadow.
         & $Editor.FullName --headless --path $ProjectRoot --script tests/systems/test_stylized_shadows.gd
         if ($LASTEXITCODE -ne 0) {
             throw "Stylized-shadow sampler contract test failed under patched Godot."
