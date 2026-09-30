@@ -26,15 +26,32 @@ author. Claude flags cost and risk for them.
 
 ## Staying in sync
 
-`main` moves ahead independently (Codex integrates there). At the start of every
-session, and before any overlapping work:
+`main` moves ahead independently. **Before EVERY new user task or substantial
+implementation pass, and before the first write for that task, Claude MUST sync
+current `main` into `claudeflow` if needed.** This applies even when continuing
+inside the same long-running Claude Code session. A sync from an earlier task or
+session does not count after `main` has moved.
 
-1. `git fetch origin main claudeflow`
-2. Merge `origin/main` into `claudeflow` (merge, never rebase — other agents read
-   this branch).
-3. Re-run `tools/ci/render.sh` on `TestScene` and confirm the frame is still sane.
-4. Read GitHub issue #1 (*AI Talk*) for Codex handoffs, and reply there with the
-   new `claudeflow` HEAD plus any conflict decisions.
+Required sequence:
+
+1. `git fetch origin main claudeflow`.
+2. Run `git merge-base --is-ancestor origin/main HEAD` to verify that the current
+   `main` is already contained in `claudeflow`.
+3. If it is not, merge `origin/main` into `claudeflow` (merge, never rebase or
+   force-push — other agents read this branch).
+4. Resolve conflicts and inspect integrated fixes before making new edits. Never
+   recreate, revert, or work around another agent's already-merged fix from a
+   stale branch state.
+5. Before expensive CI or claiming a recurring failure is still unresolved,
+   verify again that current `main` is an ancestor of HEAD.
+6. Re-run `tools/ci/render.sh` on `TestScene` when the task affects runtime or
+   rendering, and confirm the frame is sane.
+7. Read GitHub issue #1 (*AI Talk*) for handoffs and reply with the synced
+   `main` SHA, new `claudeflow` HEAD, and any conflict decisions.
+
+The mandatory flow is:
+
+`main -> claudeflow -> new work -> verification -> PR/integration`
 
 Known recurring conflicts: `AGENTS.md` (keep Claude's roles table, take Codex's
 rule changes) and `global.json` (take `main`'s).
