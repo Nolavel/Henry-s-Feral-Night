@@ -10,7 +10,7 @@ config_version=5
 
 [application]
 
-config/name="Henry`s Feral Night"
+config/name="Hoarbound"
 config/tags=[]
 run/main_scene="res://scenes/world/key_west/key_west.tscn"
 config/features=PackedStringArray("4.8", "C#", "Forward Plus")
