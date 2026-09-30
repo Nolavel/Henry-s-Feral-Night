@@ -10,7 +10,7 @@ const SHELTER := Vector2(-3579.85, 1574.51)
 const FIRST_ACTION_FRAME: int = 210
 const SETTLE_FRAMES: int = 36
 const BETWEEN_SHOTS: int = 90
-const SHOTS := [
+var _shots: Array[Dictionary] = [
 	{
 		"name": "bunker",
 		"at": BUNKER,
@@ -53,14 +53,14 @@ func _process(_delta: float) -> bool:
 	if _player == null or _terrain == null or _frame < _next_frame:
 		return false
 
-	if _shot_index >= SHOTS.size():
+	if _shot_index >= _shots.size():
 		RenderingServer.global_shader_parameter_set(&"stylized_shadow_strength", 1.0)
 		_write_report()
 		print("[stylized-shadows] production regression capture complete")
 		quit()
 		return true
 
-	var shot: Dictionary = SHOTS[_shot_index]
+	var shot: Dictionary = _shots[_shot_index]
 	if _phase == 0:
 		_place_player(shot["at"] as Vector2, shot["look"] as Vector2)
 		RenderingServer.global_shader_parameter_set(&"stylized_shadow_strength", 0.0)
@@ -128,8 +128,8 @@ func _capture(name: String) -> void:
 func _write_report() -> void:
 	var report := {
 		"scene": MAIN_SCENE,
-		"views": SHOTS.size(),
-		"pairs": SHOTS.size(),
+		"views": _shots.size(),
+		"pairs": _shots.size(),
 		"directional_strength": 1.0,
 		"local_light_strength": 0.45,
 		"contract": "solid physical core + noise-broken perimeter",
