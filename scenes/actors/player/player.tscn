@@ -30,7 +30,9 @@
 [ext_resource type="Resource" path="res://data/equipment/player_layout.tres" id="93_layout"]
 [ext_resource type="PackedScene" path="res://scenes/actors/player/HenryUALVisual.tscn" id="50_ual"]
 
-[sub_resource type="CylinderShape3D" id="CylinderShape3D_0w3ce"]
+[sub_resource type="CapsuleShape3D" id="CapsuleShape3D_0w3ce"]
+radius = 0.5
+height = 2.0
 
 [node name="Player" type="CharacterBody3D" groups=["player"]]
 transform = Transform3D(-4.37114e-08, 0, 1, 0, 1, 0, -1, 0, -4.37114e-08, 0, 0, 0)
@@ -41,7 +43,7 @@ position = Vector3(0, -1, 0)
 rotation = Vector3(0, 3.1415927, 0)
 
 [node name="Main_Collision" type="CollisionShape3D" parent="."]
-shape = SubResource("CylinderShape3D_0w3ce")
+shape = SubResource("CapsuleShape3D_0w3ce")
 
 [node name="InteractComponent" type="Node3D" parent="."]
 script = ExtResource("3_4fuql")

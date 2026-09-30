@@ -47,9 +47,9 @@ var _standing_collision_position: Vector3 = Vector3.ZERO
 
 
 func _ready() -> void:
-	if main_collision != null and main_collision.shape is CylinderShape3D:
+	if main_collision != null and main_collision.shape is CapsuleShape3D:
 		main_collision.shape = main_collision.shape.duplicate()
-		_standing_collision_height = (main_collision.shape as CylinderShape3D).height
+		_standing_collision_height = (main_collision.shape as CapsuleShape3D).height
 		_standing_collision_position = main_collision.position
 	if health_system != null:
 		health_system.damage_taken.connect(_on_damage_taken_for_animation)
@@ -164,9 +164,9 @@ func _update_crouch() -> void:
 
 
 func _apply_collision_stance() -> void:
-	if main_collision == null or not (main_collision.shape is CylinderShape3D) or _standing_collision_height <= 0.0:
+	if main_collision == null or not (main_collision.shape is CapsuleShape3D) or _standing_collision_height <= 0.0:
 		return
-	var shape := main_collision.shape as CylinderShape3D
+	var shape := main_collision.shape as CapsuleShape3D
 	var target_height: float = _standing_collision_height * (crouch_height_ratio if _crouching else 1.0)
 	shape.height = target_height
 	var height_delta: float = _standing_collision_height - target_height
@@ -174,9 +174,9 @@ func _apply_collision_stance() -> void:
 
 
 func _can_stand_up() -> bool:
-	if main_collision == null or not (main_collision.shape is CylinderShape3D) or _standing_collision_height <= 0.0:
+	if main_collision == null or not (main_collision.shape is CapsuleShape3D) or _standing_collision_height <= 0.0:
 		return true
-	var current := main_collision.shape as CylinderShape3D
+	var current := main_collision.shape as CapsuleShape3D
 	var added_height: float = _standing_collision_height - current.height
 	if added_height <= 0.001:
 		return true

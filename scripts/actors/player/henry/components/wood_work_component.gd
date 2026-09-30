@@ -91,7 +91,7 @@ func get_drop_placement(direction: Vector3 = Vector3.ZERO, distance: float = 1.3
 		return {"valid": false}
 	var floor_at: Vector3 = hit["position"]
 	var collision := _body.get_node(^"Main_Collision") as CollisionShape3D
-	var feet_y: float = collision.global_position.y - (collision.shape as CylinderShape3D).height * 0.5
+	var feet_y: float = collision.global_position.y - float(collision.shape.get("height")) * 0.5
 	if absf(floor_at.y - feet_y) > 0.65:
 		return {"valid": false}
 	var path := PhysicsRayQueryParameters3D.create(_body.global_position + Vector3.DOWN * 0.5, floor_at + Vector3.UP * 0.35)
