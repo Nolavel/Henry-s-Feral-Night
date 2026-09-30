@@ -11,11 +11,41 @@ One agent uses one branch. Agents never share a working branch.
 - Never commit directly to `main`.
 - Never push commits to another agent's branch.
 - Never force-move another agent's branch.
-- An agent may merge `main` into its own branch at any time to stay in sync (merge, never rebase).
+- Before every new task or substantial pass, an agent MUST synchronize the current `main` into its own branch; see **Mandatory pre-task sync** below.
 - Integration into `main` happens only when the author asks for it.
 - Before writing, verify the current branch belongs to the acting agent.
 
 If an agent cannot create or write its own branch, it must stop instead of falling back to `main`.
+
+## Mandatory pre-task sync
+
+Before every new user task, substantial implementation pass, experiment,
+review-with-fixes, CI repair, or resumed work after another agent may have
+integrated changes, the acting agent **MUST** synchronize its permanent working
+branch with the current `main` before the first write for that task.
+
+Required order:
+
+1. Fetch the current `main` and the agent's own permanent branch.
+2. Verify whether current `main` is already an ancestor of the working branch.
+3. If the branch is behind `main`, merge `main` into the working branch.
+   Merge only; never rebase or force-push a shared agent branch.
+4. Resolve conflicts and inspect the integrated version before editing files.
+5. Only after the working branch contains current `main` may the agent make
+   task-specific edits, commits, expensive CI runs, or open/update a PR.
+
+A sync from an earlier session or an earlier task does **not** count if `main`
+has moved since then. The required flow is always:
+
+`main -> permanent agent branch -> new work -> verification -> PR/integration`
+
+If another agent's fix has reached `main`, do not recreate, revert, or work
+around that fix from a stale branch state. Sync first and inspect the integrated
+version. Before reporting a recurring CI failure as unresolved, verify that the
+working branch contains the latest `main`.
+
+Never create a temporary branch merely to avoid synchronizing the permanent
+agent branch.
 
 ## Roles
 
