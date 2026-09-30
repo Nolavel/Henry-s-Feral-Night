@@ -5,6 +5,17 @@ Maintained per branch; entries are added by whoever makes the change.
 
 ## [Unreleased] — `codex`
 
+### 2026-10-01 - Engineering contract raised to production quality bar (codex)
+
+- Expanded `AGENTS.md` with root-cause-first engineering, research before
+  implementation, engine-native/proven techniques, and a ban on surrogate
+  mechanics or compensating patch stacks.
+- Clarified that tests protect settled decisions: unstable mechanics use the
+  cheapest useful runtime evidence first, while permanent regression tests and
+  expensive CI are added only after the mechanic and method have stabilised.
+- Codex remains on `codex`; permanent agent branches are reused, with
+  fast-forward sync preferred when a branch is only behind `main`.
+
 ### 2026-10-01 - Snow: RDR2-style wading, snow on boots, prints keep up with a run, synthesised footsteps (main)
 
 - Prints vanished while running: the 25.6 m window rebuilds at 4 ms/frame and
