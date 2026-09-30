@@ -1015,22 +1015,6 @@ stylized_shadow_detail_amount={
 "type": "float",
 "value": 0.26
 }
-stylized_shadow_warp_m={
-"type": "float",
-"value": 0.28
-}
-stylized_shadow_texture_scale={
-"type": "float",
-"value": 0.12
-}
-stylized_shadow_texture_detail_scale={
-"type": "float",
-"value": 0.45
-}
-stylized_shadow_texture_detail_mix={
-"type": "float",
-"value": 0.28
-}
 
 [hfn]
 

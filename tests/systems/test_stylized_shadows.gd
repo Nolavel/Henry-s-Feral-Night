@@ -70,22 +70,15 @@ func _run() -> void:
 		"stylized_shadow_macro_scale",
 		"stylized_shadow_detail_scale",
 		"stylized_shadow_detail_amount",
-		"stylized_shadow_warp_m",
-		"stylized_shadow_texture_scale",
-		"stylized_shadow_texture_detail_scale",
-		"stylized_shadow_texture_detail_mix",
 	]:
 		_check(
 			ProjectSettings.has_setting("shader_globals/%s" % key),
 			"missing global shader parameter: %s" % key
 		)
 
-	var warp_setting: Dictionary = ProjectSettings.get_setting(
-		"shader_globals/stylized_shadow_warp_m", {}
-	) as Dictionary
 	_check(
-		float(warp_setting.get("value", 0.0)) >= 0.2,
-		"stylized shadow warp is below a visibly useful production range"
+		contract_source.contains("HFN_SHADOW_WARP_M = 0.28"),
+		"stylized shadow production warp constant changed unexpectedly"
 	)
 
 	if _failures > 0:
