@@ -1,6 +1,6 @@
-# RIMEWATCH
+# Hoarbound
 
-**Public / commercial title:** **RIMEWATCH**  
+**Public / commercial / Steam title:** **Hoarbound**  
 **Internal project codename:** **Henry's Feral Night**
 
 Third-person survival in the endless cold. A tropical island has frozen over;

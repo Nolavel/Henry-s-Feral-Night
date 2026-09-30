@@ -1,7 +1,7 @@
 # Systemic Survival Foundation — technical roadmap
 
 Status: architecture plan for [#131](https://github.com/Nolavel/Henry-s-Feral-Night/issues/131).  
-Public product name: **RIMEWATCH**.  
+Public product name: **Hoarbound**.  
 Implementation branch for Codex: **`codex` only**.
 
 This document defines the migration path from the current working First Exit systems to a single deterministic survival simulation. It is intentionally **not** a rewrite plan. Existing Weather, Thermal, Save, Inventory and Equipment code remains the foundation and is moved behind clearer contracts one stage at a time.
@@ -10,7 +10,7 @@ This document defines the migration path from the current working First Exit sys
 
 ## 1. Why this work exists
 
-RIMEWATCH already has the pieces of a systemic survival game:
+Hoarbound already has the pieces of a systemic survival game:
 
 - `DayNightManager` owns elapsed game hours and sky/light presentation;
 - `WeatherController` is a data-driven weather state machine;
@@ -1009,4 +1009,4 @@ The epic is complete only when:
 - UI/audio/VFX remain presentation consumers;
 - First Exit still completes and restores correctly after save/load.
 
-This is the foundation for systemic survival in RIMEWATCH. It is deliberately narrower than “copy The Long Dark”: the goal is one coherent simulation model that existing and future mechanics can join without creating parallel rules.
+This is the foundation for systemic survival in Hoarbound. It is deliberately narrower than “copy The Long Dark”: the goal is one coherent simulation model that existing and future mechanics can join without creating parallel rules.

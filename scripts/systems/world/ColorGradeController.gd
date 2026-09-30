@@ -1,7 +1,7 @@
 extends Node
 class_name ColorGradeController
 
-## Owns RIMEWATCH's final Environment adjustment without replacing the Environment.
+## Owns Hoarbound's final Environment adjustment without replacing the Environment.
 ## Time of day selects one outdoor LUT; shelter temporarily overrides it. Weather
 ## only adjusts the selected outdoor profile when the weather state itself changes.
 
