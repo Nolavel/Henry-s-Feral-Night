@@ -52,15 +52,11 @@ func _run() -> void:
 		"road marking should remain deliberately unshaded"
 	)
 
-	var noise := load("res://resources/environment/stylized_shadow_noise.tres")
-	_check(noise is NoiseTexture2D, "stylized shadow noise resource failed to load")
-	if noise is NoiseTexture2D:
-		_check((noise as NoiseTexture2D).seamless, "stylized shadow noise is not tileable")
-
 	var contract_source := FileAccess.get_file_as_string(
 		"res://shaders/environment/stylized_shadow.gdshaderinc"
 	)
-	_check(contract_source.contains("stylized_shadow_noise_texture"), "shared contract does not sample texture noise")
+	_check(contract_source.contains("hfn_shadow_value_noise"), "shared contract lost procedural breakup noise")
+	_check(contract_source.contains("coarse_islands"), "shared contract lost hard noise islands")
 	_check(contract_source.contains("if (!directional)"), "local-light physical attenuation guard is missing")
 	_check(contract_source.contains("return base;"), "local lights are still being ink-darkened")
 
@@ -74,7 +70,6 @@ func _run() -> void:
 		"stylized_shadow_macro_scale",
 		"stylized_shadow_detail_scale",
 		"stylized_shadow_detail_amount",
-		"stylized_shadow_noise_texture",
 		"stylized_shadow_warp_m",
 		"stylized_shadow_texture_scale",
 		"stylized_shadow_texture_detail_scale",
@@ -84,6 +79,14 @@ func _run() -> void:
 			ProjectSettings.has_setting("shader_globals/%s" % key),
 			"missing global shader parameter: %s" % key
 		)
+
+	var warp_setting: Dictionary = ProjectSettings.get_setting(
+		"shader_globals/stylized_shadow_warp_m", {}
+	) as Dictionary
+	_check(
+		float(warp_setting.get("value", 0.0)) >= 0.2,
+		"stylized shadow warp is below a visibly useful production range"
+	)
 
 	if _failures > 0:
 		push_error("stylized shadows: %d check(s) failed" % _failures)
