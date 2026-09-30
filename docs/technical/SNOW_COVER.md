@@ -91,6 +91,7 @@ front moves inward, and noise only breaks up that front.
 | Tier | What runs |
 |---|---|
 | Low (HD 620 class) | cover + rime from the shared include, decal footprints, bounded snowfall particles. No compute, no POM. |
+| Medium (Forward+) | as high, but the per-frame contact capture is 512² (packed field stays 1024²). Gain unproven on a real GPU. |
 | High (Forward+) | the above, plus — later — a local L0 accumulation field, POM near the camera, compute evolution. |
 
 Nobody enables compute on the low tier by default.

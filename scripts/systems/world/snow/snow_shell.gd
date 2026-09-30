@@ -11,6 +11,8 @@ const WEATHER_SCRIPT: GDScript = preload("res://scripts/systems/world/WeatherCon
 const TERRAIN_SCRIPT: GDScript = preload("res://scripts/systems/world/terrain/island_terrain.gd")
 const PRESENTATION_SCRIPT: GDScript = preload("res://scripts/systems/world/snow/snow_presentation_system.gd")
 const PICKUP_SCRIPT: GDScript = preload("res://scripts/environment/interactive/item_pickup.gd")
+## Contact capture side on the medium tier; the packed field keeps its resolution.
+const MEDIUM_CONTACT_RES: int = 512
 const SENSOR_SCRIPT: GDScript = preload("res://scripts/actors/player/henry/components/foot_contact_sensor.gd")
 ## Render layer 19 (snow_contact): meshes on it press into the snow.
 const CONTACT_LAYER: int = RenderLayers.SNOW_CONTACT
@@ -28,6 +30,8 @@ const CONTACT_LAYER: int = RenderLayers.SNOW_CONTACT
 @export_range(32, 256) var field_res: int = 128
 ## Texels along one side of the packed-snow field.
 @export_range(128, 2048) var packed_res: int = 1024
+## Texels along one side of the contact capture, rendered every frame.
+@export_range(128, 2048) var contact_res: int = 1024
 ## The window moves in steps of this size, so the snow never swims.
 @export var recentre_step_m: float = 3.2
 ## Frame budget for a window move while walking; the old window stays live meanwhile.
@@ -107,6 +111,8 @@ func _ready() -> void:
 		set_process(false)
 		set_physics_process(false)
 		return
+	if SnowField.quality() == &"medium":
+		contact_res = MEDIUM_CONTACT_RES
 	field.window_m = window_m
 	field.res = field_res
 	field.sea_level_m = sea_level_m
@@ -370,7 +376,7 @@ func _graded_grid() -> ArrayMesh:
 
 
 func _build_capture() -> void:
-	_contact = _viewport("SnowContact")
+	_contact = _viewport("SnowContact", contact_res)
 	_contact.disable_3d = false
 	_contact.render_target_update_mode = SubViewport.UPDATE_ALWAYS
 	_contact_cam = Camera3D.new()
@@ -420,7 +426,7 @@ func _build_capture() -> void:
 		add_child(drag)
 		_drags.append(drag)
 	for i: int in range(2):
-		var vp: SubViewport = _viewport("SnowPacked%d" % i)
+		var vp: SubViewport = _viewport("SnowPacked%d" % i, packed_res)
 		vp.render_target_update_mode = SubViewport.UPDATE_DISABLED
 		var mat := ShaderMaterial.new()
 		mat.shader = ACCUMULATE_SHADER
@@ -437,10 +443,10 @@ func _build_capture() -> void:
 	_accum_mat[1].set_shader_parameter("previous", _accum[0].get_texture())
 
 
-func _viewport(node_name: String) -> SubViewport:
+func _viewport(node_name: String, side: int) -> SubViewport:
 	var vp := SubViewport.new()
 	vp.name = node_name
-	vp.size = Vector2i(packed_res, packed_res)
+	vp.size = Vector2i(side, side)
 	vp.use_hdr_2d = true
 	vp.disable_3d = true
 	vp.transparent_bg = false

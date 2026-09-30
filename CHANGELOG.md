@@ -5,6 +5,14 @@ Maintained per branch; entries are added by whoever makes the change.
 
 ## [Unreleased] — `codex`
 
+### 2026-09-30 - Separate contact and packed snow resolutions (claudeflow)
+
+- SnowShell.contact_res sizes the per-frame contact capture apart from the
+  packed field. High stays 1024/1024; the reference frames are unchanged.
+- New `medium` snow tier: contact 512, packed 1024. On lavapipe it gains
+  nothing measurable (walk frame 131 vs 133 ms, CPU-bound); a real GPU must
+  confirm it before it is recommended. SnowField.quality() reads the tier.
+
 ### 2026-09-30 - Cached, frame-sliced chunk snow (claudeflow)
 
 - SnowChunkCover keeps the finished mesh of the last 12 chunks (weather-free),

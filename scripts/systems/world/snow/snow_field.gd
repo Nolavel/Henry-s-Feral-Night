@@ -143,10 +143,15 @@ func drift_amplitude(cover: float) -> float:
 	return pow(clampf(cover, 0.0, 1.0), 1.5) * drift_m
 
 
-## True on the high snow tier: Henry's deformable window and chunk-wide depth.
+## True on the high and medium tiers: Henry's deformable window and chunk-wide depth.
 ## Low keeps shader cover, frost and footprint decals only.
 static func high_quality() -> bool:
-	return String(ProjectSettings.get_setting("hfn/snow/quality", "high")) != "low"
+	return quality() != &"low"
+
+
+## The snow tier from hfn/snow/quality: high, medium or low.
+static func quality() -> StringName:
+	return StringName(ProjectSettings.get_setting("hfn/snow/quality", "high"))
 
 
 ## Settled depth for a snow_cover value, before the city's wind reshapes it.

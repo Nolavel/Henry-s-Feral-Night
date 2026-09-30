@@ -27,6 +27,7 @@ func _run() -> void:
 	_test_incremental_rebuild_matches_full()
 	_test_sliced_rebuild_matches_whole()
 	_test_chunk_cover_slices_and_caches()
+	_test_tiers_size_the_captures()
 	if _failures > 0:
 		push_error("snow shell: %d check(s) failed" % _failures)
 		quit(1)
@@ -246,3 +247,19 @@ func _test_chunk_cover_slices_and_caches() -> void:
 			f.free()
 	terrain.free()
 	SnowChunkCover.clear_cache()
+
+
+## Medium captures contact at half resolution but keeps the packed field; high keeps both.
+func _test_tiers_size_the_captures() -> void:
+	var before: Variant = ProjectSettings.get_setting("hfn/snow/quality", "high")
+	for tier: String in ["high", "medium"]:
+		ProjectSettings.set_setting("hfn/snow/quality", tier)
+		var shell: Node3D = SHELL_SCRIPT.new()
+		root.add_child(shell)
+		var contact: SubViewport = shell.get_node("SnowContact")
+		var packed: SubViewport = shell.get_node("SnowPacked0")
+		var want: int = 1024 if tier == "high" else 512
+		_check(contact.size == Vector2i(want, want), "%s contact capture is %s" % [tier, contact.size])
+		_check(packed.size == Vector2i(1024, 1024), "%s packed field is %s" % [tier, packed.size])
+		shell.free()
+	ProjectSettings.set_setting("hfn/snow/quality", before)
