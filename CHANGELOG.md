@@ -5,6 +5,27 @@ Maintained per branch; entries are added by whoever makes the change.
 
 ## [Unreleased] — `codex`
 
+### 2026-09-30 - Snow with weight: boots sink, crust holds, walls shed clumps (claudeflow)
+
+- A planted boot presses in over its stance (`sink_time_s`, 0.22 s to ~63%)
+  instead of dropping to the ground at once: SnowShell lowers the sole to
+  `snow_top - sink` each frame.
+- SnowFootModifier lands the boot on the snow top and lets it sink with the
+  pack; the hips follow the lower boot (two-bone solve, no clip change). The
+  foot contact sensor reads the clip's foot, not the lifted one.
+- Snow softness varies (0.4 wind crust to 1.0 powder): scoured ground holds a
+  boot, lee drifts let it sink, with 3 m patches between; stored in the field
+  image B channel and capping packing. Print floors carry 2 cm of lumps.
+- Lifting out of a print deeper than 10 cm sheds 6 clumps from its rim and
+  raises the floor in lumps by up to 18% of its depth.
+
+### 2026-09-30 - Trench slope drawn in the shader, not simulated (claudeflow)
+
+- The slumping pass in the packed-snow accumulation is gone: it grew a crater
+  around each step over several frames. The ground shader now draws walls no
+  steeper than `repose_deg` (40°) at once, from up to 0.45 m of neighbours;
+  the stored packing stays exactly what the foot pressed.
+
 ### 2026-09-30 - Packed snow persists in world tiles (claudeflow)
 
 - SnowTrackStore keeps packed snow that leaves Henry's window as 3.2 m tiles

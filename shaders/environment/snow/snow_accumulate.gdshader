@@ -17,8 +17,12 @@ uniform vec2 shift_uv = vec2(0.0);
 uniform float fill = 0.0;
 // Share of the settled depth a foot or body can pack down.
 uniform float max_pack = 0.85;
-// Deepest a texel may sit below its neighbour before its wall slumps in, metres.
-uniform float slump_m = 0.02;
+// A print's walls shedding into it this frame: uv centre, uv radius, fill share.
+uniform vec4 collapse = vec4(0.0);
+
+float lump_noise(vec2 p) {
+	return fract(sin(dot(floor(p), vec2(12.9898, 78.233))) * 43758.5453);
+}
 
 void fragment() {
 	vec2 uv = UV;
@@ -27,27 +31,24 @@ void fragment() {
 	if (from.x >= 0.0 && from.y >= 0.0 && from.x <= 1.0 && from.y <= 1.0) {
 		packed = texture(previous, from).r;
 	}
-	// Trench walls stand no steeper than the snow's angle of repose: a wall that is
-	// too steep slumps, deepening the shallower side one texel per frame.
-	vec2 texel = 1.0 / vec2(textureSize(previous, 0));
-	for (int i = 0; i < 8; i++) {
-		vec2 o = vec2(float((i % 3) - 1), float(i / 3 - 1));
-		if (i >= 4) {
-			o = vec2(float(((i + 1) % 3) - 1), float((i + 1) / 3 - 1));
-		}
-		vec2 n = from + o * texel;
-		if (n.x >= 0.0 && n.y >= 0.0 && n.x <= 1.0 && n.y <= 1.0) {
-			packed = max(packed, texture(previous, n).r - slump_m * length(o));
+	packed *= 1.0 - fill;
+	// Fallen clumps raise the floor in lumps, most near the wall they broke from.
+	if (collapse.w > 0.0) {
+		float r = distance(uv, collapse.xy) / max(collapse.z, 1e-6);
+		if (r < 1.0) {
+			float lumps = lump_noise(uv * 1024.0 / 3.0);
+			packed *= 1.0 - collapse.w * (0.4 + 0.6 * lumps) * smoothstep(0.0, 1.0, r + 0.3);
 		}
 	}
-	packed *= 1.0 - fill;
 	vec3 settled = texture(field, uv).rgb;
-	packed = min(packed, settled.g * max_pack);
+	// B below 0.5 is softness (x0.49): wind crust holds a foot, powder lets it sink.
+	float give = settled.g * max_pack * clamp(settled.b / 0.49, 0.0, 1.0);
+	packed = min(packed, give);
 	// The contact camera looks up, so its image runs +x east and down-screen north.
 	float contact = texture(contact_tex, vec2(uv.x, 1.0 - uv.y)).r + base_y;
 	float into = settled.r - contact;
 	if (settled.b < 0.5 && into > 0.0 && contact > settled.r - settled.g - 0.3) {
-		packed = max(packed, min(into, settled.g * max_pack));
+		packed = max(packed, min(into, give));
 	}
 	COLOR = vec4(packed, 0.0, 0.0, 1.0);
 }

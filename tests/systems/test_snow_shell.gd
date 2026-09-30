@@ -29,6 +29,8 @@ func _run() -> void:
 	_test_chunk_cover_slices_and_caches()
 	_test_tiers_size_the_captures()
 	_test_storm_share_rebuilds_in_place()
+	_test_a_boot_sinks_over_its_stance()
+	_test_wind_crust_is_harder_than_powder()
 	if _failures > 0:
 		push_error("snow shell: %d check(s) failed" % _failures)
 		quit(1)
@@ -289,3 +291,33 @@ func _test_storm_share_rebuilds_in_place() -> void:
 			var b: Color = fresh.image.get_pixel(x, y)
 			worst = maxf(worst, maxf(absf(a.g - b.g), absf(a.a - b.a)))
 	_check(worst < 1e-5, "an in-place storm rebuild drifted from a fresh one by %.6f" % worst)
+
+
+## Snow has weight: a planted boot presses in over its stance, never at once,
+## and never past what the snow gives.
+func _test_a_boot_sinks_over_its_stance() -> void:
+	var give: float = 0.3
+	var last: float = 0.0
+	for i: int in range(1, 30):
+		var s: float = SHELL_SCRIPT.sink_after(float(i) * 0.03, give, 0.22)
+		_check(s >= last and s <= give, "sink went %.3f -> %.3f past %.2f" % [last, s, give])
+		last = s
+	_check(SHELL_SCRIPT.sink_after(0.03, give, 0.22) < give * 0.2, "a boot dropped to the bottom at once")
+	_check(SHELL_SCRIPT.sink_after(1.0, give, 0.22) > give * 0.95, "a long stance never reached the bottom")
+
+
+## Scoured ground is wind crust that holds a boot; lee drifts are powder.
+func _test_wind_crust_is_harder_than_powder() -> void:
+	var field := SnowField.new()
+	var crust: float = 0.0
+	var powder: float = 0.0
+	for i: int in range(40):
+		var at := Vector2(float(i) * 3.7, float(i) * -2.3)
+		crust += field.softness(at, 0.3)
+		powder += field.softness(at, 1.8)
+		_check(field.softness(at, 1.0) >= 0.4 and field.softness(at, 1.0) <= 1.0, "softness left 0.4..1")
+	_check(crust < powder - 4.0, "wind crust gives as much as powder")
+	field.ground_sampler = _synthetic_ground
+	field.rebuild(Vector2(-12.8, -12.8), 0.8, Vector2(0, -1))
+	var s: float = field.get_softness(10.0, 0.0)
+	_check(s >= 0.4 and s <= 1.0, "the field image lost its softness: %.2f" % s)
