@@ -1,7 +1,6 @@
 extends SceneTree
 
-## Captures the debug diorama map from the production Key West scene.
-## Outputs one placement frame and map-only FOLLOW/FREE/RECENTERING frames.
+## Captures the follow-only developer diorama map with OSM address/street labels.
 
 const MAIN_SCENE: String = "res://scenes/world/key_west/key_west.tscn"
 const OUT_DIR: String = "res://docs/runtime_previews/dev_diorama_map"
@@ -30,26 +29,18 @@ func _process(_delta: float) -> bool:
 	if _frame < _next_capture or _map == null or _player == null:
 		return false
 
-	match _phase:
-		0:
-			_capture_full("01_follow_placement")
-			_capture_map("02_follow_map")
-			_map.set_free_focus(_player.global_position + Vector3(22.0, 0.0, -18.0))
-			_next_capture = _frame + 50
-		1:
-			_capture_map("03_free_map")
-			_map.recenter()
-			_next_capture = _frame + 8
-		2:
-			_capture_map("04_recentering_map")
-			_next_capture = _frame + 30
-		_:
-			_capture_map("05_recentered_follow_map")
-			print("dev diorama map capture: complete")
-			quit()
-			return true
-	_phase += 1
-	return false
+	if _phase == 0:
+		_capture_full("01_follow_with_labels")
+		_capture_map("02_map_labels_close")
+		_player.global_position += Vector3(24.0, 0.0, -18.0)
+		_next_capture = _frame + 90
+		_phase = 1
+		return false
+
+	_capture_map("03_map_labels_followed")
+	print("dev diorama map capture: complete; labels=", _map.get_visible_label_count())
+	quit()
+	return true
 
 
 func _bind() -> void:

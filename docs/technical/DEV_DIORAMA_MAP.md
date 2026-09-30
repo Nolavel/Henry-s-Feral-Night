@@ -4,29 +4,40 @@ The developer map is a debug-only live second camera over the production world.
 It removes itself from release builds and does not own gameplay or streaming
 state.
 
-## Placement
+## Placement and camera
 
 - Upper-left corner.
-- 500 × 320 px panel with a 20 px screen margin.
-- Perspective camera, 36° FOV, 30 m default height.
-- 64° downward pitch with a 12° yaw offset. The trapezoid comes from the real
-  perspective camera; the viewport texture is not distorted.
+- 500 x 320 px panel with a 20 px screen margin.
+- Perspective camera, 36 degree FOV, fixed 30 m height.
+- 64 degree downward pitch with a 12 degree yaw offset. The trapezoid comes from
+  the real perspective camera; the viewport texture is not distorted.
 
-## Modes
+The map is follow-only. RIMEWATCH's normal TPS scene has no free mouse cursor,
+so free-pan and recenter controls are deliberately absent instead of introducing
+a second cursor/input mode only for a developer tool.
 
-- **FOLLOW** — smoothly follows Henry.
-- **FREE** — keeps an independent world focus; dragging the map enters this mode.
-- **RECENTERING** — a short transition used by CENTER, then returns to FOLLOW.
+The gold dot marks Henry.
 
-Mouse wheel changes height between 18 and 60 m. The gold dot shows Henry when
-he is visible in the map camera.
+## Map-only labels
+
+The frozen Key West OSM snapshot already carries building addresses and named
+roads. ChunkedCityMassing.get_map_label_entries() exposes a bounded local
+selection around Henry:
+
+- nearest house numbers render in warm amber above their buildings;
+- nearest unique street names render in pale text above the road surface;
+- labels refresh as Henry moves and are capped to avoid visual clutter.
+
+The labels use render layer 20. The diorama camera sees that layer; the TPS
+camera explicitly masks it out while the debug map exists. no_depth_test keeps
+the text readable above roofs and streets without changing production geometry.
 
 The SubViewport shares the parent World3D, so terrain, weather, snow, city
 streaming and live world changes are the same objects the TPS camera sees.
 
 ## Preview
 
-`tools/runtime/capture_dev_diorama_map.gd` captures the on-screen placement and
-map-only frames for all three states. The existing `checks.yml` workflow has a
-small `[dev-map-preview]` job that uploads those PNGs without invoking the
-Key West GIS/Overture preview pipeline.
+tools/runtime/capture_dev_diorama_map.gd captures one full-screen placement
+frame and map-only frames before and after Henry moves. The existing checks.yml
+dev-map-preview job uploads those PNGs without invoking the Key West GIS or
+Overture build pipeline.

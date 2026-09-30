@@ -2,32 +2,30 @@ class_name DevDioramaMap
 extends Control
 
 ## Debug-only oblique world map rendered from the live World3D.
-## It never owns gameplay state and removes itself from release builds.
-
-enum Mode { FOLLOW, FREE, RECENTERING }
+## Follow-only by design: the production scene has no free mouse cursor.
 
 const GROUP: StringName = &"dev_diorama_map"
 const PANEL_SIZE: Vector2 = Vector2(500.0, 320.0)
 const PANEL_OFFSET: Vector2 = Vector2(20.0, 20.0)
 const RENDER_SIZE: Vector2i = Vector2i(640, 360)
-const DEFAULT_HEIGHT_M: float = 30.0
-const MIN_HEIGHT_M: float = 18.0
-const MAX_HEIGHT_M: float = 60.0
+const CAMERA_HEIGHT_M: float = 30.0
 const CAMERA_FOV_DEG: float = 36.0
 const CAMERA_YAW_DEG: float = 12.0
 const CAMERA_PITCH_DEG: float = 64.0
 const FOLLOW_RESPONSE: float = 9.0
-const RECENTER_SECONDS: float = 0.35
+const MAP_LABEL_LAYER_INDEX: int = 19
+const MAP_LABEL_MASK: int = 1 << MAP_LABEL_LAYER_INDEX
+const LABEL_RADIUS_M: float = 95.0
+const LABEL_REFRESH_DISTANCE_M: float = 7.0
+const LABEL_REFRESH_SECONDS: float = 0.75
 
 var _context: WorldContext
 var _player: Node3D
 var _terrain: IslandTerrain
-var _mode: Mode = Mode.FOLLOW
+var _city: ChunkedCityMassing
 var _focus: Vector3 = Vector3.ZERO
-var _recenter_start: Vector3 = Vector3.ZERO
-var _recenter_elapsed: float = 0.0
-var _height_m: float = DEFAULT_HEIGHT_M
-var _dragging: bool = false
+var _label_focus := Vector2(INF, INF)
+var _label_elapsed: float = LABEL_REFRESH_SECONDS
 var _disabled_for_release: bool = false
 
 var _panel: PanelContainer
@@ -35,12 +33,9 @@ var _map_area: Control
 var _map_container: SubViewportContainer
 var _viewport: SubViewport
 var _camera: Camera3D
+var _labels_root: Node3D
 var _marker: Label
-var _mode_label: Label
-var _height_label: Label
-var _follow_button: Button
-var _free_button: Button
-var _center_button: Button
+var _status_label: Label
 
 
 func _ready() -> void:
@@ -63,67 +58,40 @@ func on_world_ready(context: WorldContext) -> void:
 		return
 	_context = context
 	_player = context.player
-	_terrain = context.world.find_child("IslandTerrain", true, false) as IslandTerrain if context.world != null else null
+	if context.world != null:
+		_terrain = context.world.find_child("IslandTerrain", true, false) as IslandTerrain
+		_city = _find_city(context.world)
+	if context.camera != null:
+		context.camera.cull_mask &= ~MAP_LABEL_MASK
 	if _player == null:
 		visible = false
 		return
 	_focus = _player.global_position
 	visible = true
 	_update_camera()
+	_refresh_labels()
 	_update_marker()
 
 
 func _process(delta: float) -> void:
 	if _player == null or not is_instance_valid(_player) or _camera == null:
 		return
-	match _mode:
-		Mode.FOLLOW:
-			var weight: float = 1.0 - exp(-FOLLOW_RESPONSE * maxf(delta, 0.0))
-			_focus = _focus.lerp(_player.global_position, weight)
-		Mode.RECENTERING:
-			_recenter_elapsed += maxf(delta, 0.0)
-			var t: float = clampf(_recenter_elapsed / RECENTER_SECONDS, 0.0, 1.0)
-			var eased: float = t * t * (3.0 - 2.0 * t)
-			_focus = _recenter_start.lerp(_player.global_position, eased)
-			if t >= 1.0:
-				_mode = Mode.FOLLOW
-				_focus = _player.global_position
-				_sync_controls()
-		Mode.FREE:
-			pass
+	var weight: float = 1.0 - exp(-FOLLOW_RESPONSE * maxf(delta, 0.0))
+	_focus = _focus.lerp(_player.global_position, weight)
 	_update_camera()
 	_update_marker()
-
-
-func get_mode() -> Mode:
-	return _mode
+	_label_elapsed += maxf(delta, 0.0)
+	var current_xz := Vector2(_focus.x, _focus.z)
+	if _label_elapsed >= LABEL_REFRESH_SECONDS or current_xz.distance_to(_label_focus) >= LABEL_REFRESH_DISTANCE_M:
+		_refresh_labels()
 
 
 func get_height_m() -> float:
-	return _height_m
+	return CAMERA_HEIGHT_M
 
 
 func get_focus_world() -> Vector3:
 	return _focus
-
-
-func set_free_focus(world_position: Vector3) -> void:
-	if _player == null:
-		return
-	_focus = world_position
-	_snap_focus_to_ground()
-	_mode = Mode.FREE
-	_sync_controls()
-	_update_camera()
-
-
-func recenter() -> void:
-	if _player == null:
-		return
-	_recenter_start = _focus
-	_recenter_elapsed = 0.0
-	_mode = Mode.RECENTERING
-	_sync_controls()
 
 
 func get_map_image() -> Image:
@@ -132,17 +100,22 @@ func get_map_image() -> Image:
 	return _viewport.get_texture().get_image()
 
 
+func get_visible_label_count() -> int:
+	return _labels_root.get_child_count() if _labels_root != null else 0
+
+
 func _build_ui() -> void:
 	_panel = PanelContainer.new()
 	_panel.name = "DioramaPanel"
 	_panel.position = PANEL_OFFSET
 	_panel.custom_minimum_size = PANEL_SIZE
 	_panel.size = PANEL_SIZE
-	_panel.mouse_filter = Control.MOUSE_FILTER_STOP
+	_panel.mouse_filter = Control.MOUSE_FILTER_IGNORE
 	_panel.add_theme_stylebox_override("panel", _panel_style())
 	add_child(_panel)
 
 	var margin := MarginContainer.new()
+	margin.mouse_filter = Control.MOUSE_FILTER_IGNORE
 	margin.add_theme_constant_override("margin_left", 8)
 	margin.add_theme_constant_override("margin_right", 8)
 	margin.add_theme_constant_override("margin_top", 7)
@@ -150,11 +123,12 @@ func _build_ui() -> void:
 	_panel.add_child(margin)
 
 	var column := VBoxContainer.new()
+	column.mouse_filter = Control.MOUSE_FILTER_IGNORE
 	column.add_theme_constant_override("separation", 6)
 	margin.add_child(column)
 
 	var header := HBoxContainer.new()
-	header.add_theme_constant_override("separation", 6)
+	header.mouse_filter = Control.MOUSE_FILTER_IGNORE
 	column.add_child(header)
 
 	var title := Label.new()
@@ -165,32 +139,16 @@ func _build_ui() -> void:
 	title.size_flags_horizontal = Control.SIZE_EXPAND_FILL
 	header.add_child(title)
 
-	_mode_label = Label.new()
-	_mode_label.mouse_filter = Control.MOUSE_FILTER_IGNORE
-	_mode_label.add_theme_font_size_override("font_size", 11)
-	_mode_label.add_theme_color_override("font_color", Color(0.63, 0.68, 0.72))
-	header.add_child(_mode_label)
-
-	_follow_button = _button("FOLLOW")
-	_follow_button.pressed.connect(_set_follow)
-	header.add_child(_follow_button)
-	_free_button = _button("FREE")
-	_free_button.pressed.connect(_set_free)
-	header.add_child(_free_button)
-	_center_button = _button("CENTER")
-	_center_button.pressed.connect(recenter)
-	header.add_child(_center_button)
-
-	_height_label = Label.new()
-	_height_label.custom_minimum_size.x = 42.0
-	_height_label.horizontal_alignment = HORIZONTAL_ALIGNMENT_RIGHT
-	_height_label.mouse_filter = Control.MOUSE_FILTER_IGNORE
-	_height_label.add_theme_font_size_override("font_size", 11)
-	_height_label.add_theme_color_override("font_color", Color(0.78, 0.81, 0.84))
-	header.add_child(_height_label)
+	_status_label = Label.new()
+	_status_label.text = "FOLLOW  ·  30m"
+	_status_label.mouse_filter = Control.MOUSE_FILTER_IGNORE
+	_status_label.add_theme_font_size_override("font_size", 11)
+	_status_label.add_theme_color_override("font_color", Color(0.68, 0.73, 0.77))
+	header.add_child(_status_label)
 
 	_map_area = Control.new()
 	_map_area.name = "MapArea"
+	_map_area.mouse_filter = Control.MOUSE_FILTER_IGNORE
 	_map_area.custom_minimum_size = Vector2(0.0, 272.0)
 	_map_area.size_flags_horizontal = Control.SIZE_EXPAND_FILL
 	_map_area.size_flags_vertical = Control.SIZE_EXPAND_FILL
@@ -200,9 +158,8 @@ func _build_ui() -> void:
 	_map_container.name = "ViewportContainer"
 	_map_container.set_anchors_and_offsets_preset(Control.PRESET_FULL_RECT)
 	_map_container.stretch = true
-	_map_container.mouse_filter = Control.MOUSE_FILTER_STOP
+	_map_container.mouse_filter = Control.MOUSE_FILTER_IGNORE
 	_map_container.texture_filter = CanvasItem.TEXTURE_FILTER_LINEAR
-	_map_container.gui_input.connect(_on_map_gui_input)
 	_map_area.add_child(_map_container)
 
 	_viewport = SubViewport.new()
@@ -218,8 +175,13 @@ func _build_ui() -> void:
 	_camera.fov = CAMERA_FOV_DEG
 	_camera.near = 0.15
 	_camera.far = 1200.0
+	_camera.cull_mask = (1 << 20) - 1
 	_viewport.add_child(_camera)
 	_camera.make_current()
+
+	_labels_root = Node3D.new()
+	_labels_root.name = "MapOnlyLabels"
+	_viewport.add_child(_labels_root)
 
 	_marker = Label.new()
 	_marker.name = "HenryMarker"
@@ -234,15 +196,6 @@ func _build_ui() -> void:
 	_marker.add_theme_constant_override("outline_size", 4)
 	_map_area.add_child(_marker)
 
-	var hint := Label.new()
-	hint.text = "drag · wheel"
-	hint.position = Vector2(8.0, 7.0)
-	hint.mouse_filter = Control.MOUSE_FILTER_IGNORE
-	hint.add_theme_font_size_override("font_size", 10)
-	hint.add_theme_color_override("font_color", Color(0.86, 0.88, 0.90, 0.62))
-	_map_area.add_child(hint)
-	_sync_controls()
-
 
 func _panel_style() -> StyleBoxFlat:
 	var style := StyleBoxFlat.new()
@@ -253,95 +206,12 @@ func _panel_style() -> StyleBoxFlat:
 	return style
 
 
-func _button(text_value: String) -> Button:
-	var button := Button.new()
-	button.text = text_value
-	button.focus_mode = Control.FOCUS_NONE
-	button.custom_minimum_size = Vector2(52.0, 22.0)
-	button.add_theme_font_size_override("font_size", 10)
-	return button
-
-
-func _set_follow() -> void:
-	if _player == null:
-		return
-	_mode = Mode.FOLLOW
-	_sync_controls()
-
-
-func _set_free() -> void:
-	if _player == null:
-		return
-	_mode = Mode.FREE
-	_sync_controls()
-
-
-func _on_map_gui_input(event: InputEvent) -> void:
-	var button := event as InputEventMouseButton
-	if button != null:
-		if button.button_index == MOUSE_BUTTON_LEFT:
-			_dragging = button.pressed
-			if button.pressed and _mode != Mode.FREE:
-				_mode = Mode.FREE
-				_sync_controls()
-			_map_container.accept_event()
-			return
-		if button.pressed and button.button_index == MOUSE_BUTTON_WHEEL_UP:
-			_set_height(_height_m * 0.88)
-			_map_container.accept_event()
-			return
-		if button.pressed and button.button_index == MOUSE_BUTTON_WHEEL_DOWN:
-			_set_height(_height_m * 1.14)
-			_map_container.accept_event()
-			return
-
-	var motion := event as InputEventMouseMotion
-	if motion != null and _dragging:
-		_pan(motion.relative)
-		_map_container.accept_event()
-
-
-func _pan(screen_delta: Vector2) -> void:
-	if _camera == null or screen_delta.is_zero_approx():
-		return
-	_mode = Mode.FREE
-	var right: Vector3 = _camera.global_basis.x
-	right.y = 0.0
-	right = right.normalized()
-	var forward: Vector3 = -_camera.global_basis.z
-	forward.y = 0.0
-	forward = forward.normalized()
-	var meters_per_pixel: float = _meters_per_pixel()
-	_focus -= right * screen_delta.x * meters_per_pixel
-	_focus += forward * screen_delta.y * meters_per_pixel
-	_snap_focus_to_ground()
-	_sync_controls()
-
-
-func _meters_per_pixel() -> float:
-	var display_height: float = maxf(_map_area.size.y if _map_area != null else 272.0, 1.0)
-	var visible_m: float = 2.0 * _height_m * tan(deg_to_rad(CAMERA_FOV_DEG) * 0.5) * 1.7
-	return visible_m / display_height
-
-
-func _set_height(value: float) -> void:
-	_height_m = clampf(value, MIN_HEIGHT_M, MAX_HEIGHT_M)
-	_sync_controls()
-	_update_camera()
-
-
-func _snap_focus_to_ground() -> void:
-	if _terrain == null:
-		return
-	_focus.y = maxf(_terrain.get_height(_focus.x, _focus.z), 0.0) + 1.0
-
-
 func _update_camera() -> void:
 	if _camera == null:
 		return
 	var target: Vector3 = _focus
-	var horizontal: float = _height_m / tan(deg_to_rad(CAMERA_PITCH_DEG))
-	var offset := Vector3(0.0, _height_m, horizontal)
+	var horizontal: float = CAMERA_HEIGHT_M / tan(deg_to_rad(CAMERA_PITCH_DEG))
+	var offset := Vector3(0.0, CAMERA_HEIGHT_M, horizontal)
 	offset = Basis(Vector3.UP, deg_to_rad(CAMERA_YAW_DEG)) * offset
 	_camera.global_position = target + offset
 	_camera.look_at(target, Vector3.UP)
@@ -368,13 +238,55 @@ func _update_marker() -> void:
 	)
 
 
-func _sync_controls() -> void:
-	if _mode_label == null:
+func _refresh_labels() -> void:
+	if _labels_root == null:
 		return
-	_mode_label.text = Mode.keys()[_mode]
-	_height_label.text = "%dm" % int(round(_height_m))
-	_follow_button.disabled = _mode == Mode.FOLLOW
-	_free_button.disabled = _mode == Mode.FREE
+	for child: Node in _labels_root.get_children():
+		child.queue_free()
+	_label_elapsed = 0.0
+	_label_focus = Vector2(_focus.x, _focus.z)
+	if _city == null:
+		_city = _find_city(_context.world) if _context != null and _context.world != null else null
+	if _city == null:
+		return
+	var entries: Array[Dictionary] = _city.get_map_label_entries(_label_focus, LABEL_RADIUS_M)
+	for entry: Dictionary in entries:
+		_add_world_label(entry)
+
+
+func _add_world_label(entry: Dictionary) -> void:
+	var label := Label3D.new()
+	var kind := StringName(entry.get("kind", &"house"))
+	var world_position: Vector3 = entry.get("position", Vector3.ZERO)
+	label.text = String(entry.get("text", ""))
+	label.position = world_position
+	label.layers = MAP_LABEL_MASK
+	label.billboard = BaseMaterial3D.BILLBOARD_ENABLED
+	label.no_depth_test = true
+	label.outline_size = 7
+	if kind == &"street":
+		label.font_size = 30
+		label.pixel_size = 0.030
+		label.modulate = Color(0.90, 0.94, 0.98)
+		label.outline_modulate = Color(0.025, 0.035, 0.045, 0.94)
+	else:
+		label.font_size = 24
+		label.pixel_size = 0.026
+		label.modulate = Color(1.0, 0.82, 0.44)
+		label.outline_modulate = Color(0.04, 0.03, 0.015, 0.94)
+	_labels_root.add_child(label)
+
+
+func _find_city(node: Node) -> ChunkedCityMassing:
+	if node == null:
+		return null
+	if node is ChunkedCityMassing:
+		return node as ChunkedCityMassing
+	for child: Node in node.get_children():
+		var found := _find_city(child)
+		if found != null:
+			return found
+	return null
 
 
 func _resize_to_viewport() -> void:

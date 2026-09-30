@@ -1,7 +1,7 @@
 extends SceneTree
 
-## Developer diorama map state transitions and camera contract.
-## No rendering assertion: CI screenshots cover the actual shared-world view.
+## Developer diorama map follow-only camera contract.
+## Visual label placement is verified by the preview capture job.
 
 var _failures: int = 0
 
@@ -23,30 +23,25 @@ func _run() -> void:
 	player.name = "Player"
 	player.global_position = Vector3(12.0, 2.0, -8.0)
 	world.add_child(player)
+	var main_camera := Camera3D.new()
+	world.add_child(main_camera)
 
 	var context := WorldContext.new()
 	context.world = world
 	context.player = player
+	context.camera = main_camera
 	map.on_world_ready(context)
 	map.set_process(false)
 	map._process(0.1)
 
-	_check(map.get_mode() == DevDioramaMap.Mode.FOLLOW, "map did not start in FOLLOW")
-	_check(is_equal_approx(map.get_height_m(), 30.0), "default map height is not 30 m")
-	_check(map.get_focus_world().distance_to(player.global_position) < 0.01, "FOLLOW is not centered on Henry")
+	_check(is_equal_approx(map.get_height_m(), 30.0), "map height is not fixed at 30 m")
+	_check(map.get_focus_world().distance_to(player.global_position) < 0.01, "map did not start centered on Henry")
+	_check((main_camera.cull_mask & DevDioramaMap.MAP_LABEL_MASK) == 0, "TPS camera still sees map-only labels")
 
-	var free_focus := player.global_position + Vector3(18.0, 0.0, -11.0)
-	map.set_free_focus(free_focus)
-	_check(map.get_mode() == DevDioramaMap.Mode.FREE, "explicit free focus did not enter FREE")
-	_check(Vector2(map.get_focus_world().x, map.get_focus_world().z).distance_to(Vector2(free_focus.x, free_focus.z)) < 0.01,
-		"FREE focus moved away from the requested world point")
-
-	map.recenter()
-	_check(map.get_mode() == DevDioramaMap.Mode.RECENTERING, "CENTER did not enter RECENTERING")
-	for _i: int in range(10):
+	player.global_position += Vector3(20.0, 0.0, -10.0)
+	for _i: int in range(20):
 		map._process(0.05)
-	_check(map.get_mode() == DevDioramaMap.Mode.FOLLOW, "recenter did not return to FOLLOW")
-	_check(map.get_focus_world().distance_to(player.global_position) < 0.05, "recenter did not return to Henry")
+	_check(map.get_focus_world().distance_to(player.global_position) < 0.5, "follow camera did not track Henry")
 
 	_dispose(map)
 	_dispose(world)

@@ -5,6 +5,19 @@ Maintained per branch; entries are added by whoever makes the change.
 
 ## [Unreleased] — `codex`
 
+### 2026-09-30 - Make the developer map follow-only and label the city (codex)
+
+Changed
+- Remove FREE, RECENTERING, drag, wheel and map buttons. The main TPS scene has
+  no free cursor, so the developer map now always follows Henry at 30 m.
+- Surface local OSM address numbers and unique road names from the frozen city
+  dataset. Labels are capped, refreshed around Henry and rendered above roofs.
+
+Isolation
+- Address/street text lives on map-only render layer 20. The debug map camera
+  includes it while the TPS camera masks it out, so labels never leak into the
+  production view.
+
 ### 2026-09-30 - Add debug diorama map foundation (codex)
 
 Added
