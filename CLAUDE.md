@@ -100,3 +100,21 @@ Follows the official GDScript style guide, with these enforced points:
 A change is done when: the project imports clean, `tools/ci/render.sh` produces a
 non-black frame of the affected scene, no new errors appear in the boot log, and
 `CHANGELOG.md` has an entry.
+
+## Working method (bugs and visuals)
+
+1. **Measure before fixing.** Reproduce the defect and capture evidence first:
+   a close-up frame, a numeric trace, a texture readback. No fix without a
+   named root cause.
+2. **Fix the cause, not the symptom.** If the cause is in earlier code
+   (including Claude's own), replace it; do not layer patches on top.
+3. **Use a proven technique.** Before inventing one, look up how shipped games
+   or engines solve it and name the reference in the PR.
+4. **Data and presentation stay separate.** Simulation state is authoritative;
+   what is drawn is derived from it and never written back. No feedback loops
+   across frames.
+5. **Derive from real data, not constants.** Heights, lifts, thresholds come
+   from the state they describe (snow top, sink depth), not fixed angles.
+6. **Verify against the original evidence.** Re-run the same capture or trace
+   and show the defect is gone before claiming it fixed. If it can't be
+   verified here, say so plainly.
