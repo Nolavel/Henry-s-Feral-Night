@@ -220,6 +220,10 @@ snow_ground.gdshader: top − packed + rim          MovementController speed
   | Fort Street | 758 / 864 ms | 16 384 | 259 ms |
   | Open coast | 669 / 735 ms | 16 384 | 291 ms |
 
-  Ground rays are ~25% of a rebuild; the rest is GDScript field math. A rebuild
-  every 3.2 m is a visible hitch, so an incremental (strip) rebuild is the next
-  snow task. The wind field image is ~65 MiB and is now shared by every SnowField.
+  Ground rays are ~25% of a rebuild; the rest is GDScript field math. The wind
+  field image is ~65 MiB and is shared by every SnowField.
+- **Incremental rebuild.** Wind-independent layers live on a grid with a 20-cell
+  apron and are only recomputed in newly exposed strips plus each layer's blur
+  reach (3 904 rays per 3.2 m move). Wind-dependent depth is reassembled over the
+  window each move, sliced at 4 ms per frame; walking now peaks at 23.5 ms physics
+  frame (p95 7.3 ms) instead of a 0.5–0.9 s hitch.

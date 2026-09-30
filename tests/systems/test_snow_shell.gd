@@ -24,6 +24,8 @@ func _run() -> void:
 	_test_the_world_builds_it()
 	_test_the_city_wind_field_varies_depth()
 	_test_low_tier_builds_no_window()
+	_test_incremental_rebuild_matches_full()
+	_test_sliced_rebuild_matches_whole()
 	if _failures > 0:
 		push_error("snow shell: %d check(s) failed" % _failures)
 		quit(1)
@@ -151,3 +153,65 @@ func _test_low_tier_builds_no_window() -> void:
 	shell.recentre_to(Vector2(10.0, 10.0))
 	shell.free()
 	ProjectSettings.set_setting("hfn/snow/quality", before)
+
+
+## Synthetic ground: a slope, a long wall, a box and a roofed floor.
+func _synthetic_ground(at: Vector2) -> Vector2:
+	var h: float = 0.3 + at.x * 0.02 + sin(at.y * 0.7) * 0.05
+	if at.y > 4.0 and at.y < 4.4 and at.x > -6.0 and at.x < 14.0:
+		return Vector2(h + 2.0, 1.0)
+	if at.x > 8.0 and at.x < 9.2 and at.y > -3.0 and at.y < -1.6:
+		return Vector2(h + 1.0, 1.0)
+	if at.x > -9.0 and at.x < -6.0 and at.y > -8.0 and at.y < -5.0:
+		return Vector2(h + 3.0, 2.0)
+	return Vector2(h, 0.0)
+
+
+## Moving the window must give the same field as sampling it from scratch there.
+func _test_incremental_rebuild_matches_full() -> void:
+	var moving := SnowField.new()
+	var fresh := SnowField.new()
+	for f: SnowField in [moving, fresh]:
+		f.ground_sampler = _synthetic_ground
+	var wind := Vector2(0.6, -0.8)
+	var path: Array[Vector2] = [
+		Vector2(-12.8, -12.8), Vector2(-9.6, -12.8), Vector2(-9.6, -9.6),
+		Vector2(-6.4, -6.4), Vector2(-9.6, -6.4), Vector2(-9.6, -9.6), Vector2(-3.2, -3.2),
+	]
+	var worst: float = 0.0
+	for o: Vector2 in path:
+		moving.rebuild(o, 0.8, wind)
+		fresh.invalidate()
+		fresh.rebuild(o, 0.8, wind)
+		for y: int in range(moving.res):
+			for x: int in range(moving.res):
+				var a: Color = moving.image.get_pixel(x, y)
+				var b: Color = fresh.image.get_pixel(x, y)
+				worst = maxf(worst, maxf(maxf(absf(a.r - b.r), absf(a.g - b.g)), maxf(absf(a.b - b.b), absf(a.a - b.a))))
+	_check(worst < 1e-4, "an incremental rebuild drifted from a full one by %.6f" % worst)
+
+
+## A rebuild spread over many tiny frame budgets lands on the same field, and the
+## old field stays live until it does.
+func _test_sliced_rebuild_matches_whole() -> void:
+	var whole := SnowField.new()
+	var sliced := SnowField.new()
+	for f: SnowField in [whole, sliced]:
+		f.ground_sampler = _synthetic_ground
+		f.rebuild(Vector2(-12.8, -12.8), 0.7, Vector2(0.6, -0.8))
+	whole.rebuild(Vector2(-9.6, -12.8), 0.7, Vector2(0.6, -0.8))
+	sliced.begin_rebuild(Vector2(-9.6, -12.8), 0.7, Vector2(0.6, -0.8))
+	var frames: int = 0
+	var early_origin: Vector2 = sliced.origin
+	while not sliced.step_rebuild(1):
+		frames += 1
+	_check(frames > 10, "a 1 µs budget finished in %d frames; it is not slicing" % frames)
+	_check(early_origin.is_equal_approx(Vector2(-12.8, -12.8)), "the old window was not live during the rebuild")
+	_check(sliced.origin.is_equal_approx(Vector2(-9.6, -12.8)), "the sliced rebuild did not switch the window")
+	var worst: float = 0.0
+	for y: int in range(whole.res):
+		for x: int in range(whole.res):
+			var a: Color = whole.image.get_pixel(x, y)
+			var b: Color = sliced.image.get_pixel(x, y)
+			worst = maxf(worst, maxf(absf(a.r - b.r), absf(a.g - b.g)))
+	_check(worst < 1e-6, "a sliced rebuild drifted from a whole one by %.7f" % worst)

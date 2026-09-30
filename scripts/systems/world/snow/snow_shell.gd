@@ -30,6 +30,8 @@ const CONTACT_LAYER: int = RenderLayers.SNOW_CONTACT
 @export_range(128, 2048) var packed_res: int = 1024
 ## The window moves in steps of this size, so the snow never swims.
 @export var recentre_step_m: float = 3.2
+## Frame budget for a window move while walking; the old window stays live meanwhile.
+@export var rebuild_budget_usec: int = 4000
 
 @export_group("Snow")
 ## Settled depth at snow_cover 0 and 1, in metres.
@@ -80,6 +82,10 @@ var _parity: int = 0
 var _warmup: int = 3
 var _pending_shift: Vector2 = Vector2.ZERO
 var _base_y: float = 0.0
+## The move a streamed rebuild is working on.
+var _move_from: Vector2 = Vector2(INF, INF)
+var _move_cover: float = 0.0
+var _move_wind: Vector2 = Vector2(0, -1)
 var _player: Node3D
 var _mover: Node
 var _weather: WeatherController
@@ -147,7 +153,7 @@ func _physics_process(_delta: float) -> void:
 	if _player == null:
 		return
 	var at: Vector3 = _player.global_position
-	recentre_to(Vector2(at.x, at.z))
+	_follow(Vector2(at.x, at.z))
 	var depth: float = field.get_depth(at.x, at.z)
 	if _mover != null and &"snow_speed_multiplier" in _mover:
 		_mover.set(&"snow_speed_multiplier", get_speed_multiplier(depth))
@@ -211,30 +217,14 @@ func _process(delta: float) -> void:
 func recentre_to(centre: Vector2) -> void:
 	if _surface == null:
 		return  # Low snow tier: no window.
-	var half: float = window_m * 0.5
-	var wanted := Vector2(
-		snappedf(centre.x - half, recentre_step_m), snappedf(centre.y - half, recentre_step_m)
-	)
+	var wanted: Vector2 = _snapped_origin(centre)
 	if field.origin.x != INF and wanted.is_equal_approx(field.origin):
 		return
-	if field.origin.x != INF:
-		_pending_shift += (wanted - field.origin) / window_m
-	_base_y = _floor_y()
-	field.rebuild(wanted, _cover(), _wind())
-	## Chunk-wide snow reads the same settled depth and hides inside this window.
-	RenderingServer.global_shader_parameter_set(&"snow_settled_depth", field.settled_depth(_cover()))
-	RenderingServer.global_shader_parameter_set(&"snow_drift_m", field.drift_amplitude(_cover()))
+	var old: Vector2 = field.origin
+	var cover: float = _cover()
 	var wind: Vector2 = _wind()
-	RenderingServer.global_shader_parameter_set(&"snow_wind", wind.normalized() if wind.length_squared() > 0.0001 else Vector2(0, -1))
-	RenderingServer.global_shader_parameter_set(&"snow_window", Vector4(wanted.x, wanted.y, window_m, 1.0))
-	_field_tex.set_image(field.image)
-	_surface.set_shader_parameter("origin", wanted)
-	_mesh.global_position = Vector3(wanted.x + half, 0.0, wanted.y + half)
-	_contact_cam.global_transform = Transform3D(
-		Basis(Vector3.RIGHT, Vector3.BACK, Vector3.DOWN),
-		Vector3(wanted.x + half, _base_y - 5.0, wanted.y + half)
-	)
-	_contact_quad.set_shader_parameter("base_y", _base_y)
+	field.rebuild(wanted, cover, wind)
+	_apply_window(old, wanted, cover, wind)
 
 
 ## Speed share while wading through `depth_m` of settled snow.
@@ -245,6 +235,55 @@ func get_speed_multiplier(depth_m: float) -> float:
 
 func get_origin() -> Vector2:
 	return field.origin
+
+
+## Streams window moves while walking: a move is rebuilt a slice per frame and
+## switched in whole. The first window and long jumps are rebuilt at once.
+func _follow(centre: Vector2) -> void:
+	if _surface == null:
+		return
+	if field.is_rebuilding():
+		if field.step_rebuild(rebuild_budget_usec):
+			_apply_window(_move_from, field.origin, _move_cover, _move_wind)
+		return
+	var wanted: Vector2 = _snapped_origin(centre)
+	if field.origin.x != INF and wanted.is_equal_approx(field.origin):
+		return
+	if field.origin.x == INF or wanted.distance_to(field.origin) > window_m * 0.5:
+		recentre_to(centre)
+		return
+	_move_from = field.origin
+	_move_cover = _cover()
+	_move_wind = _wind()
+	field.begin_rebuild(wanted, _move_cover, _move_wind)
+	if field.step_rebuild(rebuild_budget_usec):
+		_apply_window(_move_from, field.origin, _move_cover, _move_wind)
+
+
+func _snapped_origin(centre: Vector2) -> Vector2:
+	var half: float = window_m * 0.5
+	return Vector2(snappedf(centre.x - half, recentre_step_m), snappedf(centre.y - half, recentre_step_m))
+
+
+## Puts a freshly rebuilt field on screen: shader, packed-snow shift, globals.
+func _apply_window(old: Vector2, wanted: Vector2, cover: float, wind: Vector2) -> void:
+	var half: float = window_m * 0.5
+	if old.x != INF:
+		_pending_shift += (wanted - old) / window_m
+	_base_y = _floor_y()
+	## Chunk-wide snow reads the same settled depth and hides inside this window.
+	RenderingServer.global_shader_parameter_set(&"snow_settled_depth", field.settled_depth(cover))
+	RenderingServer.global_shader_parameter_set(&"snow_drift_m", field.drift_amplitude(cover))
+	RenderingServer.global_shader_parameter_set(&"snow_wind", wind.normalized() if wind.length_squared() > 0.0001 else Vector2(0, -1))
+	RenderingServer.global_shader_parameter_set(&"snow_window", Vector4(wanted.x, wanted.y, window_m, 1.0))
+	_field_tex.set_image(field.image)
+	_surface.set_shader_parameter("origin", wanted)
+	_mesh.global_position = Vector3(wanted.x + half, 0.0, wanted.y + half)
+	_contact_cam.global_transform = Transform3D(
+		Basis(Vector3.RIGHT, Vector3.BACK, Vector3.DOWN),
+		Vector3(wanted.x + half, _base_y - 5.0, wanted.y + half)
+	)
+	_contact_quad.set_shader_parameter("base_y", _base_y)
 
 
 func _build_surface() -> void:

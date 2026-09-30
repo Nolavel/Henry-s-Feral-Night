@@ -5,6 +5,18 @@ Maintained per branch; entries are added by whoever makes the change.
 
 ## [Unreleased] — `codex`
 
+### 2026-09-30 - Incremental, frame-sliced SnowField rebuild (claudeflow)
+
+- SnowField keeps a 20-cell apron of cached, wind-independent layers (ground,
+  bed blur passes, wall share, city factor, grain). A window move samples only
+  the newly exposed strips: 3 904 ground rays instead of 16 384.
+- While walking, a move is rebuilt within a 4 ms per-frame budget and switched
+  in whole; the old window stays live. First window and teleports stay immediate.
+- Measured on lavapipe: window move 500–860 ms → no hitch; walking physics frame
+  max 23.5 ms, p95 7.3 ms. Tests pin full == incremental and sliced == whole.
+- Window-edge cells now see real neighbours instead of clamped ones; the author
+  approved the smoother edge seen in the Old Town reference frame.
+
 ### 2026-09-30 - Answer the #139 post-merge audit: layers, budget, snow tier (claudeflow)
 
 - Render layers are reserved in `RenderLayers` and named in `project.godot`:
