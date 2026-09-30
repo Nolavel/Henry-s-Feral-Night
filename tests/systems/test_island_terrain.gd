@@ -28,6 +28,11 @@ func _physics_process(_delta: float) -> bool:
 			_check_heights()
 			_check_detail()
 			_check_collision()
+			_focus.global_position = Vector3(-3453.655, 0.0, 2268.294)
+			_check(_terrain.reload_heightmap("res://world/terrain/key_west_preview_2m_la8.png", "res://world/terrain/key_west_preview_2m_la8.json"), "Key West terrain failed to load")
+		7:
+			_check(is_equal_approx(_terrain.heightmap.metres_per_px, 2.0), "Key West collision test needs 2 m pixels")
+			_check_collision_at(Vector2(_focus.position.x, _focus.position.z))
 			_finish()
 	return false
 
@@ -48,10 +53,14 @@ func _check_detail() -> void:
 func _check_collision() -> void:
 	_check(_terrain.has_collision_at(SPAWN.x, SPAWN.z), "no collision under the spawn")
 	_check(not _terrain.has_collision_at(FAR.x, FAR.y), "collision on a far chunk")
+	_check_collision_at(Vector2(SPAWN.x, SPAWN.z))
+
+
+func _check_collision_at(at: Vector2) -> void:
 	var space: PhysicsDirectSpaceState3D = _terrain.get_world_3d().direct_space_state
 	for offset: Vector2 in [Vector2.ZERO, Vector2(37.3, -21.6), Vector2(-60.0, 45.5)]:
-		var x: float = SPAWN.x + offset.x
-		var z: float = SPAWN.z + offset.y
+		var x: float = at.x + offset.x
+		var z: float = at.y + offset.y
 		var hit: Dictionary = space.intersect_ray(PhysicsRayQueryParameters3D.create(Vector3(x, 100.0, z), Vector3(x, -50.0, z)))
 		_check(not hit.is_empty(), "no ground hit at (%.1f, %.1f)" % [x, z])
 		if not hit.is_empty():

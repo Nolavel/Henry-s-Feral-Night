@@ -6,7 +6,7 @@ extends Control
 
 @export_group("Scenes")
 ## The scene New game and Continue both open.
-@export_file("*.tscn") var game_scene: String = "res://experimental_location/scenes/Graciosa_Island_Terrain.tscn"
+@export_file("*.tscn") var game_scene: String = "res://scenes/world/key_west/key_west.tscn"
 
 var _continue_button: Button
 var _status_label: Label

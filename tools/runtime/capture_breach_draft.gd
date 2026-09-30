@@ -4,7 +4,7 @@ extends SceneTree
 ## the breach most exposed to the wind, snow blowing in. Frames go to user://shots/draft/.
 ## Run: xvfb-run godot --path . --rendering-driver vulkan --script res://tools/runtime/capture_breach_draft.gd
 
-const SCENE: String = "res://experimental_location/scenes/Graciosa_Island_Terrain.tscn"
+const SCENE: String = "res://archive/graciosa/scenes/Graciosa_Island_Terrain.tscn"
 const OUT_DIR: String = "user://shots/draft"
 
 var _time: float = 0.0

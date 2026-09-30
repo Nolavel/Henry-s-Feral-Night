@@ -3,14 +3,14 @@ extends Node3D
 
 ## The island ground built from the heightmap: square chunks with three
 ## levels of detail, skirts against cracks, and height-field collision only
-## near the focus (HeightMapShape3D spacing is 1 m, as is the map).
+## near the focus, with collision spacing matched to the dataset resolution.
 
 const SHADER: Shader = preload("res://shaders/environment/terrain/island_terrain.gdshader")
 ## Grid spacing of each level of detail, in heightmap pixels.
 const LOD_STEPS: Array[int] = [1, 4, 16]
 
 @export_group("Heightmap")
-## Game-readable LA8 heightmap. Defaults preserve the current Graciosa world.
+## Game-readable LA8 heightmap. Defaults preserve the archived Graciosa test profile.
 @export_file("*.png") var heightmap_image_path: String = IslandHeightmap.DEFAULT_IMAGE
 @export_file("*.json") var heightmap_meta_path: String = IslandHeightmap.DEFAULT_META
 
@@ -239,6 +239,7 @@ func _set_collision(key: Vector2i, wanted: bool) -> void:
 		(chunk["body"] as Node).queue_free()
 		chunk["body"] = null
 		return
+	var spacing: float = heightmap.metres_per_px
 	var size: int = chunk_size_px + 1
 	var data := PackedFloat32Array()
 	data.resize(size * size)
@@ -246,13 +247,15 @@ func _set_collision(key: Vector2i, wanted: bool) -> void:
 	var r0: int = key.y * chunk_size_px
 	for r: int in range(size):
 		for c: int in range(size):
-			data[r * size + c] = heightmap.height_at_px(c0 + c, r0 + r)
+			data[r * size + c] = heightmap.height_at_px(c0 + c, r0 + r) / spacing
 	var shape := HeightMapShape3D.new()
 	shape.map_width = size
 	shape.map_depth = size
 	shape.map_data = data
 	var body := StaticBody3D.new()
 	body.name = "Collision_%d_%d" % [key.x, key.y]
+	## Uniform shape scale gives the real XY spacing; divided heights retain metres.
+	body.scale = Vector3.ONE * spacing
 	var col := CollisionShape3D.new()
 	col.shape = shape
 	body.add_child(col)

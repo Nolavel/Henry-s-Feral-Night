@@ -4,7 +4,7 @@ extends SceneTree
 ## stow flying into the top flap, and fully open in the Hub. Frames go to user://shots/hub/, through a capture SubViewport.
 ## Run: xvfb-run godot --path . --rendering-driver vulkan --script res://tools/runtime/capture_player_hub.gd
 
-const SCENE: String = "res://experimental_location/scenes/Graciosa_Island_Terrain.tscn"
+const SCENE: String = "res://archive/graciosa/scenes/Graciosa_Island_Terrain.tscn"
 const OUT_DIR: String = "user://shots/hub"
 const WARMUP: float = 3.0
 ## [seconds after warmup, what to do, frame name]

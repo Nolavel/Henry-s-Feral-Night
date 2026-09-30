@@ -1,6 +1,7 @@
 # Key West First Exit — Whitehead Spit → Fort Street
 
-The experimental `key_west_test` profile owns the new gameplay start.
+The main scene `scenes/world/key_west/key_west.tscn` pins the `key_west_test`
+profile and owns the default F5 gameplay start.
 
 - Bunker/spawn: Whitehead Spit, local NOAA frame **(-3452.88, 2273.84)**.
 - First shelter: real OSM footprint beside **Fort Street**, local
@@ -19,14 +20,31 @@ SnowfallVFX already preprocesses its GPU layers for 2 seconds; the local
 HeightField and WorldAudioBinder reuse the same authoritative weather values.
 
 Key West uses the existing StreamingSystem in runtime-only mode. Its generated
-148 city chunks register into that same lifecycle; Graciosa remains the default
-when `HFN_WORLD` is unset.
+148 city chunks register into that same lifecycle. Production city/mask data
+are committed under `data/world/key_west/`; the frozen snapshot and its hashes
+are recorded in `source_receipt.json`. NOAA terrain is committed under
+`world/terrain/`, with its derived source and provenance in `source/key_west/`.
 
-Build the documented NOAA/OSM preview assets, then launch:
+Launch with F5 or:
 
 ```bash
-HFN_WORLD=key_west_test godot --path .
+godot --path .
 ```
+
+The scene contains the player, TPS camera, IslandTerrain, environment and title
+card, and reuses the shared First Exit content through its profile. It does not
+instantiate the archived Graciosa scene. Graciosa is retained with its authored
+terrain and streaming data under `archive/graciosa/` and has its own pinned
+profile for direct F6 launches. Test scenes keep their existing isolated defaults.
 
 Validation/capture extends the existing checks workflow; no second CI pipeline
 is introduced.
+
+## Shelter start toggle
+
+On the main scene's `World` root, enable **Spawn At Shelter** (`spawn_at_shelter`)
+to start outside the Fort Street shelter entrance, facing the house. The marker
+reuses the authored First Exit shelter start, transformed into Key West and
+snapped above its terrain. Disable it (the default) for the Whitehead bunker
+scenario. Both modes retain the same initial blizzard and streaming lifecycle.
+Continue still restores the saved position through the existing save system.

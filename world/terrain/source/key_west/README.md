@@ -1,6 +1,6 @@
 # Key West terrain source
 
-Status: **source manifest only; no NOAA raster has been committed yet.**
+Status: **the verified 2 m NOAA crop and packed runtime terrain are committed for the Key West startup scene.**
 
 Target dataset for issue #138:
 
@@ -11,10 +11,11 @@ Target dataset for issue #138:
   Stock Island, and the intervening water/shallow bathymetry.
 - First Godot import keeps real XY scale and real elevation values.
 
-The raw upstream raster is intentionally not stored here until size, exact
-download selection, coordinate reference system, vertical datum, attribution
-and redistribution terms have been recorded. The converter must produce a
-reproducible 16-bit HFN heightmap plus JSON metadata from that documented source.
+The 620 MiB upstream mosaic stays in the ignored download cache. This folder
+contains the derived 16-bit crop and JSON metadata; `noaa_source_receipt.json`
+records both NOAA URLs, byte count, SHA-256 and the verified original S3 multipart
+ETag. The existing terrain bake
+converts that crop to the committed LA8 runtime image without height edits.
 
 Do not edit the upstream DEM in Blender. Any later Blender pass happens only
 after the Godot review gate and must be represented as authored HFN changes on
@@ -176,3 +177,24 @@ because the points share the same streaming neighbourhood/hysteresis band.
 
 This proves city detail now follows the TPS focus rather than keeping all
 12,354 detailed building footprints live at once.
+
+
+## Main-scene promotion — 2026-09-29
+
+`res://scenes/world/key_west/key_west.tscn` now starts the game on this dataset.
+The 2 m crop retains its preview fidelity; this promotion does not imply final
+buildings, audited source outliers, or authored terrain. Both source and runtime
+heightmaps are versioned, so normal startup needs no GIS tools or downloads.
+The local GDAL 3.12.4 bilinear reconstruction has decoded valid heights of
+-8.181 m to 28.462 m; these version-dependent resampling statistics are recorded
+in the receipt separately from the historical Actions preview report.
+
+The frozen city, enrichment and ocean mask come from verified Actions run
+`36574726378` and are stored under `data/world/key_west/`, with artifact hashes
+in `source_receipt.json`. Graciosa is retained under `archive/graciosa/`.
+
+Repack the committed source with:
+
+```powershell
+python tools/world/bake_terrain.py --source world/terrain/source/key_west/key_west_preview_2m_height.png --meta world/terrain/source/key_west/key_west_preview_2m_height.json --out-png world/terrain/key_west_preview_2m_la8.png --out-json world/terrain/key_west_preview_2m_la8.json
+```

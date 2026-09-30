@@ -3,6 +3,13 @@ extends SceneTree
 var _failures: int = 0
 
 func _initialize() -> void:
+	var main_path: String = String(ProjectSettings.get_setting("application/run/main_scene", ""))
+	_check(main_path == "res://scenes/world/key_west/key_west.tscn", "F5 does not launch Key West")
+	var main := (load(main_path) as PackedScene).instantiate() as World
+	_check(main.world_profile != null and main.world_profile.id == &"key_west_test", "main scene does not pin Key West")
+	var terrain := main.get_node(^"IslandTerrain") as IslandTerrain
+	_check(terrain.heightmap_image_path == main.world_profile.terrain_image_path, "main terrain and profile disagree")
+	main.free()
 	var profile := load("res://data/world_profiles/key_west_test.tres") as WorldProfile
 	_check(profile != null, "Key West profile failed to load")
 	if profile != null:

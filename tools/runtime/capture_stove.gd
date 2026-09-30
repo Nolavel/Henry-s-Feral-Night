@@ -4,7 +4,7 @@ extends SceneTree
 ## and burnt down to one log. Frames go to user://shots/stove/.
 ## Run: xvfb-run godot --path . --rendering-driver vulkan --script res://tools/runtime/capture_stove.gd
 
-const SCENE: String = "res://experimental_location/scenes/Graciosa_Island_Terrain.tscn"
+const SCENE: String = "res://archive/graciosa/scenes/Graciosa_Island_Terrain.tscn"
 const OUT_DIR: String = "user://shots/stove"
 const WARMUP: float = 3.0
 

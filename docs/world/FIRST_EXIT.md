@@ -1,4 +1,8 @@
-# First Exit: where the game starts on Graciosa
+# Archived Graciosa First Exit layout
+
+The default game now starts on Key West. See [KEY_WEST_FIRST_EXIT.md](KEY_WEST_FIRST_EXIT.md)
+for the current Whitehead Spit -> Fort Street route. This document preserves the
+archived Graciosa layout and the shared template's original authored coordinates.
 
 The shared reference for every agent working on milestone **First Exit**
 ([#42](https://github.com/Nolavel/Henry-s-Feral-Night/issues/42), north star
@@ -13,8 +17,8 @@ Edit coordinates there, never by hand in the scene.
 - Godot world metres. **+X east, −Z north**, Y up. Sea level is **0.0** (the sea
   plane sits at 0.04). Maps in this folder draw north up.
 - The island is `IslandTerrain`, built from the heightmap
-  `world/terrain/source/graciosa_height.png` (1 m per pixel). Main scene:
-  `experimental_location/scenes/Graciosa_Island_Terrain.tscn`.
+  `archive/graciosa/terrain/source/graciosa_height.png` (1 m per pixel). Archived scene:
+  `archive/graciosa/scenes/Graciosa_Island_Terrain.tscn`.
 
 ## The island in numbers
 
@@ -260,10 +264,10 @@ Typology, not a copy of a real place. It sets scale for props.
 ## Regenerating
 
 The terrain source is now the heightmap PNG (`docs/world/TERRAIN_HEIGHTMAP.md`). The route tools read
-`world/terrain/source/graciosa_height.png`.
+`archive/graciosa/terrain/source/graciosa_height.png`.
 
 ```bash
-D=world/terrain/source/graciosa_height.png
+D=archive/graciosa/terrain/source/graciosa_height.png
 # 2. maps and buildable sites (whole island, then a window: cx cz half_m)
 python3 tools/world/island_report.py "$D" docs/world/graciosa_overview
 python3 tools/world/island_report.py "$D" docs/world/first_exit_area 1300 -900 350

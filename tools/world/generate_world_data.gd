@@ -1,12 +1,12 @@
 extends SceneTree
 
-## Reads the authored island scene and writes data/world_data.tres. The scene's
+## Reads the authored island scene and writes archive/graciosa/data/world_data.tres. The scene's
 ## Area3D nodes stay the source of truth; nothing here is hand-written.
 ##
 ## Run: godot --headless --script tools/world/generate_world_data.gd
 
-const SOURCE_SCENE: String = "res://experimental_location/scenes/Graciosa_Island_Terrain.tscn"
-const OUTPUT_PATH: String = "res://data/world_data.tres"
+const SOURCE_SCENE: String = "res://archive/graciosa/scenes/Graciosa_Island_Terrain.tscn"
+const OUTPUT_PATH: String = "res://archive/graciosa/data/world_data.tres"
 const STREAM_ROOT_NAME: String = "WorldStreamManager"
 const CONTENT_DIR: String = "res://scenes/game"
 ## Both spellings: the authored names use a Cyrillic С homoglyph in "Сhunk_".

@@ -21,7 +21,7 @@ from PIL import Image
 
 import heightmap
 
-DEFAULT_OUT_PNG = "world/terrain/graciosa_height_la8.png"
+DEFAULT_OUT_PNG = "archive/graciosa/terrain/graciosa_height_la8.png"
 
 
 def _default_out_json(out_png):

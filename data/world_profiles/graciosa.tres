@@ -5,9 +5,9 @@
 [resource]
 script = ExtResource("1_profile")
 id = &"graciosa"
-display_name = "Graciosa (current HFN world)"
-terrain_image_path = "res://world/terrain/graciosa_height_la8.png"
-terrain_meta_path = "res://world/terrain/graciosa_height_la8.json"
-world_data_path = "res://data/world_data.tres"
+display_name = "Graciosa (archived world)"
+terrain_image_path = "res://archive/graciosa/terrain/graciosa_height_la8.png"
+terrain_meta_path = "res://archive/graciosa/terrain/graciosa_height_la8.json"
+world_data_path = "res://archive/graciosa/data/world_data.tres"
 experimental = false
-source_note = "Existing production dataset. This profile remains the default while issue #138 is experimental."
+source_note = "Archived authored island dataset; retained for direct archive launches and isolated tests."

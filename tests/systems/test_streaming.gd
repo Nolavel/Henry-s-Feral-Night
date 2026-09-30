@@ -4,7 +4,7 @@ extends SceneTree
 ## state machine, hysteresis, the budgets, and rollback without instantiating.
 ## Run: godot --headless --script tests/systems/test_streaming.gd
 
-const WORLD_DATA: String = "res://data/world_data.tres"
+const WORLD_DATA: String = "res://archive/graciosa/data/world_data.tres"
 
 ## Upper bound on how long a settle may wait for the loader thread.
 const SETTLE_DEADLINE_MS: int = 5000

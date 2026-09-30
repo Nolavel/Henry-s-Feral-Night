@@ -5,9 +5,9 @@ const FIRST_EXIT_TEMPLATE: PackedScene = preload("res://scenes/world/first_exit/
 const STREAMING_SCRIPT: GDScript = preload("res://core/world/streaming_system.gd")
 const CITY_SCRIPT: GDScript = preload("res://scripts/systems/world/city/chunked_city_massing.gd")
 
-const CITY_JSON: String = "res://docs/runtime_previews/key_west/city_preview.json"
-const ENRICHMENT_JSON: String = "res://docs/runtime_previews/key_west/visual_enrichment.json"
-const OCEAN_MASK: String = "res://docs/runtime_previews/key_west/ocean_connected_mask.png"
+const CITY_JSON: String = "res://data/world/key_west/city_preview.json"
+const ENRICHMENT_JSON: String = "res://data/world/key_west/visual_enrichment.json"
+const OCEAN_MASK: String = "res://data/world/key_west/ocean_connected_mask.png"
 const HEIGHT_META: String = "res://world/terrain/key_west_preview_2m_la8.json"
 
 const BUNKER_XZ := Vector2(-3452.88, 2273.84)
@@ -99,6 +99,7 @@ func _transplant_first_exit() -> void:
 	var shelter_delta_yaw: float = shelter_target_yaw - shelter.rotation.y
 	var house_offset: Vector3 = _source_shelter - shelter.position
 	house_offset = house_offset.rotated(Vector3.UP, shelter_delta_yaw)
+	_clear_template_owner(shelter, template)
 	template.remove_child(shelter)
 	add_child(shelter)
 	shelter.rotation.y = shelter_target_yaw
@@ -117,6 +118,7 @@ func _transplant_first_exit() -> void:
 		var node := child as Node3D
 		if bunker_names.has(StringName(node.name)):
 			_move_from_anchor(node, bunker_source_anchor, _target_bunker, bunker_delta_yaw, 1.0)
+			_clear_template_owner(node, template)
 			template.remove_child(node)
 			add_child(node)
 			continue
@@ -125,11 +127,27 @@ func _transplant_first_exit() -> void:
 			var scale: float = 1.0 if flat_distance <= SHELTER_EXACT_RADIUS_M else ROUTE_PICKUP_SCALE
 			_move_from_anchor(node, _source_shelter, _target_shelter, shelter_delta_yaw, scale)
 			_snap_pickup_to_ground(node)
+			_clear_template_owner(node, template)
 			template.remove_child(node)
 			add_child(node)
+	var shelter_spawn := template.get_node_or_null(^"SpawnPoint") as Marker3D
+	if shelter_spawn != null:
+		_move_from_anchor(shelter_spawn, _source_shelter, _target_shelter, shelter_delta_yaw, 1.0)
+		shelter_spawn.position.y = maxf(_terrain.get_height(shelter_spawn.position.x, shelter_spawn.position.z), 0.0) + 0.15
+		shelter_spawn.name = "ShelterSpawnPoint"
+		_clear_template_owner(shelter_spawn, template)
+		template.remove_child(shelter_spawn)
+		add_child(shelter_spawn)
 	_build_bunker_vestibule(bunker_target_yaw)
 	_build_spawn_marker(route_dir)
 	template.free()
+
+
+func _clear_template_owner(node: Node, template: Node) -> void:
+	if node.owner == template:
+		node.owner = null
+	for child: Node in node.get_children():
+		_clear_template_owner(child, template)
 
 
 func _move_from_anchor(node: Node3D, source_anchor: Vector3, target_anchor: Vector3, yaw_delta: float, horizontal_scale: float) -> void:

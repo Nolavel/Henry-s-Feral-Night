@@ -1,11 +1,11 @@
 extends SceneTree
 
 ## Production colour-grade review capture.
-## Uses the real Graciosa main scene and the authored First Exit shelter.
+## Uses the archived Graciosa scene and the authored First Exit shelter.
 ## Day / Dusk / Night share one fixed exterior camera; Shelter uses one fixed
 ## interior camera facing the stove. UI/debug/interaction markers are hidden.
 
-const MAIN_SCENE: String = "res://experimental_location/scenes/Graciosa_Island_Terrain.tscn"
+const MAIN_SCENE: String = "res://archive/graciosa/scenes/Graciosa_Island_Terrain.tscn"
 const OUTPUT_DIR: String = "res://docs/runtime_previews/color_grading"
 const PREPARE_AFTER_FRAMES: int = 12
 const INITIAL_SETTLE_FRAMES: int = 150
@@ -34,7 +34,7 @@ var _prepared: bool = false
 func _initialize() -> void:
 	var packed := load(MAIN_SCENE) as PackedScene
 	if packed == null:
-		push_error("Color grade capture: main Graciosa scene failed to load.")
+		push_error("Color grade capture: archived Graciosa scene failed to load.")
 		quit(1)
 		return
 
