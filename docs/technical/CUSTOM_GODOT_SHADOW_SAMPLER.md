@@ -9,22 +9,28 @@ CI, other machines and export templates run stock Godot.
 
 ## Engine base
 
-The patch is pinned to the exact upstream commit used by the official Godot **4.8-dev6** build:
+The engine source patch is pinned to the exact upstream commit used by the official Godot **4.8-dev6** build:
 
 `8898c2b3db32adf6f92c694ffb6dac19af672e5f`
 
-Do not apply it to a different Godot revision without rebasing the patch against that revision.
+Do not use it against another Godot revision without rebasing the source transforms.
 
-## What the patch adds
+## What the engine modification adds
 
-The patch introduces two shader-language features for spatial `light()`:
+Spatial `light()` gets:
 
 - `LIGHT_INDEX : uint`
 - `float sample_directional_shadow(uint light_index, vec3 vertex)`
 
-The custom sampler accepts a **view-space** position and samples the current Forward+ directional shadow map at that position using Godot 4.8's PSSM/PCF data. This is what the original ShaderError reference needs in order to make two independently displaced shadow lookups.
+The custom sampler accepts a **view-space** position and samples the current Forward+ directional shadow map at that position using Godot 4.8's PSSM/PCF data. HFN can therefore perform two independently displaced shadow-map lookups instead of approximating the effect by moving `LIGHT_VERTEX`.
 
-Forward Mobile is kept buildable but deliberately returns `1.0` from the custom sampler. HFN production rendering is Forward+.
+Omni and Spot lights remain on Godot's physical shadow path. Forward Mobile stays buildable, but the custom sampler intentionally returns `1.0` there; HFN production uses Forward+.
+
+## Why a Python source patcher is used
+
+The first implementation used a unified `.patch`. Real Windows `git apply` exposed fragile hunk-position assumptions, so the build no longer relies on a text diff.
+
+`tools/engine/apply_directional_shadow_sampler.py` performs exact, one-time source replacements against the pinned upstream SHA. If any expected Godot source fragment differs, it stops immediately before SCons starts. The build then runs `git diff --check`.
 
 ## Build on Windows (.NET)
 
@@ -32,29 +38,18 @@ Prerequisites:
 
 - Git
 - Python + SCons
-- Visual Studio C++ build tools or another supported Windows toolchain
+- Visual Studio 2022 C++ Build Tools
 - .NET SDK 8+
 
-Run from PowerShell:
+From the HFN repository root:
 
 ```powershell
-tools/engine/build_patched_godot_windows.ps1 -VerifyProject
+Set-ExecutionPolicy -Scope Process -ExecutionPolicy Bypass -Force
+.\tools\engine\build_patched_godot_windows.ps1 -VerifyProject
 ```
 
-The script:
+The script reuses `%USERPROFILE%\hfn-godot-4.8-dev6\godot` if it already exists. On every run it resets only **tracked Godot source files** to the pinned dev6 commit, reapplies the deterministic HFN source transform, validates the diff, and then builds. Existing SCons/bin outputs are left in place to make retries cheaper.
 
-1. clones Godot into a dedicated folder under the user's profile;
-2. checks out the exact dev6 upstream commit;
-3. applies `tools/engine/patches/godot-4.8-dev6-directional-shadow-sampler.patch`;
-4. builds the Windows .NET editor;
-5. generates Mono glue and GodotSharp assemblies;
-6. optionally imports HFN with that patched editor;
-7. runs `tests/systems/test_stylized_shadows.gd` with the patched executable, which forces the production custom-sampler shaders to compile.
+`-VerifyProject` then imports HFN with the patched editor and runs `tests/systems/test_stylized_shadows.gd`, forcing production receiver shaders that reference `LIGHT_INDEX` and `sample_directional_shadow()` to compile.
 
-No GitHub Actions are used. `-VerifyProject` is the final local gate: a stock Godot editor cannot compile the HFN shaders that reference `LIGHT_INDEX` and `sample_directional_shadow()`, while the patched editor must import them and pass the contract test.
-
-## Why this exists
-
-The public Godot shader API exposes only the shadow attenuation for the current fragment. The stylized reference needs two shadow-map samples at two noise-offset positions. A single `LIGHT_VERTEX` offset cannot reproduce that algorithm and also affects local Omni/Spot shadow lookup.
-
-The patched path leaves Omni/Spot lighting untouched and only performs custom directional samples when HFN's material `light()` explicitly asks for them.
+No GitHub Actions are used.
