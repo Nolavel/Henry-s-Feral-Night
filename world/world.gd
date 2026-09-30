@@ -77,6 +77,9 @@ const SPAWN_CLEARANCE: float = 1.0
 ## Off for a scene with its own floor, such as TestScene, so the island's
 ## chunks are not streamed on top of it.
 @export var streaming_enabled: bool = true
+@export_group("Developer tools")
+## Allows M to show/hide the debug diorama map in runtime debug builds.
+@export var enable_runtime_dev_map: bool = false
 
 var _systems: Array[Node] = []
 var _context: WorldContext

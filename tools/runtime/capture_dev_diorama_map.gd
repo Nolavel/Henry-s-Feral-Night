@@ -19,6 +19,8 @@ func _initialize() -> void:
 	OS.set_environment("HFN_WORLD", "key_west_test")
 	DirAccess.make_dir_recursive_absolute(ProjectSettings.globalize_path(OUT_DIR))
 	_scene = (load(MAIN_SCENE) as PackedScene).instantiate() as Node3D
+	if _scene is World:
+		(_scene as World).enable_runtime_dev_map = true
 	root.add_child(_scene)
 
 
@@ -54,6 +56,8 @@ func _bind() -> void:
 	if _map == null:
 		push_error("dev diorama map capture: map UI did not initialize")
 		quit(1)
+		return
+	_map._on_toggle_requested()
 
 
 func _capture_full(name: String) -> void:

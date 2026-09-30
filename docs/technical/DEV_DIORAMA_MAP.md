@@ -13,8 +13,11 @@ state.
   the real perspective camera; the viewport texture is not distorted.
 
 The map is follow-only. RIMEWATCH's normal TPS scene has no free mouse cursor,
-so free-pan and recenter controls are deliberately absent instead of introducing
-a second cursor/input mode only for a developer tool.
+so free-pan and recenter controls are deliberately absent.
+
+World exposes `enable_runtime_dev_map` under Developer tools. It defaults to
+false. When true, physical M (`toggle_dev_map`) shows/hides the map at runtime.
+When false, the same M edge is ignored and the map stays hidden.
 
 The gold dot marks Henry.
 

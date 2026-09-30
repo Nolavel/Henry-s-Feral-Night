@@ -5,6 +5,16 @@ Maintained per branch; entries are added by whoever makes the change.
 
 ## [Unreleased] — `codex`
 
+### 2026-09-30 - Gate the developer map behind World and M (codex)
+
+Changed
+- Add exported `World.enable_runtime_dev_map`, default false. Authorized debug
+  worlds start with the map hidden and physical M toggles it; disabled worlds
+  ignore the same edge completely.
+- Route M through InputSystems as `toggle_dev_map`, preserving the project's
+  single input reader. The map only processes while visible.
+- Preview capture enables the export explicitly so CI keeps validating the tool.
+
 ### 2026-09-30 - Make the developer map follow-only and label the city (codex)
 
 Changed

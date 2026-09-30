@@ -23,6 +23,7 @@ fails the build when two actions share a key without an entry in
 | G | `drop_carried` | Put the whole log/board armful on clear ground in front of Henry; blocked placement keeps it in his arms |
 | Esc | `pause` | Context back-out, see below |
 | LMB | `fire` | In gameplay: Use the item already in Henry's hand; in the Hub: drag/drop |
+| M | `toggle_dev_map` | Debug builds only: show/hide the diorama map when `World.enable_runtime_dev_map` is true; otherwise no effect |
 
 ### Lighting the road flare
 

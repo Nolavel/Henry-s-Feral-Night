@@ -38,6 +38,8 @@ signal interact_released(duration: float)
 ## The relay reports WHEN and FOR HOW LONG; it never says "that was a hold".
 ## The threshold belongs to whoever acts on it.
 signal sleep_cancel_pressed()
+## Debug map visibility edge; subscribers decide whether the feature is enabled.
+signal dev_map_toggle_pressed()
 
 const ACTION_MOVE_FORWARD: StringName = &"move_forward"
 const ACTION_MOVE_BACKWARD: StringName = &"move_backward"
@@ -48,6 +50,7 @@ const ACTION_JUMP: StringName = &"jump"
 const ACTION_CROUCH: StringName = &"crouch"
 const ACTION_INTERACT: StringName = &"interact"
 const ACTION_SLEEP_CANCEL: StringName = &"sleep_cancel"
+const ACTION_DEV_MAP_TOGGLE: StringName = &"toggle_dev_map"
 const ACTION_LEAN_LEFT: StringName = &"lean_left"
 const ACTION_LEAN_RIGHT: StringName = &"lean_right"
 const ACTION_SWITCH_SHOULDER: StringName = &"switch_shoulder"
@@ -94,6 +97,8 @@ func _unhandled_input(event: InputEvent) -> void:
 		_end_interact()
 	if _pressed(event, ACTION_SLEEP_CANCEL):
 		sleep_cancel_pressed.emit()
+	if _pressed(event, ACTION_DEV_MAP_TOGGLE):
+		dev_map_toggle_pressed.emit()
 
 
 func _physics_process(delta: float) -> void:

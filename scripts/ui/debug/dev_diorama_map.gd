@@ -27,6 +27,8 @@ var _focus: Vector3 = Vector3.ZERO
 var _label_focus := Vector2(INF, INF)
 var _label_elapsed: float = LABEL_REFRESH_SECONDS
 var _disabled_for_release: bool = false
+var _runtime_toggle_enabled: bool = false
+var _map_open: bool = false
 
 var _panel: PanelContainer
 var _map_area: Control
@@ -50,7 +52,11 @@ func _ready() -> void:
 	_build_ui()
 	get_viewport().size_changed.connect(_resize_to_viewport)
 	_resize_to_viewport()
-	set_process(true)
+	set_process(false)
+	visible = false
+	var input_systems := get_node_or_null(^"/root/InputSystems")
+	if input_systems != null and input_systems.has_signal(&"dev_map_toggle_pressed"):
+		input_systems.connect(&"dev_map_toggle_pressed", _on_toggle_requested)
 
 
 func on_world_ready(context: WorldContext) -> void:
@@ -58,19 +64,42 @@ func on_world_ready(context: WorldContext) -> void:
 		return
 	_context = context
 	_player = context.player
+	_runtime_toggle_enabled = bool(context.world.get("enable_runtime_dev_map")) if context.world != null else false
+	_map_open = false
+	visible = false
+	set_process(false)
 	if context.world != null:
 		_terrain = context.world.find_child("IslandTerrain", true, false) as IslandTerrain
 		_city = _find_city(context.world)
 	if context.camera != null:
 		context.camera.cull_mask &= ~MAP_LABEL_MASK
 	if _player == null:
-		visible = false
 		return
 	_focus = _player.global_position
-	visible = true
 	_update_camera()
 	_refresh_labels()
 	_update_marker()
+
+
+func is_runtime_toggle_enabled() -> bool:
+	return _runtime_toggle_enabled
+
+
+func is_map_open() -> bool:
+	return _map_open
+
+
+func _on_toggle_requested() -> void:
+	if not _runtime_toggle_enabled or _disabled_for_release:
+		return
+	_map_open = not _map_open
+	visible = _map_open
+	set_process(_map_open)
+	if _map_open:
+		_focus = _player.global_position if _player != null else _focus
+		_update_camera()
+		_refresh_labels()
+		_update_marker()
 
 
 func _process(delta: float) -> void:
