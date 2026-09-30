@@ -7,6 +7,7 @@
 [ext_resource type="Script" uid="uid://chuytq0w1nhq8" path="res://scripts/systems/world/terrain/island_terrain.gd" id="5_terrain"]
 [ext_resource type="PackedScene" uid="uid://cvv8y27vmgjfi" path="res://scenes/game/systems/world/WorldEnvironmentSystem.tscn" id="6_environment"]
 [ext_resource type="PackedScene" uid="uid://dx7ctf36hw7md" path="res://scenes/splash/splash_scene.tscn" id="7_startup"]
+[ext_resource type="PackedScene" uid="uid://duxn5rqcau5dw" path="res://tools/StatsDisplay/StatsDisplay.tscn" id="8_iapo4"]
 
 [node name="World" type="Node3D" unique_id=1272884890 node_paths=PackedStringArray("stream_container", "player", "camera")]
 script = ExtResource("1_world")
@@ -15,6 +16,7 @@ stream_container = NodePath("StreamContainer")
 player = NodePath("Player")
 camera = NodePath("PlayerCamera")
 spawn_at_shelter = true
+enable_runtime_dev_map = true
 
 [node name="StartupTitleCard" parent="." unique_id=1741706405 instance=ExtResource("7_startup")]
 
@@ -32,3 +34,6 @@ heightmap_meta_path = "res://world/terrain/key_west_preview_2m_la8.json"
 focus = NodePath("../Player")
 
 [node name="WorldEnvironmentSystem" parent="." unique_id=1188689186 instance=ExtResource("6_environment")]
+
+[node name="StatsDisplay" parent="." unique_id=1920040376 instance=ExtResource("8_iapo4")]
+update_interval = 0.1
