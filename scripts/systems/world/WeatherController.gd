@@ -59,6 +59,7 @@ var _then_id: StringName = &""
 
 
 func _ready() -> void:
+	add_to_group(&"weather_controller")
 	initialize()
 
 

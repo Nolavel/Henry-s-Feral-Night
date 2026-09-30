@@ -84,7 +84,9 @@ func _walk(delta: float) -> void:
 		_body.velocity.y = -0.5
 	_body.velocity.x = _travel_direction.x * 1.5
 	_body.velocity.z = _travel_direction.z * 1.5
+	var attempted_door_push_velocity: Vector3 = _body.velocity
 	_body.move_and_slide()
+	HingedDoor.apply_character_collisions(_body, attempted_door_push_velocity)
 
 
 func _finish() -> void:
