@@ -39,6 +39,8 @@ const CONTACT_LAYER: int = 1 << 19
 @export var lee_m: float = 0.6
 ## Snow thins out towards this height and never lies below it.
 @export var sea_level_m: float = 0.04
+## Baked city wind field; used only over island terrain.
+@export_file("*.png") var wind_field_path: String = "res://data/world/key_west/snow_wind.png"
 ## Share of the settled depth a foot or body packs down.
 @export_range(0.0, 1.0) var max_pack: float = 0.85
 
@@ -111,6 +113,8 @@ func on_world_ready(context: WorldContext) -> void:
 	_terrain = context.find_in_scene(TERRAIN_SCRIPT) as IslandTerrain
 	## Only the island has a sea; a test floor at y 0 is not water.
 	field.sea_level_m = sea_level_m if _terrain != null else -INF
+	if _terrain != null and not wind_field_path.is_empty():
+		field.load_wind_field(wind_field_path)
 	if _player != null:
 		_mover = _player.get_node_or_null(^"MovementController")
 		_gait = _player.find_child("Wade", true, false)

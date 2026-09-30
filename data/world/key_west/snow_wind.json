@@ -1,0 +1,14 @@
+{
+ "cell_m": 4.0,
+ "origin": [
+  -6602.0,
+  -3286.0
+ ],
+ "size": [
+  3301,
+  1643
+ ],
+ "factor_max": 2.5,
+ "prevailing_from_deg": 112.5,
+ "storm_from_deg": 77.5
+}

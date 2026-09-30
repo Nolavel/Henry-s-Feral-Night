@@ -5,6 +5,14 @@ Maintained per branch; entries are added by whoever makes the change.
 
 ## [Unreleased] — `codex`
 
+### 2026-09-30 - City-scale snow wind field (claudeflow)
+
+- `tools/world/bake_key_west_snow_wind.py` bakes `data/world/key_west/snow_wind.png`:
+  per 4 m cell, how prevailing (ESE) and storm (ENE) wind scour or bank settled
+  snow from upwind fetch, building shelter, street canyons, coast and deposition.
+- `SnowField` scales settled depth and drifts by that factor; local lee piles,
+  packing and footprints are unchanged. Abandoned cars capped at 500.
+
 ### 2026-09-30 - Key West lots, marinas, gates, golf and conch colours (claudeflow)
 
 - Prop, fence and wall collision streams with the city chunk Henry is in.

@@ -22,6 +22,14 @@ var smooth_m: float = 1.0
 var image: Image
 var origin: Vector2 = Vector2(INF, INF)
 
+## City-scale wind field (R prevailing, G storm depth factor); null outside a city.
+var wind_field: Image
+var wind_field_origin: Vector2 = Vector2.ZERO
+var wind_field_cell_m: float = 4.0
+var wind_field_max: float = 2.5
+## Share of the storm pattern over the prevailing one.
+var storm_share: float = 0.4
+
 var _ground: PackedVector2Array = []
 var _bed: PackedFloat32Array = []
 var _noise: FastNoiseLite = FastNoiseLite.new()
@@ -31,6 +39,41 @@ func _init() -> void:
 	_noise.noise_type = FastNoiseLite.TYPE_SIMPLEX_SMOOTH
 	_noise.frequency = 1.0
 	_noise.seed = 1901
+
+
+## Loads a baked wind field (PNG + JSON beside it); false when absent.
+func load_wind_field(png_path: String) -> bool:
+	var meta_path: String = png_path.get_basename() + ".json"
+	if not FileAccess.file_exists(png_path) or not FileAccess.file_exists(meta_path):
+		return false
+	var meta: Variant = JSON.parse_string(FileAccess.get_file_as_string(meta_path))
+	if typeof(meta) != TYPE_DICTIONARY:
+		return false
+	var tex := load(png_path) as Texture2D
+	if tex == null:
+		return false
+	wind_field = tex.get_image()
+	if wind_field.is_compressed():
+		wind_field.decompress()
+	var o: Array = (meta as Dictionary).get("origin", [0, 0])
+	wind_field_origin = Vector2(float(o[0]), float(o[1]))
+	wind_field_cell_m = float((meta as Dictionary).get("cell_m", 4.0))
+	wind_field_max = float((meta as Dictionary).get("factor_max", 2.5))
+	return true
+
+
+## How the city's wind scales settled snow here: under 1 scoured, over 1 deposited.
+func wind_factor(at: Vector2) -> float:
+	if wind_field == null:
+		return 1.0
+	var p: Vector2 = (at - wind_field_origin) / wind_field_cell_m - Vector2(0.5, 0.5)
+	var x0: int = clampi(floori(p.x), 0, wind_field.get_width() - 2)
+	var y0: int = clampi(floori(p.y), 0, wind_field.get_height() - 2)
+	var f := Vector2(clampf(p.x - float(x0), 0.0, 1.0), clampf(p.y - float(y0), 0.0, 1.0))
+	var top: Color = wind_field.get_pixel(x0, y0).lerp(wind_field.get_pixel(x0 + 1, y0), f.x)
+	var bottom: Color = wind_field.get_pixel(x0, y0 + 1).lerp(wind_field.get_pixel(x0 + 1, y0 + 1), f.x)
+	var c: Color = top.lerp(bottom, f.y)
+	return lerpf(c.r, c.g, storm_share) * wind_field_max
 
 
 func texel_m() -> float:
@@ -69,13 +112,15 @@ func rebuild(new_origin: Vector2, cover: float, wind: Vector2) -> void:
 			var along: float = at.dot(wind)
 			var across: float = at.dot(side)
 			var ridge: float = smoothstep(0.1, 0.7, _noise.get_noise_2d(along * 0.16, across * 0.55))
-			var drift: float = pow(cover, 1.5) * drift_m * ridge
+			## The city field sets how much this street keeps; local lee piles ride on top.
+			var city: float = wind_factor(at)
+			var drift: float = pow(cover, 1.5) * drift_m * ridge * minf(city, 1.5)
 			var lee: float = cover * lee_m * _lee(tx, ty, wind, step)
 			## Wind scours the face that rises into it and fills hollows.
 			var bed: float = _bed[i]
 			var rise: float = _bed_at(tx + roundi(wind.x * step), ty + roundi(wind.y * step)) - bed
 			var scour: float = clampf(1.0 - rise / (0.35 * float(step) * texel_m()) * 0.5, 0.35, 1.25)
-			var depth: float = (settled + max(drift, lee) + min(drift, lee) * 0.3) * scour
+			var depth: float = (settled * city + max(drift, lee) + min(drift, lee) * 0.3) * scour
 			depth += settled * 0.15 * _noise.get_noise_2d(at.x * 1.3, at.y * 1.3)
 			## Snow thins to nothing at the water's edge and never lies below it.
 			var shore: float = smoothstep(sea_level_m + 0.05, sea_level_m + 0.8, g.x)

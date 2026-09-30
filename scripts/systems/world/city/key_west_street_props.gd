@@ -26,6 +26,7 @@ const PALM_BASE_HEIGHT_M: float = 9.0
 const CAR_BAY_M: Vector2 = Vector2(3.0, 6.5)
 ## Share of parking bays holding an abandoned car.
 const CAR_FILL: float = 0.18
+const MAX_CARS: int = 500
 const BOAT_SPACING_M: float = 7.0
 const BOAT_FILL: float = 0.6
 ## Marinas reach piers this far outside their mapped outline.
@@ -360,6 +361,16 @@ static func _add_parking(parent: Node3D, enrichment: Dictionary, terrain: Island
 		parent.add_child(lot)
 	if cars.is_empty():
 		return
+	## Keep an even spread of at most MAX_CARS across the island.
+	if cars.size() > MAX_CARS:
+		var stride: float = float(cars.size()) / float(MAX_CARS)
+		var kept: Array[Transform3D] = []
+		var kept_colors: Array[Color] = []
+		for k: int in range(MAX_CARS):
+			kept.append(cars[int(float(k) * stride)])
+			kept_colors.append(colors[int(float(k) * stride)])
+		cars = kept
+		colors = kept_colors
 	var mm := _multimesh(_car_mesh(mats), 0)
 	mm.use_colors = true
 	mm.instance_count = cars.size()

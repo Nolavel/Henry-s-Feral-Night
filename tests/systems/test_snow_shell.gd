@@ -22,6 +22,7 @@ func _run() -> void:
 	_test_a_recentre_keeps_the_field_on_the_world()
 	_test_deeper_snow_is_slower()
 	_test_the_world_builds_it()
+	_test_the_city_wind_field_varies_depth()
 	if _failures > 0:
 		push_error("snow shell: %d check(s) failed" % _failures)
 		quit(1)
@@ -122,3 +123,18 @@ func _test_deeper_snow_is_slower() -> void:
 func _test_the_world_builds_it() -> void:
 	var source: String = FileAccess.get_file_as_string("res://world/world.gd")
 	_check(source.contains("snow/snow_shell.gd"), "world.gd does not build the snow shell")
+
+
+func _test_the_city_wind_field_varies_depth() -> void:
+	var field := SnowField.new()
+	_check(field.wind_factor(Vector2.ZERO) == 1.0, "no wind field should leave depth unchanged")
+	_check(field.load_wind_field("res://data/world/key_west/snow_wind.png"), "the Key West wind field did not load")
+	## Across the island the wind must scour open ground and bank snow in the lee.
+	var lo: float = INF
+	var hi: float = -INF
+	for i: int in range(400):
+		var f: float = field.wind_factor(Vector2(-4000.0 + float(i % 20) * 200.0, -1000.0 + float(i / 20) * 150.0))
+		lo = minf(lo, f)
+		hi = maxf(hi, f)
+	_check(lo < 0.6 and hi > 1.4, "the wind field is flat: %.2f..%.2f" % [lo, hi])
+	_check(field.wind_factor(Vector2(-3000.0, -2500.0)) < 0.05, "open sea should hold no settled snow")
