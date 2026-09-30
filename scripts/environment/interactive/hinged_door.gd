@@ -40,11 +40,11 @@ const WEATHER_GROUP: StringName = &"weather_controller"
 @export_group("Hinge dynamics")
 ## Effective rotational inertia, not kilograms. Higher values make body pushes
 ## take longer to build angular speed.
-@export_range(0.5, 12.0, 0.1) var angular_inertia: float = 3.5
+@export_range(0.5, 12.0, 0.1) var angular_inertia: float = 1.8
 ## Viscous hinge friction in torque per rad/s.
-@export_range(0.0, 30.0, 0.1) var hinge_damping: float = 9.0
+@export_range(0.0, 30.0, 0.1) var hinge_damping: float = 5.0
 ## Converts Henry's real closing speed at a collision into force on the leaf.
-@export_range(0.0, 30.0, 0.1) var body_push_force_scale: float = 10.0
+@export_range(0.0, 30.0, 0.1) var body_push_force_scale: float = 24.0
 ## Prevents a moving kinematic collider from sweeping farther than Henry's capsule
 ## can reasonably resolve in one physics tick.
 @export_range(20.0, 180.0, 1.0) var max_angular_speed_deg: float = 90.0
@@ -325,23 +325,12 @@ func _apply_hinge_angle() -> void:
 	door_hinge.rotation.y = current_angle_rad
 	if door_hinge.is_inside_tree():
 		door_hinge.force_update_transform()
-	_sync_leaf_body_velocity()
 
 
-## StaticBody3D stays the collision authority. These velocities tell CharacterBody
-## contacts how the manually rotated surface itself is moving around the hinge.
-func _sync_leaf_body_velocity() -> void:
-	if _leaf == null or door_hinge == null:
-		return
-	var axis: Vector3 = door_hinge.global_basis.y.normalized()
-	var omega: Vector3 = axis * angular_velocity
-	for child: Node in _leaf.find_children("*", "StaticBody3D", true, false):
-		var body := child as StaticBody3D
-		if body == null:
-			continue
-		body.constant_angular_velocity = omega
-		body.constant_linear_velocity = omega.cross(body.global_position - door_hinge.global_position)
-
+## The authored StaticBody3D remains the collision authority, but it deliberately
+## carries no constant surface velocity. Feeding hinge velocity back through a
+## StaticBody makes CharacterBody3D treat the leaf like a moving wall and pushes
+## Henry away instead of letting his real contact torque open it.
 
 func _set_latched(value: bool) -> void:
 	if _latched == value:
