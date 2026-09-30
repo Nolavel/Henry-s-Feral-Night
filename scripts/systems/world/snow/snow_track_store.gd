@@ -9,6 +9,8 @@ const TILE_M: float = 3.2
 const TILE_TEX: int = 32
 ## Metres of packing per stored byte step.
 const DEPTH_STEP_M: float = 0.005
+## Byte that means zero: lower bytes are displaced snow heaped above the top.
+const ZERO_BYTE: int = 32
 ## Tiles kept at most; the longest-filled ones go first.
 const MAX_TILES: int = 4096
 ## Stored packing below this after fill-in is not worth keeping, metres.
@@ -42,9 +44,9 @@ func store(field: Image, origin: Vector2, window_m: float, keep: Rect2) -> void:
 			var any: bool = false
 			for y: int in range(TILE_TEX):
 				for x: int in range(TILE_TEX):
-					var b: int = clampi(roundi(region.get_pixel(x, y).r / DEPTH_STEP_M), 0, 255)
+					var b: int = clampi(roundi(region.get_pixel(x, y).r / DEPTH_STEP_M) + ZERO_BYTE, 0, 255)
 					bytes[y * TILE_TEX + x] = b
-					any = any or b > 0
+					any = any or b != ZERO_BYTE
 			var key: Vector2i = tile_key(corner + Vector2.ONE * TILE_M * 0.5)
 			if any:
 				tiles[key] = [clock, bytes]
@@ -66,12 +68,12 @@ func restore(origin: Vector2, window_m: float, side: int) -> Image:
 				continue
 			var entry: Array = tiles[key]
 			var left: float = exp(-(clock - float(entry[0])))
-			if 255.0 * DEPTH_STEP_M * left < MIN_PACK_M:
+			if float(255 - ZERO_BYTE) * DEPTH_STEP_M * left < MIN_PACK_M:
 				continue
 			var small := Image.create_empty(TILE_TEX, TILE_TEX, false, Image.FORMAT_RF)
 			var bytes: PackedByteArray = entry[1]
 			for i: int in range(bytes.size()):
-				small.set_pixel(i % TILE_TEX, i / TILE_TEX, Color(float(bytes[i]) * DEPTH_STEP_M * left, 0, 0))
+				small.set_pixel(i % TILE_TEX, i / TILE_TEX, Color(float(bytes[i] - ZERO_BYTE) * DEPTH_STEP_M * left, 0, 0))
 			small.resize(px, px, Image.INTERPOLATE_BILINEAR)
 			out.blit_rect(small, Rect2i(0, 0, px, px), Vector2i(tx * px, ty * px))
 	return out
@@ -86,13 +88,15 @@ func get_save_data() -> Dictionary:
 	for key: Vector2i in tiles:
 		var entry: Array = tiles[key]
 		out["%d:%d" % [key.x, key.y]] = [entry[0], Marshalls.raw_to_base64(entry[1])]
-	return {"clock": clock, "tiles": out}
+	return {"clock": clock, "tiles": out, "zero_byte": ZERO_BYTE}
 
 
 func load_save_data(data: Dictionary) -> void:
 	tiles.clear()
 	clock = float(data.get("clock", 0.0))
 	var saved: Dictionary = data.get("tiles", {})
+	## Saves from before displaced snow was kept stored packing from byte 0.
+	var lift: int = ZERO_BYTE - int(data.get("zero_byte", 0))
 	for name: String in saved:
 		var parts: PackedStringArray = name.split(":")
 		var entry: Array = saved[name]
@@ -100,6 +104,9 @@ func load_save_data(data: Dictionary) -> void:
 			continue
 		var bytes: PackedByteArray = Marshalls.base64_to_raw(String(entry[1]))
 		if bytes.size() == TILE_TEX * TILE_TEX:
+			if lift != 0:
+				for i: int in range(bytes.size()):
+					bytes[i] = clampi(bytes[i] + lift, 0, 255)
 			tiles[Vector2i(int(parts[0]), int(parts[1]))] = [float(entry[0]), bytes]
 
 

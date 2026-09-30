@@ -49,6 +49,8 @@ class_name MovementController
 # === СЛУЖЕБНЫЕ ПЕРЕМЕННЫЕ ===
 ## Set by SnowShell each physics frame from the snow depth; 1.0 on bare ground.
 var snow_speed_multiplier: float = 1.0
+## Set by SnowShell: deep snow is slow to get going in; 1.0 on bare ground.
+var snow_accel_multiplier: float = 1.0
 var _was_idle: bool = true
 var _sprint_blend: float = 1.0
 var _sprint_inertia_timer: float = 0.0
@@ -199,7 +201,7 @@ func process_movement(
 
 	# === 8) Разгон / торможение ===
 	var current_planar_speed: float = Vector3(player.velocity.x, 0.0, player.velocity.z).length()
-	var rate: float = accel_rate * get_load_accel_multiplier() if target_vel.length() > current_planar_speed else decel_rate
+	var rate: float = accel_rate * get_load_accel_multiplier() * snow_accel_multiplier if target_vel.length() > current_planar_speed else decel_rate
 
 	# ВАЖНО: используем move_toward для более точного контроля
 	var current_planar_vel = Vector3(player.velocity.x, 0.0, player.velocity.z)

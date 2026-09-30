@@ -5,6 +5,76 @@ Maintained per branch; entries are added by whoever makes the change.
 
 ## [Unreleased] — `codex`
 
+### 2026-10-01 - Snow: RDR2-style wading, snow on boots, prints keep up with a run, synthesised footsteps (main)
+
+- Prints vanished while running: the 25.6 m window rebuilds at 4 ms/frame and
+  fell behind, leaving Henry in its 6 m faded rim. It is now built 0.9 s ahead of
+  his travel and rebuilds at up to 12 ms/frame near the rim. A run landing also
+  packs up to 55 % of the give at once, so running prints are not shallow.
+- Knee-deep snow: 38 % speed, 45 % acceleration, a speed dip on every plant
+  (surging gait), knee drive on the swing, the shin ploughing the lower half of
+  deep snow, clods thrown ahead of a ploughing toe.
+- `BootSnowComponent`: clods pack onto the toe caps after deep steps (wet snow
+  most), shake off on brisk steps and melt in warmth.
+- Footsteps are synthesised by `tools/audio/generate_snow_footsteps.py`
+  (crumpling model after Fontana & Bresin 2003, heel-toe particles after Cook
+  2002) into seven banks, including a pull-out; the CC0 recordings are removed.
+
+### 2026-10-01 - Snow: narrow prints, broken edges, straight knees, depth-aware footsteps (main)
+
+- Bent knees at spawn: idle feet were treated as swinging (the step sensor only
+  plants moving steps) and lifted onto the snow while the hips followed 60 %.
+  Standing still both boots now rest in their prints; hips follow fully.
+- The wide furrow: the toe drag followed the walk clip's foot under the snow and
+  ploughed every swing. It now follows the visible, lifted boot. Wall slopes are
+  65° powder / 84° crust instead of a 40° cone that doubled print width.
+- Broken print edges: noise-jagged outlines (crust more than powder), blue cut
+  walls with snowfall strata, crack seams out from crust lips, sparkle on breaks.
+- Footsteps by snow depth, softness and air temperature (crunch deepening with
+  sink, muffled deep powder, cold squeak below −8 °C, dull wet snow, pull-out of
+  deep prints). `SoundSystem.play` takes an optional gain and pitch factor.
+
+### 2026-10-01 - Doors: back to a kinematic hinge; Henry pushes with his hand (main)
+
+- The RigidBody3D leaf from `cbafe26` was thrown out of its frame on F (contact
+  depenetration against the joint). The door is a scripted hinge again, now
+  symmetric both ways, and stops against Henry instead of passing through him.
+- The door opens inward only (sign of `open_angle_deg`; `swings_both_ways` for
+  saloon doors); the frame stops it and a firm push into the frame latches it.
+- F reads where Henry stands: outside it cracks the door inward, inside it
+  pulls it wide (the leaf eases him aside); on an open door he pushes the face
+  or pulls the handle, whichever way the leaf moves, and it swings shut and
+  latches, waiting if he stands in its path. Walking into an unlatched leaf,
+  his left hand plants on it and the leaf keeps ahead of the palm.
+- A fully open door no longer creeps shut: the open stop only damps (no spring
+  back) and the hinge has stiction, so wind and brushes do not move a resting leaf.
+- The leaf never shoves Henry: it stops short of his actual capsule; when F
+  swings it towards him (pull open from inside, pull shut) he steps out of its
+  arc by the shortest way and it follows. Doors play no generic reach clip.
+- New `DoorPushComponent` (made by Player) and `DoorHandIK` (last skeleton
+  modifier): two-bone arm solve, braced elbow, palm laid flat from the finger roots.
+- `test_hinged_door.gd` rewritten for the kinematic model. Not run by Claude.
+
+### 2026-10-01 - Snow that behaves like snow: displaced rims, walls that slump, legs with weight (main)
+
+- Model after Sumner, O'Brien & Hodgins 1999 (*Animating Sand, Mud, and
+  Snow*): a boot compresses part of the snow and pushes the rest onto a rim
+  outside the sole, heaped towards its travel (30 % in powder, 5 % in crust).
+  The packed field is now signed; negative texels are that heap.
+- Walls collapse for real: one mass-conserving erosion step per accumulation
+  pass sheds any wall steeper than the snow holds into the pit, crumbling in
+  random bits. Powder slumps to 40°, crust stands at 78°; a wall a boot still
+  touches holds. The drawn slope uses the same two angles instead of 40° for all.
+- Prints: the sole is heel + forefoot pads (a boot's waist); the heel digs on
+  strike and the ball on push-off, so prints are deep at both ends. Toe-off in
+  powder flicks a burst of grains ahead.
+- Legs (RDR2-style): boot lift runs on a damped spring, a planted boot is
+  pinned against the clip's glide (up to 10 cm, then slides), hips dip on each
+  plant by snow depth. Deep snow also cuts acceleration to 45 %.
+- Track tiles store signed bytes (zero at 32) so rims survive window moves;
+  older saves are lifted on load.
+- Not verified in engine by Claude (author tests in the open editor).
+
 ### 2026-09-30 - Snow prints without stair-steps; legs lift only as far as the snow needs (claudeflow)
 
 - Stair-steps came from the drawn slope: a max over five rings 9 cm apart made

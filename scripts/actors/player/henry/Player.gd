@@ -57,6 +57,19 @@ func _ready() -> void:
 	if carry != null and animation_component != null:
 		carry.carry_changed.connect(animation_component.set_carried_item)
 		animation_component.set_carried_item(carry.get_carried_item(), carry.get_carried_count())
+	## Hand-on-door pushing; runs after this body's move_and_slide each tick.
+	if get_node_or_null(^"DoorPushComponent") == null:
+		var door_push := DoorPushComponent.new()
+		door_push.name = "DoorPushComponent"
+		door_push.body = self
+		door_push.visual = animation_component
+		add_child(door_push)
+	## Snow that packs onto the boots in deep snow, sheds and melts.
+	if get_node_or_null(^"BootSnowComponent") == null:
+		var boot_snow := BootSnowComponent.new()
+		boot_snow.name = "BootSnowComponent"
+		boot_snow.visual = animation_component
+		add_child(boot_snow)
 	if consumption_controller != null:
 		consumption_controller.consumed.connect(
 			func(_item_id: StringName, _item: ItemResource) -> void:
@@ -258,6 +271,9 @@ func on_world_ready(context: WorldContext) -> void:
 	if steam != null:
 		steam.set_thermal(context.get_system(THERMAL_SCRIPT) as ThermalManager)
 	var thermal := context.get_system(THERMAL_SCRIPT) as ThermalManager
+	var boot_snow := get_node_or_null(^"BootSnowComponent") as BootSnowComponent
+	if boot_snow != null:
+		boot_snow.set_thermal(thermal)
 	if is_instance_valid(hub):
 		hub.set_thermal_manager(thermal)
 	if thermal == null or animation_component == null:

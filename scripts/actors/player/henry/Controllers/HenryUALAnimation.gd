@@ -537,6 +537,10 @@ func _setup_wade() -> void:
 	var feet := SnowFootModifier.new()
 	feet.name = "SnowFeet"
 	skeleton.add_child(feet)
+	## Last, so the palm lands on the door after spine lean and legs are settled.
+	var door_hand := DoorHandIK.new()
+	door_hand.name = "DoorHand"
+	skeleton.add_child(door_hand)
 
 
 func _setup_head_look() -> void:

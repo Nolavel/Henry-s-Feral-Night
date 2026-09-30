@@ -12,11 +12,11 @@ const SPINE: StringName = &"spine_01"
 
 ## How deep Henry wades, 0 on firm ground to 1 in thigh-deep snow. Set by SnowShell.
 @export_range(0.0, 1.0) var wade: float = 0.0
-## Extra hip flexion of the swinging leg at full wade, degrees; 0 lets SnowFootModifier
-## lift the boot exactly as far as the snow needs.
-@export var knee_lift_deg: float = 0.0
+## Extra hip flexion of the swinging leg at full wade, degrees: the knee drives
+## up and forward as in knee-deep snow; SnowFootModifier then sets the boot height.
+@export var knee_lift_deg: float = 22.0
 ## Extra knee bend of the swinging leg at full wade, degrees.
-@export var shin_fold_deg: float = 0.0
+@export var shin_fold_deg: float = 18.0
 ## Forward lean of the torso at full wade, degrees.
 @export var lean_deg: float = 14.0
 ## A foot moving forward this fast relative to the body is fully in swing, m/s.

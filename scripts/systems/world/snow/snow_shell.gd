@@ -4,6 +4,9 @@ extends Node3D
 ## Deformable snow around Henry. SnowField says how much snow lies where; an
 ## upward camera sees whatever presses into it and packs it down for good.
 
+## A boot left its print: where, how deep it had sunk and how soft the snow was.
+signal foot_lifted(side: int, position: Vector3, sink_m: float, softness: float)
+
 const SURFACE_SHADER: Shader = preload("res://shaders/environment/snow/snow_ground.gdshader")
 const CONTACT_SHADER: Shader = preload("res://shaders/environment/snow/snow_contact_depth.gdshader")
 const ACCUMULATE_SHADER: Shader = preload("res://shaders/environment/snow/snow_accumulate.gdshader")
@@ -41,6 +44,12 @@ const CONTACT_LAYER: int = RenderLayers.SNOW_CONTACT
 @export var recentre_step_m: float = 3.2
 ## Frame budget for a window move while walking; the old window stays live meanwhile.
 @export var rebuild_budget_usec: int = 4000
+## Budget once Henry nears the window's faded rim, where prints stop showing.
+@export var urgent_budget_usec: int = 12000
+## The window is built this many seconds ahead of Henry's travel, so a rebuild
+## finishes around him instead of behind him when he runs.
+@export var lead_s: float = 0.9
+@export var lead_max_m: float = 4.0
 
 @export_group("Snow")
 ## Settled depth at snow_cover 0 and 1, in metres.
@@ -54,10 +63,28 @@ const CONTACT_LAYER: int = RenderLayers.SNOW_CONTACT
 @export_file("*.png") var wind_field_path: String = "res://data/world/key_west/snow_wind.png"
 ## Share of the settled depth a foot or body packs down.
 @export_range(0.0, 1.0) var max_pack: float = 0.85
-## Steepest a trench wall is drawn, degrees (loose snow ~40).
-@export_range(20.0, 80.0) var repose_deg: float = 40.0
+## Slope a print's wall stands at in loose powder, degrees. Snow is cohesive:
+## walls stay steep (Sumner et al. 1999 give snow 90); a 40° repose cone drew prints far too wide.
+@export_range(20.0, 89.0) var repose_deg: float = 65.0
+## Slope wind crust and settled snow walls stand at, degrees.
+@export_range(40.0, 89.0) var crust_wall_deg: float = 84.0
+## Share of the excess slope a wall sheds per frame; higher collapses faster.
+@export_range(0.0, 0.045) var liquidity: float = 0.035
+## 0 walls slump evenly, 1 they crumble in random bits.
+@export_range(0.0, 1.0) var crumble: float = 0.6
+## Share of the snow under a boot pushed onto the rim instead of compressed.
+@export_range(0.0, 1.0) var displace_powder: float = 0.3
+@export_range(0.0, 1.0) var displace_crust: float = 0.05
+## Distance outside the sole where pushed-aside snow heaps highest, metres.
+@export var rim_peak_m: float = 0.035
+## Share of that heap thrown ahead of the boot rather than evenly round it.
+@export_range(0.0, 0.9) var rim_forward_bias: float = 0.35
 ## Seconds for a planted boot to press ~63% of the way down: snow has weight to shift.
 @export var sink_time_s: float = 0.22
+## Running lands at up to ~2.5x body weight: at this speed the heel strike alone
+## packs this share of the give at once, and the rest sinks twice as fast.
+@export var impact_speed_mps: float = 5.0
+@export_range(0.0, 0.9) var impact_share: float = 0.55
 ## Prints deeper than this shed clumps from their walls when the boot lifts, metres.
 @export var collapse_depth_m: float = 0.1
 ## Share of a print's depth the fallen clumps fill back, at most.
@@ -71,9 +98,13 @@ const CONTACT_LAYER: int = RenderLayers.SNOW_CONTACT
 
 @export_group("Movement")
 ## Speed share left in the deepest snow Henry wades through.
-@export_range(0.2, 1.0) var deep_snow_speed: float = 0.6
-## Depth at which wading is slowest, in metres.
+@export_range(0.2, 1.0) var deep_snow_speed: float = 0.38
+## Depth at which wading is slowest, in metres (about knee height).
 @export var deep_snow_m: float = 0.5
+## Each boot planted in deep snow has to break through it: speed dips by this
+## share at full wade, then recovers over `step_surge_s`. Wading comes in surges.
+@export_range(0.0, 0.8) var step_surge: float = 0.45
+@export var step_surge_s: float = 0.22
 ## Deeper than this Henry wades: his whole body ploughs a trench. Shallower,
 ## only planted soles press, so steps stay separate prints.
 @export var wade_depth_m: float = 0.3
@@ -84,6 +115,16 @@ const CONTACT_LAYER: int = RenderLayers.SNOW_CONTACT
 @export var sole_margin_m: float = 0.05
 ## Width and length of the toe that drags through snow on a lifted foot.
 @export var drag_size_m: Vector2 = Vector2(0.07, 0.14)
+## Extra depth the heel digs on strike and the ball on push-off, metres: a
+## walking print is deep at both ends and shallow under the arch.
+@export var heel_dig_m: float = 0.02
+@export var toe_dig_m: float = 0.03
+## Heel rise over the stance, metres, at which the ball carries all the weight.
+@export var heel_roll_m: float = 0.05
+## Speed at which the toe-off throws the most powder, m/s.
+@export var kick_speed_mps: float = 3.0
+## Speed share left for acceleration in the deepest snow: it takes effort to get going.
+@export_range(0.1, 1.0) var deep_snow_accel: float = 0.45
 
 ## Henry's live snow window (min corner, size, 1 when live), the same as the snow_window global.
 static var live_window: Vector4 = Vector4.ZERO
@@ -121,8 +162,24 @@ var _presentation: Node
 var _terrain: IslandTerrain
 var _world_root: Node
 var _sensor: FootContactSensor
-var _soles: Array[MeshInstance3D] = []
+## A sole is two pads, heel and forefoot: their union has the waist of a boot.
+var _heels: Array[MeshInstance3D] = []
+var _balls: Array[MeshInstance3D] = []
 var _drags: Array[MeshInstance3D] = []
+var _kicks: Array[GPUParticles3D] = []
+var _speed: float = 0.0
+var _sole_fwd: Array[Vector2] = [Vector2(0, -1), Vector2(0, -1)]
+var _sole_len: Array[float] = [0.3, 0.3]
+## Heel-over-ball height the clip had at the plant; its rise is the roll to the toe.
+var _heel_rest: Array[float] = [0.0, 0.0]
+## Displaced snow waiting for the next accumulation pass, per foot: metres at peak.
+var _pending_rim: Array[float] = [0.0, 0.0]
+## Seconds since a boot last planted, and how deep that plant was (0..1 wade).
+var _since_plant: float = 10.0
+var _plant_wade: float = 0.0
+## Spray a boot ploughing through snow throws ahead of its toe, per foot.
+var _ploughs: Array[GPUParticles3D] = []
+var _last_toe: Array[Vector3] = [Vector3.INF, Vector3.INF]
 ## Per foot: seconds planted (-1 lifted), metres pressed, print centre and shape.
 var _stance: Array[float] = [-1.0, -1.0]
 var _sink: Array[float] = [0.0, 0.0]
@@ -194,10 +251,19 @@ func _physics_process(_delta: float) -> void:
 	if _player == null:
 		return
 	var at: Vector3 = _player.global_position
-	_follow(Vector2(at.x, at.z))
+	var travel := Vector2.ZERO
+	if _player is CharacterBody3D:
+		var v: Vector3 = (_player as CharacterBody3D).velocity
+		travel = Vector2(v.x, v.z)
+		_speed = travel.length()
+	_follow(Vector2(at.x, at.z), (travel * lead_s).limit_length(lead_max_m))
 	var depth: float = field.get_depth(at.x, at.z)
+	_since_plant += _delta
 	if _mover != null and &"snow_speed_multiplier" in _mover:
-		_mover.set(&"snow_speed_multiplier", get_speed_multiplier(depth))
+		var surge: float = step_surge * _plant_wade * exp(-_since_plant / maxf(step_surge_s, 0.01))
+		_mover.set(&"snow_speed_multiplier", get_speed_multiplier(depth) * (1.0 - surge))
+	if _mover != null and &"snow_accel_multiplier" in _mover:
+		_mover.set(&"snow_accel_multiplier", get_accel_multiplier(depth))
 	if _gait != null:
 		_gait.set(&"wade", clampf(inverse_lerp(wade_gait_m.x, wade_gait_m.y, depth), 0.0, 1.0))
 	var wading: bool = depth > wade_depth_m
@@ -210,44 +276,114 @@ func _physics_process(_delta: float) -> void:
 ## Sets a sole under each foot as it lands, then lowers it as the snow under the
 ## boot compacts: a step settles in over the stance, it never drops at once.
 func _place_soles(delta: float) -> void:
-	for side: int in range(_soles.size()):
-		var sole: MeshInstance3D = _soles[side]
+	## Standing still both boots rest in their prints; the sensor only plants steps.
+	var standing: bool = _speed < 0.15 and _player is CharacterBody3D and (_player as CharacterBody3D).is_on_floor()
+	for side: int in range(_heels.size()):
 		var foot: Dictionary = _sensor.get_foot(side) if _sensor != null else {}
-		var planted: bool = not foot.is_empty() and _sensor.is_planted(side)
+		var planted: bool = not foot.is_empty() and (_sensor.is_planted(side) or standing)
 		_place_drag(side, foot, planted)
 		if not planted:
-			if _stance[side] >= 0.0 and _sink[side] > collapse_depth_m:
-				_collapse(side)
-			sole.visible = false
+			if _stance[side] >= 0.0:
+				_lift_off(side)
+			_heels[side].visible = false
+			_balls[side].visible = false
 			_stance[side] = -1.0
 			_sink[side] = 0.0
 			_raise[side] = 0.0
 			continue
 		## A planted sole stays where it landed: the walk clip glides, a boot does not.
-		if not sole.visible:
+		if not _heels[side].visible:
 			var heel: Vector3 = foot["heel"]
 			var toe: Vector3 = foot["toe"]
 			var along := Vector3(toe.x - heel.x, 0.0, toe.z - heel.z)
 			if along.length_squared() < 0.0001:
 				along = Vector3.FORWARD * 0.2
-			var basis := Basis.looking_at(along.normalized(), Vector3.UP)
-			_sole_basis[side] = basis.scaled_local(Vector3(sole_width_m, 0.3, along.length() + sole_margin_m * 2.0))
+			_sole_basis[side] = Basis.looking_at(along.normalized(), Vector3.UP)
+			_sole_fwd[side] = Vector2(along.x, along.z).normalized()
+			_sole_len[side] = along.length() + sole_margin_m * 2.0
 			_sole_at[side] = Vector2((heel.x + toe.x) * 0.5, (heel.z + toe.z) * 0.5)
+			_heel_rest[side] = heel.y - (foot["ball"] as Vector3).y
 			_stance[side] = 0.0
-			sole.visible = true
+			if not standing:
+				_since_plant = 0.0
+				var here: float = field.get_depth(_sole_at[side].x, _sole_at[side].y)
+				_plant_wade = clampf(inverse_lerp(wade_gait_m.x * 0.5, deep_snow_m, here), 0.0, 1.0)
+			_heels[side].visible = true
+			_balls[side].visible = true
 		_stance[side] += delta
 		var at: Vector2 = _sole_at[side]
 		var top: float = field.get_snow_top(at.x, at.y)
-		var give: float = field.get_depth(at.x, at.y) * max_pack * field.get_softness(at.x, at.y)
-		_sink[side] = sink_after(_stance[side], give, sink_time_s)
+		var depth: float = field.get_depth(at.x, at.y)
+		var softness: float = field.get_softness(at.x, at.y)
+		var give: float = depth * max_pack * softness
+		var was: float = _sink[side]
+		var impact: float = clampf(_speed / maxf(impact_speed_mps, 0.1), 0.0, 1.0)
+		_sink[side] = sink_after(_stance[side], give, sink_time_s / (1.0 + impact), impact * impact_share)
 		_foot_top[side] = top
 		## The clip plants the boot on the ground; lift it to the pressed snow instead.
 		## Read from the field, never from the boot, so the lift cannot feed on itself.
-		var depth: float = field.get_depth(at.x, at.y)
 		_raise[side] = clampf(depth - _sink[side], 0.0, depth) if top > -INF else 0.0
+		if top > -INF:
+			_queue_rim(side, _sink[side] - was, softness)
 		## Outside the window there is no snow to press: park the sole far below.
 		var bottom: float = top - _sink[side] if top > -INF else -1000.0
-		sole.global_transform = Transform3D(_sole_basis[side], Vector3(at.x, bottom + 0.15, at.y))
+		var dig: Vector2 = _roll_dig(side, foot, softness)
+		var fwd := Vector3(_sole_fwd[side].x, 0.0, _sole_fwd[side].y)
+		var centre := Vector3(at.x, 0.0, at.y)
+		var length: float = _sole_len[side]
+		_heels[side].global_transform = Transform3D(
+			_sole_basis[side].scaled_local(Vector3(sole_width_m * 0.85, 0.3, length * 0.44)),
+			centre - fwd * length * 0.28 + Vector3.UP * (bottom - dig.x + 0.15)
+		)
+		_balls[side].global_transform = Transform3D(
+			_sole_basis[side].scaled_local(Vector3(sole_width_m, 0.3, length * 0.64)),
+			centre + fwd * length * 0.17 + Vector3.UP * (bottom - dig.y + 0.15)
+		)
+
+
+## Extra depth under heel and ball as the clip rolls the foot: the heel carries
+## the strike, the ball the push-off. Faster steps and softer snow dig deeper.
+func _roll_dig(side: int, foot: Dictionary, softness: float) -> Vector2:
+	var pace: float = clampf(_speed / kick_speed_mps, 0.4, 1.2) * softness
+	var strike: float = heel_dig_m * exp(-_stance[side] / 0.1)
+	var heel_rise: float = ((foot["heel"] as Vector3).y - (foot["ball"] as Vector3).y) - _heel_rest[side]
+	var push: float = toe_dig_m * clampf(heel_rise / maxf(heel_roll_m, 0.001), 0.0, 1.0)
+	return Vector2(strike, push) * pace
+
+
+## Snow the boot pushes aside as it sinks `sunk` metres, heaped on the rim of an
+## oval sole: height at the rim peak so its volume is the displaced share.
+func _queue_rim(side: int, sunk: float, softness: float) -> void:
+	if sunk <= 0.0:
+		return
+	var powder: float = smoothstep(0.45, 0.95, softness)
+	var share: float = lerpf(displace_crust, displace_powder, powder)
+	var a: float = _sole_len[side] * 0.5
+	var b: float = sole_width_m * 0.5
+	var perimeter: float = PI * (3.0 * (a + b) - sqrt((3.0 * a + b) * (a + 3.0 * b)))
+	## A profile x·e^(1-x) over the rim peak distance holds e·peak per metre of edge.
+	_pending_rim[side] += share * sunk * PI * a * b / (perimeter * exp(1.0) * maxf(rim_peak_m, 0.005))
+
+
+## A boot leaving its print: powder flicks off the toe, and a deep print's walls
+## break and tumble in.
+func _lift_off(side: int) -> void:
+	var top: float = _foot_top[side]
+	if top == -INF:
+		return
+	var softness: float = field.get_softness(_sole_at[side].x, _sole_at[side].y)
+	var fwd := Vector3(_sole_fwd[side].x, 0.0, _sole_fwd[side].y)
+	var ball := Vector3(_sole_at[side].x, top - _sink[side] * 0.5, _sole_at[side].y) + fwd * _sole_len[side] * 0.3
+	var throw: float = clampf(_speed / kick_speed_mps, 0.0, 1.0) * smoothstep(0.45, 0.95, softness)
+	throw *= clampf(field.get_depth(_sole_at[side].x, _sole_at[side].y) / 0.15, 0.0, 1.0)
+	if throw > 0.05:
+		var kick: GPUParticles3D = _kicks[side]
+		kick.global_transform = Transform3D(_sole_basis[side], ball)
+		kick.amount_ratio = throw
+		kick.restart()
+	foot_lifted.emit(side, ball, _sink[side], softness)
+	if _sink[side] > collapse_depth_m:
+		_collapse(side)
 
 
 ## A boot leaving a deep print: clumps break off the walls and tumble in, and the
@@ -265,8 +401,10 @@ func _collapse(side: int) -> void:
 
 
 ## Metres a boot has pressed after `t` seconds of stance into snow that gives `give`.
-static func sink_after(t: float, give: float, time_s: float) -> float:
-	return give * (1.0 - exp(-maxf(t, 0.0) / maxf(time_s, 0.001)))
+## `impact` is the share packed at once by a hard landing.
+static func sink_after(t: float, give: float, time_s: float, impact: float = 0.0) -> float:
+	var settle: float = 1.0 - exp(-maxf(t, 0.0) / maxf(time_s, 0.001))
+	return give * lerpf(settle, 1.0, clampf(impact, 0.0, 1.0))
 
 
 ## How deep the `side` foot has pressed right now, metres (0 when lifted).
@@ -306,6 +444,9 @@ func _process(delta: float) -> void:
 	mat.set_shader_parameter("shift_uv", _pending_shift)
 	mat.set_shader_parameter("collapse", _pending_collapse)
 	_pending_collapse = Vector4.ZERO
+	_apply_rims(mat)
+	mat.set_shader_parameter("erode_rate", liquidity)
+	mat.set_shader_parameter("frame_seed", float(Engine.get_process_frames() % 1009))
 	mat.set_shader_parameter("fill", fill)
 	mat.set_shader_parameter("base_y", _base_y)
 	_pending_shift = Vector2.ZERO
@@ -337,19 +478,49 @@ func get_speed_multiplier(depth_m: float) -> float:
 	return lerpf(1.0, deep_snow_speed, t)
 
 
+## Acceleration share in `depth_m` of snow: deep snow is slow to get going in.
+func get_accel_multiplier(depth_m: float) -> float:
+	var t: float = clampf((depth_m - cover_depth_m.x) / maxf(deep_snow_m - cover_depth_m.x, 0.01), 0.0, 1.0)
+	return lerpf(1.0, deep_snow_accel, t)
+
+
+## Hands the displaced snow gathered since the last pass to the accumulator.
+func _apply_rims(mat: ShaderMaterial) -> void:
+	var names: Array[StringName] = [&"deposit_l", &"deposit_r"]
+	for side: int in range(2):
+		var a := Vector4.ZERO
+		var b := Vector4.ZERO
+		if _pending_rim[side] > 0.0 and field.origin.x != INF:
+			var uv: Vector2 = (_sole_at[side] - field.origin) / window_m
+			a = Vector4(uv.x, uv.y, _sole_fwd[side].x, _sole_fwd[side].y)
+			b = Vector4(_sole_len[side] * 0.5 / window_m, sole_width_m * 0.5 / window_m,
+				_pending_rim[side], rim_forward_bias)
+		mat.set_shader_parameter(String(names[side]) + "_a", a)
+		mat.set_shader_parameter(String(names[side]) + "_b", b)
+		_pending_rim[side] = 0.0
+
+
 func get_origin() -> Vector2:
 	return field.origin
 
 
 ## Streams window moves while walking: a move is rebuilt a slice per frame and
 ## switched in whole. The first window and long jumps are rebuilt at once.
-func _follow(centre: Vector2) -> void:
+## `lead` shifts the target ahead of Henry's travel; nearing the faded rim a
+## rebuild gets a bigger budget, since prints there fade into the chunk cover.
+func _follow(henry: Vector2, lead: Vector2 = Vector2.ZERO) -> void:
 	if _surface == null:
 		return
+	var budget: int = rebuild_budget_usec
+	if field.origin.x != INF:
+		var local: Vector2 = henry - field.origin
+		var rim: float = minf(minf(local.x, local.y), minf(window_m - local.x, window_m - local.y))
+		budget = int(lerpf(float(urgent_budget_usec), float(rebuild_budget_usec), clampf((rim - 6.0) / 3.0, 0.0, 1.0)))
 	if field.is_rebuilding():
-		if field.step_rebuild(rebuild_budget_usec):
+		if field.step_rebuild(budget):
 			_apply_window(_move_from, field.origin, _move_cover, _move_wind)
 		return
+	var centre: Vector2 = henry + lead
 	var wanted: Vector2 = _snapped_origin(centre)
 	var storm: float = _storm_share()
 	## A storm reshaping the drifts rebuilds the window where it stands.
@@ -364,7 +535,7 @@ func _follow(centre: Vector2) -> void:
 	_move_wind = _wind()
 	field.storm_share = storm
 	field.begin_rebuild(wanted, _move_cover, _move_wind)
-	if field.step_rebuild(rebuild_budget_usec):
+	if field.step_rebuild(budget):
 		_apply_window(_move_from, field.origin, _move_cover, _move_wind)
 
 
@@ -404,7 +575,7 @@ func _build_surface() -> void:
 	_surface.set_shader_parameter("field", _field_tex)
 	_surface.set_shader_parameter("window_m", window_m)
 	_surface.set_shader_parameter("packed_texel_m", window_m / float(packed_res))
-	_surface.set_shader_parameter("repose_tan", tan(deg_to_rad(repose_deg)))
+	_surface.set_shader_parameter("repose_tan", tan(deg_to_rad(crust_wall_deg)))
 	_mesh = MeshInstance3D.new()
 	_mesh.name = "SnowShellMesh"
 	_mesh.mesh = _graded_grid()
@@ -420,9 +591,14 @@ func _place_drag(side: int, foot: Dictionary, planted: bool) -> void:
 	var drag: MeshInstance3D = _drags[side]
 	drag.visible = not foot.is_empty() and not planted
 	if not drag.visible:
+		_ploughs[side].emitting = false
+		_last_toe[side] = Vector3.INF
 		return
-	var ball: Vector3 = foot["ball"]
-	var toe: Vector3 = foot["toe"]
+	## The sensor reports the walk clip's foot, down on the ground under the snow;
+	## the toe that drags is the visible one, lifted over the snow by SnowFeet.
+	var lift: Vector3 = Vector3.UP * _visible_lift(side)
+	var ball: Vector3 = foot["ball"] + lift
+	var toe: Vector3 = foot["toe"] + lift
 	var along := Vector3(toe.x - ball.x, 0.0, toe.z - ball.z)
 	if along.length_squared() < 0.0001:
 		along = Vector3.FORWARD
@@ -432,6 +608,33 @@ func _place_drag(side: int, foot: Dictionary, planted: bool) -> void:
 	drag.global_transform = Transform3D(
 		basis.scaled_local(Vector3(drag_size_m.x, 0.3, drag_size_m.y)), centre
 	)
+	_plough(side, toe, basis)
+
+
+## A swinging boot pushing forward below the snow top breaks the snow ahead of
+## its toe: clods spray forward, more the deeper and faster it ploughs.
+func _plough(side: int, toe: Vector3, basis: Basis) -> void:
+	var spray: GPUParticles3D = _ploughs[side]
+	var top: float = field.get_snow_top(toe.x, toe.z)
+	var moved: float = 0.0
+	if _last_toe[side] != Vector3.INF:
+		moved = (toe - _last_toe[side]).dot(-basis.z) / maxf(get_physics_process_delta_time(), 0.001)
+	_last_toe[side] = toe
+	var buried: float = top - toe.y if top > -INF else 0.0
+	var strength: float = clampf(buried / 0.15, 0.0, 1.0) * clampf(moved / 1.5, 0.0, 1.0)
+	strength *= smoothstep(0.45, 0.95, field.get_softness(toe.x, toe.z)) * 0.6 + 0.4
+	spray.emitting = strength > 0.08
+	if spray.emitting:
+		spray.amount_ratio = strength
+		spray.global_transform = Transform3D(basis, Vector3(toe.x, minf(toe.y + 0.04, top), toe.z))
+
+
+## World metres SnowFeet lifted the `side` boot above the walk clip last frame.
+func _visible_lift(side: int) -> float:
+	if _sensor == null or _sensor.visual == null or _sensor.visual.skeleton == null:
+		return 0.0
+	var feet := _sensor.visual.skeleton.get_node_or_null(^"SnowFeet") as SnowFootModifier
+	return feet.get_lift(side) if feet != null else 0.0
 
 
 func _graded_grid() -> ArrayMesh:
@@ -502,22 +705,28 @@ func _build_capture() -> void:
 	quad.cast_shadow = GeometryInstance3D.SHADOW_CASTING_SETTING_OFF
 	quad.position = Vector3(0, 0, -1)
 	_contact_cam.add_child(quad)
+	## Ovals with flat bottoms; heel and forefoot overlap into a boot outline.
+	var oval := CylinderMesh.new()
+	oval.top_radius = 0.5
+	oval.bottom_radius = 0.5
+	oval.height = 1.0
+	oval.radial_segments = 20
+	oval.rings = 1
 	for i: int in range(2):
-		var sole := MeshInstance3D.new()
-		sole.name = "Sole%d" % i
-		## An oval with a flat bottom: a boot sole, not a brick.
-		var oval := CylinderMesh.new()
-		oval.top_radius = 0.5
-		oval.bottom_radius = 0.5
-		oval.height = 1.0
-		oval.radial_segments = 20
-		oval.rings = 1
-		sole.mesh = oval
-		sole.layers = CONTACT_LAYER
-		sole.cast_shadow = GeometryInstance3D.SHADOW_CASTING_SETTING_OFF
-		sole.visible = false
-		add_child(sole)
-		_soles.append(sole)
+		for pad: String in ["Heel", "Ball"]:
+			var sole := MeshInstance3D.new()
+			sole.name = "Sole%s%d" % [pad, i]
+			sole.mesh = oval
+			sole.layers = CONTACT_LAYER
+			sole.cast_shadow = GeometryInstance3D.SHADOW_CASTING_SETTING_OFF
+			sole.visible = false
+			add_child(sole)
+			if pad == "Heel":
+				_heels.append(sole)
+			else:
+				_balls.append(sole)
+		_kicks.append(_kick_burst("Kick%d" % i))
+		_ploughs.append(_plough_spray("Plough%d" % i))
 		var drag := MeshInstance3D.new()
 		drag.name = "Drag%d" % i
 		drag.mesh = oval
@@ -535,6 +744,11 @@ func _build_capture() -> void:
 		mat.set_shader_parameter("contact_tex", _contact.get_texture())
 		mat.set_shader_parameter("field", _field_tex)
 		mat.set_shader_parameter("max_pack", max_pack)
+		var tex_m: float = window_m / float(packed_res)
+		mat.set_shader_parameter("talus_powder", tan(deg_to_rad(repose_deg)) * tex_m)
+		mat.set_shader_parameter("talus_crust", tan(deg_to_rad(crust_wall_deg)) * tex_m)
+		mat.set_shader_parameter("roughness", crumble)
+		mat.set_shader_parameter("rim_uv", rim_peak_m / window_m)
 		var rect := ColorRect.new()
 		rect.size = Vector2(packed_res, packed_res)
 		rect.material = mat
@@ -546,7 +760,8 @@ func _build_capture() -> void:
 		mat.set_shader_parameter("restore", _restore_tex)
 	_accum_mat[0].set_shader_parameter("previous", _accum[1].get_texture())
 	_accum_mat[1].set_shader_parameter("previous", _accum[0].get_texture())
-	## What is drawn: walls dilated to the repose slope along x, then y, then softened.
+	## What is drawn: walls dilated to the slope the snow holds along x, then y,
+	## then softened. Powder slumps to repose, crust stands near vertical.
 	var texel_m: float = window_m / float(packed_res)
 	for i: int in range(3):
 		var vp: SubViewport = _viewport("SnowShape%d" % i, packed_res)
@@ -554,7 +769,9 @@ func _build_capture() -> void:
 		var mat := ShaderMaterial.new()
 		mat.shader = SHAPE_SHADER
 		mat.set_shader_parameter("pass", i)
-		mat.set_shader_parameter("drop_per_texel", tan(deg_to_rad(repose_deg)) * texel_m)
+		mat.set_shader_parameter("field", _field_tex)
+		mat.set_shader_parameter("drop_powder", tan(deg_to_rad(repose_deg)) * texel_m)
+		mat.set_shader_parameter("drop_crust", tan(deg_to_rad(crust_wall_deg)) * texel_m)
 		mat.set_shader_parameter("reach", ceili(0.6 / (tan(deg_to_rad(repose_deg)) * texel_m)))
 		if i > 0:
 			mat.set_shader_parameter("source", _shape[i - 1].get_texture())
@@ -614,6 +831,70 @@ func _clump_burst(node_name: String) -> GPUParticles3D:
 	burst.visibility_aabb = AABB(Vector3(-0.5, -0.5, -0.5), Vector3.ONE)
 	add_child(burst)
 	return burst
+
+
+## Loose powder a toe-off flicks ahead of the boot; its -Z faces the throw.
+func _kick_burst(node_name: String) -> GPUParticles3D:
+	var grain := SphereMesh.new()
+	grain.radius = 0.012
+	grain.height = 0.02
+	grain.radial_segments = 4
+	grain.rings = 2
+	var snow := StandardMaterial3D.new()
+	snow.albedo_color = Color(0.88, 0.91, 0.95)
+	snow.roughness = 0.9
+	grain.material = snow
+	var motion := ParticleProcessMaterial.new()
+	motion.emission_shape = ParticleProcessMaterial.EMISSION_SHAPE_SPHERE
+	motion.emission_sphere_radius = 0.05
+	motion.direction = Vector3(0.0, 0.7, -1.0)
+	motion.spread = 28.0
+	motion.initial_velocity_min = 0.7
+	motion.initial_velocity_max = 1.8
+	motion.gravity = Vector3(0.0, -9.8, 0.0)
+	motion.damping_min = 1.0
+	motion.damping_max = 2.5
+	motion.scale_min = 0.4
+	motion.scale_max = 1.3
+	var fade := Curve.new()
+	fade.add_point(Vector2(0.0, 1.0))
+	fade.add_point(Vector2(0.6, 0.9))
+	fade.add_point(Vector2(1.0, 0.0))
+	var fade_tex := CurveTexture.new()
+	fade_tex.curve = fade
+	motion.scale_curve = fade_tex
+	var burst := GPUParticles3D.new()
+	burst.name = node_name
+	burst.draw_pass_1 = grain
+	burst.process_material = motion
+	burst.amount = 24
+	burst.lifetime = 0.6
+	burst.one_shot = true
+	burst.explosiveness = 0.85
+	burst.randomness = 0.5
+	burst.emitting = false
+	burst.local_coords = false
+	burst.cast_shadow = GeometryInstance3D.SHADOW_CASTING_SETTING_OFF
+	burst.visibility_aabb = AABB(Vector3(-1.0, -0.5, -1.5), Vector3(2.0, 1.5, 2.5))
+	add_child(burst)
+	return burst
+
+
+## Continuous spray of clods a ploughing toe throws ahead; its -Z faces travel.
+func _plough_spray(node_name: String) -> GPUParticles3D:
+	var spray: GPUParticles3D = _kick_burst(node_name)
+	spray.one_shot = false
+	spray.explosiveness = 0.0
+	spray.amount = 36
+	spray.lifetime = 0.5
+	var motion := spray.process_material as ParticleProcessMaterial
+	motion.direction = Vector3(0.0, 0.9, -1.0)
+	motion.spread = 35.0
+	motion.initial_velocity_min = 0.5
+	motion.initial_velocity_max = 1.3
+	motion.scale_min = 0.7
+	motion.scale_max = 2.2
+	return spray
 
 
 ## Files the packing leaving the window and prepares what the new window restores.

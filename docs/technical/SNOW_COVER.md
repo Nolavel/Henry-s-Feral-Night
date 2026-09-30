@@ -185,11 +185,72 @@ snow_ground.gdshader: top − packed + rim          MovementController speed
   silhouette at the real depth; a dropped item leaves its own shape. No print
   is scripted. The main camera never draws layer 20's contact quad.
 - **Packing** is capped at `max_pack` (85 %) of the settled depth: compressed
-  snow remains under a boot. Displaced snow lifts a broken rim around the pit.
+  snow remains under a boot. The model follows Sumner, O'Brien & Hodgins,
+  *Animating Sand, Mud, and Snow* (1999): a boot compresses part of the snow
+  and displaces the rest (`displace_powder` 30 %, `displace_crust` 5 %) onto a
+  rim just outside the sole, heaped towards its travel. The packed field is
+  signed: negative texels are that heap. Wind crust also tilts up slabs at the
+  pit edge (shader lip, crust only).
+- **Walls and collapse.** Each accumulation pass runs one mass-conserving
+  erosion step: where a wall rises more than the snow holds per texel, a share
+  (`liquidity`, randomised by `crumble`) sheds across that edge into the pit.
+  Powder walls hold `repose_deg` (65°), crust `crust_wall_deg` (84°): snow is
+  cohesive, and a 40° repose cone drew prints half a metre wide. A wall a boot
+  still touches does not shed (Sumner's inside slope). The drawn slope uses the
+  same two angles, so stored and drawn walls converge while the floor rises
+  with what fell in. Deep prints also drop crust clumps on lift, as before.
 - **Fill.** Packing relaxes back in 900 s calm, 45 s in a whiteout.
 - **Henry stays consistent.** His collider stands on firm ground; his boots
   reach the bottom of the pit they made. `MovementController.snow_speed_multiplier`
-  falls from 1.0 at 5 cm to 0.6 at 50 cm of snow.
+  falls from 1.0 at 5 cm to 0.6 at 50 cm of snow, `snow_accel_multiplier` to
+  0.45: deep snow is slow to get going in.
+- **Standing.** Standing still (under 0.15 m/s, on the floor) both boots count
+  as planted and rest in their prints; the step sensor only plants moving steps,
+  so idle feet used to be lifted onto the snow top with the hips following 60 %
+  of it, and Henry stood with bent knees. Hips now follow the lower boot fully.
+- **Broken edges.** `snow_ground` breaks each print outline with world noise
+  (`jag_crust_m` 2.5 cm, `jag_powder_m` 1 cm), tints cut walls blue with faint
+  strata of past snowfalls, runs crack seams (cellular F2−F1) out from crust
+  lips, and lets freshly broken grains glint more.
+- **Footsteps.** `WorldAudioBinder` reads depth and softness under each plant
+  and picks a bank by what the boot meets. The banks are synthesised by
+  `tools/audio/generate_snow_footsteps.py` (field recordings tried first did not
+  fit): crumpling transients with power-law energies (Fontana & Bresin 2003)
+  exciting resonances under a heel-roll-toe force envelope (Cook 2002, PhISEM),
+  plus a compression whump, ground knock, crust fractures, leg swish or
+  stick-slip squeak per surface. Re-run the tool to retune; it rewrites the WAVs
+  and the `.tres` banks.
+
+  | Boot | Bank |
+  |---|---|
+  | snow under 2 cm | ground (`footstep_event`, none yet) |
+  | sinks under 5 cm | `snow_thin` — short crunch on frozen ground |
+  | sinks 15 cm or more | `snow_deep` — leg swish, long dark whump |
+  | crust (softness < 0.6) | `snow_crust` — slab fractures, then powder |
+  | air above −1 °C | `snow_wet` — soft low grains, slush |
+  | otherwise | `snow_step` — dense dry crunch |
+
+  On top: gain rises (−6 → +2 dB) and pitch falls (1.08 → 0.82) with the sink;
+  running is louder; dry snow below −8…−20 °C layers `snow_squeak`; a boot
+  pulled out of a print deeper than 8 cm plays `snow_pull` (`SnowShell.foot_lifted`).
+- **Deep snow gait.** Knee-deep (0.5 m) snow leaves 38 % of the speed and 45 %
+  of the acceleration, and each boot planted in it dips the speed by up to 45 %
+  for ~0.2 s: wading comes in surges. The swinging leg drives its knee up
+  (`WadeModifier` 22° hip, 18° knee) and ploughs the lower half of the snow past
+  wade depth with the shin instead of stepping over it; a toe ploughing below
+  the snow top throws clods ahead (`Plough` spray).
+- **Snow on boots.** `BootSnowComponent` packs a clod onto the toe cap of a boot
+  pulled out of a print deeper than 8 cm: most in wet snow near 0 °C, a fifth
+  of that in dry cold snow. A brisk lift-off may shake 30–80 % off in falling
+  clods; warmth melts it in ~45 s (it goes slushy first), −20 °C air takes ~15 min.
+- **Running.** A landing at run speed packs up to 55 % of the give at once and
+  sinks the rest twice as fast; the window is built 0.9 s ahead of Henry's
+  travel and rebuilds at up to 12 ms/frame once he nears its faded rim, so
+  prints no longer vanish behind a running Henry.
+- **Legs.** `SnowFootModifier` drives each boot's lift with a damped spring
+  (slight overshoot reads as weight), pins a planted boot where it landed
+  against the clip's glide (up to `lock_reach_m`, then it slides, never snaps),
+  and gives the hips a downward kick on each plant scaled by snow depth.
 - **What the rays find.** Each field cell casts a ray down. A steep face, or
   anything over 1 m above the ground, is a wall: the shell is cut there and
   snow piles in its lee, scaled by how much wall is around (a lone post
@@ -202,11 +263,17 @@ snow_ground.gdshader: top − packed + rim          MovementController speed
   below it, so terrain facets and small hollows fill in. Where the snow thins
   under ~2 cm the shell is discarded and the ground shows, instead of the two
   surfaces z-fighting at the shore.
-- **Prints.** Below `wade_depth_m` (30 cm) only planted soles press: an oval
-  sole is set where each foot lands and held until it lifts, so the gliding
-  walk clip leaves separate prints. Deeper, Henry's whole mesh ploughs.
-- **Drag.** A lifted foot's toe follows the boot every frame and presses only
-  as deep as it actually dips into the snow: toe-off scuffs and touchdown
+- **Prints.** Below `wade_depth_m` (30 cm) only planted soles press: a sole of
+  two overlapping ovals (heel and forefoot, so it has a boot's waist) is set
+  where each foot lands and held until it lifts, so the gliding walk clip
+  leaves separate prints. The heel digs `heel_dig_m` extra on strike and the
+  ball `toe_dig_m` as the clip lifts the heel, scaled by pace and softness: a
+  print is deep at both ends and shallow under the arch. On toe-off in powder
+  a burst of grains is flicked ahead. Deeper, Henry's whole mesh ploughs.
+- **Drag.** A lifted foot's toe follows the *visible* boot (the walk clip's foot
+  plus SnowFeet's lift) every frame and presses only as deep as it actually dips
+  into the snow; following the clip's foot under the snow ploughed one wide
+  furrow along every swing: toe-off scuffs and touchdown
   marks in shallow snow, drag furrows where the swing stays low. Nothing
   presses while the toe is above the surface.
 - **Window.** 25.6 m, moved in 3.2 m steps; packing is shifted with it. The
@@ -248,4 +315,6 @@ both factors per cell, so a share change rebuilds depth only.
 `SnowTrackStore` files packing leaving the window as 3.2 m tiles (32² bytes,
 5 mm steps) stamped with a fill clock (Σ -ln(1 - fill)). Restoring multiplies
 by exp(-(clock - stamp)), the same fill-in the accumulation pass would have
-applied. The shell saves the store under `snow_tracks`.
+applied. The shell saves the store under `snow_tracks`. Bytes are signed
+around `ZERO_BYTE` (32), so displaced rims down to −16 cm survive a window move;
+saves without `zero_byte` are lifted on load.

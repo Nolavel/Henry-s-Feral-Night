@@ -43,7 +43,8 @@ func _process(delta: float) -> void:
 
 
 ## Plays one variation of `event`; returns a handle, or INVALID when dropped.
-func play(event: SoundEvent, at: Vector3 = Vector3.INF) -> int:
+## Callers may shade one play (a deeper step) with a gain and a pitch factor.
+func play(event: SoundEvent, at: Vector3 = Vector3.INF, gain_db: float = 0.0, pitch_scale: float = 1.0) -> int:
 	if event == null:
 		return INVALID
 	var now: int = Time.get_ticks_msec()
@@ -61,8 +62,8 @@ func play(event: SoundEvent, at: Vector3 = Vector3.INF) -> int:
 	_last_play_ms[event] = now
 	player.set(&"stream", stream)
 	player.set(&"bus", event.bus)
-	player.set(&"volume_db", event.roll_volume_db(_rng))
-	player.set(&"pitch_scale", event.roll_pitch(_rng))
+	player.set(&"volume_db", event.roll_volume_db(_rng) + gain_db)
+	player.set(&"pitch_scale", event.roll_pitch(_rng) * maxf(pitch_scale, 0.05))
 	if spatial:
 		var p3d := player as AudioStreamPlayer3D
 		p3d.unit_size = event.unit_size
