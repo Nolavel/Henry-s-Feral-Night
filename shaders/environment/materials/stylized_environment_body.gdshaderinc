@@ -13,6 +13,7 @@ uniform vec2 uv_scale = vec2(1.0);
 uniform vec2 uv_offset = vec2(0.0);
 uniform vec3 emission_color : source_color = vec3(0.0);
 uniform float emission_energy : hint_range(0.0, 16.0) = 0.0;
+// Historical parameter name retained so converted shelter materials can opt out.
 uniform bool stylized_shadow_warp_enabled = true;
 
 varying vec3 stylized_world_pos;
@@ -22,9 +23,6 @@ void vertex() {
 }
 
 void fragment() {
-	if (stylized_shadow_warp_enabled) {
-		LIGHT_VERTEX = VERTEX + hfn_stylized_shadow_view_warp(stylized_world_pos, VIEW_MATRIX);
-	}
 	vec2 uv = UV * uv_scale + uv_offset;
 	vec4 base = albedo_color;
 	if (use_vertex_color) {
@@ -48,7 +46,10 @@ void light() {
 	float attenuation = hfn_stylized_shadow_attenuation(
 		ATTENUATION,
 		stylized_world_pos,
-		LIGHT_IS_DIRECTIONAL
+		LIGHT_IS_DIRECTIONAL,
+		LIGHT_INDEX,
+		VIEW_MATRIX,
+		stylized_shadow_warp_enabled
 	);
 	DIFFUSE_LIGHT += ndotl * attenuation * LIGHT_COLOR / PI;
 

@@ -77,7 +77,6 @@ void vertex() {
 }
 
 void fragment() {
-	LIGHT_VERTEX = VERTEX + hfn_stylized_shadow_view_warp(v_world, VIEW_MATRIX);
 	vec2 uv = (v_world.xz - origin) / window_m;
 	float grain = snow_hash(floor(v_world.xz * 40.0));
 	// Where snow thins to a skin it would z-fight the ground: let the ground show.
@@ -122,7 +121,10 @@ void light() {
 	float attenuation = hfn_stylized_shadow_attenuation(
 		ATTENUATION,
 		v_world,
-		LIGHT_IS_DIRECTIONAL
+		LIGHT_IS_DIRECTIONAL,
+		LIGHT_INDEX,
+		VIEW_MATRIX,
+		true
 	);
 	DIFFUSE_LIGHT += ndotl * attenuation * LIGHT_COLOR / PI;
 }
