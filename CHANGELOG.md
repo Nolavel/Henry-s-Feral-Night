@@ -5,6 +5,13 @@ Maintained per branch; entries are added by whoever makes the change.
 
 ## [Unreleased] — `codex`
 
+### 2026-09-30 - Readable city wind snow at 2 m (claudeflow)
+
+- The wind bake runs at 2 m over the city (plus 200 m) and adds corner speed-up
+  and windward banks with a scoured wall foot.
+- Chunk cover samples the wind field per pixel, so lee tongues and scoured
+  streets shade between vertices; scoured crust reads greyer, drift banks brighter.
+
 ### 2026-09-30 - Chunk-wide settled snow (claudeflow)
 
 - `SnowChunkCover` lays a 2 m snow grid over every streamed city chunk, lifted by

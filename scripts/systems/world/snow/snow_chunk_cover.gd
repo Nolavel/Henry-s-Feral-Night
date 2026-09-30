@@ -21,6 +21,13 @@ static func build(terrain: IslandTerrain, origin: Vector2, size_m: float) -> Mes
 		_field.load_wind_field(WIND_FIELD_PATH)
 		_material = ShaderMaterial.new()
 		_material.shader = SHADER
+		if _field.wind_texture != null:
+			_material.set_shader_parameter("wind_tex", _field.wind_texture)
+			_material.set_shader_parameter("wind_origin", _field.wind_field_origin)
+			_material.set_shader_parameter("wind_extent",
+				Vector2(_field.wind_field.get_width(), _field.wind_field.get_height()) * _field.wind_field_cell_m)
+			_material.set_shader_parameter("wind_max", _field.wind_field_max)
+			_material.set_shader_parameter("storm_share", _field.storm_share)
 	var n: int = int(size_m / STEP_M) + 1
 	var verts := PackedVector3Array()
 	var uvs := PackedVector2Array()
@@ -36,7 +43,7 @@ static func build(terrain: IslandTerrain, origin: Vector2, size_m: float) -> Mes
 			var factor: float = _field.wind_factor(at) * shore
 			var k: int = j * n + i
 			verts[k] = Vector3(at.x, h, at.y)
-			uvs[k] = Vector2(factor, 0.0)
+			uvs[k] = Vector2(factor, shore)
 			## Only buildings cut the grid; thin shore snow fades out in the shader.
 			open[k] = 0 if _field.is_building(at) else 1
 	## Ground normals from neighbouring heights; ridges add their slope in the shader.

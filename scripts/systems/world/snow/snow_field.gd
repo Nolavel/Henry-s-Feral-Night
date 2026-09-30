@@ -24,6 +24,8 @@ var origin: Vector2 = Vector2(INF, INF)
 
 ## City-scale wind field (R prevailing, G storm depth factor); null outside a city.
 var wind_field: Image
+## The same field as a texture, for shaders that sample it per pixel.
+var wind_texture: Texture2D
 var wind_field_origin: Vector2 = Vector2.ZERO
 var wind_field_cell_m: float = 4.0
 var wind_field_max: float = 2.5
@@ -52,6 +54,7 @@ func load_wind_field(png_path: String) -> bool:
 	var tex := load(png_path) as Texture2D
 	if tex == null:
 		return false
+	wind_texture = tex
 	wind_field = tex.get_image()
 	if wind_field.is_compressed():
 		wind_field.decompress()
@@ -114,6 +117,9 @@ func wind_factor(at: Vector2) -> float:
 	if wind_field == null:
 		return 1.0
 	var p: Vector2 = (at - wind_field_origin) / wind_field_cell_m - Vector2(0.5, 0.5)
+	## Outside the baked city the wind leaves settled snow as it fell.
+	if p.x < 0.0 or p.y < 0.0 or p.x > wind_field.get_width() - 1 or p.y > wind_field.get_height() - 1:
+		return 1.0
 	var x0: int = clampi(floori(p.x), 0, wind_field.get_width() - 2)
 	var y0: int = clampi(floori(p.y), 0, wind_field.get_height() - 2)
 	var f := Vector2(clampf(p.x - float(x0), 0.0, 1.0), clampf(p.y - float(y0), 0.0, 1.0))

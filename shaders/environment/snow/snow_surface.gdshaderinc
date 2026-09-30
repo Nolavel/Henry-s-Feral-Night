@@ -102,3 +102,10 @@ float snow_base_depth(vec2 xz, float city) {
 vec3 snow_thin_tint(vec3 snow, float depth) {
 	return mix(snow * vec3(0.72, 0.72, 0.7), snow, smoothstep(0.03, 0.18, depth));
 }
+
+// Wind-polished crust on scoured ground reads greyer; fresh drift banks brighter.
+vec3 snow_wind_tint(vec3 snow, float city) {
+	vec3 crust = snow * vec3(0.84, 0.87, 0.92);
+	vec3 c = mix(crust, snow, smoothstep(0.35, 0.95, city));
+	return c * mix(1.0, 1.05, smoothstep(1.3, 1.9, city));
+}

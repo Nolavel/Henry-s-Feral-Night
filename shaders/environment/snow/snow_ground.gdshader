@@ -23,6 +23,7 @@ varying float v_cut;
 varying float v_edge;
 varying float v_depth;
 varying float v_ground;
+varying float v_city;
 
 float packed_at(vec2 uv) {
 	return texture(packed_field, uv).r;
@@ -60,6 +61,7 @@ void vertex() {
 	v_packed = packed_at(uv);
 	v_rim = rim_at(uv, world.xz, v_packed);
 	v_cut = f.b;
+	v_city = f.a;
 	vec2 to_edge = min(uv, 1.0 - uv) * window_m;
 	// Over the outer 6 m the detail fades out onto the chunk-wide base.
 	v_edge = smoothstep(0.0, 6.0, min(to_edge.x, to_edge.y));
@@ -105,7 +107,7 @@ void fragment() {
 	color *= 1.0 + crust * 0.06 - snow_breakup(v_world, 5.0) * 0.03;
 	// Deep drifts read a touch brighter on the crest; shallow cover equals the terrain.
 	color *= mix(1.0, 1.03, smoothstep(0.1, 0.4, v_depth));
-	ALBEDO = snow_thin_tint(color, v_depth);
+	ALBEDO = snow_thin_tint(snow_wind_tint(color, v_city), v_depth);
 	ROUGHNESS = mix(0.85, 0.6, packed);
 	float glint = step(0.996, snow_hash(floor(v_world.xz * 140.0)));
 	EMISSION = vec3(glint * 0.25 * (1.0 - packed));
