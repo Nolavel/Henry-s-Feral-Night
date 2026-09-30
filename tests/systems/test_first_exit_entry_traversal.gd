@@ -65,10 +65,10 @@ func _spawn_body() -> void:
 	_body.floor_max_angle = deg_to_rad(45.0)
 	_body.floor_snap_length = 0.2
 	var collision := CollisionShape3D.new()
-	var cylinder := CylinderShape3D.new()
-	cylinder.radius = 0.5
-	cylinder.height = 2.0
-	collision.shape = cylinder
+	var capsule := CapsuleShape3D.new()
+	capsule.radius = 0.5
+	capsule.height = 2.0
+	collision.shape = capsule
 	_body.add_child(collision)
 	root.add_child(_body)
 	_body.global_position = outer_surface + Vector3.UP * 1.02

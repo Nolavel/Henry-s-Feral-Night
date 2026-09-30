@@ -5,6 +5,21 @@ Maintained per branch; entries are added by whoever makes the change.
 
 ## [Unreleased] — `codex`
 
+### 2026-09-30 - Smoother prints: no stair-stepping (claudeflow)
+
+- Contact is read with four sub-texel taps, so a boot edge presses part of a
+  texel part-way and print outlines are smooth rather than stepped.
+- The drawn slope samples twelve bearings turned per point (no polygon facets),
+  and pit shading comes from the smooth packed field clamped to the repose
+  slope instead of per-triangle derivatives.
+
+### 2026-09-30 - Henry's body is a capsule: no more stalling by the shelter (claudeflow)
+
+- Henry's collider was a cylinder. On the HeightMapShape terrain its flat rim
+  caught cell edges: by the shelter logs he walked in place and was pushed
+  sideways with no reported collision. It is now a capsule of the same size
+  (r 0.5, h 2.0); crouch scaling and the veranda traversal probe follow it.
+
 ### 2026-09-30 - Stylized shadows run on stock Godot again (claudeflow)
 
 - `stylized_shadow.gdshaderinc` no longer requires the patched editor: the

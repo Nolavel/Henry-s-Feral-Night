@@ -45,10 +45,20 @@ void fragment() {
 	float give = settled.g * max_pack * clamp(settled.b / 0.49, 0.0, 1.0);
 	packed = min(packed, give);
 	// The contact camera looks up, so its image runs +x east and down-screen north.
-	float contact = texture(contact_tex, vec2(uv.x, 1.0 - uv.y)).r + base_y;
-	float into = settled.r - contact;
-	if (settled.b < 0.5 && into > 0.0 && contact > settled.r - settled.g - 0.3) {
-		packed = max(packed, min(into, give));
+	// Four sub-texel taps: a boot edge covers part of a texel and presses part-way,
+	// so print outlines come out smooth instead of stair-stepped.
+	if (settled.b < 0.5) {
+		vec2 half_texel = 0.35 / vec2(textureSize(contact_tex, 0));
+		float pressed = 0.0;
+		for (int i = 0; i < 4; i++) {
+			vec2 o = vec2(float(i % 2) * 2.0 - 1.0, float(i / 2) * 2.0 - 1.0) * half_texel;
+			float contact = texture(contact_tex, vec2(uv.x, 1.0 - uv.y) + o).r + base_y;
+			float into = settled.r - contact;
+			if (into > 0.0 && contact > settled.r - settled.g - 0.3) {
+				pressed += min(into, give);
+			}
+		}
+		packed = max(packed, pressed * 0.25);
 	}
 	COLOR = vec4(packed, 0.0, 0.0, 1.0);
 }
