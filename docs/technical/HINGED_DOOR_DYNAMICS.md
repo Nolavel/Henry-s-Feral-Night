@@ -15,8 +15,9 @@ The leaf integrates:
 
 into `angular_velocity` and `current_angle_rad`. Angular speed is capped so
 the manually moving collider cannot sweep a large distance through Henry in one
-physics frame. The StaticBody also receives matching surface linear/angular
-velocity for contact response.
+physics frame. The StaticBody stays collidable but does **not** receive constant
+surface velocity: doing that makes CharacterBody3D inherit the door's motion and
+feel pushed backward. Henry moves the door; the door does not act as a conveyor.
 
 F operates the latch only. A latched press releases the handle and gives enough
 initial angular velocity to settle near the authored 8–15 degree crack angle.
