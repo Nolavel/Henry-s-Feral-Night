@@ -208,6 +208,9 @@ func recentre_to(centre: Vector2) -> void:
 	field.rebuild(wanted, _cover(), _wind())
 	## Chunk-wide snow reads the same settled depth and hides inside this window.
 	RenderingServer.global_shader_parameter_set(&"snow_settled_depth", field.settled_depth(_cover()))
+	RenderingServer.global_shader_parameter_set(&"snow_drift_m", field.drift_amplitude(_cover()))
+	var wind: Vector2 = _wind()
+	RenderingServer.global_shader_parameter_set(&"snow_wind", wind.normalized() if wind.length_squared() > 0.0001 else Vector2(0, -1))
 	RenderingServer.global_shader_parameter_set(&"snow_window", Vector4(wanted.x, wanted.y, window_m, 1.0))
 	_field_tex.set_image(field.image)
 	if _world_root != null:

@@ -1,7 +1,7 @@
 class_name SnowChunkCover
 extends RefCounted
 ## Settled snow over a whole streamed city chunk: a grid on the terrain whose
-## vertices carry the city wind factor; depth comes from snow_settled_depth.
+## vertices carry the city wind factor; depth and ridges come from the shader.
 
 const WIND_FIELD_PATH: String = "res://data/world/key_west/snow_wind.png"
 const SHADER: Shader = preload("res://shaders/environment/snow/snow_chunk_cover.gdshader")
@@ -37,7 +37,16 @@ static func build(terrain: IslandTerrain, origin: Vector2, size_m: float) -> Mes
 			var k: int = j * n + i
 			verts[k] = Vector3(at.x, h, at.y)
 			uvs[k] = Vector2(factor, 0.0)
-			open[k] = 0 if _field.is_building(at) or factor < 0.05 else 1
+			## Only buildings cut the grid; thin shore snow fades out in the shader.
+			open[k] = 0 if _field.is_building(at) else 1
+	## Ground normals from neighbouring heights; ridges add their slope in the shader.
+	var normals := PackedVector3Array()
+	normals.resize(n * n)
+	for j: int in range(n):
+		for i: int in range(n):
+			var hx: float = verts[j * n + mini(i + 1, n - 1)].y - verts[j * n + maxi(i - 1, 0)].y
+			var hz: float = verts[mini(j + 1, n - 1) * n + i].y - verts[maxi(j - 1, 0) * n + i].y
+			normals[j * n + i] = Vector3(-hx, 2.0 * STEP_M, -hz).normalized()
 	var indices := PackedInt32Array()
 	for j: int in range(n - 1):
 		for i: int in range(n - 1):
@@ -51,6 +60,7 @@ static func build(terrain: IslandTerrain, origin: Vector2, size_m: float) -> Mes
 	var arrays: Array = []
 	arrays.resize(Mesh.ARRAY_MAX)
 	arrays[Mesh.ARRAY_VERTEX] = verts
+	arrays[Mesh.ARRAY_NORMAL] = normals
 	arrays[Mesh.ARRAY_TEX_UV] = uvs
 	arrays[Mesh.ARRAY_INDEX] = indices
 	var mesh := ArrayMesh.new()

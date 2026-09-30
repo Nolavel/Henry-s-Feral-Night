@@ -10,7 +10,10 @@ Maintained per branch; entries are added by whoever makes the change.
 - `SnowChunkCover` lays a 2 m snow grid over every streamed city chunk, lifted by
   the city wind factor; buildings and the shore stay clear. It hides inside
   Henry's detailed window, whose edge now eases onto the same base depth.
-- New shader globals `snow_settled_depth` and `snow_window`; the wind field's
+- Wind ridges come from one function shared by GDScript (`SnowField.ridge_at`) and
+  GLSL (`snow_ridge`), so the chunk cover carries the same drifts as Henry's window;
+  ridges shade per pixel on the 2 m grid. Thin snow lets the ground grey through.
+- New shader globals `snow_settled_depth`, `snow_drift_m`, `snow_wind` and `snow_window`; the wind field's
   alpha channel now carries the building footprint mask.
 
 ### 2026-09-30 - City-scale snow wind field (claudeflow)

@@ -6,7 +6,6 @@ render_mode cull_back, depth_draw_opaque;
 #include "res://shaders/environment/snow/snow_surface.gdshaderinc"
 
 // R: snow top (world y), G: settled depth, B: 1 where cut away, A: city wind factor.
-global uniform float snow_settled_depth;
 uniform sampler2D field : filter_linear, repeat_disable;
 // R: metres packed down.
 uniform sampler2D packed_field : filter_linear, repeat_disable;
@@ -57,7 +56,7 @@ void vertex() {
 	float ground = f.r - f.g;
 	v_ground = ground;
 	// Toward the window edge the surface eases onto the chunk-wide snow (snow_chunk_cover).
-	float base = snow_settled_depth * f.a;
+	float base = snow_base_depth(world.xz, f.a);
 	v_depth = mix(base, f.g, v_edge);
 	float top = ground + mix(base, f.g - v_packed + v_rim, v_edge);
 	VERTEX.y = max(top, ground + 0.004) - MODEL_MATRIX[3].y;
@@ -89,7 +88,7 @@ void fragment() {
 	color *= 1.0 + crust * 0.06 - snow_breakup(v_world, 5.0) * 0.03;
 	// Deep drifts read a touch brighter on the crest; shallow cover equals the terrain.
 	color *= mix(1.0, 1.03, smoothstep(0.1, 0.4, v_depth));
-	ALBEDO = color;
+	ALBEDO = snow_thin_tint(color, v_depth);
 	ROUGHNESS = mix(0.85, 0.6, packed);
 	float glint = step(0.996, snow_hash(floor(v_world.xz * 140.0)));
 	EMISSION = vec3(glint * 0.25 * (1.0 - packed));

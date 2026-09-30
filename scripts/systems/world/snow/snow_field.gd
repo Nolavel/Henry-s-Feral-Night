@@ -62,6 +62,38 @@ func load_wind_field(png_path: String) -> bool:
 	return true
 
 
+## Wind ridge crest 0..1; mirrors snow_ridge() in snow_surface.gdshaderinc bit for bit.
+static func ridge_at(xz: Vector2, wind: Vector2) -> float:
+	var side := Vector2(-wind.y, wind.x)
+	var q := Vector2(xz.dot(wind) * 0.16, xz.dot(side) * 0.55)
+	var n: float = _vnoise(q) * 0.7 + _vnoise(q * 2.0 + Vector2(11.0, 5.0)) * 0.3
+	return smoothstep(0.45, 0.85, n)
+
+
+static func _ihash(x: int, y: int) -> float:
+	const M: int = 0xFFFFFFFF
+	var h: int = ((x & M) * 374761393 + (y & M) * 668265263) & M
+	h = ((h ^ (h >> 13)) * 1274126177) & M
+	h ^= h >> 16
+	return float(h & 65535) / 65535.0
+
+
+static func _vnoise(p: Vector2) -> float:
+	var i := Vector2i(floori(p.x), floori(p.y))
+	var f := p - Vector2(i)
+	var u := f * f * (Vector2(3.0, 3.0) - 2.0 * f)
+	return lerpf(
+		lerpf(_ihash(i.x, i.y), _ihash(i.x + 1, i.y), u.x),
+		lerpf(_ihash(i.x, i.y + 1), _ihash(i.x + 1, i.y + 1), u.x),
+		u.y
+	)
+
+
+## Drift crest height for a snow_cover value.
+func drift_amplitude(cover: float) -> float:
+	return pow(clampf(cover, 0.0, 1.0), 1.5) * drift_m
+
+
 ## Settled depth for a snow_cover value, before the city's wind reshapes it.
 func settled_depth(cover: float) -> float:
 	return lerpf(cover_depth_m.x, cover_depth_m.y, clampf(cover, 0.0, 1.0))
@@ -126,10 +158,10 @@ func rebuild(new_origin: Vector2, cover: float, wind: Vector2) -> void:
 			var at: Vector2 = _world_of(tx, ty)
 			var along: float = at.dot(wind)
 			var across: float = at.dot(side)
-			var ridge: float = smoothstep(0.1, 0.7, _noise.get_noise_2d(along * 0.16, across * 0.55))
+			var ridge: float = ridge_at(at, wind)
 			## The city field sets how much this street keeps; local lee piles ride on top.
 			var city: float = wind_factor(at)
-			var drift: float = pow(cover, 1.5) * drift_m * ridge * minf(city, 1.5)
+			var drift: float = drift_amplitude(cover) * ridge * minf(city, 1.5)
 			var lee: float = cover * lee_m * _lee(tx, ty, wind, step)
 			## Wind scours the face that rises into it and fills hollows.
 			var bed: float = _bed[i]
