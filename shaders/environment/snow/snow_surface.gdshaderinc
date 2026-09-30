@@ -58,3 +58,78 @@ float frost_weight(vec3 world_normal, vec3 world_pos, float edge) {
 	float threshold = 1.0 - reach * 1.3;
 	return steep * smoothstep(threshold, threshold + 0.2, front);
 }
+
+
+// Wind ridges on settled snow. SnowField.ridge() mirrors this bit for bit, so the
+// detailed window and the chunk-wide cover draw the same drifts.
+float snow_ihash(ivec2 c) {
+	uint h = uint(c.x) * 374761393u + uint(c.y) * 668265263u;
+	h = (h ^ (h >> 13u)) * 1274126177u;
+	h ^= h >> 16u;
+	return float(h & 65535u) / 65535.0;
+}
+
+float snow_vnoise(vec2 p) {
+	vec2 fl = floor(p);
+	ivec2 i = ivec2(fl);
+	vec2 f = p - fl;
+	vec2 u = f * f * (3.0 - 2.0 * f);
+	return mix(
+		mix(snow_ihash(i), snow_ihash(i + ivec2(1, 0)), u.x),
+		mix(snow_ihash(i + ivec2(0, 1)), snow_ihash(i + ivec2(1, 1)), u.x),
+		u.y
+	);
+}
+
+// 0..1 ridge crest along the wind: long in the wind, tight across it.
+float snow_ridge(vec2 xz, vec2 wind) {
+	vec2 side = vec2(-wind.y, wind.x);
+	vec2 q = vec2(dot(xz, wind) * 0.16, dot(xz, side) * 0.55);
+	float n = snow_vnoise(q) * 0.7 + snow_vnoise(q * 2.0 + vec2(11.0, 5.0)) * 0.3;
+	return smoothstep(0.45, 0.85, n);
+}
+
+// Settled depth at a world point from the shared globals and the city wind factor.
+global uniform float snow_settled_depth;
+global uniform float snow_drift_m;
+global uniform vec2 snow_wind;
+
+// Ridges only where the wind runs free: sheltered yards and drift banks lie smooth.
+// SnowField.ridge_openness() mirrors this.
+float snow_ridge_openness(float city) {
+	return 1.0 - smoothstep(0.85, 1.35, city);
+}
+
+// Smooth settled depth, the part a 2 m grid can hold; both layers meet on it.
+float snow_base_geom(float city) {
+	return snow_settled_depth * city;
+}
+
+// Full settled depth with wind ridges, for shading and thin-snow tint.
+float snow_base_depth(vec2 xz, float city) {
+	return snow_base_geom(city) + snow_drift_m * min(city, 1.5) * snow_ridge_openness(city) * snow_ridge(xz, snow_wind);
+}
+
+// Thin snow lets the ground grey through; full cover reads white.
+vec3 snow_thin_tint(vec3 snow, float depth) {
+	return mix(snow * vec3(0.72, 0.72, 0.7), snow, smoothstep(0.03, 0.18, depth));
+}
+
+// Wind-polished crust on scoured ground reads greyer; fresh drift banks brighter.
+vec3 snow_wind_tint(vec3 snow, float city) {
+	vec3 crust = snow * vec3(0.84, 0.87, 0.92);
+	vec3 c = mix(crust, snow, smoothstep(0.35, 0.95, city));
+	return c * mix(1.0, 1.05, smoothstep(1.3, 1.9, city));
+}
+
+// Soft undirected ripple for sheltered snow, as a surface slope (shading only, so
+// both snow layers match). Strongest where the wind cuts no ridges.
+vec2 snow_ripple_slope(vec2 xz, float city) {
+	float e = 0.05;
+	vec2 p = xz * 0.9;
+	float h = snow_vnoise(p) * 0.6 + snow_vnoise(p * 2.3 + vec2(3.0, 7.0)) * 0.4;
+	float hx = snow_vnoise(p + vec2(e, 0.0)) * 0.6 + snow_vnoise((p + vec2(e, 0.0)) * 2.3 + vec2(3.0, 7.0)) * 0.4;
+	float hz = snow_vnoise(p + vec2(0.0, e)) * 0.6 + snow_vnoise((p + vec2(0.0, e)) * 2.3 + vec2(3.0, 7.0)) * 0.4;
+	float amp = 0.06 * mix(1.0, 0.35, snow_ridge_openness(city));
+	return vec2(hx - h, hz - h) / e * 0.9 * amp;
+}

@@ -11,8 +11,12 @@ const OCEAN_MASK: String = "res://data/world/key_west/ocean_connected_mask.png"
 const HEIGHT_META: String = "res://world/terrain/key_west_preview_2m_la8.json"
 
 const BUNKER_XZ := Vector2(-3452.88, 2273.84)
-const SHELTER_XZ := Vector2(-3551.61, 1567.72)
-const SHELTER_YAW_DEG: float = 55.7
+## A vacant Fort Street lot: no OSM building or road inside the fenced yard,
+## chosen from the city data; the porch faces the street.
+const SHELTER_XZ := Vector2(-3579.85, 1574.51)
+const SHELTER_YAW_DEG: float = 126.76
+## Henry starts this far in front of the bottom stair, facing the door.
+const SPAWN_BEFORE_STAIRS_M: float = 2.5
 const ROUTE_PICKUP_SCALE: float = 0.35
 const SHELTER_EXACT_RADIUS_M: float = 38.0
 
@@ -23,6 +27,7 @@ var _prepared: bool = false
 var _source_shelter: Vector3 = Vector3.ZERO
 var _target_shelter: Vector3 = Vector3.ZERO
 var _target_bunker: Vector3 = Vector3.ZERO
+var _porch_spawn: Vector3 = Vector3.ZERO
 
 
 func prepare_world_content(world: Node3D) -> void:
@@ -56,9 +61,11 @@ func on_world_ready(context: WorldContext) -> void:
 		_city.queue_free()
 		_city = null
 		return
-	var replaced: int = _city.exclude_buildings_near(SHELTER_XZ, 1.0)
-	if replaced != 1:
-		push_warning("KeyWestFirstExit: expected to replace one Fort Street footprint, excluded %d" % replaced)
+	## Only buildings the house itself stands on give way; the lot is chosen empty.
+	var house_outline := PackedVector2Array()
+	for corner: Vector2 in [Vector2(-4.5, -5.5), Vector2(4.5, -5.5), Vector2(4.5, 10.5), Vector2(-4.5, 10.5)]:
+		house_outline.append(SHELTER_XZ + corner.rotated(-deg_to_rad(SHELTER_YAW_DEG)))
+	_city.exclude_buildings_overlapping(house_outline)
 	var streaming := context.get_system(STREAMING_SCRIPT) as StreamingSystem
 	if streaming == null:
 		push_error("KeyWestFirstExit: shared StreamingSystem is missing")
@@ -93,9 +100,14 @@ func _transplant_first_exit() -> void:
 		template.free()
 		return
 	_source_shelter = shelter.transform * house.position
-	var shelter_ground: float = maxf(_terrain.get_height(SHELTER_XZ.x, SHELTER_XZ.y), 0.0)
-	_target_shelter = Vector3(SHELTER_XZ.x, shelter_ground, SHELTER_XZ.y)
 	var shelter_target_yaw: float = deg_to_rad(SHELTER_YAW_DEG)
+	## Seat the house so the ground at the stair foot meets the bottom stair:
+	## one normal riser up onto the porch, never a jump.
+	var stairs: AABB = _local_aabb(house.get_node_or_null(^"EntrySteps"), house)
+	var foot_local := Vector3(stairs.get_center().x, 0.0, stairs.end.z + 0.4)
+	var foot: Vector3 = Vector3(SHELTER_XZ.x, 0.0, SHELTER_XZ.y) + foot_local.rotated(Vector3.UP, shelter_target_yaw)
+	var foot_ground: float = maxf(_terrain.get_height(foot.x, foot.z), 0.0)
+	_target_shelter = Vector3(SHELTER_XZ.x, foot_ground - stairs.position.y, SHELTER_XZ.y)
 	var shelter_delta_yaw: float = shelter_target_yaw - shelter.rotation.y
 	var house_offset: Vector3 = _source_shelter - shelter.position
 	house_offset = house_offset.rotated(Vector3.UP, shelter_delta_yaw)
@@ -104,6 +116,10 @@ func _transplant_first_exit() -> void:
 	add_child(shelter)
 	shelter.rotation.y = shelter_target_yaw
 	shelter.position = _target_shelter - house_offset
+	_add_plinth(house)
+	_add_stair_ramp(house, stairs)
+	_porch_spawn = foot + (foot - Vector3(SHELTER_XZ.x, 0.0, SHELTER_XZ.y)).normalized() * SPAWN_BEFORE_STAIRS_M
+	_porch_spawn.y = maxf(_terrain.get_height(_porch_spawn.x, _porch_spawn.z), 0.0) + 0.15
 	var bunker_ground: float = maxf(_terrain.get_height(BUNKER_XZ.x, BUNKER_XZ.y), 0.0)
 	_target_bunker = Vector3(BUNKER_XZ.x, bunker_ground, BUNKER_XZ.y)
 	var route_dir: Vector2 = (SHELTER_XZ - BUNKER_XZ).normalized()
@@ -132,8 +148,9 @@ func _transplant_first_exit() -> void:
 			add_child(node)
 	var shelter_spawn := template.get_node_or_null(^"SpawnPoint") as Marker3D
 	if shelter_spawn != null:
-		_move_from_anchor(shelter_spawn, _source_shelter, _target_shelter, shelter_delta_yaw, 1.0)
-		shelter_spawn.position.y = maxf(_terrain.get_height(shelter_spawn.position.x, shelter_spawn.position.z), 0.0) + 0.15
+		## Shelter starts also begin in front of the porch, facing the door.
+		shelter_spawn.position = _porch_spawn
+		shelter_spawn.rotation = Vector3(0.0, shelter_target_yaw, 0.0)
 		shelter_spawn.name = "ShelterSpawnPoint"
 		_clear_template_owner(shelter_spawn, template)
 		template.remove_child(shelter_spawn)
@@ -174,6 +191,60 @@ func _build_spawn_marker(route_dir: Vector2) -> void:
 	marker.position = _target_bunker + front * 5.6 + Vector3.UP * 0.15
 	marker.rotation.y = route_yaw + PI
 	add_child(marker)
+
+
+func get_porch_spawn() -> Vector3:
+	return _porch_spawn
+
+
+## Bounds of a node's meshes in `frame`'s space, walking local transforms, so it
+## works on a template that is not in the tree yet.
+func _local_aabb(node: Node, frame: Node3D) -> AABB:
+	var result := AABB()
+	var first: bool = true
+	if node == null:
+		return result
+	var stack: Array = [node]
+	while not stack.is_empty():
+		var current: Node = stack.pop_back()
+		stack.append_array(current.get_children())
+		if not current is VisualInstance3D:
+			continue
+		var to_frame := Transform3D.IDENTITY
+		var walker: Node = current
+		while walker != null and walker != frame:
+			if walker is Node3D:
+				to_frame = (walker as Node3D).transform * to_frame
+			walker = walker.get_parent()
+		var box: AABB = to_frame * (current as VisualInstance3D).get_aabb()
+		result = box if first else result.merge(box)
+		first = false
+	return result
+
+
+## A dark foundation under the floor down to the lowest ground beneath it, so the
+## house never floats where the lot falls away.
+func _add_plinth(house: Node3D) -> void:
+	var floor_box: AABB = AABB(Vector3(-4.0, 0.7, -5.0), Vector3(8.0, 0.2, 13.0))
+	var lowest: float = INF
+	for corner: Vector2 in [Vector2(-4, -5), Vector2(4, -5), Vector2(4, 8), Vector2(-4, 8), Vector2(0, 1.5)]:
+		var world_xz: Vector3 = Vector3(SHELTER_XZ.x, 0.0, SHELTER_XZ.y) + Vector3(corner.x, 0.0, corner.y).rotated(Vector3.UP, deg_to_rad(SHELTER_YAW_DEG))
+		lowest = minf(lowest, maxf(_terrain.get_height(world_xz.x, world_xz.z), 0.0))
+	var top: float = floor_box.position.y
+	var bottom: float = lowest - _target_shelter.y - 0.3
+	if bottom >= top:
+		return
+	var mesh := BoxMesh.new()
+	mesh.size = Vector3(floor_box.size.x - 0.2, top - bottom, floor_box.size.z - 0.2)
+	var material := StandardMaterial3D.new()
+	material.albedo_color = Color(0.16, 0.15, 0.14)
+	material.roughness = 0.95
+	mesh.material = material
+	var plinth := MeshInstance3D.new()
+	plinth.name = "Plinth"
+	plinth.mesh = mesh
+	plinth.position = Vector3(floor_box.get_center().x, (top + bottom) * 0.5, floor_box.get_center().z)
+	house.add_child(plinth)
 
 
 func _build_bunker_vestibule(yaw: float) -> void:
@@ -267,3 +338,25 @@ void fragment() {
 	ice.mesh = plane
 	ice.position = Vector3(origin.x + width_m * 0.5, -0.04, origin.y + depth_m * 0.5)
 	add_child(ice)
+
+
+## An invisible slope over the entry steps: Henry walks up them like stairs,
+## since his body has no step-up of its own.
+func _add_stair_ramp(house: Node3D, stairs: AABB) -> void:
+	if stairs.size == Vector3.ZERO:
+		return
+	## Starting 1.2 m out keeps every stair nosing under the slope (~10°).
+	var low := Vector3(stairs.get_center().x, stairs.position.y, stairs.end.z + 1.2)
+	var high := Vector3(stairs.get_center().x, stairs.end.y, stairs.position.z)
+	var run: Vector3 = high - low
+	var shape := BoxShape3D.new()
+	shape.size = Vector3(stairs.size.x, 0.06, run.length())
+	var collision := CollisionShape3D.new()
+	collision.shape = shape
+	var body := StaticBody3D.new()
+	body.name = "StairRamp"
+	body.add_child(collision)
+	## The box's -Z runs from the stair foot up to the veranda.
+	var forward: Vector3 = -run.normalized()
+	body.transform = Transform3D(Basis.looking_at(-forward, Vector3.UP), (low + high) * 0.5 - Vector3.UP * 0.03)
+	house.add_child(body)

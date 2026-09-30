@@ -4,9 +4,14 @@ The main scene `scenes/world/key_west/key_west.tscn` pins the `key_west_test`
 profile and owns the default F5 gameplay start.
 
 - Bunker/spawn: Whitehead Spit, local NOAA frame **(-3452.88, 2273.84)**.
-- First shelter: real OSM footprint beside **Fort Street**, local
-  **(-3551.61, 1567.72)** (preview building 10453, about 81.5 m²).
-- Separation is about **713 m**.
+- First shelter: a vacant **Fort Street** lot, house origin local
+  **(-3579.85, 1574.51)**, yaw **126.76°**, porch facing the street. The lot was
+  chosen from the city data: no OSM building and no road inside the fenced
+  yard (checked by `test_key_west_first_exit.gd`), so no real house is removed.
+- The house is seated by its stair foot: ground there meets the bottom stair,
+  an invisible ~10° ramp over the steps lets Henry walk onto the veranda, and a
+  dark plinth fills down to the lowest ground under the floor.
+- Separation is about **710 m**.
 - The production First Exit shelter is reused: repairable windows, operable
   door, stove, sleep/rest content, hammer/nails/boards, food/water and pickups.
 - Bunker bedroll + road flare stay at the start. Shelter supplies preserve exact
@@ -43,8 +48,7 @@ is introduced.
 ## Shelter start toggle
 
 On the main scene's `World` root, enable **Spawn At Shelter** (`spawn_at_shelter`)
-to start outside the Fort Street shelter entrance, facing the house. The marker
-reuses the authored First Exit shelter start, transformed into Key West and
-snapped above its terrain. Disable it (the default) for the Whitehead bunker
+to start 2.5 m in front of the Fort Street shelter's porch steps, facing the
+door. Disable it (the default) for the Whitehead bunker
 scenario. Both modes retain the same initial blizzard and streaming lifecycle.
 Continue still restores the saved position through the existing save system.

@@ -10,6 +10,11 @@ extends Node3D
 ## Airport: explicit runway/taxiway/apron layer.
 ## Metadata stays in the dataset and can be surfaced as debug labels.
 
+## Walls reach this far below a building's lowest corner, so slopes show no gap.
+const WALL_SINK_M: float = 0.3
+## Height of the low wall round a flat roof.
+const PARAPET_M: float = 0.45
+
 var terrain: IslandTerrain
 var data: Dictionary = {}
 var chunk_size_m: float = 512.0
@@ -83,6 +88,31 @@ func exclude_buildings_near(point: Vector2, radius_m: float = 1.0) -> int:
 	return excluded
 
 
+## Hides every building whose real footprint overlaps `outline`. Returns how many.
+func exclude_buildings_overlapping(outline: PackedVector2Array) -> int:
+	var excluded: int = 0
+	var bounds := Rect2(outline[0], Vector2.ZERO)
+	for p: Vector2 in outline:
+		bounds = bounds.expand(p)
+	for index: int in range(_buildings.size()):
+		if _excluded_building_ids.has(index):
+			continue
+		var polygon: PackedVector2Array = KeyWestCityVisuals.normalized_footprint(
+			(_buildings[index] as Dictionary).get("footprint", [])
+		)
+		if polygon.size() < 3:
+			continue
+		var box := Rect2(polygon[0], Vector2.ZERO)
+		for p: Vector2 in polygon:
+			box = box.expand(p)
+		if not box.intersects(bounds):
+			continue
+		if not Geometry2D.intersect_polygons(polygon, outline).is_empty():
+			_excluded_building_ids[index] = true
+			excluded += 1
+	return excluded
+
+
 func _filtered_building_ids(ids: Array) -> Array:
 	var filtered: Array = []
 	for id_variant: Variant in ids:
@@ -146,6 +176,18 @@ func activate_stream_chunk(stream_id: StringName, _container: Node3D) -> Node3D:
 	_ensure_massing(state)
 	_ensure_detail(state)
 	_ensure_roads(state)
+	if state.get("props") == null:
+		var props := KeyWestStreetProps.build_chunk_body(cid)
+		if props != null:
+			(state["node"] as Node3D).add_child(props)
+		state["props"] = props
+	if state.get("snow") == null:
+		var chunk: Dictionary = state["data"]
+		var o: Array = chunk.get("origin", [0, 0])
+		var snow := SnowChunkCover.build(terrain, Vector2(float(o[0]), float(o[1])), chunk_size_m)
+		if snow != null:
+			(state["node"] as Node3D).add_child(snow)
+		state["snow"] = snow
 	var massing := state["massing"] as Node3D
 	if massing != null:
 		massing.visible = false
@@ -172,6 +214,14 @@ func deactivate_stream_chunk(stream_id: StringName) -> void:
 	if is_instance_valid(roads):
 		roads.queue_free()
 	state["roads"] = null
+	var props := state.get("props") as Node3D
+	if is_instance_valid(props):
+		props.queue_free()
+	state["props"] = null
+	var snow := state.get("snow") as Node3D
+	if is_instance_valid(snow):
+		snow.queue_free()
+	state["snow"] = null
 	var massing := state["massing"] as Node3D
 	if massing != null:
 		massing.visible = true
@@ -504,7 +554,7 @@ func _ensure_massing(state: Dictionary) -> void:
 		var height: float = maxf(float(building.get("height", 3.0)), 3.0)
 		var angle: float = float(proxy.get("angle", 0.0))
 		var ground: float = maxf(terrain.get_height(x, z), 0.0)
-		var basis := Basis(Vector3.UP, angle).scaled(Vector3(width, height, depth))
+		var basis := Basis(Vector3.UP, angle).scaled_local(Vector3(width, height, depth))
 		multimesh.set_instance_transform(
 			local_i,
 			Transform3D(basis, Vector3(x, ground + height * 0.5 + 0.04, z))
@@ -540,6 +590,7 @@ func _ensure_detail(state: Dictionary) -> void:
 		roof_instance.name = "Roofs"
 		roof_instance.mesh = roof_mesh
 		holder.add_child(roof_instance)
+	_add_collision(holder, [mesh, roof_mesh] as Array[Mesh])
 	var facade_node := KeyWestCityVisuals.build_facade_accents(
 		_buildings, building_ids, terrain, _visual_materials.get("awning")
 	)
@@ -560,48 +611,44 @@ func _build_exact_building_mesh(building_ids: Array) -> ArrayMesh:
 
 	for id_variant: Variant in building_ids:
 		var building := _buildings[int(id_variant)] as Dictionary
-		var footprint_values: Array = building.get("footprint", [])
-		if footprint_values.size() < 3:
+		var polygon: PackedVector2Array = KeyWestCityVisuals.normalized_footprint(building.get("footprint", []))
+		if polygon.size() < 3:
 			continue
-		var polygon := PackedVector2Array()
-		for point_variant: Variant in footprint_values:
-			var point := point_variant as Array
-			polygon.append(Vector2(float(point[0]), float(point[1])))
 		var triangles: PackedInt32Array = Geometry2D.triangulate_polygon(polygon)
 		if triangles.is_empty():
 			continue
 		var height: float = KeyWestCityVisuals.effective_height(building, _enrichment)
 		var facade: Color = KeyWestCityVisuals.facade_color(building, _enrichment)
 		var roof: Color = KeyWestCityVisuals.roof_color(building, _enrichment)
+		## One base for walls and roof; walls sink below it so slopes never show a gap.
+		var base: float = KeyWestCityVisuals.building_base(polygon, terrain)
+		var top: float = base + height + 0.05
+		var bottom: float = base - WALL_SINK_M
+		var flat: bool = KeyWestCityVisuals.roof_shape(building, _enrichment) == "flat" \
+			or KeyWestCityVisuals.footprint_box(polygon).is_empty()
+		var wall_top: float = top + (PARAPET_M if flat else 0.0)
 
-		var roof_base: int = vertices.size()
-		for p: Vector2 in polygon:
-			var ground: float = maxf(terrain.get_height(p.x, p.y), 0.0)
-			vertices.append(Vector3(p.x, ground + height + 0.05, p.y))
-			normals.append(Vector3.UP)
-			colors.append(roof)
-		for triangle_index: int in triangles:
-			indices.append(roof_base + triangle_index)
+		for i: int in range(0, triangles.size(), 3):
+			var a: Vector2 = polygon[triangles[i]]
+			var b: Vector2 = polygon[triangles[i + 1]]
+			var c: Vector2 = polygon[triangles[i + 2]]
+			KeyWestCityVisuals.emit_tri(
+				vertices, normals, colors, indices,
+				Vector3(a.x, top, a.y), Vector3(b.x, top, b.y), Vector3(c.x, top, c.y), Vector3.UP, roof
+			)
 
 		for i: int in range(polygon.size()):
 			var a: Vector2 = polygon[i]
 			var b: Vector2 = polygon[(i + 1) % polygon.size()]
-			var ground_a: float = maxf(terrain.get_height(a.x, a.y), 0.0)
-			var ground_b: float = maxf(terrain.get_height(b.x, b.y), 0.0)
-			var side := (b - a).normalized()
-			var normal := Vector3(side.y, 0.0, -side.x)
-			var base: int = vertices.size()
-			vertices.append(Vector3(a.x, ground_a + 0.03, a.y))
-			vertices.append(Vector3(b.x, ground_b + 0.03, b.y))
-			vertices.append(Vector3(a.x, ground_a + height + 0.05, a.y))
-			vertices.append(Vector3(b.x, ground_b + height + 0.05, b.y))
-			for _j: int in range(4):
-				normals.append(normal)
-				colors.append(facade)
-			indices.append_array([
-				base, base + 1, base + 2,
-				base + 2, base + 1, base + 3,
-			])
+			var edge: Vector2 = b - a
+			if edge.length_squared() < 0.0001:
+				continue
+			## Positive area: the outward side of edge a→b is (dz, -dx).
+			var out := Vector3(edge.y, 0.0, -edge.x).normalized()
+			_emit_quad(vertices, normals, colors, indices, a, b, bottom, wall_top, out, facade)
+			if flat:
+				## The parapet's inner face, seen from above the roof.
+				_emit_quad(vertices, normals, colors, indices, a, b, top, wall_top, -out, facade)
 
 	if vertices.is_empty():
 		return null
@@ -615,6 +662,45 @@ func _build_exact_building_mesh(building_ids: Array) -> ArrayMesh:
 	mesh.add_surface_from_arrays(Mesh.PRIMITIVE_TRIANGLES, arrays)
 	mesh.surface_set_material(0, _detail_material)
 	return mesh
+
+
+func _emit_quad(
+	vertices: PackedVector3Array,
+	normals: PackedVector3Array,
+	colors: PackedColorArray,
+	indices: PackedInt32Array,
+	a: Vector2,
+	b: Vector2,
+	low: float,
+	high: float,
+	facing: Vector3,
+	color: Color
+) -> void:
+	var a0 := Vector3(a.x, low, a.y)
+	var b0 := Vector3(b.x, low, b.y)
+	var a1 := Vector3(a.x, high, a.y)
+	var b1 := Vector3(b.x, high, b.y)
+	KeyWestCityVisuals.emit_tri(vertices, normals, colors, indices, a0, b0, a1, facing, color)
+	KeyWestCityVisuals.emit_tri(vertices, normals, colors, indices, a1, b0, b1, facing, color)
+
+
+## A static body shaped like the given meshes, so Henry and snow meet the city.
+func _add_collision(holder: Node3D, meshes: Array[Mesh]) -> void:
+	var faces := PackedVector3Array()
+	for mesh: Mesh in meshes:
+		if mesh != null:
+			faces.append_array(mesh.get_faces())
+	if faces.is_empty():
+		return
+	var shape := ConcavePolygonShape3D.new()
+	shape.set_faces(faces)
+	shape.backface_collision = true
+	var collision := CollisionShape3D.new()
+	collision.shape = shape
+	var body := StaticBody3D.new()
+	body.name = "CityCollision"
+	body.add_child(collision)
+	holder.add_child(body)
 
 
 func _ensure_roads(state: Dictionary) -> void:
@@ -685,7 +771,9 @@ func _build_airport_layer() -> void:
 func _build_global_visuals() -> void:
 	if _enrichment.is_empty():
 		return
+	KeyWestStreetProps.colliders.clear()
 	_global_visuals = KeyWestCityVisuals.build_supplemental_node(terrain, _enrichment, _visual_materials)
+	_global_visuals.add_child(KeyWestStreetProps.build(terrain, _enrichment, _roads))
 	if _global_visuals != null and _global_visuals.get_child_count() > 0:
 		add_child(_global_visuals)
 	elif _global_visuals != null:

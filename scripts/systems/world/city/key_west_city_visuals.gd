@@ -5,20 +5,24 @@ extends RefCounted
 ## No source geometry is authored here: city_preview.json remains the footprint/
 ## road truth, while visual_enrichment.json may add attributes and small props.
 
+## Faded conch-house pastels: white, pink, mint, butter, sky, lilac.
 const FACADE_PALETTE: Array[Color] = [
-	Color(0.72, 0.76, 0.78),
-	Color(0.69, 0.73, 0.75),
-	Color(0.76, 0.74, 0.70),
-	Color(0.67, 0.72, 0.70),
-	Color(0.75, 0.70, 0.68),
-	Color(0.66, 0.69, 0.72),
+	Color(0.86, 0.85, 0.81),
+	Color(0.84, 0.84, 0.82),
+	Color(0.82, 0.68, 0.66),
+	Color(0.66, 0.78, 0.71),
+	Color(0.85, 0.79, 0.6),
+	Color(0.63, 0.74, 0.8),
+	Color(0.74, 0.7, 0.78),
+	Color(0.8, 0.73, 0.62),
 ]
+## Galvanised tin (the Key West standard), weathered tin, shingle.
 const ROOF_PALETTE: Array[Color] = [
-	Color(0.24, 0.28, 0.30),
-	Color(0.32, 0.34, 0.35),
-	Color(0.38, 0.35, 0.31),
-	Color(0.45, 0.47, 0.47),
-	Color(0.27, 0.32, 0.34),
+	Color(0.62, 0.64, 0.65),
+	Color(0.55, 0.57, 0.58),
+	Color(0.47, 0.44, 0.4),
+	Color(0.6, 0.52, 0.45),
+	Color(0.36, 0.38, 0.4),
 ]
 
 
@@ -66,8 +70,11 @@ static func facade_color(building: Dictionary, enrichment: Dictionary) -> Color:
 	var base: Color
 	if kind in ["industrial", "warehouse", "hangar", "service"]:
 		base = Color(0.54, 0.57, 0.58)
-	elif kind in ["retail", "commercial", "hotel"]:
-		base = Color(0.70, 0.72, 0.70)
+	elif metadata.has("historic") or kind in ["church", "civic", "public", "government"]:
+		## Historic and civic buildings stay whitewashed or brick.
+		base = Color(0.88, 0.87, 0.83) if absi(hash(String(building.get("osm_id", "")))) % 3 else Color(0.6, 0.4, 0.33)
+	elif kind in ["retail", "commercial", "office"]:
+		base = Color(0.78, 0.76, 0.7)
 	else:
 		var index: int = absi(hash(String(building.get("osm_id", "")))) % FACADE_PALETTE.size()
 		base = FACADE_PALETTE[index]
@@ -102,6 +109,82 @@ static func roof_shape(building: Dictionary, enrichment: Dictionary) -> String:
 	return "gabled" if float(building.get("area_m2", 0.0)) < 260.0 else "flat"
 
 
+## Footprint as a polygon with positive signed area, so walls built edge by
+## edge face out and caps face up whatever order OSM stored it in.
+static func normalized_footprint(values: Array) -> PackedVector2Array:
+	var polygon := PackedVector2Array()
+	for point_variant: Variant in values:
+		var point := point_variant as Array
+		var p := Vector2(float(point[0]), float(point[1]))
+		if polygon.is_empty() or not polygon[polygon.size() - 1].is_equal_approx(p):
+			polygon.append(p)
+	if polygon.size() > 2 and polygon[0].is_equal_approx(polygon[polygon.size() - 1]):
+		polygon.remove_at(polygon.size() - 1)
+	if signed_area(polygon) < 0.0:
+		polygon.reverse()
+	return polygon
+
+
+static func signed_area(polygon: PackedVector2Array) -> float:
+	var area: float = 0.0
+	for i: int in range(polygon.size()):
+		var a: Vector2 = polygon[i]
+		var b: Vector2 = polygon[(i + 1) % polygon.size()]
+		area += a.x * b.y - b.x * a.y
+	return area * 0.5
+
+
+## One ground height per building: the lowest corner, so no wall floats.
+static func building_base(polygon: PackedVector2Array, terrain: IslandTerrain) -> float:
+	var base: float = INF
+	for p: Vector2 in polygon:
+		base = minf(base, maxf(terrain.get_height(p.x, p.y), 0.0))
+	return base if base != INF else 0.0
+
+
+## The footprint's own oriented box when it is close to a rectangle, else empty.
+static func footprint_box(polygon: PackedVector2Array) -> Dictionary:
+	if polygon.size() != 4:
+		return {}
+	var e0: Vector2 = polygon[1] - polygon[0]
+	var e1: Vector2 = polygon[2] - polygon[1]
+	var width: float = e0.length()
+	var depth: float = e1.length()
+	if width < 0.5 or depth < 0.5 or absf(e0.normalized().dot(e1.normalized())) > 0.2:
+		return {}
+	if absf(signed_area(polygon)) < width * depth * 0.85:
+		return {}
+	var center: Vector2 = (polygon[0] + polygon[1] + polygon[2] + polygon[3]) * 0.25
+	return {"center": center, "width": width, "depth": depth, "angle": atan2(e0.y, e0.x)}
+
+
+## A triangle whose front face points along `facing`, with that as its normal.
+## Godot's front face winds clockwise seen from the front, so (b-a)×(c-a)
+## points away from the viewer.
+static func emit_tri(
+	vertices: PackedVector3Array,
+	normals: PackedVector3Array,
+	colors: PackedColorArray,
+	indices: PackedInt32Array,
+	a: Vector3,
+	b: Vector3,
+	c: Vector3,
+	facing: Vector3,
+	color: Color
+) -> void:
+	if (b - a).cross(c - a).dot(facing) > 0.0:
+		var swap: Vector3 = b
+		b = c
+		c = swap
+	var normal: Vector3 = facing.normalized()
+	var base: int = vertices.size()
+	for v: Vector3 in [a, b, c]:
+		vertices.append(v)
+		normals.append(normal)
+		colors.append(color)
+	indices.append_array([base, base + 1, base + 2])
+
+
 static func build_roof_mesh(
 	buildings: Array,
 	building_ids: Array,
@@ -119,16 +202,20 @@ static func build_roof_mesh(
 		var shape: String = roof_shape(building, enrichment)
 		if shape == "flat":
 			continue
-		var proxy: Dictionary = building.get("proxy", {})
-		var center := Vector2(float(proxy.get("x", 0.0)), float(proxy.get("z", 0.0)))
-		var width: float = maxf(float(proxy.get("width", 2.5)) + 0.35, 2.8)
-		var depth: float = maxf(float(proxy.get("depth", 2.5)) + 0.35, 2.8)
-		var angle: float = float(proxy.get("angle", 0.0))
+		## Pitched roofs sit on the footprint's own box; other shapes keep a flat
+		## roof with a parapet, as most of old Key West's odd lots do.
+		var polygon: PackedVector2Array = normalized_footprint(building.get("footprint", []))
+		var box: Dictionary = footprint_box(polygon)
+		if box.is_empty():
+			continue
+		var center: Vector2 = box["center"]
+		var width: float = float(box["width"]) + 0.35
+		var depth: float = float(box["depth"]) + 0.35
+		var angle: float = box["angle"]
 		var height: float = effective_height(building, enrichment)
 		var attrs: Dictionary = _building_attrs(building, enrichment)
 		var roof_h: float = clampf(_float_or(attrs.get("roof_height"), minf(2.1, maxf(width, depth) * 0.16)), 0.55, 3.0)
-		var ground: float = maxf(terrain.get_height(center.x, center.y), 0.0)
-		var base_y: float = ground + height + 0.03
+		var base_y: float = building_base(polygon, terrain) + height + 0.03
 		var color: Color = roof_color(building, enrichment)
 
 		if shape in ["hipped", "pyramidal"]:
@@ -159,23 +246,34 @@ static func build_facade_accents(
 		var add_canopy: bool = kind in ["retail", "commercial", "hotel", "terrace"]
 		if street == "Duval Street" and kind not in ["shed", "garage", "roof", "carport"]:
 			add_canopy = true
-		var proxy: Dictionary = building.get("proxy", {})
-		var center := Vector2(float(proxy.get("x", 0.0)), float(proxy.get("z", 0.0)))
-		var width: float = maxf(float(proxy.get("width", 3.0)), 3.0)
-		var depth: float = maxf(float(proxy.get("depth", 3.0)), 3.0)
-		var angle: float = float(proxy.get("angle", 0.0))
-		var front := _rotated(center, angle, 0.0, -depth * 0.5 - 0.42)
-		var ground: float = maxf(terrain.get_height(center.x, center.y), 0.0)
-		if add_canopy:
-			var basis := Basis(Vector3.UP, angle).scaled(Vector3(maxf(width * 0.68, 2.2), 0.13, 0.85))
+		## Accents sit on the footprint's longest wall, flush with it, never on a proxy box.
+		var polygon: PackedVector2Array = normalized_footprint(building.get("footprint", []))
+		if polygon.size() < 3:
+			continue
+		var edge_start: Vector2 = polygon[0]
+		var edge_end: Vector2 = polygon[1 % polygon.size()]
+		for i: int in range(polygon.size()):
+			var a: Vector2 = polygon[i]
+			var b: Vector2 = polygon[(i + 1) % polygon.size()]
+			if a.distance_to(b) > edge_start.distance_to(edge_end):
+				edge_start = a
+				edge_end = b
+		var width: float = edge_start.distance_to(edge_end)
+		var right: Vector2 = (edge_end - edge_start) / maxf(width, 0.001)
+		var outward := Vector2(right.y, -right.x)
+		var angle: float = atan2(-outward.x, -outward.y)
+		var mid: Vector2 = (edge_start + edge_end) * 0.5
+		var ground: float = building_base(polygon, terrain)
+		if add_canopy and width >= 2.5:
+			var front: Vector2 = mid + outward * 0.42
+			var basis := Basis(Vector3.UP, angle).scaled_local(Vector3(maxf(width * 0.68, 2.2), 0.13, 0.85))
 			transforms.append(Transform3D(basis, Vector3(front.x, ground + 2.65, front.y)))
 		if kind not in ["shed", "garage", "roof", "carport", "warehouse", "hangar"] and width >= 4.0:
 			var windows: int = clampi(int(floor(width / 4.5)), 1, 4)
-			var right := Vector2(cos(angle), sin(angle))
 			for wi: int in range(windows):
 				var ratio: float = (float(wi) + 0.5) / float(windows) - 0.5
-				var wp: Vector2 = front + right * ratio * width * 0.72
-				var wbasis := Basis(Vector3.UP, angle).scaled(Vector3(minf(1.25, width / float(windows) * 0.42), 0.72, 0.09))
+				var wp: Vector2 = mid + right * ratio * width * 0.72 + outward * 0.05
+				var wbasis := Basis(Vector3.UP, angle).scaled_local(Vector3(minf(1.25, width / float(windows) * 0.42), 0.72, 0.09))
 				window_transforms.append(Transform3D(wbasis, Vector3(wp.x, ground + 1.55, wp.y)))
 	if transforms.is_empty() and window_transforms.is_empty():
 		return null
@@ -372,6 +470,32 @@ static func build_road_node(
 	return holder
 
 
+## Height and colour per barrier style: wood light brown, chain link grey,
+## metal dark, masonry pale concrete, hedge dead green.
+const BARRIER_STYLES: Dictionary = {
+	"wood": [1.3, Color(0.56, 0.44, 0.31)],
+	"chain_link": [1.9, Color(0.56, 0.58, 0.59)],
+	"metal": [1.6, Color(0.14, 0.15, 0.16)],
+	"wall": [1.5, Color(0.64, 0.62, 0.57)],
+	"hedge": [1.3, Color(0.27, 0.29, 0.2)],
+}
+
+
+## Picks a barrier style from OSM kind and tags; untagged fences read as chain link.
+static func barrier_style(kind: String, tags: Dictionary) -> String:
+	if kind == "barrier:hedge":
+		return "hedge"
+	var material: String = String(tags.get("material", ""))
+	var fence_type: String = String(tags.get("fence_type", ""))
+	if kind == "barrier:wall" or material in ["concrete", "stone", "brick", "masonry"] or fence_type in ["concrete", "stone", "brick"]:
+		return "wall"
+	if material == "wood" or fence_type in ["wood", "picket", "split_rail", "board", "pales"]:
+		return "wood"
+	if material in ["metal", "steel", "iron"] or fence_type in ["metal", "metal_bars", "railing", "bars"]:
+		return "metal"
+	return "chain_link"
+
+
 static func build_supplemental_node(terrain: IslandTerrain, enrichment: Dictionary, materials: Dictionary) -> Node3D:
 	var holder := Node3D.new()
 	holder.name = "OpenDataStreetAndCoast"
@@ -386,11 +510,12 @@ static func build_supplemental_node(terrain: IslandTerrain, enrichment: Dictiona
 	var pier_v := PackedVector3Array()
 	var pier_n := PackedVector3Array()
 	var pier_i := PackedInt32Array()
-	var barrier_v := PackedVector3Array()
-	var barrier_n := PackedVector3Array()
-	var barrier_i := PackedInt32Array()
-	var lamp_points: Array[Vector2] = []
-	var pole_points: Array[Vector2] = []
+	## Barrier style -> [vertices, normals, indices]; style picks height and colour.
+	var barriers: Dictionary = {}
+	for feature_variant: Variant in enrichment.get("infrastructure", []):
+		var hedge := feature_variant as Dictionary
+		if String(hedge.get("class", "")) == "hedge":
+			features = features + [{"kind": "barrier:hedge", "tags": {}, "geometry": hedge.get("geometry", {})}]
 	var tower_points: Array[Vector2] = []
 
 	for feature_variant: Variant in features:
@@ -403,12 +528,9 @@ static func build_supplemental_node(terrain: IslandTerrain, enrichment: Dictiona
 			if p_values.size() < 2:
 				continue
 			var p := Vector2(float(p_values[0]), float(p_values[1]))
-			if kind == "street_lamp":
-				lamp_points.append(p)
-			elif kind.begins_with("power:"):
-				pole_points.append(p)
-			else:
-				tower_points.append(p)
+			if kind == "street_lamp" or kind == "power:pole":
+				continue  # Modelled by KeyWestStreetProps.
+			tower_points.append(p)
 			continue
 		if geometry_type != "LineString":
 			continue
@@ -428,14 +550,26 @@ static func build_supplemental_node(terrain: IslandTerrain, enrichment: Dictiona
 				var half_width: float = 3.2 if kind == "pier" else 4.2
 				_append_ribbon(pier_v, pier_n, pier_i, a, b, half_width, 0.42, terrain)
 			elif kind.begins_with("barrier:"):
-				_append_wall(barrier_v, barrier_n, barrier_i, a, b, 1.35, terrain)
+				var style: String = barrier_style(kind, feature.get("tags", {}))
+				if not barriers.has(style):
+					barriers[style] = [PackedVector3Array(), PackedVector3Array(), PackedInt32Array()]
+				var bucket: Array = barriers[style]
+				_append_wall(bucket[0], bucket[1], bucket[2], a, b, float(BARRIER_STYLES[style][0]), terrain)
 
 	_add_mesh_child(holder, "MappedSidewalks", sidewalk_v, sidewalk_n, PackedColorArray(), sidewalk_i, materials["sidewalk"])
 	_add_mesh_child(holder, "CoastlineEdge", coast_v, coast_n, PackedColorArray(), coast_i, materials["coast"])
 	_add_mesh_child(holder, "PiersBreakwaters", pier_v, pier_n, PackedColorArray(), pier_i, materials["pier"])
-	_add_mesh_child(holder, "FencesWalls", barrier_v, barrier_n, PackedColorArray(), barrier_i, materials["barrier"])
-	_add_poles(holder, "StreetLamps", lamp_points, 4.6, 0.055, terrain, materials["pole"])
-	_add_poles(holder, "PowerPoles", pole_points, 8.5, 0.095, terrain, materials["pole"])
+	var faces := PackedVector3Array()
+	for style: String in barriers:
+		var bucket: Array = barriers[style]
+		var node_name: String = "Barrier_%s" % style.to_pascal_case()
+		_add_mesh_child(holder, node_name, bucket[0], bucket[1], PackedColorArray(), bucket[2],
+			_material(BARRIER_STYLES[style][1], 0.9, false, true))
+		var mesh_node := holder.get_node_or_null(NodePath(node_name)) as MeshInstance3D
+		if mesh_node != null:
+			faces.append_array(mesh_node.mesh.get_faces())
+	## Fence and wall collision streams with the city chunks.
+	KeyWestStreetProps.register_faces(faces)
 	_add_poles(holder, "Towers", tower_points, 13.0, 0.16, terrain, materials["pole"])
 	return holder
 
@@ -747,10 +881,13 @@ static func _append_gable_roof(
 		var d := _rotated(center, angle, hw, hd)
 		var r0 := _rotated(center, angle, -hw, 0.0)
 		var r1 := _rotated(center, angle, hw, 0.0)
-		_append_roof_tri(vertices, normals, colors, indices, a, c, r0, base_y, base_y, base_y + roof_h, color)
+		## Two slopes down from the ridge r0–r1 to the long eaves a–b and c–d.
+		_append_roof_tri(vertices, normals, colors, indices, a, b, r1, base_y, base_y, base_y + roof_h, color)
+		_append_roof_tri(vertices, normals, colors, indices, a, r1, r0, base_y, base_y + roof_h, base_y + roof_h, color)
+		_append_roof_tri(vertices, normals, colors, indices, c, d, r1, base_y, base_y, base_y + roof_h, color)
 		_append_roof_tri(vertices, normals, colors, indices, c, r1, r0, base_y, base_y + roof_h, base_y + roof_h, color)
-		_append_roof_tri(vertices, normals, colors, indices, b, r0, d, base_y, base_y + roof_h, base_y, color)
-		_append_roof_tri(vertices, normals, colors, indices, d, r0, r1, base_y, base_y + roof_h, base_y + roof_h, color)
+		_append_gable_end(vertices, normals, colors, indices, a, c, r0, center, base_y, roof_h, color)
+		_append_gable_end(vertices, normals, colors, indices, b, d, r1, center, base_y, roof_h, color)
 	else:
 		var a := _rotated(center, angle, -hw, -hd)
 		var b := _rotated(center, angle, hw, -hd)
@@ -762,6 +899,30 @@ static func _append_gable_roof(
 		_append_roof_tri(vertices, normals, colors, indices, c, r0, r1, base_y, base_y + roof_h, base_y + roof_h, color)
 		_append_roof_tri(vertices, normals, colors, indices, b, d, r0, base_y, base_y, base_y + roof_h, color)
 		_append_roof_tri(vertices, normals, colors, indices, d, r1, r0, base_y, base_y + roof_h, base_y + roof_h, color)
+		_append_gable_end(vertices, normals, colors, indices, a, b, r0, center, base_y, roof_h, color)
+		_append_gable_end(vertices, normals, colors, indices, c, d, r1, center, base_y, roof_h, color)
+
+
+## The vertical triangle closing one end of a gable, facing away from the house.
+static func _append_gable_end(
+	vertices: PackedVector3Array,
+	normals: PackedVector3Array,
+	colors: PackedColorArray,
+	indices: PackedInt32Array,
+	left: Vector2,
+	right: Vector2,
+	ridge: Vector2,
+	center: Vector2,
+	base_y: float,
+	roof_h: float,
+	color: Color
+) -> void:
+	var out: Vector2 = ((left + right) * 0.5 - center).normalized()
+	emit_tri(
+		vertices, normals, colors, indices,
+		Vector3(left.x, base_y, left.y), Vector3(right.x, base_y, right.y),
+		Vector3(ridge.x, base_y + roof_h, ridge.y), Vector3(out.x, 0.0, out.y), color
+	)
 
 
 static func _append_hip_roof(
@@ -834,16 +995,8 @@ static func _append_roof_tri(
 	var vc := Vector3(c.x, cy, c.y)
 	var normal := (vb - va).cross(vc - va).normalized()
 	if normal.y < 0.0:
-		var temp := vb
-		vb = vc
-		vc = temp
-		normal = (vb - va).cross(vc - va).normalized()
-	var base: int = vertices.size()
-	for value: Vector3 in [va, vb, vc]:
-		vertices.append(value)
-		normals.append(normal)
-		colors.append(color)
-	indices.append_array([base, base + 1, base + 2])
+		normal = -normal
+	emit_tri(vertices, normals, colors, indices, va, vb, vc, normal, color)
 
 
 static func _rotated(center: Vector2, angle: float, local_x: float, local_z: float) -> Vector2:

@@ -155,3 +155,60 @@ Walking at `MovementController.walk_speed` (4 m/s) with the current walk clip
 plants a foot roughly every 1.3–2.7 m. The prints are honest about that: the
 clip's cadence is slow for the ground speed, so Henry glides. Tightening it is
 an animation/locomotion blend change in `HenryUALAnimation`, not in this system.
+
+## Snow shell (high tier)
+
+`SnowShell` (`scripts/systems/world/snow/snow_shell.gd`, built by `world.gd`)
+is the local layer the decals defer to. It reads the settled cover from
+`SnowPresentationSystem` and never writes `snow_cover`.
+
+```
+SnowField (CPU, 20 cm)          ground + settled depth + drifts + lee piles
+        │  ImageTexture (top, depth, cut)        get_depth() / get_snow_top()
+        ▼                                                  │
+contact camera (ortho, looks up, layer 20) ── lowest height of anything in the snow
+        ▼                                                  │
+packed accumulator (2 × SubViewport ping-pong, 5 cm) ── max packed, fills back in
+        ▼                                                  ▼
+snow_ground.gdshader: top − packed + rim          MovementController speed
+```
+
+- **One source of truth.** `SnowField` computes the snow on the CPU when the
+  window moves: settled 5–25 cm by cover, wind drifts up to 30 cm, lee piles up
+  to 60 cm behind anything standing on the ground. Windward faces are scoured,
+  hollows fill. Snow thins to nothing at `sea_level_m` and never lies below it.
+  Gameplay reads the same numbers the shader draws.
+- **Geometry presses the snow.** Anything on render layer 20 (`CONTACT_LAYER`)
+  packs the snow where it is lower than the snow top: Henry's whole mesh, and
+  resting `ItemPickup`s, tagged by `tag_contact()`. A print is the real boot
+  silhouette at the real depth; a dropped item leaves its own shape. No print
+  is scripted. The main camera never draws layer 20's contact quad.
+- **Packing** is capped at `max_pack` (85 %) of the settled depth: compressed
+  snow remains under a boot. Displaced snow lifts a broken rim around the pit.
+- **Fill.** Packing relaxes back in 900 s calm, 45 s in a whiteout.
+- **Henry stays consistent.** His collider stands on firm ground; his boots
+  reach the bottom of the pit they made. `MovementController.snow_speed_multiplier`
+  falls from 1.0 at 5 cm to 0.6 at 50 cm of snow.
+- **What the rays find.** Each field cell casts a ray down. A steep face, or
+  anything over 1 m above the ground, is a wall: the shell is cut there and
+  snow piles in its lee, scaled by how much wall is around (a lone post
+  shelters little). A broad, low, open surface (deck, crate) carries snow. A
+  surface with a roof above is indoors: no snow and no lee pile. Where the
+  ground under the snow jumps, the shell is discarded rather than hanging a
+  curtain between levels. Depth is softened over ~0.5 m, so wind never leaves
+  one-cell spikes.
+- **Snow bed.** Snow settles on the ground box-blurred over ~1 m and never
+  below it, so terrain facets and small hollows fill in. Where the snow thins
+  under ~2 cm the shell is discarded and the ground shows, instead of the two
+  surfaces z-fighting at the shore.
+- **Prints.** Below `wade_depth_m` (30 cm) only planted soles press: an oval
+  sole is set where each foot lands and held until it lifts, so the gliding
+  walk clip leaves separate prints. Deeper, Henry's whole mesh ploughs.
+- **Drag.** A lifted foot's toe follows the boot every frame and presses only
+  as deep as it actually dips into the snow: toe-off scuffs and touchdown
+  marks in shallow snow, drag furrows where the swing stays low. Nothing
+  presses while the toe is above the surface.
+- **Window.** 25.6 m, moved in 3.2 m steps; packing is shifted with it. The
+  mesh is 3 cm near Henry and coarsens to 25 cm at the edge; packing is 2.5 cm.
+- **Cost.** One extra 512² render of layer 20 and one 512² 2D pass per frame,
+  plus a CPU field rebuild (~16k samples) each time the window moves.

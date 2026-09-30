@@ -190,6 +190,11 @@ func _test_there_is_one_writer() -> void:
 	_check(offenders.is_empty(), "other writers of the snow globals: %s" % str(offenders))
 
 
+var _writer: RegEx = RegEx.create_from_string(
+	"global_shader_parameter_set\\(\\s*&?\"?(snow_cover|frost_amount|GLOBAL_SNOW|GLOBAL_FROST|[A-Za-z_.]*GLOBAL_SNOW_COVER|[A-Za-z_.]*GLOBAL_FROST_AMOUNT)"
+)
+
+
 func _scan_for_writers(directory: String, offenders: Array[String]) -> void:
 	var dir := DirAccess.open(directory)
 	if dir == null:
@@ -202,10 +207,9 @@ func _scan_for_writers(directory: String, offenders: Array[String]) -> void:
 		var path: String = directory.path_join(file_name)
 		if path == SYSTEM_PATH:
 			continue
-		var text: String = FileAccess.get_file_as_string(path)
-		if not text.contains("global_shader_parameter_set"):
-			continue
-		if text.contains("snow_cover") or text.contains("frost_amount") or text.contains("GLOBAL_SNOW") or text.contains("GLOBAL_FROST"):
+		## Only a set call naming snow_cover or frost_amount counts; other snow
+		## globals (the shell's window and depth) have their own owner.
+		if _writer.search(FileAccess.get_file_as_string(path)) != null:
 			offenders.append(path)
 
 

@@ -128,6 +128,19 @@ func update_foot(
 	return true
 
 
+## True from the moment a foot is planted until it lifts again.
+func is_planted(side: int) -> bool:
+	return not bool(_lifted[side])
+
+
+## World heel, ball and toe of one foot, or empty when the rig is not ready.
+func get_foot(side: int) -> Dictionary:
+	var skeleton: Skeleton3D = _skeleton()
+	if skeleton == null:
+		return {}
+	return _sample(skeleton, side)
+
+
 func _skeleton() -> Skeleton3D:
 	if visual == null:
 		return null
