@@ -242,3 +242,10 @@ city wind field: R is the old prevailing base, G the fresh storm pattern.
 Snow falling in wind drives the share toward `wind / storm_wind_mps`; without
 snowfall it consolidates back to `calm_storm_share` over hours. SnowField keeps
 both factors per cell, so a share change rebuilds depth only.
+
+### Persistent tracks
+
+`SnowTrackStore` files packing leaving the window as 3.2 m tiles (32² bytes,
+5 mm steps) stamped with a fill clock (Σ -ln(1 - fill)). Restoring multiplies
+by exp(-(clock - stamp)), the same fill-in the accumulation pass would have
+applied. The shell saves the store under `snow_tracks`.

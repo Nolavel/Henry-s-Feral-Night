@@ -94,6 +94,10 @@ var _accum_mat: Array[ShaderMaterial] = []
 var _parity: int = 0
 var _warmup: int = 3
 var _pending_shift: Vector2 = Vector2.ZERO
+## Packed snow kept after it leaves the window, and its restore image for the window.
+var tracks: SnowTrackStore = SnowTrackStore.new()
+var _restore_tex: ImageTexture
+var _restore_all: bool = false
 var _base_y: float = 0.0
 ## The move a streamed rebuild is working on.
 var _move_from: Vector2 = Vector2(INF, INF)
@@ -217,6 +221,12 @@ func _process(delta: float) -> void:
 	if _warmup > 0:
 		fill = 1.0
 		_warmup -= 1
+	else:
+		tracks.advance(fill)
+		## A fresh window or a load takes every texel from the restored tiles.
+		if _restore_all:
+			_pending_shift = Vector2(4.0, 4.0)
+			_restore_all = false
 	var target: int = _parity
 	var mat: ShaderMaterial = _accum_mat[target]
 	mat.set_shader_parameter("shift_uv", _pending_shift)
@@ -288,6 +298,7 @@ func _snapped_origin(centre: Vector2) -> Vector2:
 ## Puts a freshly rebuilt field on screen: shader, packed-snow shift, globals.
 func _apply_window(old: Vector2, wanted: Vector2, cover: float, wind: Vector2) -> void:
 	var half: float = window_m * 0.5
+	_keep_tracks(old, wanted)
 	if old.x != INF:
 		_pending_shift += (wanted - old) / window_m
 	_base_y = _floor_y()
@@ -451,8 +462,43 @@ func _build_capture() -> void:
 		vp.add_child(rect)
 		_accum.append(vp)
 		_accum_mat.append(mat)
+	_restore_tex = ImageTexture.create_from_image(Image.create_empty(packed_res / 4, packed_res / 4, false, Image.FORMAT_RF))
+	for mat: ShaderMaterial in _accum_mat:
+		mat.set_shader_parameter("restore", _restore_tex)
 	_accum_mat[0].set_shader_parameter("previous", _accum[1].get_texture())
 	_accum_mat[1].set_shader_parameter("previous", _accum[0].get_texture())
+
+
+## Files the packing leaving the window and prepares what the new window restores.
+func _keep_tracks(old: Vector2, wanted: Vector2) -> void:
+	if _accum.is_empty():
+		return
+	if old.x != INF:
+		var packed: Image = _accum[1 - _parity].get_texture().get_image()
+		if packed != null and not packed.is_empty():
+			tracks.store(packed, old, window_m, Rect2(wanted, Vector2.ONE * window_m))
+	else:
+		_restore_all = true
+	_restore_tex.set_image(tracks.restore(wanted, window_m, packed_res / 4))
+
+
+func get_save_key() -> StringName:
+	return &"snow_tracks"
+
+
+func get_save_data() -> Dictionary:
+	if not _accum.is_empty() and field.origin.x != INF:
+		var packed: Image = _accum[1 - _parity].get_texture().get_image()
+		if packed != null and not packed.is_empty():
+			tracks.store(packed, field.origin, window_m, Rect2())
+	return tracks.get_save_data()
+
+
+func load_save_data(data: Dictionary) -> void:
+	tracks.load_save_data(data)
+	if _restore_tex != null and field.origin.x != INF:
+		_restore_tex.set_image(tracks.restore(field.origin, window_m, packed_res / 4))
+		_restore_all = true
 
 
 func _viewport(node_name: String, side: int) -> SubViewport:
