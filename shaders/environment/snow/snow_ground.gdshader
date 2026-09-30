@@ -30,6 +30,23 @@ float packed_at(vec2 uv) {
 	return texture(packed_field, uv).r;
 }
 
+// Steepest a trench wall stands, as rise over run (loose snow ~40 degrees).
+uniform float repose_tan = 0.84;
+
+// Packing as drawn: no wall steeper than the angle of repose. Each nearby pit
+// pulls this point down by its depth less the slope over the distance to it.
+float sloped_packed(vec2 uv) {
+	float d = packed_at(uv);
+	for (int r = 1; r <= 5; r++) {
+		float run = float(r) * 0.09;
+		for (int i = 0; i < 8; i++) {
+			float a = float(i) * 0.785398 + float(r) * 0.39;
+			d = max(d, packed_at(uv + vec2(cos(a), sin(a)) * run / window_m) - repose_tan * run);
+		}
+	}
+	return d;
+}
+
 // Snow pushed out of a pit piles on its edge; the crust breaks into slabs.
 float rim_at(vec2 uv, vec2 xz, float here) {
 	float d = packed_texel_m * 2.5 / window_m;
@@ -59,7 +76,7 @@ void vertex() {
 	vec3 world = (MODEL_MATRIX * vec4(VERTEX, 1.0)).xyz;
 	vec2 uv = (world.xz - origin) / window_m;
 	vec4 f = texture(field, uv);
-	v_packed = packed_at(uv);
+	v_packed = sloped_packed(uv);
 	v_rim = rim_at(uv, world.xz, v_packed);
 	v_cut = f.b;
 	v_city = f.a;
@@ -88,10 +105,16 @@ void fragment() {
 		discard;
 	}
 	// Pit walls are sharper than the mesh, so they also come in through the normal.
-	float t = packed_texel_m / window_m;
-	float gx = packed_at(uv + vec2(t, 0.0)) - packed_at(uv - vec2(t, 0.0));
-	float gz = packed_at(uv + vec2(0.0, t)) - packed_at(uv - vec2(0.0, t));
-	vec2 slope = vec2(gx, gz) / (2.0 * packed_texel_m);
+	// Slope of the drawn pit from its screen-space change, solved into world x/z.
+	vec2 wx = dFdx(v_world.xz);
+	vec2 wy = dFdy(v_world.xz);
+	float det = wx.x * wy.y - wx.y * wy.x;
+	vec2 slope = vec2(0.0);
+	if (abs(det) > 1e-10) {
+		float px = dFdx(v_packed);
+		float py = dFdy(v_packed);
+		slope = vec2(px * wy.y - py * wx.y, py * wx.x - px * wy.x) / det;
+	}
 	// Settled surface slope over ±0.4 m: the mesh facets at the 20 cm field texel
 	// would band the ridges, so shade from the smoothed field instead.
 	float e = 0.4;

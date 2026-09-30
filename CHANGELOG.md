@@ -5,6 +5,13 @@ Maintained per branch; entries are added by whoever makes the change.
 
 ## [Unreleased] — `codex`
 
+### 2026-09-30 - Trench slope drawn in the shader, not simulated (claudeflow)
+
+- The slumping pass in the packed-snow accumulation is gone: it grew a crater
+  around each step over several frames. The ground shader now draws walls no
+  steeper than `repose_deg` (40°) at once, from up to 0.45 m of neighbours;
+  the stored packing stays exactly what the foot pressed.
+
 ### 2026-09-30 - Packed snow persists in world tiles (claudeflow)
 
 - SnowTrackStore keeps packed snow that leaves Henry's window as 3.2 m tiles

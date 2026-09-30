@@ -17,8 +17,6 @@ uniform vec2 shift_uv = vec2(0.0);
 uniform float fill = 0.0;
 // Share of the settled depth a foot or body can pack down.
 uniform float max_pack = 0.85;
-// Deepest a texel may sit below its neighbour before its wall slumps in, metres.
-uniform float slump_m = 0.02;
 
 void fragment() {
 	vec2 uv = UV;
@@ -26,19 +24,6 @@ void fragment() {
 	float packed = texture(restore, uv).r;
 	if (from.x >= 0.0 && from.y >= 0.0 && from.x <= 1.0 && from.y <= 1.0) {
 		packed = texture(previous, from).r;
-	}
-	// Trench walls stand no steeper than the snow's angle of repose: a wall that is
-	// too steep slumps, deepening the shallower side one texel per frame.
-	vec2 texel = 1.0 / vec2(textureSize(previous, 0));
-	for (int i = 0; i < 8; i++) {
-		vec2 o = vec2(float((i % 3) - 1), float(i / 3 - 1));
-		if (i >= 4) {
-			o = vec2(float(((i + 1) % 3) - 1), float((i + 1) / 3 - 1));
-		}
-		vec2 n = from + o * texel;
-		if (n.x >= 0.0 && n.y >= 0.0 && n.x <= 1.0 && n.y <= 1.0) {
-			packed = max(packed, texture(previous, n).r - slump_m * length(o));
-		}
 	}
 	packed *= 1.0 - fill;
 	vec3 settled = texture(field, uv).rgb;
