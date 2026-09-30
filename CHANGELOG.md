@@ -1925,7 +1925,7 @@ Fixed
   - `BreachBoardUp` rings under the breach's boards; `HeatSourceFeed` under the
 	stove's body.
   - The base class is untouched; each subclass supplies its mesh before
-    `super()._ready()`.
+	`super()._ready()`.
 
 ### 2026-09-23 (13) — Snow step 3: foot contact and footprints
 
