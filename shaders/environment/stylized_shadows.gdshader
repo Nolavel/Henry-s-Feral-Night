@@ -20,6 +20,9 @@ void vertex() {
 }
 
 void fragment() {
+	if (use_world) {
+		LIGHT_VERTEX = VERTEX + HFN_STYLIZED_SHADOW_WARP(sample_position, VIEW_MATRIX);
+	}
 	vec4 base = albedo_tint;
 	if (use_albedo_texture) {
 		base *= texture(albedo_texture, UV);
@@ -36,7 +39,7 @@ void light() {
 		ATTENUATION,
 		sample_position,
 		LIGHT_IS_DIRECTIONAL,
-		LIGHT_INDEX,
+		HFN_LIGHT_INDEX,
 		VIEW_MATRIX,
 		true
 	);

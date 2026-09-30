@@ -5,6 +5,15 @@ Maintained per branch; entries are added by whoever makes the change.
 
 ## [Unreleased] — `codex`
 
+### 2026-09-30 - Stylized shadows run on stock Godot again (claudeflow)
+
+- `stylized_shadow.gdshaderinc` no longer requires the patched editor: the
+  default path is the stock LIGHT_VERTEX warp plus torn ATTENUATION (as before
+  #148). The two-lookup `sample_directional_shadow` path stays behind the
+  commented-out `HFN_PATCHED_SHADOW_SAMPLER` define. Call sites use
+  `HFN_LIGHT_INDEX` and `HFN_STYLIZED_SHADOW_WARP`, which switch with it.
+- `test_stylized_shadows` checks the stock path is the default.
+
 ### 2026-09-30 - Snow with weight: boots sink, crust holds, walls shed clumps (claudeflow)
 
 - A planted boot presses in over its stance (`sink_time_s`, 0.22 s to ~63%)

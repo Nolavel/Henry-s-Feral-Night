@@ -51,6 +51,7 @@ void vertex() {
 }
 
 void fragment() {
+	LIGHT_VERTEX = VERTEX + HFN_STYLIZED_SHADOW_WARP(v_world, VIEW_MATRIX);
 	vec2 in_window = (v_world.xz - snow_window.xy) / max(snow_window.z, 0.001);
 	bool inside = snow_window.w > 0.5 && all(greaterThan(in_window, vec2(0.0))) && all(lessThan(in_window, vec2(1.0)));
 	float depth = depth_at(v_world.xz, v_shore);
@@ -77,7 +78,7 @@ void light() {
 		ATTENUATION,
 		v_world,
 		LIGHT_IS_DIRECTIONAL,
-		LIGHT_INDEX,
+		HFN_LIGHT_INDEX,
 		VIEW_MATRIX,
 		true
 	);
