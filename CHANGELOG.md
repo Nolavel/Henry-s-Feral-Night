@@ -5,6 +5,14 @@ Maintained per branch; entries are added by whoever makes the change.
 
 ## [Unreleased] — `codex`
 
+### 2026-09-30 - Chunk-wide settled snow (claudeflow)
+
+- `SnowChunkCover` lays a 2 m snow grid over every streamed city chunk, lifted by
+  the city wind factor; buildings and the shore stay clear. It hides inside
+  Henry's detailed window, whose edge now eases onto the same base depth.
+- New shader globals `snow_settled_depth` and `snow_window`; the wind field's
+  alpha channel now carries the building footprint mask.
+
 ### 2026-09-30 - City-scale snow wind field (claudeflow)
 
 - `tools/world/bake_key_west_snow_wind.py` bakes `data/world/key_west/snow_wind.png`:

@@ -5,7 +5,8 @@ render_mode cull_back, depth_draw_opaque;
 // contact accumulator. See docs/technical/SNOW_COVER.md.
 #include "res://shaders/environment/snow/snow_surface.gdshaderinc"
 
-// R: snow top (world y), G: settled depth, B: 1 where cut away.
+// R: snow top (world y), G: settled depth, B: 1 where cut away, A: city wind factor.
+global uniform float snow_settled_depth;
 uniform sampler2D field : filter_linear, repeat_disable;
 // R: metres packed down.
 uniform sampler2D packed_field : filter_linear, repeat_disable;
@@ -46,17 +47,19 @@ float rim_at(vec2 uv, vec2 xz, float here) {
 void vertex() {
 	vec3 world = (MODEL_MATRIX * vec4(VERTEX, 1.0)).xyz;
 	vec2 uv = (world.xz - origin) / window_m;
-	vec3 f = texture(field, uv).rgb;
+	vec4 f = texture(field, uv);
 	v_packed = packed_at(uv);
 	v_rim = rim_at(uv, world.xz, v_packed);
 	v_cut = f.b;
-	v_depth = f.g;
 	vec2 to_edge = min(uv, 1.0 - uv) * window_m;
-	// Depth eases to nothing over the outer 6 m so the window meets terrain snow.
+	// Over the outer 6 m the detail fades out onto the chunk-wide base.
 	v_edge = smoothstep(0.0, 6.0, min(to_edge.x, to_edge.y));
 	float ground = f.r - f.g;
 	v_ground = ground;
-	float top = ground + (f.g - v_packed + v_rim) * v_edge;
+	// Toward the window edge the surface eases onto the chunk-wide snow (snow_chunk_cover).
+	float base = snow_settled_depth * f.a;
+	v_depth = mix(base, f.g, v_edge);
+	float top = ground + mix(base, f.g - v_packed + v_rim, v_edge);
 	VERTEX.y = max(top, ground + 0.004) - MODEL_MATRIX[3].y;
 	v_world = vec3(world.x, top, world.z);
 }
@@ -68,7 +71,7 @@ void fragment() {
 	// Where the ground under the snow jumps (a kerb, a wall foot) the mesh would
 	// hang a curtain between levels: no snow surface is that steep.
 	float ground_slope = fwidth(v_ground) / max(length(fwidth(v_world.xz)), 0.001);
-	if (v_cut > 0.5 || v_depth * v_edge < 0.012 + grain * 0.02 || ground_slope > 1.5) {
+	if (v_cut > 0.5 || v_depth < 0.012 + grain * 0.02 || ground_slope > 1.5) {
 		discard;
 	}
 	// Pit walls are sharper than the mesh, so they also come in through the normal.

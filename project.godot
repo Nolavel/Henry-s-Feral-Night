@@ -937,6 +937,14 @@ snow_cover={
 "type": "float",
 "value": 0.5
 }
+snow_settled_depth={
+"type": "float",
+"value": 0.15
+}
+snow_window={
+"type": "vec4",
+"value": Vector4(0, 0, 0, 0)
+}
 frost_amount={
 "type": "float",
 "value": 0.3

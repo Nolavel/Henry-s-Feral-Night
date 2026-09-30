@@ -18,7 +18,7 @@ var lee_m: float = 0.6
 ## Snow rounds off ground detail finer than this, in metres.
 var smooth_m: float = 1.0
 
-## R: snow top (world y), G: depth, B: 1 where the shell is cut away.
+## R: snow top (world y), G: depth, B: 1 where cut away, A: city wind factor.
 var image: Image
 var origin: Vector2 = Vector2(INF, INF)
 
@@ -62,6 +62,21 @@ func load_wind_field(png_path: String) -> bool:
 	return true
 
 
+## Settled depth for a snow_cover value, before the city's wind reshapes it.
+func settled_depth(cover: float) -> float:
+	return lerpf(cover_depth_m.x, cover_depth_m.y, clampf(cover, 0.0, 1.0))
+
+
+## True inside a mapped building footprint (snow lies on its roof, not here).
+func is_building(at: Vector2) -> bool:
+	if wind_field == null:
+		return false
+	var p := Vector2i(((at - wind_field_origin) / wind_field_cell_m).floor())
+	if p.x < 0 or p.y < 0 or p.x >= wind_field.get_width() or p.y >= wind_field.get_height():
+		return false
+	return wind_field.get_pixel(p.x, p.y).a > 0.5
+
+
 ## How the city's wind scales settled snow here: under 1 scoured, over 1 deposited.
 func wind_factor(at: Vector2) -> float:
 	if wind_field == null:
@@ -91,9 +106,9 @@ func rebuild(new_origin: Vector2, cover: float, wind: Vector2) -> void:
 			_ground[ty * res + tx] = ground_sampler.call(_world_of(tx, ty))
 	_smooth_bed()
 	if image == null or image.get_width() != res:
-		image = Image.create_empty(res, res, false, Image.FORMAT_RGBF)
+		image = Image.create_empty(res, res, false, Image.FORMAT_RGBAF)
 	var side := Vector2(-wind.y, wind.x)
-	var settled: float = lerpf(cover_depth_m.x, cover_depth_m.y, cover)
+	var settled: float = settled_depth(cover)
 	var step: int = maxi(1, roundi(0.35 / texel_m()))
 	var n: int = res * res
 	var depth_sum := PackedFloat32Array()
@@ -141,13 +156,13 @@ func rebuild(new_origin: Vector2, cover: float, wind: Vector2) -> void:
 			var i: int = ty * res + tx
 			var g: Vector2 = _ground[i]
 			if g.y > 0.5:
-				image.set_pixel(tx, ty, Color(g.x, 0.0, 1.0))
+				image.set_pixel(tx, ty, Color(g.x, 0.0, 1.0, 0.0))
 				continue
 			var depth: float = depth_sum[i] / maxf(weight[i], 0.0001)
 			var cut: float = 1.0 if g.x < sea_level_m + 0.02 else 0.0
 			## Depth is measured from the real ground, so the shader's ground stays true.
 			var top: float = g.x + fill[i] + depth
-			image.set_pixel(tx, ty, Color(top, top - g.x, cut))
+			image.set_pixel(tx, ty, Color(top, top - g.x, cut, wind_factor(_world_of(tx, ty))))
 
 
 ## Snow top at a world point (bilinear), or -INF outside the window.

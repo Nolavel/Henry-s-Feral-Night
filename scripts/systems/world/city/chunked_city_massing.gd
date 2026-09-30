@@ -181,6 +181,13 @@ func activate_stream_chunk(stream_id: StringName, _container: Node3D) -> Node3D:
 		if props != null:
 			(state["node"] as Node3D).add_child(props)
 		state["props"] = props
+	if state.get("snow") == null:
+		var chunk: Dictionary = state["data"]
+		var o: Array = chunk.get("origin", [0, 0])
+		var snow := SnowChunkCover.build(terrain, Vector2(float(o[0]), float(o[1])), chunk_size_m)
+		if snow != null:
+			(state["node"] as Node3D).add_child(snow)
+		state["snow"] = snow
 	var massing := state["massing"] as Node3D
 	if massing != null:
 		massing.visible = false
@@ -211,6 +218,10 @@ func deactivate_stream_chunk(stream_id: StringName) -> void:
 	if is_instance_valid(props):
 		props.queue_free()
 	state["props"] = null
+	var snow := state.get("snow") as Node3D
+	if is_instance_valid(snow):
+		snow.queue_free()
+	state["snow"] = null
 	var massing := state["massing"] as Node3D
 	if massing != null:
 		massing.visible = true

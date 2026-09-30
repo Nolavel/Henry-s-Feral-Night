@@ -4,7 +4,7 @@
 For two wind directions (prevailing and storm) every 4 m cell gets a depth factor
 from upwind fetch, building shelter, street canyons and deposition where the
 wind slows. Writes data/world/key_west/snow_wind.png (RGBA8):
-  R prevailing depth factor, G storm depth factor, B shelter, A exposure.
+  R prevailing depth factor, G storm depth factor, B shelter, A building footprint.
 Factor 0..255 maps to 0..FACTOR_MAX times the settled depth.
 Run: python3 tools/world/bake_key_west_snow_wind.py  (needs numpy, pillow)
 """
@@ -133,7 +133,7 @@ def main() -> None:
     to8 = lambda a, top: np.clip(a / top * 255.0 + 0.5, 0, 255).astype(np.uint8)
     rgba = np.dstack([
         to8(blur(prev, 1.2), FACTOR_MAX), to8(blur(storm, 1.2), FACTOR_MAX),
-        to8(blur(shelter, 1.0), 1.0), to8(blur(exposure, 1.0), 1.0),
+        to8(blur(shelter, 1.0), 1.0), to8((height > 0.0).astype(np.float32), 1.0),
     ])
     Image.fromarray(rgba, mode="RGBA").save(OUT, optimize=True)
     meta = {"cell_m": CELL_M, "origin": [x0, z0], "size": [w, h], "factor_max": FACTOR_MAX,

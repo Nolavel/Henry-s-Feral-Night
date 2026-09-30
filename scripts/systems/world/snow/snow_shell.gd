@@ -206,6 +206,9 @@ func recentre_to(centre: Vector2) -> void:
 		_pending_shift += (wanted - field.origin) / window_m
 	_base_y = _floor_y()
 	field.rebuild(wanted, _cover(), _wind())
+	## Chunk-wide snow reads the same settled depth and hides inside this window.
+	RenderingServer.global_shader_parameter_set(&"snow_settled_depth", field.settled_depth(_cover()))
+	RenderingServer.global_shader_parameter_set(&"snow_window", Vector4(wanted.x, wanted.y, window_m, 1.0))
 	_field_tex.set_image(field.image)
 	if _world_root != null:
 		for pickup: Node in _world_root.find_children("*", "", true, false):
@@ -231,7 +234,7 @@ func get_origin() -> Vector2:
 
 
 func _build_surface() -> void:
-	field.image = Image.create_empty(field_res, field_res, false, Image.FORMAT_RGBF)
+	field.image = Image.create_empty(field_res, field_res, false, Image.FORMAT_RGBAF)
 	_field_tex = ImageTexture.create_from_image(field.image)
 	_surface = ShaderMaterial.new()
 	_surface.shader = SURFACE_SHADER
