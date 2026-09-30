@@ -13,6 +13,8 @@ Maintained per branch; entries are added by whoever makes the change.
 - Wind ridges come from one function shared by GDScript (`SnowField.ridge_at`) and
   GLSL (`snow_ridge`), so the chunk cover carries the same drifts as Henry's window;
   ridges shade per pixel on the 2 m grid. Thin snow lets the ground grey through.
+- Henry's window shades from the field smoothed over ±0.4 m, not the 20 cm mesh
+  facets that banded ridge slopes.
 - New shader globals `snow_settled_depth`, `snow_drift_m`, `snow_wind` and `snow_window`; the wind field's
   alpha channel now carries the building footprint mask.
 

@@ -43,6 +43,16 @@ float rim_at(vec2 uv, vec2 xz, float here) {
 	return lip * 0.6 * slab;
 }
 
+// Snow top before packing, eased onto the chunk-wide base toward the edge.
+float settled_top(vec2 xz) {
+	vec2 uv = (xz - origin) / window_m;
+	vec4 f = texture(field, uv);
+	vec2 to_edge = min(uv, 1.0 - uv) * window_m;
+	float edge = smoothstep(0.0, 6.0, min(to_edge.x, to_edge.y));
+	return f.r - f.g + mix(snow_base_depth(xz, f.a), f.g, edge);
+}
+
+
 void vertex() {
 	vec3 world = (MODEL_MATRIX * vec4(VERTEX, 1.0)).xyz;
 	vec2 uv = (world.xz - origin) / window_m;
@@ -78,8 +88,15 @@ void fragment() {
 	float gx = packed_at(uv + vec2(t, 0.0)) - packed_at(uv - vec2(t, 0.0));
 	float gz = packed_at(uv + vec2(0.0, t)) - packed_at(uv - vec2(0.0, t));
 	vec2 slope = vec2(gx, gz) / (2.0 * packed_texel_m);
+	// Settled surface slope over ±0.4 m: the mesh facets at the 20 cm field texel
+	// would band the ridges, so shade from the smoothed field instead.
+	float e = 0.4;
+	float sx = settled_top(v_world.xz + vec2(e, 0.0)) - settled_top(v_world.xz - vec2(e, 0.0));
+	float sz = settled_top(v_world.xz + vec2(0.0, e)) - settled_top(v_world.xz - vec2(0.0, e));
+	vec3 smooth_n = normalize(vec3(-sx / (2.0 * e), 1.0, -sz / (2.0 * e)));
+	// Near kerbs and walls the real mesh edge still matters.
 	vec3 geo = normalize(cross(dFdy(v_world), dFdx(v_world)));
-	vec3 n = normalize(geo + vec3(slope.x, 0.0, slope.y) * 0.6);
+	vec3 n = normalize(mix(smooth_n, geo, smoothstep(0.6, 1.2, ground_slope)) + vec3(slope.x, 0.0, slope.y) * 0.6);
 	NORMAL = normalize((VIEW_MATRIX * vec4(n, 0.0)).xyz);
 
 	float packed = smoothstep(0.01, 0.08, v_packed);
