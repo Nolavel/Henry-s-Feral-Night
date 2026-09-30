@@ -1019,13 +1019,9 @@ stylized_shadow_detail_amount={
 "type": "float",
 "value": 0.26
 }
-stylized_shadow_noise_texture={
-"type": "sampler2D",
-"value": "res://resources/environment/stylized_shadow_noise.tres"
-}
 stylized_shadow_warp_m={
 "type": "float",
-"value": 0.085
+"value": 0.28
 }
 stylized_shadow_texture_scale={
 "type": "float",
