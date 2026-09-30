@@ -103,6 +103,16 @@ Added
   displaced rim; they fill back in with snowfall.
 - `MovementController.snow_speed_multiplier`: 1.0 on bare ground to 0.6 at 50 cm.
 - `tests/systems/test_snow_shell.gd` covers the field.
+### 2026-09-30 - Make agent pre-task sync mandatory (codex)
+
+Changed
+- Require every agent to synchronize current `main` into its permanent working
+  branch before each new task or substantial pass, not merely once per session.
+- Require agents to verify ancestry before editing or expensive CI and to inspect
+  already-integrated fixes before treating recurring failures as unresolved.
+- Strengthen Claude Code's charter with the same per-task `main -> claudeflow`
+  sequence and explicit `merge-base --is-ancestor` check.
+
 ### 2026-09-29 - Add an inspector toggle for the shelter start (codex)
 
 Changed
