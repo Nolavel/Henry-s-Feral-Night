@@ -59,7 +59,8 @@ void fragment() {
 	float e = 0.08;
 	float gx = (depth_at(v_world.xz + vec2(e, 0.0), v_shore) - depth_at(v_world.xz - vec2(e, 0.0), v_shore)) / (2.0 * e);
 	float gz = (depth_at(v_world.xz + vec2(0.0, e), v_shore) - depth_at(v_world.xz - vec2(0.0, e), v_shore)) / (2.0 * e);
-	vec3 n = normalize(normalize(v_ground_normal) - vec3(gx, 0.0, gz));
+	vec2 ripple = snow_ripple_slope(v_world.xz, city_at(v_world.xz) * v_shore);
+	vec3 n = normalize(normalize(v_ground_normal) - vec3(gx + ripple.x, 0.0, gz + ripple.y));
 	NORMAL = normalize((VIEW_MATRIX * vec4(n, 0.0)).xyz);
 	vec3 color = fresh_color * (1.0 - snow_breakup(v_world, 5.0) * 0.03);
 	color *= mix(1.0, 1.03, smoothstep(0.1, 0.4, depth));

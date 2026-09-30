@@ -95,7 +95,8 @@ void fragment() {
 	float e = 0.4;
 	float sx = settled_top(v_world.xz + vec2(e, 0.0)) - settled_top(v_world.xz - vec2(e, 0.0));
 	float sz = settled_top(v_world.xz + vec2(0.0, e)) - settled_top(v_world.xz - vec2(0.0, e));
-	vec3 smooth_n = normalize(vec3(-sx / (2.0 * e), 1.0, -sz / (2.0 * e)));
+	vec2 ripple = snow_ripple_slope(v_world.xz, v_city) * (1.0 - smoothstep(0.02, 0.08, v_packed));
+	vec3 smooth_n = normalize(vec3(-sx / (2.0 * e) - ripple.x, 1.0, -sz / (2.0 * e) - ripple.y));
 	// Near kerbs and walls the real mesh edge still matters.
 	vec3 geo = normalize(cross(dFdy(v_world), dFdx(v_world)));
 	vec3 n = normalize(mix(smooth_n, geo, smoothstep(0.6, 1.2, ground_slope)) + vec3(slope.x, 0.0, slope.y) * 0.6);

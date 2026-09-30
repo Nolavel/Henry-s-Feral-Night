@@ -14,6 +14,7 @@ Maintained per branch; entries are added by whoever makes the change.
 - Wind ridges form only on open ground; sheltered yards and drift banks lie smooth.
 - Both snow layers share a smooth geometric base at the window edge (ridges live
   in shading there), which removes the seam around Henry's window.
+- A soft undirected ripple shades sheltered snow in both layers; packed tracks stay smooth.
 
 ### 2026-09-30 - Chunk-wide settled snow (claudeflow)
 

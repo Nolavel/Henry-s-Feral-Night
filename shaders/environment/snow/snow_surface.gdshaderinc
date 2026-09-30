@@ -121,3 +121,15 @@ vec3 snow_wind_tint(vec3 snow, float city) {
 	vec3 c = mix(crust, snow, smoothstep(0.35, 0.95, city));
 	return c * mix(1.0, 1.05, smoothstep(1.3, 1.9, city));
 }
+
+// Soft undirected ripple for sheltered snow, as a surface slope (shading only, so
+// both snow layers match). Strongest where the wind cuts no ridges.
+vec2 snow_ripple_slope(vec2 xz, float city) {
+	float e = 0.05;
+	vec2 p = xz * 0.9;
+	float h = snow_vnoise(p) * 0.6 + snow_vnoise(p * 2.3 + vec2(3.0, 7.0)) * 0.4;
+	float hx = snow_vnoise(p + vec2(e, 0.0)) * 0.6 + snow_vnoise((p + vec2(e, 0.0)) * 2.3 + vec2(3.0, 7.0)) * 0.4;
+	float hz = snow_vnoise(p + vec2(0.0, e)) * 0.6 + snow_vnoise((p + vec2(0.0, e)) * 2.3 + vec2(3.0, 7.0)) * 0.4;
+	float amp = 0.06 * mix(1.0, 0.35, snow_ridge_openness(city));
+	return vec2(hx - h, hz - h) / e * 0.9 * amp;
+}
