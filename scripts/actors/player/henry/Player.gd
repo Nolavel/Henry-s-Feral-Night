@@ -131,7 +131,9 @@ func _physics_process(delta: float) -> void:
 		movement_locked
 	)
 	
+	var attempted_door_push_velocity: Vector3 = velocity
 	move_and_slide()
+	HingedDoor.apply_character_collisions(self, attempted_door_push_velocity)
 
 	var on_floor_now := is_on_floor()
 	cam_landed_this_frame = _floor_sample_initialized and (not _was_on_floor_for_cam and on_floor_now)
