@@ -52,7 +52,8 @@ void vertex() {
 	v_cut = f.b;
 	v_depth = f.g;
 	vec2 to_edge = min(uv, 1.0 - uv) * window_m;
-	v_edge = smoothstep(0.0, 2.5, min(to_edge.x, to_edge.y));
+	// Depth eases to nothing over the outer 6 m so the window meets terrain snow.
+	v_edge = smoothstep(0.0, 6.0, min(to_edge.x, to_edge.y));
 	float ground = f.r - f.g;
 	v_ground = ground;
 	float top = ground + (f.g - v_packed + v_rim) * v_edge;
@@ -67,7 +68,7 @@ void fragment() {
 	// Where the ground under the snow jumps (a kerb, a wall foot) the mesh would
 	// hang a curtain between levels: no snow surface is that steep.
 	float ground_slope = fwidth(v_ground) / max(length(fwidth(v_world.xz)), 0.001);
-	if (v_cut > 0.5 || grain > v_edge * 1.05 || v_depth < 0.012 + grain * 0.02 || ground_slope > 1.5) {
+	if (v_cut > 0.5 || v_depth * v_edge < 0.012 + grain * 0.02 || ground_slope > 1.5) {
 		discard;
 	}
 	// Pit walls are sharper than the mesh, so they also come in through the normal.

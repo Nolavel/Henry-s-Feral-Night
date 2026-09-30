@@ -12,6 +12,8 @@ Maintained per branch; entries are added by whoever makes the change.
   snow from upwind fetch, building shelter, street canyons, coast and deposition.
 - `SnowField` scales settled depth and drifts by that factor; local lee piles,
   packing and footprints are unchanged. Abandoned cars capped at 500.
+- The snow window eases its depth out over 6 m instead of a dithered cut, so
+  deeper city snow meets terrain snow without a step; parking lots lie under snow.
 
 ### 2026-09-30 - Key West lots, marinas, gates, golf and conch colours (claudeflow)
 

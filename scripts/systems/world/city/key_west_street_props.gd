@@ -307,10 +307,8 @@ static func _scatter(coords: Array, spacing: float, index: Dictionary) -> Array[
 	return out
 
 
-## Snowed-over lots with abandoned cars in some bays; the lot follows its longest edge.
+## Lots lie under the snow; only their abandoned cars show in some bays; the lot follows its longest edge.
 static func _add_parking(parent: Node3D, enrichment: Dictionary, terrain: IslandTerrain, mats: Dictionary) -> void:
-	var v := PackedVector3Array()
-	var n := PackedVector3Array()
 	var cars: Array[Transform3D] = []
 	var colors: Array[Color] = []
 	for f: Dictionary in enrichment.get("infrastructure", []):
@@ -320,11 +318,6 @@ static func _add_parking(parent: Node3D, enrichment: Dictionary, terrain: Island
 		var poly: PackedVector2Array = _polygon((geometry.get("coordinates", [[]]) as Array)[0])
 		if poly.size() < 3:
 			continue
-		var tris: PackedInt32Array = Geometry2D.triangulate_polygon(poly)
-		for t: int in tris:
-			var q: Vector2 = poly[t]
-			v.append(_ground(terrain, q) + Vector3.UP * 0.06)
-			n.append(Vector3.UP)
 		var axis: Vector2 = _longest_edge(poly)
 		var side := Vector2(-axis.y, axis.x)
 		var yaw: float = atan2(side.x, side.y)
@@ -346,19 +339,6 @@ static func _add_parking(parent: Node3D, enrichment: Dictionary, terrain: Island
 					colors.append(CAR_COLORS[(h / 7) % CAR_COLORS.size()])
 				b += CAR_BAY_M.y
 			a += CAR_BAY_M.x
-	if not v.is_empty():
-		## Winding follows the polygon; the lot is visible from above either way.
-		var arrays: Array = []
-		arrays.resize(Mesh.ARRAY_MAX)
-		arrays[Mesh.ARRAY_VERTEX] = v
-		arrays[Mesh.ARRAY_NORMAL] = n
-		var mesh := ArrayMesh.new()
-		mesh.add_surface_from_arrays(Mesh.PRIMITIVE_TRIANGLES, arrays)
-		mesh.surface_set_material(0, mats["lot"])
-		var lot := MeshInstance3D.new()
-		lot.name = "ParkingLots"
-		lot.mesh = mesh
-		parent.add_child(lot)
 	if cars.is_empty():
 		return
 	## Keep an even spread of at most MAX_CARS across the island.
@@ -643,7 +623,6 @@ static func _materials() -> Dictionary:
 		"wire": _mat(Color(0.08, 0.08, 0.08), 0.8),
 		"tank": _mat(Color(0.7, 0.71, 0.69), 0.6),
 		"vault": _mat(Color(0.8, 0.79, 0.75), 0.9),
-		"lot": _mat(Color(0.6, 0.62, 0.66), 0.9, true),
 		"paint": _vertex_mat(0.55),
 		"glass": _mat(Color(0.12, 0.14, 0.16), 0.2),
 		"snowcap": _mat(Color(0.8, 0.83, 0.88), 0.85),
