@@ -52,6 +52,7 @@ const WORLD_3D_ENTITY_SCENES: Array[PackedScene] = []
 
 ## Screen-space UI scenes — instantiate(), parented to a shared CanvasLayer.
 const WORLD_UI_SCENES: Array[PackedScene] = [
+	preload("res://scenes/ui/debug/dev_diorama_map.tscn"),
 	preload("res://scenes/ui/hud/input_hints/key_hints_panel.tscn"),
 	preload("res://scenes/ui/hud/sleep_prompt.tscn"),
 	preload("res://scenes/ui/menu/pause_menu.tscn"),
@@ -77,6 +78,9 @@ const SPAWN_CLEARANCE: float = 1.0
 ## Off for a scene with its own floor, such as TestScene, so the island's
 ## chunks are not streamed on top of it.
 @export var streaming_enabled: bool = true
+@export_group("Developer tools")
+## Allows M to show/hide the debug diorama map in runtime debug builds.
+@export var enable_runtime_dev_map: bool = false
 
 var _systems: Array[Node] = []
 var _context: WorldContext

@@ -5,108 +5,43 @@ Maintained per branch; entries are added by whoever makes the change.
 
 ## [Unreleased] — `codex`
 
-### 2026-09-30 - Readable city wind snow at 2 m (claudeflow)
+### 2026-09-30 - Gate the developer map behind World and M (codex)
 
-- The wind bake runs at 2 m over the city (plus 200 m) and adds corner speed-up
-  and windward banks with a scoured wall foot.
-- Chunk cover samples the wind field per pixel, so lee tongues and scoured
-  streets shade between vertices; scoured crust reads greyer, drift banks brighter.
-- Wind ridges form only on open ground; sheltered yards and drift banks lie smooth.
-- Both snow layers share a smooth geometric base at the window edge (ridges live
-  in shading there), which removes the seam around Henry's window.
-- A soft undirected ripple shades sheltered snow in both layers; packed tracks stay smooth.
+Changed
+- Add exported `World.enable_runtime_dev_map`, default false. Authorized debug
+  worlds start with the map hidden and physical M toggles it; disabled worlds
+  ignore the same edge completely.
+- Route M through InputSystems as `toggle_dev_map`, preserving the project's
+  single input reader. The map only processes while visible.
+- Preview capture enables the export explicitly so CI keeps validating the tool.
 
-### 2026-09-30 - Chunk-wide settled snow (claudeflow)
+### 2026-09-30 - Make the developer map follow-only and label the city (codex)
 
-- `SnowChunkCover` lays a 2 m snow grid over every streamed city chunk, lifted by
-  the city wind factor; buildings and the shore stay clear. It hides inside
-  Henry's detailed window, whose edge now eases onto the same base depth.
-- Wind ridges come from one function shared by GDScript (`SnowField.ridge_at`) and
-  GLSL (`snow_ridge`), so the chunk cover carries the same drifts as Henry's window;
-  ridges shade per pixel on the 2 m grid. Thin snow lets the ground grey through.
-- Henry's window shades from the field smoothed over ±0.4 m, not the 20 cm mesh
-  facets that banded ridge slopes.
-- New shader globals `snow_settled_depth`, `snow_drift_m`, `snow_wind` and `snow_window`; the wind field's
-  alpha channel now carries the building footprint mask.
+Changed
+- Remove FREE, RECENTERING, drag, wheel and map buttons. The main TPS scene has
+  no free cursor, so the developer map now always follows Henry at 30 m.
+- Surface local OSM address numbers and unique road names from the frozen city
+  dataset. Labels are capped, refreshed around Henry and rendered above roofs.
 
-### 2026-09-30 - City-scale snow wind field (claudeflow)
+Isolation
+- Address/street text lives on map-only render layer 20. The debug map camera
+  includes it while the TPS camera masks it out, so labels never leak into the
+  production view.
 
-- `tools/world/bake_key_west_snow_wind.py` bakes `data/world/key_west/snow_wind.png`:
-  per 4 m cell, how prevailing (ESE) and storm (ENE) wind scour or bank settled
-  snow from upwind fetch, building shelter, street canyons, coast and deposition.
-- `SnowField` scales settled depth and drifts by that factor; local lee piles,
-  packing and footprints are unchanged. Abandoned cars capped at 500.
-- The snow window eases its depth out over 6 m instead of a dithered cut, so
-  deeper city snow meets terrain snow without a step; parking lots lie under snow.
-
-### 2026-09-30 - Key West lots, marinas, gates, golf and conch colours (claudeflow)
-
-- Prop, fence and wall collision streams with the city chunk Henry is in.
-- Parking lots with snowed-in abandoned cars; boats frozen in beside marina piers;
-  gates and red-and-white lift barriers; golf flags and tee markers.
-- OSM carries no Key West building colours, so facades use a faded conch palette
-  by building type; roofs are galvanised tin.
-- Landscape data renamed to `landscape.json` and now includes golf and marinas.
-
-### 2026-09-29 - Key West props collide, winter trees, typed fences (claudeflow)
-
-- Poles, signals, signs, benches, bins, hydrants, bollards, tanks, tree trunks
-  and cemetery vaults now have collision.
-- Broadleaf trees and scrub are bare for the winter; mapped woods are bare hardwood.
-- Fences take their OSM material: wood light brown, chain link grey, metal dark,
-  walls pale concrete; mapped hedges added.
-- Mapped power and distribution lines hang sagging wires; storage tanks and water
-  towers stand as cylinders; Key West Cemetery fills with whitewashed vaults.
-
-### 2026-09-29 - Key West street props and trees (claudeflow)
-
-- `KeyWestStreetProps` places mapped power poles, street lamps, traffic signals,
-  STOP signs, bus stops, benches, bins and zebra crossings as instanced simple
-  models facing the nearest road.
-- Trees, tree rows, woods and scrub come from Overture base/land
-  (`data/world/key_west/vegetation.json`, `tools/world/fetch_key_west_vegetation.py`);
-  palms 5–12 m after the Graciosa model, a quarter broadleaf.
-
-### 2026-09-29 - Snow window matches the terrain snow (claudeflow)
-
-- `snow_ground.gdshader` uses the terrain snow colour and roughness, so the
-  deformable window no longer reads as a grey square around Henry.
-
-### 2026-09-29 - Key West city meshes and shelter seating from the #138 audit (claudeflow)
-
-Fixed
-- City buildings face out whatever their OSM winding (48 % were inverted), sit
-  on one base height with walls sunk 0.3 m, and roofs meet their walls.
-- Pitched roofs follow the footprint's own box; odd lots keep a flat roof with
-  a parapet; gable ends are closed. Windows and awnings sit on the real wall.
-- Buildings (per active detail chunk) and mapped fences now have collision.
-- The First Exit shelter moved to a vacant Fort Street lot (no house or road
-  under its yard), porch to the street, seated by its stair foot with a walkable
-  ramp and a plinth; the shelter start is in front of the porch.
+### 2026-09-30 - Add debug diorama map foundation (codex)
 
 Added
-- `tests/systems/test_city_meshes.gd`; lot checks in `test_key_west_first_exit.gd`.
+- Debug-only 500 × 320 upper-left diorama map using a live shared-world
+  SubViewport camera: 30 m default height, 36° FOV, 64° pitch and 12° yaw.
+- FOLLOW, FREE and RECENTERING modes; drag enters free pan, wheel zooms from
+  18–60 m, CENTER smoothly returns to Henry, and a gold marker tracks him.
+- A focused headless state test plus an existing-workflow preview job that
+  captures full placement and map-only PNGs without running the GIS pipeline.
 
-### 2026-09-29 - Henry wades through deep snow (claudeflow)
+Notes
+- The tool self-removes from release builds and owns no gameplay/streaming state.
+  Its perspective camera creates the trapezoid; the viewport image is not warped.
 
-Added
-- `WadeModifier` on Henry's skeleton: in snow deeper than 10 cm the swinging
-  leg lifts its knee and folds its shin, and the torso leans into the effort,
-  fully at 28 cm. Swing is read from the foot moving forward in rig space, so
-  the push-off leg is left alone. `SnowShell` drives it from the snow depth.
-
-### 2026-09-29 - Deformable snow: one field, real contact, Henry wades (claudeflow)
-
-Added
-- `SnowField`: settled snow computed once on the CPU (5-25 cm cover, wind
-  drifts, lee piles behind obstacles, scoured windward slopes, none at the
-  water). Shaders and gameplay read the same numbers.
-- Real contact: an upward orthographic camera renders render layer 20 (Henry's
-  mesh, resting pickups) into a persistent packed-snow field. Prints are the
-  real boot shape at the real depth, capped at 85 % of the snowpack, with a
-  displaced rim; they fill back in with snowfall.
-- `MovementController.snow_speed_multiplier`: 1.0 on bare ground to 0.6 at 50 cm.
-- `tests/systems/test_snow_shell.gd` covers the field.
 ### 2026-09-30 - Make agent pre-task sync mandatory (codex)
 
 Changed

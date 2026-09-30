@@ -17,6 +17,11 @@ on:
       - "tools/runtime/capture_key_west.gd"
       - "tools/runtime/capture_key_west_tps.gd"
       - "tools/runtime/capture_key_west_first_exit.gd"
+      - "scripts/ui/debug/**"
+      - "scenes/ui/debug/**"
+      - "tools/runtime/capture_dev_diorama_map.gd"
+      - "tests/systems/test_dev_diorama_map.gd"
+      - ".github/workflows/checks.yml"
       - "scripts/world/key_west_first_exit.gd"
       - "scenes/world/key_west/key_west_first_exit.tscn"
       - "core/world/resources/world_profile.gd"
@@ -70,7 +75,7 @@ jobs:
         run: tools/ci/run_tests.sh
 
   color-grade-preview:
-    if: github.event_name == 'push' && !contains(github.event.head_commit.message, '[key-west-preview]') && !contains(github.event.head_commit.message, '[key-west-tps]') && !contains(github.event.head_commit.message, '[key-west-first-exit]')
+    if: github.event_name == 'push' && !contains(github.event.head_commit.message, '[key-west-preview]') && !contains(github.event.head_commit.message, '[key-west-tps]') && !contains(github.event.head_commit.message, '[key-west-first-exit]') && !contains(github.event.head_commit.message, '[dev-map-preview]')
     runs-on: ubuntu-latest
     timeout-minutes: 12
     steps:
@@ -106,6 +111,47 @@ jobs:
         with:
           name: rimewatch-color-grades
           path: docs/runtime_previews/color_grading/*.png
+          if-no-files-found: error
+          retention-days: 3
+
+  dev-map-preview:
+    if: github.event_name == 'push' && contains(github.event.head_commit.message, '[dev-map-preview]')
+    runs-on: ubuntu-latest
+    timeout-minutes: 12
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Cache Godot
+        uses: actions/cache@v4
+        with:
+          path: |
+            ~/.local/opt/godot-mono
+          key: godot-4.8-dev6-v2
+
+      - name: Provision Godot + CPU Vulkan
+        run: tools/ci/setup_env.sh
+
+      - name: Import gate
+        run: tools/ci/import_gate.sh
+
+      - name: Capture developer diorama map
+        run: |
+          export VK_DRIVER_FILES=/usr/share/vulkan/icd.d/lvp_icd.json
+          export XDG_RUNTIME_DIR=/tmp/xdg
+          mkdir -p "$XDG_RUNTIME_DIR"
+          xvfb-run -a "$HOME/.local/bin/godot" \
+            --path . \
+            --resolution 1600x1000 \
+            --rendering-driver vulkan \
+            --rendering-method forward_plus \
+            --audio-driver Dummy \
+            --script tools/runtime/capture_dev_diorama_map.gd
+
+      - name: Upload developer diorama previews
+        uses: actions/upload-artifact@v4
+        with:
+          name: rimewatch-dev-diorama-map
+          path: docs/runtime_previews/dev_diorama_map/*.png
           if-no-files-found: error
           retention-days: 3
 
