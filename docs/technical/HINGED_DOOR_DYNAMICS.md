@@ -1,32 +1,54 @@
 # Hinged door dynamics
 
-Hoarbound exterior doors use a deterministic one-degree-of-freedom hinge rather
-than a RigidBody3D/HingeJoint3D.
+HFN now uses Godot's physics solver for exterior doors instead of integrating a
+synthetic hinge angle in GDScript.
 
-The rendered leaf and its StaticBody3D remain under the same `door_hinge`.
-`Player.gd` calls `HingedDoor.apply_character_collisions()` only after
-`CharacterBody3D.move_and_slide()`; therefore body torque exists only when
-Henry actually collided with the leaf. Contact point, collision normal and the
-attempted player velocity produce torque around the hinge axis.
+## Model
 
-The leaf integrates:
+Legacy packed scenes are upgraded once at runtime:
 
-`player torque + wind torque + soft-stop spring - hinge damping`
+```text
+Hinge (fixed Node3D)
+├─ DoorBody (RigidBody3D)
+│  ├─ DoorLeaf
+│  ├─ DoorCollision
+│  ├─ HandleOutside
+│  └─ HandleInside
+└─ DoorHingeJoint (HingeJoint3D)
+```
 
-into `angular_velocity` and `current_angle_rad`. Angular speed is capped so
-the manually moving collider cannot sweep a large distance through Henry in one
-physics frame. The StaticBody stays collidable but does **not** receive constant
-surface velocity: doing that makes CharacterBody3D inherit the door's motion and
-feel pushed backward. Henry moves the door; the door does not act as a conveyor.
+The old StaticBody3D shape is transferred to the RigidBody3D and disabled on the
+legacy body before it is freed.
 
-F operates the latch only. A latched press releases the handle and gives enough
-initial angular velocity to settle near the authored 8–15 degree crack angle.
-A free door is pushed continuously by Henry; F latches it only inside
-`latch_angle_deg`.
+The HingeJoint has symmetric limits (`-open_angle_deg .. +open_angle_deg`).
+That is intentional: Henry can push the same leaf from either side of the
+doorway. There is no one-sided `0°` clamp anymore.
 
-Wind comes from the existing `WeatherController`: projected wind pressure
-(`speed^2`) acts at the leaf centre and becomes a deliberately weak hinge
-torque. Latched doors ignore all external torque.
+## Character contact
 
-`get_door_save_data()` / `load_door_save_data()` preserve partial angle,
-latch state and a clamped angular velocity without serializing physics nodes.
+`Player.gd` already calls `HingedDoor.apply_character_collisions()` after
+`move_and_slide()`. A real KinematicCollision3D supplies the contact point and
+normal. The door computes the player's velocity difference along the push
+normal and calls `RigidBody3D.apply_impulse()` at that contact point. The
+off-centre impulse creates hinge torque naturally; pushing near the hinge is
+weaker than pushing the free edge.
+
+F only freezes/unfreezes the latch. Releasing the handle applies a small impulse
+at the free edge away from Henry, so the initial crack direction follows the
+side he is standing on.
+
+Wind uses `RigidBody3D.apply_force()` at the leaf centre. A soft counter-torque
+near either angular limit damps the final approach while HingeJoint3D remains the
+hard constraint.
+
+## Godot references used for the design
+
+- RigidBody3D / Using RigidBody: physics-driven bodies should be moved with
+  forces and impulses rather than per-frame transform writes.
+- HingeJoint3D: constrains a RigidBody3D to a hinge and provides angular limits.
+- KinematicCollision3D: supplies global collision position and normal.
+- CharacterBody-to-RigidBody push patterns use `apply_impulse()` at
+  `collision_position - rigid_body.global_position`.
+
+We deliberately do not combine HingeJoint3D with angular axis locks because
+Godot/Jolt has had documented bugs with that configuration.

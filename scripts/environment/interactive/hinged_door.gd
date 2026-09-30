@@ -1,17 +1,19 @@
 class_name HingedDoor
 extends InteractiveArea
 
-## Continuous kinematic door model.
+## Physics door backed by Godot's actual rigid-body solver.
 ##
-## The leaf keeps its authored StaticBody3D under the same hinge as the mesh, so
-## Henry always collides with the actual visible leaf. The door itself integrates
-## one angular degree of freedom: real CharacterBody3D slide contacts, weather
-## pressure, hinge damping and the soft open stop all feed torque into the same
-## angular velocity. F only operates the latch; it is not an open/close animation.
+## Legacy HFN scenes still author:
+##   Hinge(Node3D) -> DoorLeaf(MeshInstance3D) -> StaticBody3D
+## At runtime that layout is upgraded once to:
+##   HingeAnchor(Node3D)
+##     -> DoorBody(RigidBody3D) -> DoorLeaf + CollisionShape3D + handles
+##     -> HingeJoint3D
 ##
-## This is deliberately not a RigidBody3D/HingeJoint3D. A deterministic scalar
-## hinge stays stable in headless tests, survives streaming/save restoration, and
-## keeps ShelterBreach/snow projection driven by the exact rendered transform.
+## Henry never drives a synthetic target angle. His real CharacterBody3D slide
+## collision applies an impulse at the actual contact point, so Godot creates
+## the torque around the hinge. The joint owns a symmetric angular range, which
+## is why the same body push works from both sides of the doorway.
 
 signal door_toggled(open: bool)
 signal latch_changed(latched: bool)
@@ -21,72 +23,71 @@ const CLOSE_KEY: String = "HOUSE_DOOR_CLOSE"
 const WEATHER_GROUP: StringName = &"weather_controller"
 
 @export_group("Door")
+## Public API kept for existing scenes/tools. After _ready this points at the
+## physical RigidBody3D rather than the legacy fixed Node3D anchor.
 @export var door_hinge: Node3D
-## Signed authored end stop. Positive is the current shelter-door swing direction;
-## a negative value supports a mirrored door without changing the dynamics code.
-@export_range(-140.0, 140.0, 1.0) var open_angle_deg: float = 105.0
+## Maximum swing in either direction from closed.
+@export_range(70.0, 125.0, 1.0) var open_angle_deg: float = 105.0
 @export var starts_open: bool = false
-## Kept for scene compatibility. It now controls the little lever feedback only.
 @export_range(0.0, 1.0, 0.05) var hand_delay: float = 0.2
-## Kept for older authored scenes; the leaf no longer uses a Tween.
+## Kept only for old scene compatibility; there is no Tween-driven leaf motion.
 @export_range(0.1, 1.5, 0.05) var swing_time: float = 0.45
-## A shut damaged door still leaks around its frame, but much less than an open
-## doorway. One multiplier drives both ThermalZone exposure and BreachDraft VFX.
 @export_range(0.0, 1.0, 0.05) var closed_breach_multiplier: float = 0.05
 @export var breach: ShelterBreach
 @export var opening_size: Vector2 = Vector2(1.5, 2.25)
 @export var latch_audio: AudioStreamPlayer3D
 
-@export_group("Hinge dynamics")
-## Effective rotational inertia, not kilograms. Higher values make body pushes
-## take longer to build angular speed.
-@export_range(0.5, 12.0, 0.1) var angular_inertia: float = 1.8
-## Viscous hinge friction in torque per rad/s.
-@export_range(0.0, 30.0, 0.1) var hinge_damping: float = 5.0
-## Converts Henry's real closing speed at a collision into force on the leaf.
-@export_range(0.0, 30.0, 0.1) var body_push_force_scale: float = 24.0
-## Prevents a moving kinematic collider from sweeping farther than Henry's capsule
-## can reasonably resolve in one physics tick.
-@export_range(20.0, 180.0, 1.0) var max_angular_speed_deg: float = 90.0
-@export_range(2.0, 25.0, 0.5) var soft_stop_zone_deg: float = 10.0
-@export_range(0.0, 100.0, 0.5) var soft_stop_spring: float = 34.0
-@export_range(0.0, 30.0, 0.5) var soft_stop_damping: float = 8.0
-@export_range(0.0, 0.5, 0.01) var stop_restitution: float = 0.08
-@export_range(0.0, 3.0, 0.05) var rest_velocity_deg: float = 0.25
+@export_group("Rigid hinge")
+## A timber exterior door is not weightless, but gameplay must let Henry's walk
+## move it without repeated shoves.
+@export_range(4.0, 40.0, 0.5) var door_mass_kg: float = 14.0
+@export_range(0.0, 10.0, 0.1) var angular_damping: float = 2.2
+@export_range(0.1, 8.0, 0.1) var body_push_impulse_scale: float = 2.8
+@export_range(1.0, 12.0, 0.25) var max_body_push_impulse: float = 7.0
+@export_range(30.0, 120.0, 1.0) var assumed_player_mass_kg: float = 75.0
+## Lower relaxation removes energy at the joint stop instead of making the door
+## chatter against the frame.
+@export_range(0.1, 1.0, 0.05) var limit_relaxation: float = 0.65
+@export_range(0.05, 0.8, 0.05) var limit_bias: float = 0.25
+@export_range(3.0, 20.0, 0.5) var soft_stop_zone_deg: float = 10.0
+@export_range(0.0, 80.0, 0.5) var soft_stop_spring: float = 18.0
+@export_range(0.0, 20.0, 0.5) var soft_stop_damping: float = 5.0
+@export_range(0.0, 3.0, 0.05) var rest_velocity_deg: float = 0.35
 
 @export_group("Latch / handle")
-@export_range(5.0, 20.0, 0.5) var handle_crack_deg: float = 11.0
+@export_range(0.2, 8.0, 0.1) var handle_release_impulse: float = 3.0
 @export_range(1.0, 10.0, 0.5) var latch_angle_deg: float = 5.0
 @export_range(0.5, 6.0, 0.25) var closed_threshold_deg: float = 2.0
 @export_range(0.05, 0.35, 0.01) var handle_focus_radius: float = 0.18
 
 @export_group("Wind")
 @export var weather_controller: WeatherController
-## Scales v^2 pressure into a deliberately weak atmospheric torque.
-@export_range(0.0, 0.03, 0.0005) var wind_torque_scale: float = 0.004
+## Maps v^2 pressure into a deliberately weak force at the leaf centre.
+@export_range(0.0, 0.10, 0.001) var wind_force_scale: float = 0.018
 
 var current_angle_rad: float = 0.0
 var angular_velocity: float = 0.0
 
+var _hinge_anchor: Node3D
+var _door_body: RigidBody3D
+var _joint: HingeJoint3D
 var _leaf: MeshInstance3D
 var _latched: bool = true
 var _semantic_open: bool = false
-var _pending_torque: float = 0.0
 
 
 func _ready() -> void:
 	interaction_type = InteractionType.DOOR
 	_latched = not starts_open
-	current_angle_rad = deg_to_rad(open_angle_deg) if starts_open else 0.0
-	angular_velocity = 0.0
-	if door_hinge != null:
-		_ensure_two_sided_handles()
-		_leaf = door_hinge.get_node_or_null(^"DoorLeaf") as MeshInstance3D
+	_hinge_anchor = door_hinge
+	if _hinge_anchor != null:
+		_leaf = _hinge_anchor.get_node_or_null(^"DoorLeaf") as MeshInstance3D
 		if _leaf == null:
-			_leaf = door_hinge.find_child("DoorLeaf", true, false) as MeshInstance3D
-		_apply_hinge_angle()
+			_leaf = _hinge_anchor.find_child("DoorLeaf", true, false) as MeshInstance3D
+		_upgrade_to_rigid_hinge()
+		_ensure_two_sided_handles()
 		_add_snow_blockers()
-		StylizedEnvironmentMaterial.apply_to_tree(door_hinge)
+		StylizedEnvironmentMaterial.apply_to_tree(_door_body if _door_body != null else _hinge_anchor)
 	if breach != null:
 		add_to_group(&"snow_doors")
 		breach.boardable = false
@@ -95,11 +96,108 @@ func _ready() -> void:
 		breach.opening_height_m = opening_size.y
 		breach.global_transform = global_transform * Transform3D(Basis(Vector3.UP, PI), Vector3.ZERO)
 	super()
+	if _door_body != null:
+		if starts_open:
+			_latched = false
+			_set_body_angle(deg_to_rad(minf(open_angle_deg * 0.75, 80.0)))
+			_door_body.freeze = false
+			_door_body.can_sleep = false
+			_door_body.sleeping = false
+		else:
+			_set_latched_physics(true)
+	_update_motion_state()
 	_semantic_open = is_open()
 	_sync_breach_exposure()
 	_refresh_prompt()
 	call_deferred("_sync_breach")
 	call_deferred("_resolve_weather_controller")
+
+
+func _upgrade_to_rigid_hinge() -> void:
+	if _hinge_anchor == null:
+		return
+	if _hinge_anchor is RigidBody3D:
+		_door_body = _hinge_anchor as RigidBody3D
+		door_hinge = _door_body
+		_joint = _door_body.get_parent().find_child("DoorHingeJoint", false, false) as HingeJoint3D
+		_configure_body()
+		return
+	if _leaf == null:
+		push_error("HingedDoor: DoorLeaf missing under hinge")
+		return
+
+	var legacy_body := _leaf.find_child("*", "StaticBody3D", true, false) as StaticBody3D
+	var legacy_shape: CollisionShape3D = null
+	var legacy_shape_global := Transform3D.IDENTITY
+	var shape_resource: Shape3D = null
+	if legacy_body != null:
+		legacy_shape = legacy_body.find_child("*", "CollisionShape3D", true, false) as CollisionShape3D
+		if legacy_shape != null:
+			legacy_shape_global = legacy_shape.global_transform
+			shape_resource = legacy_shape.shape
+			legacy_shape.disabled = true
+
+	_door_body = RigidBody3D.new()
+	_door_body.name = "DoorBody"
+	_door_body.transform = Transform3D.IDENTITY
+	_hinge_anchor.add_child(_door_body)
+	_configure_body()
+
+	var leaf_global: Transform3D = _leaf.global_transform
+	_leaf.reparent(_door_body, true)
+	_leaf.global_transform = leaf_global
+
+	var physical_shape := CollisionShape3D.new()
+	physical_shape.name = "DoorCollision"
+	if shape_resource != null:
+		physical_shape.shape = shape_resource
+	else:
+		var fallback := BoxShape3D.new()
+		fallback.size = _leaf.get_aabb().size
+		physical_shape.shape = fallback
+		legacy_shape_global = _leaf.global_transform * Transform3D(
+			Basis.IDENTITY,
+			_leaf.get_aabb().get_center()
+		)
+	_door_body.add_child(physical_shape)
+	physical_shape.global_transform = legacy_shape_global
+
+	if legacy_body != null:
+		legacy_body.queue_free()
+
+	_joint = HingeJoint3D.new()
+	_joint.name = "DoorHingeJoint"
+	_hinge_anchor.add_child(_joint)
+	## HingeJoint3D's hinge axis is its local Z axis. Rotate local Z onto the
+	## authored vertical Y hinge.
+	_joint.rotation.x = -PI * 0.5
+	_joint.node_a = _joint.get_path_to(_door_body)
+	_joint.set_flag(HingeJoint3D.FLAG_USE_LIMIT, true)
+	var limit: float = deg_to_rad(absf(open_angle_deg))
+	_joint.set_param(HingeJoint3D.PARAM_LIMIT_LOWER, -limit)
+	_joint.set_param(HingeJoint3D.PARAM_LIMIT_UPPER, limit)
+	_joint.set_param(HingeJoint3D.PARAM_LIMIT_RELAXATION, limit_relaxation)
+	_joint.set_param(HingeJoint3D.PARAM_LIMIT_BIAS, limit_bias)
+	_joint.exclude_nodes_from_collision = true
+
+	## Preserve the old public field: callers reading door_hinge.rotation.y now
+	## read the actual rigid leaf angle.
+	door_hinge = _door_body
+
+
+func _configure_body() -> void:
+	if _door_body == null:
+		return
+	_door_body.mass = door_mass_kg
+	_door_body.gravity_scale = 0.0
+	_door_body.angular_damp = angular_damping
+	_door_body.linear_damp = 8.0
+	_door_body.can_sleep = false
+	_door_body.continuous_cd = true
+	var material := PhysicsMaterial.new()
+	material.friction = 0.35
+	material.bounce = 0.0
+	_door_body.physics_material_override = material
 
 
 func is_open() -> bool:
@@ -117,74 +215,55 @@ func get_current_angle_deg() -> float:
 func is_swinging() -> bool:
 	return (
 		not _latched
-		and (
-			absf(angular_velocity) > deg_to_rad(rest_velocity_deg)
-			or absf(_pending_torque) > 0.001
-		)
+		and _door_body != null
+		and absf(_door_body.angular_velocity.dot(_hinge_axis())) > deg_to_rad(rest_velocity_deg)
 	)
 
 
 func can_interact() -> bool:
-	if not super() or door_hinge == null:
+	if not super() or _door_body == null:
 		return false
-	## F belongs to the latch. Once the leaf is freely open, Henry controls it
-	## with his body rather than repeatedly toggling an animation.
 	return _latched or absf(current_angle_rad) <= deg_to_rad(latch_angle_deg)
 
 
 func _on_interaction_performed() -> void:
+	if _door_body == null:
+		return
 	if _latched:
-		_set_latched(false)
-		## An ideal viscous hinge travels v0 / (damping / inertia) before resting.
-		## Choose v0 from the authored crack angle so F naturally settles around
-		## 8–15 degrees without a hidden Tween target.
-		var damping_rate: float = hinge_damping / maxf(angular_inertia, 0.001)
-		var crack_speed: float = deg_to_rad(handle_crack_deg) * maxf(damping_rate, 0.5)
-		var sign_open: float = _open_sign()
-		var along_open: float = angular_velocity * sign_open
-		angular_velocity = maxf(along_open, crack_speed) * sign_open
+		_set_latched_physics(false)
+		_release_handle_away_from_player()
 		_refresh_prompt()
 		return
 	if absf(current_angle_rad) <= deg_to_rad(latch_angle_deg):
-		_set_latched(true)
+		_set_latched_physics(true)
 
 
 func _get_interaction_text() -> String:
 	return "[%s] %s" % [_interact_key_label(), tr(OPEN_KEY if _latched else CLOSE_KEY)]
 
 
-func _physics_process(delta: float) -> void:
-	if door_hinge == null or delta <= 0.0:
+func _physics_process(_delta: float) -> void:
+	if _door_body == null:
 		return
-	if _latched:
-		current_angle_rad = 0.0
-		angular_velocity = 0.0
-		_pending_torque = 0.0
-		_apply_hinge_angle()
-		return
-
-	var torque: float = _pending_torque
-	_pending_torque = 0.0
-	torque += _wind_torque()
-	torque += _soft_stop_torque()
-	torque -= angular_velocity * hinge_damping
-
-	angular_velocity += (torque / maxf(angular_inertia, 0.001)) * delta
-	var max_speed: float = deg_to_rad(max_angular_speed_deg)
-	angular_velocity = clampf(angular_velocity, -max_speed, max_speed)
-	current_angle_rad += angular_velocity * delta
-	_enforce_angle_limits()
-
-	if absf(angular_velocity) < deg_to_rad(rest_velocity_deg) and absf(torque) < 0.01:
-		angular_velocity = 0.0
-
-	_apply_hinge_angle()
+	_update_motion_state()
+	if not _latched:
+		_apply_wind_force()
+		_apply_soft_stop_force()
 	_sync_breach_exposure()
 	_update_semantic_open()
 
 
-## Production contact seam. Player.gd calls this only after move_and_slide(), so
-## merely holding W near the door cannot create torque without a real collision.
+func _update_motion_state() -> void:
+	if _door_body == null:
+		current_angle_rad = 0.0
+		angular_velocity = 0.0
+		return
+	current_angle_rad = wrapf(_door_body.rotation.y, -PI, PI)
+	angular_velocity = _door_body.angular_velocity.dot(_hinge_axis())
+
+
+## CharacterBody3D does not need to become a physics-driven player. It reports
+## the collision; the rigid door receives an impulse at that real contact point.
 static func apply_character_collisions(body: CharacterBody3D, attempted_velocity: Vector3) -> void:
 	if body == null:
 		return
@@ -217,137 +296,149 @@ static func _door_from_collider(collider: Variant) -> HingedDoor:
 	return null
 
 
-## Converts one actual CharacterBody contact into torque around the authored hinge.
 func apply_body_contact(
 		_body: CharacterBody3D,
 		contact_point: Vector3,
 		attempted_velocity: Vector3,
 		collision_normal: Vector3
 	) -> void:
-	if _latched or door_hinge == null:
+	if _latched or _door_body == null:
 		return
 	var normal: Vector3 = collision_normal
 	normal.y = 0.0
 	if normal.length_squared() < 0.0001:
 		return
 	normal = normal.normalized()
-	var velocity_flat: Vector3 = attempted_velocity
-	velocity_flat.y = 0.0
-	var closing_speed: float = maxf(0.0, -velocity_flat.dot(normal))
-	if closing_speed <= 0.01:
+	var push_dir: Vector3 = -normal
+
+	var player_velocity: Vector3 = attempted_velocity
+	player_velocity.y = 0.0
+	var body_velocity: Vector3 = _door_body.linear_velocity
+	body_velocity.y = 0.0
+	var velocity_difference: float = player_velocity.dot(push_dir) - body_velocity.dot(push_dir)
+	if velocity_difference <= 0.01:
 		return
 
-	var force: Vector3 = -normal * closing_speed * body_push_force_scale
-	var lever: Vector3 = contact_point - door_hinge.global_position
-	lever.y = 0.0
-	var axis: Vector3 = door_hinge.global_basis.y.normalized()
-	_pending_torque += lever.cross(force).dot(axis)
+	var mass_ratio: float = minf(1.0, assumed_player_mass_kg / maxf(_door_body.mass, 0.01))
+	var magnitude: float = minf(
+		velocity_difference * body_push_impulse_scale * mass_ratio,
+		max_body_push_impulse
+	)
+	if magnitude <= 0.001:
+		return
+	_door_body.sleeping = false
+	_door_body.apply_impulse(push_dir * magnitude, contact_point - _door_body.global_position)
 
 
-## Deterministic seam for tests and authored environment impulses.
+## Test/environment seam. Production wind uses apply_force below.
 func apply_external_torque(torque: float) -> void:
-	if not _latched:
-		_pending_torque += torque
+	if _latched or _door_body == null:
+		return
+	_door_body.sleeping = false
+	_door_body.apply_torque(_hinge_axis() * torque)
 
 
-func _wind_torque() -> float:
-	if _latched or not is_instance_valid(weather_controller) or door_hinge == null or _leaf == null:
-		return 0.0
+func _release_handle_away_from_player() -> void:
+	if _door_body == null or _leaf == null:
+		return
+	var normal: Vector3 = _door_body.global_basis.z
+	normal.y = 0.0
+	normal = normal.normalized() if normal.length_squared() > 0.0001 else global_basis.z.normalized()
+	var side: float = 1.0
+	if is_instance_valid(player_reference):
+		side = signf((player_reference.global_position - _door_body.global_position).dot(normal))
+		if is_zero_approx(side):
+			side = 1.0
+	var away: Vector3 = -normal * side
+	var bounds: AABB = _leaf.get_aabb()
+	var free_edge_local := Vector3(bounds.end.x - 0.04, bounds.get_center().y, bounds.get_center().z)
+	var free_edge: Vector3 = _leaf.to_global(free_edge_local)
+	_door_body.apply_impulse(away * handle_release_impulse, free_edge - _door_body.global_position)
+
+
+func _apply_wind_force() -> void:
+	if not is_instance_valid(weather_controller) or _door_body == null or _leaf == null:
+		return
 	var speed: float = maxf(weather_controller.get_wind_speed_mps(), 0.0)
 	if speed < 0.1:
-		return 0.0
+		return
 	var wind: Vector3 = weather_controller.get_wind_direction()
 	wind.y = 0.0
 	if wind.length_squared() < 0.0001:
-		return 0.0
+		return
 	wind = wind.normalized()
-
-	var normal: Vector3 = door_hinge.global_basis.z
+	var normal: Vector3 = _door_body.global_basis.z
 	normal.y = 0.0
 	if normal.length_squared() < 0.0001:
-		return 0.0
+		return
 	normal = normal.normalized()
 	var incidence: float = wind.dot(normal)
 	if absf(incidence) < 0.01:
-		return 0.0
-
+		return
 	var bounds: AABB = _leaf.get_aabb()
 	var centre: Vector3 = _leaf.to_global(bounds.get_center())
-	var lever: Vector3 = centre - door_hinge.global_position
-	lever.y = 0.0
-	var force: Vector3 = normal * incidence * speed * speed * wind_torque_scale
-	return lever.cross(force).dot(door_hinge.global_basis.y.normalized())
+	var force: Vector3 = normal * incidence * speed * speed * wind_force_scale
+	_door_body.apply_force(force, centre - _door_body.global_position)
 
 
-func _soft_stop_torque() -> float:
-	var maximum: float = absf(deg_to_rad(open_angle_deg))
-	if maximum <= 0.0001:
-		return 0.0
-	var sign_open: float = _open_sign()
-	var travel: float = current_angle_rad * sign_open
-	var zone: float = minf(deg_to_rad(soft_stop_zone_deg), maximum)
-	var start: float = maximum - zone
-	if travel <= start:
-		return 0.0
-	var compression: float = travel - start
-	var velocity_along: float = angular_velocity * sign_open
-	var oppose: float = compression * soft_stop_spring
-	if velocity_along > 0.0:
-		oppose += velocity_along * soft_stop_damping
-	return -oppose * sign_open
-
-
-func _enforce_angle_limits() -> void:
-	var sign_open: float = _open_sign()
-	var maximum: float = absf(deg_to_rad(open_angle_deg))
-	var travel: float = current_angle_rad * sign_open
-	var velocity_along: float = angular_velocity * sign_open
-	if travel < 0.0:
-		current_angle_rad = 0.0
-		if velocity_along < 0.0:
-			velocity_along = -velocity_along * stop_restitution
-			angular_velocity = velocity_along * sign_open
-	elif travel > maximum:
-		current_angle_rad = maximum * sign_open
-		if velocity_along > 0.0:
-			velocity_along = -velocity_along * stop_restitution
-			angular_velocity = velocity_along * sign_open
-
-
-func _open_sign() -> float:
-	var value: float = signf(open_angle_deg)
-	return value if not is_zero_approx(value) else 1.0
-
-
-func _apply_hinge_angle() -> void:
-	if door_hinge == null:
+func _apply_soft_stop_force() -> void:
+	if _door_body == null:
 		return
-	door_hinge.rotation.y = current_angle_rad
-	if door_hinge.is_inside_tree():
-		door_hinge.force_update_transform()
-
-
-## The authored StaticBody3D remains the collision authority, but it deliberately
-## carries no constant surface velocity. Feeding hinge velocity back through a
-## StaticBody makes CharacterBody3D treat the leaf like a moving wall and pushes
-## Henry away instead of letting his real contact torque open it.
-
-func _set_latched(value: bool) -> void:
-	if _latched == value:
+	var limit: float = deg_to_rad(absf(open_angle_deg))
+	var zone: float = minf(deg_to_rad(soft_stop_zone_deg), limit)
+	var start: float = limit - zone
+	var magnitude: float = absf(current_angle_rad)
+	if magnitude <= start:
 		return
+	var outward_sign: float = signf(current_angle_rad)
+	if is_zero_approx(outward_sign):
+		return
+	var outward_speed: float = angular_velocity * outward_sign
+	var restoring: float = (magnitude - start) * soft_stop_spring
+	if outward_speed > 0.0:
+		restoring += outward_speed * soft_stop_damping
+	_door_body.apply_torque(_hinge_axis() * (-outward_sign * restoring))
+
+
+func _hinge_axis() -> Vector3:
+	var anchor: Node3D = _hinge_anchor if is_instance_valid(_hinge_anchor) else self
+	var axis: Vector3 = anchor.global_basis.y
+	return axis.normalized() if axis.length_squared() > 0.0001 else Vector3.UP
+
+
+func _set_latched_physics(value: bool) -> void:
+	if _door_body == null:
+		return
+	var changed: bool = _latched != value
 	_latched = value
 	if _latched:
-		current_angle_rad = 0.0
-		angular_velocity = 0.0
-		_pending_torque = 0.0
-		_apply_hinge_angle()
-		_sync_breach_exposure()
+		_door_body.freeze = true
+		_door_body.linear_velocity = Vector3.ZERO
+		_door_body.angular_velocity = Vector3.ZERO
+		_set_body_angle(0.0)
+	else:
+		_door_body.freeze = false
+		_door_body.can_sleep = false
+		_door_body.sleeping = false
+	_update_motion_state()
+	_sync_breach_exposure()
 	_update_semantic_open()
 	_refresh_prompt()
-	_pulse_handles(_latched)
-	if is_instance_valid(latch_audio):
-		latch_audio.play()
-	latch_changed.emit(_latched)
+	if changed:
+		_pulse_handles(_latched)
+		if is_instance_valid(latch_audio):
+			latch_audio.play()
+		latch_changed.emit(_latched)
+
+
+func _set_body_angle(angle: float) -> void:
+	if _door_body == null:
+		return
+	var clamped: float = clampf(angle, -deg_to_rad(absf(open_angle_deg)), deg_to_rad(absf(open_angle_deg)))
+	var t: Transform3D = _door_body.transform
+	t.basis = Basis(Vector3.UP, clamped)
+	_door_body.transform = t
+	current_angle_rad = clamped
 
 
 func _update_semantic_open() -> void:
@@ -369,13 +460,11 @@ func set_weather_controller(controller: WeatherController) -> void:
 	weather_controller = controller
 
 
-## Small lever snap is the visual latch feedback. Audio is optional and can be
-## authored later without coupling the mechanical model to a sound asset.
 func _pulse_handles(latched: bool) -> void:
-	if door_hinge == null or not is_inside_tree():
+	if _door_body == null or not is_inside_tree():
 		return
 	for handle_name: StringName in [&"HandleOutside", &"HandleInside"]:
-		var handle := door_hinge.get_node_or_null(NodePath(handle_name)) as Node3D
+		var handle := _door_body.get_node_or_null(NodePath(handle_name)) as Node3D
 		if handle == null:
 			continue
 		var lever := handle.get_node_or_null(^"Lever") as Node3D
@@ -389,10 +478,10 @@ func _pulse_handles(latched: bool) -> void:
 
 
 func get_preferred_handle_position(from: Vector3) -> Vector3:
-	if door_hinge == null:
+	if _door_body == null:
 		return global_position
-	var outside := door_hinge.get_node_or_null(^"HandleOutside") as Node3D
-	var inside := door_hinge.get_node_or_null(^"HandleInside") as Node3D
+	var outside := _door_body.get_node_or_null(^"HandleOutside") as Node3D
+	var inside := _door_body.get_node_or_null(^"HandleInside") as Node3D
 	if outside == null:
 		return inside.global_position if inside != null else global_position
 	if inside == null:
@@ -400,15 +489,13 @@ func get_preferred_handle_position(from: Vector3) -> Vector3:
 	return outside.global_position if from.distance_squared_to(outside.global_position) <= from.distance_squared_to(inside.global_position) else inside.global_position
 
 
-## Ray/sphere test around the actual near-side handle. InteractComponent uses this
-## instead of accepting a ray anywhere on the large door interaction Area.
 func get_handle_aim_distance(from: Vector3, direction: Vector3) -> float:
-	if door_hinge == null or direction.length_squared() < 0.0001:
+	if _door_body == null or direction.length_squared() < 0.0001:
 		return INF
 	var ray: Vector3 = direction.normalized()
 	var best: float = INF
 	for handle_name: StringName in [&"HandleOutside", &"HandleInside"]:
-		var handle := door_hinge.get_node_or_null(NodePath(handle_name)) as Node3D
+		var handle := _door_body.get_node_or_null(NodePath(handle_name)) as Node3D
 		if handle == null:
 			continue
 		var offset: Vector3 = handle.global_position - from
@@ -421,10 +508,8 @@ func get_handle_aim_distance(from: Vector3, direction: Vector3) -> float:
 	return best
 
 
-## Save seam: shelter persistence can keep a partially open, unlatched door without
-## serializing physics nodes. Loaded angular speed is clamped to avoid a save
-## spawning a violently moving leaf.
 func get_door_save_data() -> Dictionary:
+	_update_motion_state()
 	return {
 		"angle_deg": rad_to_deg(current_angle_rad),
 		"angular_velocity_deg": rad_to_deg(angular_velocity),
@@ -433,20 +518,24 @@ func get_door_save_data() -> Dictionary:
 
 
 func load_door_save_data(data: Dictionary) -> void:
-	_latched = bool(data.get("latched", true))
-	var sign_open: float = _open_sign()
-	var maximum: float = absf(open_angle_deg)
-	var loaded_angle: float = float(data.get("angle_deg", 0.0))
-	var travel: float = clampf(loaded_angle * sign_open, 0.0, maximum)
-	current_angle_rad = deg_to_rad(travel * sign_open)
-	var loaded_speed: float = float(data.get("angular_velocity_deg", 0.0))
-	var safe_speed: float = max_angular_speed_deg * 0.35
-	angular_velocity = deg_to_rad(clampf(loaded_speed, -safe_speed, safe_speed))
+	if _door_body == null:
+		return
+	var loaded_latched: bool = bool(data.get("latched", true))
+	var limit: float = absf(open_angle_deg)
+	var loaded_angle: float = clampf(float(data.get("angle_deg", 0.0)), -limit, limit)
+	_door_body.freeze = true
+	_set_body_angle(deg_to_rad(loaded_angle))
+	var loaded_speed: float = clampf(float(data.get("angular_velocity_deg", 0.0)), -90.0, 90.0)
+	_door_body.angular_velocity = _hinge_axis() * deg_to_rad(loaded_speed)
+	_latched = loaded_latched
 	if _latched:
-		current_angle_rad = 0.0
-		angular_velocity = 0.0
-	_pending_torque = 0.0
-	_apply_hinge_angle()
+		_set_body_angle(0.0)
+		_door_body.angular_velocity = Vector3.ZERO
+	else:
+		_door_body.freeze = false
+		_door_body.can_sleep = false
+		_door_body.sleeping = false
+	_update_motion_state()
 	_semantic_open = is_open()
 	_sync_breach_exposure()
 	_refresh_prompt()
@@ -458,12 +547,11 @@ func _sync_breach() -> void:
 
 
 func _sync_breach_exposure() -> void:
-	if breach != null and door_hinge != null:
-		var aperture: float = 1.0 - clampf(cos(current_angle_rad), 0.0, 1.0)
+	if breach != null:
+		var aperture: float = 1.0 - clampf(cos(absf(current_angle_rad)), 0.0, 1.0)
 		breach.set_exposure_multiplier(lerpf(closed_breach_multiplier, 1.0, aperture))
 
 
-## Four non-overlapping strips subtract the projected leaf from the actual doorway.
 func get_draft_regions() -> Array[AABB]:
 	var result: Array[AABB] = []
 	if breach == null or _leaf == null:
@@ -516,25 +604,27 @@ func _refresh_prompt() -> void:
 
 
 func _ensure_two_sided_handles() -> void:
-	if door_hinge == null:
+	if _door_body == null or _leaf == null or _leaf.mesh == null:
 		return
-	var leaf := door_hinge.get_node_or_null(^"DoorLeaf") as MeshInstance3D
-	if leaf == null or leaf.mesh == null:
-		return
-	var bounds := leaf.get_aabb()
-	var free_edge_x: float = leaf.position.x + bounds.position.x + bounds.size.x - 0.18
-	var face_z: float = maxf(bounds.size.z * 0.5 + 0.025, 0.065)
-	if not door_hinge.has_node(^"HandleOutside"):
-		_make_handle_side(&"HandleOutside", free_edge_x, face_z)
-	if not door_hinge.has_node(^"HandleInside"):
-		_make_handle_side(&"HandleInside", free_edge_x, -face_z)
+	var bounds := _leaf.get_aabb()
+	var free_edge_global: Vector3 = _leaf.to_global(
+		Vector3(bounds.end.x - 0.18, bounds.get_center().y, bounds.get_center().z)
+	)
+	var free_edge_local: Vector3 = _door_body.to_local(free_edge_global)
+	var face_offset: float = maxf(bounds.size.z * 0.5 + 0.025, 0.065)
+	var face_axis: Vector3 = _door_body.global_basis.z.normalized()
+	if not _door_body.has_node(^"HandleOutside"):
+		_make_handle_side(&"HandleOutside", free_edge_local, face_axis * face_offset)
+	if not _door_body.has_node(^"HandleInside"):
+		_make_handle_side(&"HandleInside", free_edge_local, -face_axis * face_offset)
 
 
-func _make_handle_side(node_name: StringName, x: float, z: float) -> void:
+func _make_handle_side(node_name: StringName, base_local: Vector3, world_face_offset: Vector3) -> void:
 	var root := Node3D.new()
 	root.name = node_name
-	root.position = Vector3(x, 0.0, z)
-	door_hinge.add_child(root)
+	var offset_local: Vector3 = _door_body.global_basis.inverse() * world_face_offset
+	root.position = base_local + offset_local
+	_door_body.add_child(root)
 	var brass := StylizedEnvironmentMaterial.make(
 		Color(0.40, 0.31, 0.16),
 		0.38,
@@ -551,7 +641,7 @@ func _make_handle_side(node_name: StringName, x: float, z: float) -> void:
 	root.add_child(plate)
 	var lever := MeshInstance3D.new()
 	lever.name = "Lever"
-	lever.position = Vector3(-0.11, 0.0, signf(z) * 0.035)
+	lever.position = Vector3(-0.11, 0.0, signf(root.position.z) * 0.035)
 	var lever_mesh := BoxMesh.new()
 	lever_mesh.size = Vector3(0.28, 0.055, 0.055)
 	lever.mesh = lever_mesh
@@ -559,7 +649,6 @@ func _make_handle_side(node_name: StringName, x: float, z: float) -> void:
 	root.add_child(lever)
 
 
-## Both snowfall layers and aperture drafts share the current leaf/frame transforms.
 func apply_snow_barrier(material: ShaderMaterial) -> void:
 	material.set_shader_parameter("snow_door_enabled", is_instance_valid(_leaf))
 	if not is_instance_valid(_leaf):
