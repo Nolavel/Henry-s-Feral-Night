@@ -5,6 +5,43 @@ Maintained per branch; entries are added by whoever makes the change.
 
 ## [Unreleased] — `codex`
 
+### 2026-09-30 - Gate the developer map behind World and M (codex)
+
+Changed
+- Add exported `World.enable_runtime_dev_map`, default false. Authorized debug
+  worlds start with the map hidden and physical M toggles it; disabled worlds
+  ignore the same edge completely.
+- Route M through InputSystems as `toggle_dev_map`, preserving the project's
+  single input reader. The map only processes while visible.
+- Preview capture enables the export explicitly so CI keeps validating the tool.
+
+### 2026-09-30 - Make the developer map follow-only and label the city (codex)
+
+Changed
+- Remove FREE, RECENTERING, drag, wheel and map buttons. The main TPS scene has
+  no free cursor, so the developer map now always follows Henry at 30 m.
+- Surface local OSM address numbers and unique road names from the frozen city
+  dataset. Labels are capped, refreshed around Henry and rendered above roofs.
+
+Isolation
+- Address/street text lives on map-only render layer 20. The debug map camera
+  includes it while the TPS camera masks it out, so labels never leak into the
+  production view.
+
+### 2026-09-30 - Add debug diorama map foundation (codex)
+
+Added
+- Debug-only 500 × 320 upper-left diorama map using a live shared-world
+  SubViewport camera: 30 m default height, 36° FOV, 64° pitch and 12° yaw.
+- FOLLOW, FREE and RECENTERING modes; drag enters free pan, wheel zooms from
+  18–60 m, CENTER smoothly returns to Henry, and a gold marker tracks him.
+- A focused headless state test plus an existing-workflow preview job that
+  captures full placement and map-only PNGs without running the GIS pipeline.
+
+Notes
+- The tool self-removes from release builds and owns no gameplay/streaming state.
+  Its perspective camera creates the trapezoid; the viewport image is not warped.
+
 ### 2026-09-30 - Make agent pre-task sync mandatory (codex)
 
 Changed

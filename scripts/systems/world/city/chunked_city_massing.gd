@@ -270,6 +270,87 @@ func set_chunk_grid_visible(enabled: bool) -> void:
 		_grid_node.visible = enabled
 
 
+func get_map_label_entries(
+	point: Vector2,
+	radius_m: float = 95.0,
+	max_house_numbers: int = 22,
+	max_street_names: int = 8
+) -> Array[Dictionary]:
+	var entries: Array[Dictionary] = []
+	var house_candidates: Array[Dictionary] = []
+	for index: int in range(_buildings.size()):
+		if _excluded_building_ids.has(index):
+			continue
+		var building := _buildings[index] as Dictionary
+		var metadata: Dictionary = building.get("metadata", {})
+		var number: String = String(metadata.get("addr:housenumber", "")).strip_edges()
+		if number.is_empty():
+			continue
+		var proxy: Dictionary = building.get("proxy", {})
+		var position := Vector2(float(proxy.get("x", 0.0)), float(proxy.get("z", 0.0)))
+		var distance: float = position.distance_to(point)
+		if distance > radius_m:
+			continue
+		var ground: float = maxf(terrain.get_height(position.x, position.y), 0.0) if terrain != null else 0.0
+		var height: float = KeyWestCityVisuals.effective_height(building, _enrichment)
+		house_candidates.append({
+			"distance": distance,
+			"kind": &"house",
+			"text": number,
+			"position": Vector3(position.x, ground + height + 1.8, position.y),
+		})
+	house_candidates.sort_custom(func(a: Dictionary, b: Dictionary) -> bool:
+		return float(a["distance"]) < float(b["distance"])
+	)
+	for i: int in range(mini(max_house_numbers, house_candidates.size())):
+		entries.append(house_candidates[i])
+
+	var best_by_street: Dictionary = {}
+	for road_variant: Variant in _roads:
+		var road := road_variant as Dictionary
+		var name: String = String(road.get("name", "")).strip_edges()
+		if name.is_empty():
+			continue
+		var points: Array = road.get("points", [])
+		if points.size() < 2:
+			continue
+		var best_distance: float = INF
+		var best_position := Vector2.ZERO
+		for i: int in range(points.size() - 1):
+			var a_values := points[i] as Array
+			var b_values := points[i + 1] as Array
+			if a_values.size() < 2 or b_values.size() < 2:
+				continue
+			var a := Vector2(float(a_values[0]), float(a_values[1]))
+			var b := Vector2(float(b_values[0]), float(b_values[1]))
+			var middle := a.lerp(b, 0.5)
+			var distance: float = middle.distance_to(point)
+			if distance < best_distance:
+				best_distance = distance
+				best_position = middle
+		if best_distance > radius_m:
+			continue
+		var previous: Dictionary = best_by_street.get(name, {})
+		if previous.is_empty() or best_distance < float(previous.get("distance", INF)):
+			var ground: float = maxf(terrain.get_height(best_position.x, best_position.y), 0.0) if terrain != null else 0.0
+			best_by_street[name] = {
+				"distance": best_distance,
+				"kind": &"street",
+				"text": name,
+				"position": Vector3(best_position.x, ground + 2.4, best_position.y),
+			}
+
+	var street_candidates: Array[Dictionary] = []
+	for street_variant: Variant in best_by_street.values():
+		street_candidates.append(street_variant as Dictionary)
+	street_candidates.sort_custom(func(a: Dictionary, b: Dictionary) -> bool:
+		return float(a["distance"]) < float(b["distance"])
+	)
+	for i: int in range(mini(max_street_names, street_candidates.size())):
+		entries.append(street_candidates[i])
+	return entries
+
+
 func show_metadata_labels(point: Vector2, radius_m: float = 500.0) -> void:
 	clear_metadata_labels()
 	_labels_node = Node3D.new()
