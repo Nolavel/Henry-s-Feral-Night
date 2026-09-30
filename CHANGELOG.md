@@ -5,6 +5,15 @@ Maintained per branch; entries are added by whoever makes the change.
 
 ## [Unreleased] — `codex`
 
+### 2026-09-30 - Key West lots, marinas, gates, golf and conch colours (claudeflow)
+
+- Prop, fence and wall collision streams with the city chunk Henry is in.
+- Parking lots with snowed-in abandoned cars; boats frozen in beside marina piers;
+  gates and red-and-white lift barriers; golf flags and tee markers.
+- OSM carries no Key West building colours, so facades use a faded conch palette
+  by building type; roofs are galvanised tin.
+- Landscape data renamed to `landscape.json` and now includes golf and marinas.
+
 ### 2026-09-29 - Key West props collide, winter trees, typed fences (claudeflow)
 
 - Poles, signals, signs, benches, bins, hydrants, bollards, tanks, tree trunks

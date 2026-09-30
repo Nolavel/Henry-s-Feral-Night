@@ -1,8 +1,8 @@
 #!/usr/bin/env python3
-"""Fetch mapped trees, woods and cemeteries for Key West from Overture base/land and land_use.
+"""Fetch trees, woods, cemeteries, golf and marinas for Key West from Overture base/land and land_use.
 
-Writes data/world/key_west/vegetation.json in the city's local metres.
-Run: python3 tools/world/fetch_key_west_vegetation.py  (needs pyarrow, pyproj)
+Writes data/world/key_west/landscape.json in the city's local metres.
+Run: python3 tools/world/fetch_key_west_landscape.py  (needs pyarrow, pyproj)
 """
 from __future__ import annotations
 
@@ -18,8 +18,9 @@ from shapely import wkb
 OVERTURE_RELEASE = "2026-09-23.1"
 REPORT = Path("data/world/key_west/source_report.json")
 CITY = Path("data/world/key_west/city_preview.json")
-OUT = Path("data/world/key_west/vegetation.json")
-KINDS = {"tree": "tree", "tree_row": "tree_row", "wood": "wood", "forest": "wood", "scrub": "scrub", "cemetery": "cemetery"}
+OUT = Path("data/world/key_west/landscape.json")
+KINDS = {"tree": "tree", "tree_row": "tree_row", "wood": "wood", "forest": "wood", "scrub": "scrub", "cemetery": "cemetery",
+    "green": "golf_green", "tee": "golf_tee", "bunker": "golf_bunker", "fairway": "golf_fairway", "marina": "marina"}
 
 
 def projector(report: dict):
@@ -48,7 +49,7 @@ def main() -> None:
     )
     rows = land.to_table(columns=["id", "class", "geometry"], filter=inside).to_pylist()
     land_use = ds.dataset(f"overturemaps-us-west-2/release/{OVERTURE_RELEASE}/theme=base/type=land_use", filesystem=s3, format="parquet")
-    rows += land_use.to_table(columns=["id", "class", "geometry"], filter=inside & (pc.field("class") == "cemetery")).to_pylist()
+    rows += land_use.to_table(columns=["id", "class", "geometry"], filter=inside & pc.field("class").isin(["cemetery", "green", "tee", "bunker", "fairway", "marina"])).to_pylist()
     features = []
     for row in rows:
         kind = KINDS.get(row["class"])
@@ -66,7 +67,7 @@ def main() -> None:
         features.append({"id": row["id"], "kind": kind, "type": shape.geom_type, "coordinates": coords})
     features.sort(key=lambda f: f["id"])
     OUT.write_text(json.dumps({
-        "schema": "hfn.key_west.vegetation.v1",
+        "schema": "hfn.key_west.landscape.v1",
         "source": f"Overture Maps base/land release {OVERTURE_RELEASE} (OpenStreetMap contributors, ODbL)",
         "features": features,
     }, separators=(",", ":")))

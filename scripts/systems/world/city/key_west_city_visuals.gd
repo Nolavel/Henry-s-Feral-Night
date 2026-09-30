@@ -5,20 +5,24 @@ extends RefCounted
 ## No source geometry is authored here: city_preview.json remains the footprint/
 ## road truth, while visual_enrichment.json may add attributes and small props.
 
+## Faded conch-house pastels: white, pink, mint, butter, sky, lilac.
 const FACADE_PALETTE: Array[Color] = [
-	Color(0.72, 0.76, 0.78),
-	Color(0.69, 0.73, 0.75),
-	Color(0.76, 0.74, 0.70),
-	Color(0.67, 0.72, 0.70),
-	Color(0.75, 0.70, 0.68),
-	Color(0.66, 0.69, 0.72),
+	Color(0.86, 0.85, 0.81),
+	Color(0.84, 0.84, 0.82),
+	Color(0.82, 0.68, 0.66),
+	Color(0.66, 0.78, 0.71),
+	Color(0.85, 0.79, 0.6),
+	Color(0.63, 0.74, 0.8),
+	Color(0.74, 0.7, 0.78),
+	Color(0.8, 0.73, 0.62),
 ]
+## Galvanised tin (the Key West standard), weathered tin, shingle.
 const ROOF_PALETTE: Array[Color] = [
-	Color(0.24, 0.28, 0.30),
-	Color(0.32, 0.34, 0.35),
-	Color(0.38, 0.35, 0.31),
-	Color(0.45, 0.47, 0.47),
-	Color(0.27, 0.32, 0.34),
+	Color(0.62, 0.64, 0.65),
+	Color(0.55, 0.57, 0.58),
+	Color(0.47, 0.44, 0.4),
+	Color(0.6, 0.52, 0.45),
+	Color(0.36, 0.38, 0.4),
 ]
 
 
@@ -66,8 +70,11 @@ static func facade_color(building: Dictionary, enrichment: Dictionary) -> Color:
 	var base: Color
 	if kind in ["industrial", "warehouse", "hangar", "service"]:
 		base = Color(0.54, 0.57, 0.58)
-	elif kind in ["retail", "commercial", "hotel"]:
-		base = Color(0.70, 0.72, 0.70)
+	elif metadata.has("historic") or kind in ["church", "civic", "public", "government"]:
+		## Historic and civic buildings stay whitewashed or brick.
+		base = Color(0.88, 0.87, 0.83) if absi(hash(String(building.get("osm_id", "")))) % 3 else Color(0.6, 0.4, 0.33)
+	elif kind in ["retail", "commercial", "office"]:
+		base = Color(0.78, 0.76, 0.7)
 	else:
 		var index: int = absi(hash(String(building.get("osm_id", "")))) % FACADE_PALETTE.size()
 		base = FACADE_PALETTE[index]
@@ -561,17 +568,8 @@ static func build_supplemental_node(terrain: IslandTerrain, enrichment: Dictiona
 		var mesh_node := holder.get_node_or_null(NodePath(node_name)) as MeshInstance3D
 		if mesh_node != null:
 			faces.append_array(mesh_node.mesh.get_faces())
-	if not faces.is_empty():
-		## Mapped fences and walls stop Henry as the buildings do.
-		var shape := ConcavePolygonShape3D.new()
-		shape.set_faces(faces)
-		shape.backface_collision = true
-		var collision := CollisionShape3D.new()
-		collision.shape = shape
-		var body := StaticBody3D.new()
-		body.name = "FenceCollision"
-		body.add_child(collision)
-		holder.add_child(body)
+	## Fence and wall collision streams with the city chunks.
+	KeyWestStreetProps.register_faces(faces)
 	_add_poles(holder, "Towers", tower_points, 13.0, 0.16, terrain, materials["pole"])
 	return holder
 

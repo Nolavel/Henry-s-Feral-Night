@@ -176,6 +176,11 @@ func activate_stream_chunk(stream_id: StringName, _container: Node3D) -> Node3D:
 	_ensure_massing(state)
 	_ensure_detail(state)
 	_ensure_roads(state)
+	if state.get("props") == null:
+		var props := KeyWestStreetProps.build_chunk_body(cid)
+		if props != null:
+			(state["node"] as Node3D).add_child(props)
+		state["props"] = props
 	var massing := state["massing"] as Node3D
 	if massing != null:
 		massing.visible = false
@@ -202,6 +207,10 @@ func deactivate_stream_chunk(stream_id: StringName) -> void:
 	if is_instance_valid(roads):
 		roads.queue_free()
 	state["roads"] = null
+	var props := state.get("props") as Node3D
+	if is_instance_valid(props):
+		props.queue_free()
+	state["props"] = null
 	var massing := state["massing"] as Node3D
 	if massing != null:
 		massing.visible = true
@@ -670,6 +679,7 @@ func _build_airport_layer() -> void:
 func _build_global_visuals() -> void:
 	if _enrichment.is_empty():
 		return
+	KeyWestStreetProps.colliders.clear()
 	_global_visuals = KeyWestCityVisuals.build_supplemental_node(terrain, _enrichment, _visual_materials)
 	_global_visuals.add_child(KeyWestStreetProps.build(terrain, _enrichment, _roads))
 	if _global_visuals != null and _global_visuals.get_child_count() > 0:

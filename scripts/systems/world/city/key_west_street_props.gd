@@ -3,7 +3,19 @@ extends RefCounted
 ## Mapped street furniture and trees for Key West as simple instanced models.
 ## Positions come from Overture/OSM; each prop faces its nearest road.
 
-const VEGETATION_PATH: String = "res://data/world/key_west/vegetation.json"
+## Collision shapes per city chunk id, filled by build() and the barrier builder.
+static var colliders: Dictionary = {}
+
+const CHUNK_SIZE_M: float = 512.0
+## Faded paint of abandoned cars and moored boats.
+const CAR_COLORS: Array[Color] = [
+	Color(0.55, 0.12, 0.1), Color(0.16, 0.22, 0.35), Color(0.75, 0.75, 0.72),
+	Color(0.2, 0.2, 0.21), Color(0.42, 0.44, 0.45), Color(0.3, 0.38, 0.3), Color(0.65, 0.58, 0.42),
+]
+const BOAT_COLORS: Array[Color] = [
+	Color(0.9, 0.9, 0.88), Color(0.85, 0.86, 0.84), Color(0.2, 0.3, 0.45), Color(0.6, 0.15, 0.12),
+]
+const LANDSCAPE_PATH: String = "res://data/world/key_west/landscape.json"
 const ROAD_CELL_M: float = 40.0
 const ROAD_SEARCH_M: float = 25.0
 const TREE_ROW_SPACING_M: float = 7.0
@@ -11,6 +23,13 @@ const WOOD_SPACING_M: float = 12.0
 const SCRUB_SPACING_M: float = 5.0
 const CROSSING_LENGTH_M: float = 3.0
 const PALM_BASE_HEIGHT_M: float = 9.0
+const CAR_BAY_M: Vector2 = Vector2(3.0, 6.5)
+## Share of parking bays holding an abandoned car.
+const CAR_FILL: float = 0.18
+const BOAT_SPACING_M: float = 7.0
+const BOAT_FILL: float = 0.6
+## Marinas reach piers this far outside their mapped outline.
+const MARINA_REACH_M: float = 25.0
 const TOMB_SPACING_M: float = 4.5
 ## Wire height above ground for mapped power and distribution lines.
 const POWER_LINE_M: float = 12.5
@@ -59,6 +78,10 @@ static func build(terrain: IslandTerrain, enrichment: Dictionary, roads: Array) 
 	_add_facing(holder, "Bollards", points.get("bollard", []), _bollard_mesh(mats), index, terrain, false, [_cyl_shape(0.1, 1.0), Vector3(0, 0.5, 0)])
 	_add_facing(holder, "PostBoxes", points.get("post_box", []), _post_box_mesh(mats), index, terrain, true, [_box_shape(Vector3(0.55, 1.2, 0.55)), Vector3(0, 0.6, 0)])
 	_add_crossings(holder, points.get("crossing", []), index, terrain)
+	var gate := [_box_shape(Vector3(0.3, 1.4, 3.4)), Vector3(0, 0.7, 0)]
+	_add_facing(holder, "Gates", points.get("gate", []) + points.get("swing_gate", []), _gate_mesh(mats), index, terrain, true, gate)
+	_add_facing(holder, "LiftGates", points.get("lift_gate", []), _lift_gate_mesh(mats), index, terrain, true, [_cyl_shape(0.15, 1.1), Vector3(0, 0.55, 0)])
+	_add_parking(holder, enrichment, terrain, mats)
 	_add_wires(holder, enrichment, terrain, mats)
 	_add_tanks(holder, enrichment, terrain, mats)
 	_add_vegetation(holder, index, terrain, mats)
@@ -169,15 +192,18 @@ static func _add_crossings(parent: Node3D, pts: Array, index: Dictionary, terrai
 
 ## Mapped trees, tree rows, woods and scrub; palms dominate as in the old town.
 static func _add_vegetation(parent: Node3D, index: Dictionary, terrain: IslandTerrain, mats: Dictionary) -> void:
-	if not FileAccess.file_exists(VEGETATION_PATH):
+	if not FileAccess.file_exists(LANDSCAPE_PATH):
 		return
-	var parsed: Variant = JSON.parse_string(FileAccess.get_file_as_string(VEGETATION_PATH))
+	var parsed: Variant = JSON.parse_string(FileAccess.get_file_as_string(LANDSCAPE_PATH))
 	if typeof(parsed) != TYPE_DICTIONARY:
 		return
 	var trees: Array[Vector2] = []
 	var woods: Array[Vector2] = []
 	var bushes: Array[Vector2] = []
 	var tombs: Array[Vector2] = []
+	var flags: Array[Vector2] = []
+	var tees: Array[Vector2] = []
+	var marinas: Array[PackedVector2Array] = []
 	for f: Dictionary in (parsed as Dictionary).get("features", []):
 		var coords: Array = f.get("coordinates", [])
 		match String(f.get("kind", "")):
@@ -196,6 +222,12 @@ static func _add_vegetation(parent: Node3D, index: Dictionary, terrain: IslandTe
 				bushes.append_array(_scatter(coords, SCRUB_SPACING_M, index))
 			"cemetery":
 				tombs.append_array(_scatter(coords, TOMB_SPACING_M, index))
+			"golf_green":
+				flags.append(_centroid(coords))
+			"golf_tee":
+				tees.append(_centroid(coords))
+			"marina":
+				marinas.append(_polygon(coords))
 	var palms: Array[Transform3D] = []
 	var broad: Array[Transform3D] = []
 	for p: Vector2 in trees:
@@ -224,6 +256,15 @@ static func _add_vegetation(parent: Node3D, index: Dictionary, terrain: IslandTe
 	var trunk := _cyl_shape(0.22, 3.0)
 	_add_bodies(parent, "PalmCollision", trunk, Vector3(0, 1.5, 0), _unscaled(palms))
 	_add_bodies(parent, "BareTreeCollision", trunk, Vector3(0, 1.5, 0), _unscaled(broad))
+	var flag_xf: Array[Transform3D] = []
+	for p: Vector2 in flags:
+		flag_xf.append(Transform3D(Basis(Vector3.UP, float(absi(hash(p)) % 628) * 0.01), _ground(terrain, p)))
+	_add_transforms(parent, "GolfFlags", _golf_flag_mesh(mats), flag_xf)
+	var tee_xf: Array[Transform3D] = []
+	for p: Vector2 in tees:
+		tee_xf.append(Transform3D(Basis(Vector3.UP, float(absi(hash(p)) % 628) * 0.01), _ground(terrain, p)))
+	_add_transforms(parent, "GolfTeeMarkers", _tee_mesh(mats), tee_xf)
+	_add_boats(parent, (parsed as Dictionary).get("features", []), marinas, index, mats)
 	## Key West Cemetery: rows of whitewashed above-ground vaults.
 	var vaults: Array[Transform3D] = []
 	for p: Vector2 in tombs:
@@ -263,6 +304,157 @@ static func _scatter(coords: Array, spacing: float, index: Dictionary) -> Array[
 			y += spacing
 		x += spacing
 	return out
+
+
+## Snowed-over lots with abandoned cars in some bays; the lot follows its longest edge.
+static func _add_parking(parent: Node3D, enrichment: Dictionary, terrain: IslandTerrain, mats: Dictionary) -> void:
+	var v := PackedVector3Array()
+	var n := PackedVector3Array()
+	var cars: Array[Transform3D] = []
+	var colors: Array[Color] = []
+	for f: Dictionary in enrichment.get("infrastructure", []):
+		var geometry: Dictionary = f.get("geometry", {})
+		if String(f.get("class", "")) != "parking" or String(geometry.get("type", "")) != "Polygon":
+			continue
+		var poly: PackedVector2Array = _polygon((geometry.get("coordinates", [[]]) as Array)[0])
+		if poly.size() < 3:
+			continue
+		var tris: PackedInt32Array = Geometry2D.triangulate_polygon(poly)
+		for t: int in tris:
+			var q: Vector2 = poly[t]
+			v.append(_ground(terrain, q) + Vector3.UP * 0.06)
+			n.append(Vector3.UP)
+		var axis: Vector2 = _longest_edge(poly)
+		var side := Vector2(-axis.y, axis.x)
+		var yaw: float = atan2(side.x, side.y)
+		var lo := Vector2(INF, INF)
+		var hi := Vector2(-INF, -INF)
+		for q: Vector2 in poly:
+			var local := Vector2(q.dot(axis), q.dot(side))
+			lo = lo.min(local)
+			hi = hi.max(local)
+		var a: float = lo.x + CAR_BAY_M.x * 0.5
+		while a < hi.x:
+			var b: float = lo.y + CAR_BAY_M.y * 0.5
+			while b < hi.y:
+				var p: Vector2 = axis * a + side * b
+				var h: int = absi(hash(p))
+				if float(h % 100) < CAR_FILL * 100.0 and Geometry2D.is_point_in_polygon(p, poly):
+					var skew: float = (float((h / 100) % 30) - 15.0) * 0.01
+					cars.append(Transform3D(Basis(Vector3.UP, yaw + skew), _ground(terrain, p)))
+					colors.append(CAR_COLORS[(h / 7) % CAR_COLORS.size()])
+				b += CAR_BAY_M.y
+			a += CAR_BAY_M.x
+	if not v.is_empty():
+		## Winding follows the polygon; the lot is visible from above either way.
+		var arrays: Array = []
+		arrays.resize(Mesh.ARRAY_MAX)
+		arrays[Mesh.ARRAY_VERTEX] = v
+		arrays[Mesh.ARRAY_NORMAL] = n
+		var mesh := ArrayMesh.new()
+		mesh.add_surface_from_arrays(Mesh.PRIMITIVE_TRIANGLES, arrays)
+		mesh.surface_set_material(0, mats["lot"])
+		var lot := MeshInstance3D.new()
+		lot.name = "ParkingLots"
+		lot.mesh = mesh
+		parent.add_child(lot)
+	if cars.is_empty():
+		return
+	var mm := _multimesh(_car_mesh(mats), 0)
+	mm.use_colors = true
+	mm.instance_count = cars.size()
+	for i: int in range(cars.size()):
+		mm.set_instance_transform(i, cars[i])
+		mm.set_instance_color(i, colors[i])
+	_add_instance(parent, "AbandonedCars", mm)
+	_add_bodies(parent, "CarCollision", _box_shape(Vector3(1.8, 1.4, 4.4)), Vector3(0, 0.7, 0), cars)
+
+
+## Boats moored along piers inside or beside mapped marinas.
+static func _add_boats(parent: Node3D, _features: Array, marinas: Array[PackedVector2Array], _index: Dictionary, mats: Dictionary) -> void:
+	if marinas.is_empty():
+		return
+	var enrichment_path: String = "res://data/world/key_west/visual_enrichment.json"
+	var parsed: Variant = JSON.parse_string(FileAccess.get_file_as_string(enrichment_path))
+	if typeof(parsed) != TYPE_DICTIONARY:
+		return
+	var boats: Array[Transform3D] = []
+	var colors: Array[Color] = []
+	## One boat per 6 m cell so piers mapped twice do not stack hulls.
+	var taken: Dictionary = {}
+	for f: Dictionary in (parsed as Dictionary).get("supplemental", []):
+		if String(f.get("kind", "")) != "pier":
+			continue
+		var c: Array = (f.get("geometry", {}) as Dictionary).get("coordinates", [])
+		for i: int in range(c.size() - 1):
+			var a := Vector2(float(c[i][0]), float(c[i][1]))
+			var b := Vector2(float(c[i + 1][0]), float(c[i + 1][1]))
+			if not _near_any(a.lerp(b, 0.5), marinas):
+				continue
+			var dir: Vector2 = (b - a).normalized()
+			var side := Vector2(-dir.y, dir.x)
+			var count: int = int(a.distance_to(b) / BOAT_SPACING_M)
+			for k: int in range(count):
+				for s: float in [-1.0, 1.0]:
+					var p: Vector2 = a.lerp(b, (float(k) + 0.5) / float(count)) + side * s * 4.8
+					var h: int = absi(hash(p))
+					var cell := Vector2i((p / 6.0).floor())
+					if float(h % 100) >= BOAT_FILL * 100.0 or taken.has(cell):
+						continue
+					taken[cell] = true
+					## Bow points away from the pier; frozen in at the waterline.
+					var yaw: float = atan2(side.x * s, side.y * s) + (float((h / 100) % 20) - 10.0) * 0.01
+					var scale: float = 0.8 + float((h / 7) % 50) * 0.01
+					boats.append(Transform3D(Basis(Vector3.UP, yaw).scaled(Vector3.ONE * scale), Vector3(p.x, -0.25, p.y)))
+					colors.append(BOAT_COLORS[(h / 11) % BOAT_COLORS.size()])
+	if boats.is_empty():
+		return
+	var mm := _multimesh(_boat_mesh(mats), 0)
+	mm.use_colors = true
+	mm.instance_count = boats.size()
+	for i: int in range(boats.size()):
+		mm.set_instance_transform(i, boats[i])
+		mm.set_instance_color(i, colors[i])
+	_add_instance(parent, "MooredBoats", mm)
+	_add_bodies(parent, "BoatCollision", _box_shape(Vector3(2.4, 1.6, 7.0)), Vector3(0, 0.8, 0), _unscaled(boats))
+
+
+static func _near_any(p: Vector2, polys: Array[PackedVector2Array]) -> bool:
+	for poly: PackedVector2Array in polys:
+		if Geometry2D.is_point_in_polygon(p, poly):
+			return true
+		for i: int in range(poly.size()):
+			var q: Vector2 = Geometry2D.get_closest_point_to_segment(p, poly[i], poly[(i + 1) % poly.size()])
+			if p.distance_to(q) < MARINA_REACH_M:
+				return true
+	return false
+
+
+static func _polygon(coords: Array) -> PackedVector2Array:
+	var poly := PackedVector2Array()
+	for c: Array in coords:
+		poly.append(Vector2(float(c[0]), float(c[1])))
+	if poly.size() > 1 and poly[0].is_equal_approx(poly[poly.size() - 1]):
+		poly.remove_at(poly.size() - 1)
+	return poly
+
+
+static func _centroid(coords: Array) -> Vector2:
+	var sum := Vector2.ZERO
+	for c: Array in coords:
+		sum += Vector2(float(c[0]), float(c[1]))
+	return sum / maxf(float(coords.size()), 1.0)
+
+
+static func _longest_edge(poly: PackedVector2Array) -> Vector2:
+	var best := Vector2.RIGHT
+	var best_len: float = 0.0
+	for i: int in range(poly.size()):
+		var e: Vector2 = poly[(i + 1) % poly.size()] - poly[i]
+		if e.length() > best_len:
+			best_len = e.length()
+			best = e.normalized()
+	return best
 
 
 ## Sagging wires between the vertices of mapped power lines.
@@ -312,34 +504,63 @@ static func _add_tanks(parent: Node3D, enrichment: Dictionary, terrain: IslandTe
 		var h: float = 30.0 if kind == "water_tower" else clampf(r * 0.8, 4.0, 14.0)
 		tanks.append(Transform3D(Basis.IDENTITY.scaled(Vector3(r, h, r)), _ground(terrain, (lo + hi) * 0.5)))
 	_add_transforms(parent, "StorageTanks", _compose([[_cyl(1.0, 1.0, 16), _at(0, 0.5, 0), mats["tank"]]]), tanks)
-	var body := StaticBody3D.new()
-	body.name = "StorageTankCollision"
 	for xf: Transform3D in tanks:
 		var shape := CylinderShape3D.new()
 		shape.radius = xf.basis.x.length()
 		shape.height = xf.basis.y.length()
-		var col := CollisionShape3D.new()
-		col.shape = shape
-		col.position = xf.origin + Vector3.UP * shape.height * 0.5
-		body.add_child(col)
-	if body.get_child_count() > 0:
-		parent.add_child(body)
-	else:
-		body.free()
+		register_shape(shape, Transform3D(Basis.IDENTITY, xf.origin + Vector3.UP * shape.height * 0.5))
 
 
-## One static body per layer; shapes stay unscaled so physics stays exact.
-static func _add_bodies(parent: Node3D, node_name: String, shape: Shape3D, offset: Vector3, xfs: Array[Transform3D]) -> void:
-	if xfs.is_empty():
-		return
-	var body := StaticBody3D.new()
-	body.name = node_name
+## Queues a layer's colliders; bodies exist only while their city chunk streams in.
+static func _add_bodies(_parent: Node3D, _node_name: String, shape: Shape3D, offset: Vector3, xfs: Array[Transform3D]) -> void:
 	for xf: Transform3D in xfs:
+		register_shape(shape, xf * Transform3D(Basis.IDENTITY, offset))
+
+
+## Files a collision shape under the city chunk that holds its origin.
+static func register_shape(shape: Shape3D, xf: Transform3D) -> void:
+	var key: String = chunk_key(Vector2(xf.origin.x, xf.origin.z))
+	if not colliders.has(key):
+		colliders[key] = []
+	(colliders[key] as Array).append([shape, xf])
+
+
+## Splits triangle soup (fences, walls) into per-chunk concave shapes.
+static func register_faces(faces: PackedVector3Array) -> void:
+	var buckets: Dictionary = {}
+	for i: int in range(0, faces.size(), 3):
+		var key: String = chunk_key(Vector2(faces[i].x, faces[i].z))
+		if not buckets.has(key):
+			buckets[key] = PackedVector3Array()
+		var bucket: PackedVector3Array = buckets[key]
+		bucket.append_array([faces[i], faces[i + 1], faces[i + 2]])
+		buckets[key] = bucket
+	for key: String in buckets:
+		var shape := ConcavePolygonShape3D.new()
+		shape.set_faces(buckets[key])
+		shape.backface_collision = true
+		if not colliders.has(key):
+			colliders[key] = []
+		(colliders[key] as Array).append([shape, Transform3D.IDENTITY])
+
+
+static func chunk_key(p: Vector2) -> String:
+	return "%d:%d" % [floori(p.x / CHUNK_SIZE_M), floori(p.y / CHUNK_SIZE_M)]
+
+
+## Static body for one streamed chunk, or null when it holds no props.
+static func build_chunk_body(chunk_id: String) -> StaticBody3D:
+	var entries: Array = colliders.get(chunk_id, [])
+	if entries.is_empty():
+		return null
+	var body := StaticBody3D.new()
+	body.name = "PropCollision"
+	for entry: Array in entries:
 		var col := CollisionShape3D.new()
-		col.shape = shape
-		col.transform = xf * Transform3D(Basis.IDENTITY, offset)
+		col.shape = entry[0]
+		col.transform = entry[1]
 		body.add_child(col)
-	parent.add_child(body)
+	return body
 
 
 static func _unscaled(xfs: Array[Transform3D]) -> Array[Transform3D]:
@@ -411,7 +632,22 @@ static func _materials() -> Dictionary:
 		"wire": _mat(Color(0.08, 0.08, 0.08), 0.8),
 		"tank": _mat(Color(0.7, 0.71, 0.69), 0.6),
 		"vault": _mat(Color(0.8, 0.79, 0.75), 0.9),
+		"lot": _mat(Color(0.6, 0.62, 0.66), 0.9, true),
+		"paint": _vertex_mat(0.55),
+		"glass": _mat(Color(0.12, 0.14, 0.16), 0.2),
+		"snowcap": _mat(Color(0.8, 0.83, 0.88), 0.85),
+		"tyre": _mat(Color(0.07, 0.07, 0.07), 0.9),
+		"stripe_red": _mat(Color(0.7, 0.1, 0.08), 0.6),
+		"flag": _mat(Color(0.75, 0.12, 0.1), 0.8, true),
 	}
+
+
+## Takes its albedo from the MultiMesh instance colour.
+static func _vertex_mat(roughness: float) -> StandardMaterial3D:
+	var m := StandardMaterial3D.new()
+	m.vertex_color_use_as_albedo = true
+	m.roughness = roughness
+	return m
 
 
 static func _mat(color: Color, roughness: float, double_sided: bool = false) -> StandardMaterial3D:
@@ -597,4 +833,63 @@ static func _vault_mesh(m: Dictionary) -> ArrayMesh:
 		[_box(Vector3(0.9, 0.9, 2.0)), _at(0, 0.45, 0), m["vault"]],
 		[_box(Vector3(1.0, 0.1, 2.1)), _at(0, 0.95, 0), m["vault"]],
 		[_box(Vector3(0.5, 0.5, 0.08)), _at(0, 1.2, -0.95), m["vault"]],
+	])
+
+
+## Abandoned sedan, long axis +Z, with a cap of settled snow.
+static func _car_mesh(m: Dictionary) -> ArrayMesh:
+	var parts: Array = [
+		[_box(Vector3(1.8, 0.7, 4.4)), _at(0, 0.6, 0), m["paint"]],
+		[_box(Vector3(1.6, 0.55, 2.2)), _at(0, 1.22, -0.2), m["glass"]],
+		[_box(Vector3(1.62, 0.12, 2.1)), _at(0, 1.55, -0.2), m["snowcap"]],
+		[_box(Vector3(1.75, 0.08, 1.1)), _at(0, 0.99, 1.55), m["snowcap"]],
+	]
+	for x: float in [-0.8, 0.8]:
+		for z: float in [-1.4, 1.4]:
+			parts.append([_cyl(0.32, 0.25, 10), _at(x, 0.32, z, Basis(Vector3.FORWARD, PI * 0.5)), m["tyre"]])
+	return _compose(parts)
+
+
+## Small motor boat, bow toward +Z.
+static func _boat_mesh(m: Dictionary) -> ArrayMesh:
+	var bow := PrismMesh.new()
+	bow.size = Vector3(2.4, 1.2, 1.6)
+	return _compose([
+		[_box(Vector3(2.4, 1.2, 5.0)), _at(0, 0.6, -0.6), m["paint"]],
+		[bow, _at(0, 0.6, 2.7, Basis(Vector3.RIGHT, PI * 0.5)), m["paint"]],
+		[_box(Vector3(1.8, 0.9, 1.8)), _at(0, 1.65, -0.8), m["white"]],
+		[_box(Vector3(1.9, 0.1, 1.9)), _at(0, 2.15, -0.8), m["snowcap"]],
+	])
+
+
+## Farm gate between two posts, spanning the drive (+Z).
+static func _gate_mesh(m: Dictionary) -> ArrayMesh:
+	var parts: Array = [
+		[_cyl(0.07, 1.5, 6), _at(0, 0.75, -1.6), m["metal"]],
+		[_cyl(0.07, 1.5, 6), _at(0, 0.75, 1.6), m["metal"]],
+	]
+	for y: float in [0.3, 0.75, 1.2]:
+		parts.append([_box(Vector3(0.05, 0.05, 3.1)), _at(0, y, 0), m["metal"]])
+	return _compose(parts)
+
+
+## Car-park barrier: post and a red-and-white boom lying across the lane.
+static func _lift_gate_mesh(m: Dictionary) -> ArrayMesh:
+	var parts: Array = [[_box(Vector3(0.3, 1.1, 0.3)), _at(0, 0.55, 0), m["metal"]]]
+	for k: int in range(8):
+		parts.append([_box(Vector3(0.08, 0.1, 0.5)), _at(0, 0.95, 0.4 + float(k) * 0.5), m["stripe_red"] if k % 2 == 0 else m["white"]])
+	return _compose(parts)
+
+
+static func _golf_flag_mesh(m: Dictionary) -> ArrayMesh:
+	return _compose([
+		[_cyl(0.02, 2.3, 5), _at(0, 1.15, 0), m["white"]],
+		[_box(Vector3(0.02, 0.35, 0.5)), _at(0, 2.1, 0.25), m["flag"]],
+	])
+
+
+static func _tee_mesh(m: Dictionary) -> ArrayMesh:
+	return _compose([
+		[_box(Vector3(0.2, 0.2, 0.2)), _at(-1.5, 0.1, 0), m["stripe_red"]],
+		[_box(Vector3(0.2, 0.2, 0.2)), _at(1.5, 0.1, 0), m["stripe_red"]],
 	])
