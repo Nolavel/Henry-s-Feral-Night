@@ -12,8 +12,14 @@ const PELVIS: StringName = &"pelvis"
 
 ## Share of the lower boot's lift the hips follow, so the knees do not fold.
 @export_range(0.0, 1.0) var hip_follow: float = 0.6
-## How fast a boot's lift eases in and out, per second.
-@export var ease_rate: float = 12.0
+## How fast a boot's lift eases out, metres per second.
+@export var ease_rate: float = 6.0
+## How fast a swinging boot rises to clear the snow, metres per second.
+@export var rise_rate: float = 3.0
+## Gap kept between a swinging boot's sole and the snow top, metres.
+@export var clearance_m: float = 0.03
+## Ankle bone height above the sole, metres.
+@export var ankle_m: float = 0.08
 
 var _lift: Array[float] = [0.0, 0.0]
 var _applied: Array[float] = [0.0, 0.0]
@@ -28,7 +34,12 @@ func _process_modification() -> void:
 		return
 	var delta: float = maxf(get_process_delta_time(), 0.001)
 	for side: int in range(2):
-		_lift[side] = move_toward(_lift[side], shell.get_foot_raise(side), ease_rate * delta)
+		var want: float = shell.get_foot_raise(side)
+		## A swinging boot clears the snow ahead of it by a hand's width, no more.
+		if shell.get_foot_snow_top(side) == -INF:
+			want = _swing_clearance(skeleton, shell, side)
+		var rate: float = rise_rate if want > _lift[side] else ease_rate
+		_lift[side] = move_toward(_lift[side], want, rate * delta)
 	_hip = lerpf(_hip, minf(_lift[0], _lift[1]) * hip_follow, clampf(delta * 8.0, 0.0, 1.0))
 	if _lift[0] <= 0.001 and _lift[1] <= 0.001 and _hip <= 0.001:
 		_applied = [0.0, 0.0]
@@ -85,6 +96,18 @@ func _reach(skeleton: Skeleton3D, side: int, offset: Vector3) -> float:
 	foot_pose.origin = new_ankle
 	skeleton.set_bone_global_pose(f, foot_pose)
 	return (new_ankle - ankle).dot(offset.normalized())
+
+
+## Lift that lets the clip's swinging boot pass over the snow under it.
+func _swing_clearance(skeleton: Skeleton3D, shell: SnowShell, side: int) -> float:
+	var f: int = _bone(skeleton, FEET[side])
+	if f < 0:
+		return 0.0
+	var ankle: Vector3 = skeleton.global_transform * skeleton.get_bone_global_pose(f).origin
+	var top: float = shell.field.get_snow_top(ankle.x, ankle.z)
+	if top == -INF:
+		return 0.0
+	return maxf(top + clearance_m - (ankle.y - ankle_m), 0.0)
 
 
 ## World metres the `side` boot was really lifted above the walk clip last frame.

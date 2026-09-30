@@ -8,7 +8,7 @@ render_mode cull_back, depth_draw_opaque;
 
 // R: snow top (world y), G: settled depth, B: 1 where cut away, A: city wind factor.
 uniform sampler2D field : filter_linear, repeat_disable;
-// R: metres packed down.
+// R: metres packed down, walls shaped to the repose slope and softened.
 uniform sampler2D packed_field : filter_linear, repeat_disable;
 uniform vec2 origin = vec2(0.0);
 uniform float window_m = 25.6;
@@ -32,22 +32,6 @@ float packed_at(vec2 uv) {
 
 // Steepest a trench wall stands, as rise over run (loose snow ~40 degrees).
 uniform float repose_tan = 0.84;
-
-// Packing as drawn: no wall steeper than the angle of repose. Each nearby pit
-// pulls this point down by its depth less the slope over the distance to it.
-// Twelve bearings, turned per point, so the slope never facets into a polygon.
-float sloped_packed(vec2 uv, vec2 xz) {
-	float d = packed_at(uv);
-	float turn = snow_hash(floor(xz * 50.0)) * 0.5236;
-	for (int r = 1; r <= 5; r++) {
-		float run = float(r) * 0.09;
-		for (int i = 0; i < 12; i++) {
-			float a = float(i) * 0.5236 + turn + float(r) * 0.26;
-			d = max(d, packed_at(uv + vec2(cos(a), sin(a)) * run / window_m) - repose_tan * run);
-		}
-	}
-	return d;
-}
 
 // Pit slope from the smooth packed field, never steeper than repose: shading does
 // not step with the mesh triangles.
@@ -89,7 +73,8 @@ void vertex() {
 	vec3 world = (MODEL_MATRIX * vec4(VERTEX, 1.0)).xyz;
 	vec2 uv = (world.xz - origin) / window_m;
 	vec4 f = texture(field, uv);
-	v_packed = sloped_packed(uv, world.xz);
+	// Walls already slope at the repose angle and are softened (snow_shape passes).
+	v_packed = packed_at(uv);
 	// The floor of a print is lumpy: grains pack unevenly under a boot.
 	v_packed += (snow_noise(world.xz * 9.0) - 0.5) * 0.02 * smoothstep(0.02, 0.06, v_packed);
 	v_rim = rim_at(uv, world.xz, v_packed);
