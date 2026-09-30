@@ -121,7 +121,9 @@ func _transplant_first_exit() -> void:
 	_add_stair_ramp(house, stairs)
 	## Convert the transplanted opaque shelter materials without touching
 	## transparent/unshaded specials or the player/VFX hierarchy.
-	StylizedEnvironmentMaterial.apply_to_tree(house)
+	## Interior receivers keep physical light/shadow lookup so the stove OmniLight
+	## casts readable shadows; outdoor city/terrain keeps the stylized warp.
+	StylizedEnvironmentMaterial.apply_to_tree(house, false)
 	_porch_spawn = foot + (foot - Vector3(SHELTER_XZ.x, 0.0, SHELTER_XZ.y)).normalized() * SPAWN_BEFORE_STAIRS_M
 	_porch_spawn.y = maxf(_terrain.get_height(_porch_spawn.x, _porch_spawn.z), 0.0) + 0.15
 	var bunker_ground: float = maxf(_terrain.get_height(BUNKER_XZ.x, BUNKER_XZ.y), 0.0)

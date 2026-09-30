@@ -40,7 +40,6 @@ void vertex() {
 }
 
 void fragment() {
-	LIGHT_VERTEX = VERTEX + hfn_stylized_shadow_view_warp(shadow_world_pos, VIEW_MATRIX);
 	vec3 world_normal = (INV_VIEW_MATRIX * vec4(NORMAL, 0.0)).xyz;
 	vec3 world_pos = shadow_world_pos;
 

@@ -18,7 +18,8 @@ static func make(
 	roughness: float,
 	vertex_color: bool = false,
 	double_sided: bool = false,
-	metallic: float = 0.0
+	metallic: float = 0.0,
+	stylized_warp: bool = true
 ) -> ShaderMaterial:
 	var material := ShaderMaterial.new()
 	material.shader = DOUBLE_SIDED_SHADER if double_sided else OPAQUE_SHADER
@@ -26,6 +27,7 @@ static func make(
 	material.set_shader_parameter("roughness", roughness)
 	material.set_shader_parameter("metallic", metallic)
 	material.set_shader_parameter("use_vertex_color", vertex_color)
+	material.set_shader_parameter("stylized_shadow_warp_enabled", stylized_warp)
 	return material
 
 
@@ -36,7 +38,7 @@ static func make_unshaded(color: Color) -> StandardMaterial3D:
 	return material
 
 
-static func from_standard(source: StandardMaterial3D) -> Material:
+static func from_standard(source: StandardMaterial3D, stylized_warp: bool = true) -> Material:
 	if source == null:
 		return null
 	if source.shading_mode == BaseMaterial3D.SHADING_MODE_UNSHADED:
@@ -49,7 +51,8 @@ static func from_standard(source: StandardMaterial3D) -> Material:
 		source.roughness,
 		source.vertex_color_use_as_albedo,
 		source.cull_mode == BaseMaterial3D.CULL_DISABLED,
-		source.metallic
+		source.metallic,
+		stylized_warp
 	)
 	if source.albedo_texture != null:
 		material.set_shader_parameter("use_albedo_texture", true)
@@ -78,30 +81,30 @@ static func from_standard(source: StandardMaterial3D) -> Material:
 	return material
 
 
-static func apply_to_tree(root: Node) -> int:
+static func apply_to_tree(root: Node, stylized_warp: bool = true) -> int:
 	if root == null:
 		return 0
-	return _apply_subtree(root, true)
+	return _apply_subtree(root, true, stylized_warp)
 
 
-static func _apply_subtree(node: Node, is_root: bool) -> int:
+static func _apply_subtree(node: Node, is_root: bool, stylized_warp: bool) -> int:
 	## Script-owned visual subtrees often mutate their material objects at runtime
 	## (stove embers, particles, interaction previews). Do not sever those links.
 	if not is_root and node.get_script() != null and not node is MeshInstance3D:
 		return 0
 	var converted := 0
 	if node is MeshInstance3D:
-		converted += _apply_to_mesh(node as MeshInstance3D)
+		converted += _apply_to_mesh(node as MeshInstance3D, stylized_warp)
 	for child: Node in node.get_children():
-		converted += _apply_subtree(child, false)
+		converted += _apply_subtree(child, false, stylized_warp)
 	return converted
 
 
-static func _apply_to_mesh(instance: MeshInstance3D) -> int:
+static func _apply_to_mesh(instance: MeshInstance3D, stylized_warp: bool) -> int:
 	var converted := 0
 	if instance.material_override is StandardMaterial3D:
 		var source_override := instance.material_override as StandardMaterial3D
-		var replacement := from_standard(source_override)
+		var replacement := from_standard(source_override, stylized_warp)
 		if replacement != source_override:
 			instance.material_override = replacement
 			converted += 1
@@ -116,7 +119,7 @@ static func _apply_to_mesh(instance: MeshInstance3D) -> int:
 		if not source is StandardMaterial3D:
 			continue
 		var standard := source as StandardMaterial3D
-		var replacement := from_standard(standard)
+		var replacement := from_standard(standard, stylized_warp)
 		if replacement == standard:
 			continue
 		instance.set_surface_override_material(surface, replacement)

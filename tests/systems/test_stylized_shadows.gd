@@ -27,6 +27,15 @@ func _run() -> void:
 	_check(double_sided is ShaderMaterial, "double-sided environment factory failed")
 	_check(double_sided.shader != material.shader, "double-sided material did not select its cull-disabled shader")
 
+	var shelter_source := StandardMaterial3D.new()
+	var shelter_material := StylizedEnvironmentMaterial.from_standard(shelter_source, false) as ShaderMaterial
+	_check(shelter_material != null, "shelter material conversion failed")
+	if shelter_material != null:
+		_check(
+			shelter_material.get_shader_parameter("stylized_shadow_warp_enabled") == false,
+			"shelter receiver still warps local-light shadow lookup"
+		)
+
 	var source := StandardMaterial3D.new()
 	source.albedo_color = Color(0.3, 0.4, 0.5)
 	source.roughness = 0.77
