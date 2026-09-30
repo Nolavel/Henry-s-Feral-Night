@@ -65,7 +65,8 @@ func _run() -> void:
 		"res://shaders/environment/stylized_shadow.gdshaderinc"
 	)
 	_check(contract_source.contains("hfn_shadow_value_noise"), "shared contract lost procedural breakup noise")
-	_check(contract_source.contains("coarse_islands"), "shared contract lost hard noise islands")
+	_check(contract_source.contains("sample_directional_shadow"), "shared contract is not using the custom engine sampler")
+	_check(contract_source.contains("LIGHT_INDEX"), "shared contract is not addressing the current directional light")
 	_check(contract_source.contains("if (!directional)"), "local-light physical attenuation guard is missing")
 	_check(contract_source.contains("return base;"), "local lights are still being ink-darkened")
 
@@ -85,10 +86,12 @@ func _run() -> void:
 			"missing global shader parameter: %s" % key
 		)
 
-	_check(
-		contract_source.contains("HFN_SHADOW_WARP_M = 0.28"),
-		"stylized shadow production warp constant changed unexpectedly"
+	_check(contract_source.contains("HFN_SHADOW_OFFSET_1_M"), "primary shadow sample offset is missing")
+	_check(contract_source.contains("HFN_SHADOW_OFFSET_2_M"), "secondary shadow sample offset is missing")
+	var body_source := FileAccess.get_file_as_string(
+		"res://shaders/environment/materials/stylized_environment_body.gdshaderinc"
 	)
+	_check(not body_source.contains("LIGHT_VERTEX ="), "generic environment still uses the old LIGHT_VERTEX workaround")
 
 	if _failures > 0:
 		push_error("stylized shadows: %d check(s) failed" % _failures)

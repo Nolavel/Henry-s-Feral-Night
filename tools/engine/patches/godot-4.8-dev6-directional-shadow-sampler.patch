@@ -1,0 +1,189 @@
+diff --git a/servers/rendering/shader_language.cpp b/servers/rendering/shader_language.cpp
+--- a/servers/rendering/shader_language.cpp
++++ b/servers/rendering/shader_language.cpp
+@@ -3587,5 +3587,8 @@ const ShaderLanguage::BuiltinFuncDef ShaderLanguage::builtin_func_defs[] = {
+ 	{ "frexp", TYPE_VEC3, { TYPE_VEC3, TYPE_IVEC3, TYPE_VOID }, { "x", "exp" }, TAG_GLOBAL, true },
+ 	{ "frexp", TYPE_VEC4, { TYPE_VEC4, TYPE_IVEC4, TYPE_VOID }, { "x", "exp" }, TAG_GLOBAL, true },
+ 
++	// Hoarbound: sample a directional shadow map at an arbitrary view-space position.
++	{ "sample_directional_shadow", TYPE_FLOAT, { TYPE_UINT, TYPE_VEC3, TYPE_VOID }, { "light_index", "vertex" }, TAG_GLOBAL, true },
++
+ 	{ nullptr, TYPE_VOID, { TYPE_VOID }, { "" }, TAG_GLOBAL, false }
+ };
+diff --git a/servers/rendering/shader_types.cpp b/servers/rendering/shader_types.cpp
+--- a/servers/rendering/shader_types.cpp
++++ b/servers/rendering/shader_types.cpp
+@@ -218,4 +218,5 @@ ShaderTypes::ShaderTypes() {
+ 	shader_modes[RSE::SHADER_SPATIAL].functions["light"].built_ins["LIGHT"] = constt(ShaderLanguage::TYPE_VEC3);
+ 	shader_modes[RSE::SHADER_SPATIAL].functions["light"].built_ins["LIGHT_COLOR"] = constt(ShaderLanguage::TYPE_VEC3);
+ 	shader_modes[RSE::SHADER_SPATIAL].functions["light"].built_ins["LIGHT_IS_DIRECTIONAL"] = constt(ShaderLanguage::TYPE_BOOL);
++	shader_modes[RSE::SHADER_SPATIAL].functions["light"].built_ins["LIGHT_INDEX"] = constt(ShaderLanguage::TYPE_UINT);
+ 	shader_modes[RSE::SHADER_SPATIAL].functions["light"].built_ins["LIGHT_IS_AREA"] = constt(ShaderLanguage::TYPE_BOOL);
+diff --git a/servers/rendering/renderer_rd/forward_clustered/scene_shader_forward_clustered.cpp b/servers/rendering/renderer_rd/forward_clustered/scene_shader_forward_clustered.cpp
+--- a/servers/rendering/renderer_rd/forward_clustered/scene_shader_forward_clustered.cpp
++++ b/servers/rendering/renderer_rd/forward_clustered/scene_shader_forward_clustered.cpp
+@@ -804,4 +804,5 @@ void SceneShaderForwardClustered::ShaderData::set_code(const String &p_code) {
+ 		actions.renames["SPECULAR_AMOUNT"] = "specular_amount_highp";
+ 		actions.renames["LIGHT_COLOR"] = "light_color_highp";
+ 		actions.renames["LIGHT_IS_DIRECTIONAL"] = "is_directional";
++		actions.renames["LIGHT_INDEX"] = "light_index_highp";
+ 		actions.renames["LIGHT_IS_AREA"] = "is_area";
+diff --git a/servers/rendering/renderer_rd/forward_mobile/scene_shader_forward_mobile.cpp b/servers/rendering/renderer_rd/forward_mobile/scene_shader_forward_mobile.cpp
+--- a/servers/rendering/renderer_rd/forward_mobile/scene_shader_forward_mobile.cpp
++++ b/servers/rendering/renderer_rd/forward_mobile/scene_shader_forward_mobile.cpp
+@@ -741,4 +741,5 @@ void SceneShaderForwardMobile::ShaderData::set_code(const String &p_code) {
+ 		actions.renames["SPECULAR_AMOUNT"] = "specular_amount_highp";
+ 		actions.renames["LIGHT_COLOR"] = "light_color_highp";
+ 		actions.renames["LIGHT_IS_DIRECTIONAL"] = "is_directional";
++		actions.renames["LIGHT_INDEX"] = "light_index_highp";
+ 		actions.renames["LIGHT_IS_AREA"] = "is_area";
+diff --git a/servers/rendering/renderer_rd/shaders/scene_forward_lights_inc.glsl b/servers/rendering/renderer_rd/shaders/scene_forward_lights_inc.glsl
+--- a/servers/rendering/renderer_rd/shaders/scene_forward_lights_inc.glsl
++++ b/servers/rendering/renderer_rd/shaders/scene_forward_lights_inc.glsl
+@@ -98,6 +98,9 @@ hvec3 f0_Clear_Coat_To_Surface(hvec3 f0) {
+ 	return clamp(f0 * (f0 * (half(0.941892) - half(0.263008) * f0) + half(0.346479)) - half(0.0285998), half(0.0), half(1.0));
+ }
+ 
+-void light_compute(hvec3 N, hvec3 L, hvec3 V, half A, hvec3 light_color, bool is_directional, half attenuation, hvec3 f0, half roughness, half metallic, half specular_amount, hvec3 albedo, inout half alpha, vec2 screen_uv, hvec3 energy_compensation,
++// Hoarbound custom GDSL builtin. Full implementation is below the shadow helpers.
++float sample_directional_shadow(uint idx, vec3 vertex);
++
++void light_compute(uint light_index, hvec3 N, hvec3 L, hvec3 V, half A, hvec3 light_color, bool is_directional, half attenuation, hvec3 f0, half roughness, half metallic, half specular_amount, hvec3 albedo, inout half alpha, vec2 screen_uv, hvec3 energy_compensation,
+ #ifdef LIGHT_BACKLIGHT_USED
+ 		hvec3 backlight,
+@@ -161,3 +164,4 @@ void light_compute(hvec3 N, hvec3 L, hvec3 V, half A, hvec3 light_color, bool i
+ 	vec3 light_color_highp = vec3(light_color);
+ 	float attenuation_highp = float(attenuation);
++	uint light_index_highp = light_index;
+ 	vec3 diffuse_light_highp = vec3(diffuse_light);
+@@ -452,4 +456,103 @@ half sample_directional_soft_shadow(texture2D shadow, vec3 pssm_coord, vec2 tex_
+ 	}
+ }
+ 
++float sample_directional_shadow(uint idx, vec3 vertex) {
++#ifdef SHADOWS_DISABLED
++	return 1.0;
++#else
++#ifdef USING_MOBILE_RENDERER
++	// HFN production uses Forward+. Keep Forward Mobile buildable and deterministic.
++	return 1.0;
++#else
++	if (idx >= scene_data_block.data.directional_light_count) {
++		return 1.0;
++	}
++	if (directional_lights.data[idx].shadow_opacity <= 0.001) {
++		return 1.0;
++	}
++
++	float depth_z = -vertex.z;
++	vec4 pssm_coord;
++	float blur_factor;
++	vec3 light_dir = directional_lights.data[idx].direction;
++
++	if (depth_z < directional_lights.data[idx].shadow_split_offsets.x) {
++		vec4 v = vec4(vertex, 1.0);
++		v.xyz += light_dir * directional_lights.data[idx].shadow_bias.x;
++		pssm_coord = directional_lights.data[idx].shadow_matrix1 * v;
++		blur_factor = 1.0;
++	} else if (depth_z < directional_lights.data[idx].shadow_split_offsets.y) {
++		vec4 v = vec4(vertex, 1.0);
++		v.xyz += light_dir * directional_lights.data[idx].shadow_bias.y;
++		pssm_coord = directional_lights.data[idx].shadow_matrix2 * v;
++		blur_factor = directional_lights.data[idx].shadow_split_offsets.x / directional_lights.data[idx].shadow_split_offsets.y;
++	} else if (depth_z < directional_lights.data[idx].shadow_split_offsets.z) {
++		vec4 v = vec4(vertex, 1.0);
++		v.xyz += light_dir * directional_lights.data[idx].shadow_bias.z;
++		pssm_coord = directional_lights.data[idx].shadow_matrix3 * v;
++		blur_factor = directional_lights.data[idx].shadow_split_offsets.x / directional_lights.data[idx].shadow_split_offsets.z;
++	} else {
++		vec4 v = vec4(vertex, 1.0);
++		v.xyz += light_dir * directional_lights.data[idx].shadow_bias.w;
++		pssm_coord = directional_lights.data[idx].shadow_matrix4 * v;
++		blur_factor = directional_lights.data[idx].shadow_split_offsets.x / directional_lights.data[idx].shadow_split_offsets.w;
++	}
++
++	pssm_coord /= pssm_coord.w;
++	float shadow = float(sample_directional_pcf_shadow(
++			directional_shadow_atlas,
++			scene_data_block.data.directional_shadow_pixel_size
++				* directional_lights.data[idx].soft_shadow_scale
++				* (blur_factor + (1.0 - blur_factor) * float(directional_lights.data[idx].blend_splits)),
++			pssm_coord,
++			scene_data_block.data.taa_frame_count));
++
++	if (directional_lights.data[idx].blend_splits) {
++		float pssm_blend = 0.0;
++		float blur_factor2 = 1.0;
++		vec4 coord2 = pssm_coord;
++
++		if (depth_z < directional_lights.data[idx].shadow_split_offsets.x) {
++			vec4 v = vec4(vertex, 1.0);
++			v.xyz += light_dir * directional_lights.data[idx].shadow_bias.y;
++			coord2 = directional_lights.data[idx].shadow_matrix2 * v;
++			pssm_blend = smoothstep(directional_lights.data[idx].shadow_split_offsets.x * 0.9, directional_lights.data[idx].shadow_split_offsets.x, depth_z);
++			blur_factor2 = directional_lights.data[idx].shadow_split_offsets.x / directional_lights.data[idx].shadow_split_offsets.y;
++		} else if (depth_z < directional_lights.data[idx].shadow_split_offsets.y) {
++			vec4 v = vec4(vertex, 1.0);
++			v.xyz += light_dir * directional_lights.data[idx].shadow_bias.z;
++			coord2 = directional_lights.data[idx].shadow_matrix3 * v;
++			pssm_blend = smoothstep(directional_lights.data[idx].shadow_split_offsets.y * 0.9, directional_lights.data[idx].shadow_split_offsets.y, depth_z);
++			blur_factor2 = directional_lights.data[idx].shadow_split_offsets.x / directional_lights.data[idx].shadow_split_offsets.z;
++		} else if (depth_z < directional_lights.data[idx].shadow_split_offsets.z) {
++			vec4 v = vec4(vertex, 1.0);
++			v.xyz += light_dir * directional_lights.data[idx].shadow_bias.w;
++			coord2 = directional_lights.data[idx].shadow_matrix4 * v;
++			pssm_blend = smoothstep(directional_lights.data[idx].shadow_split_offsets.z * 0.9, directional_lights.data[idx].shadow_split_offsets.z, depth_z);
++			blur_factor2 = directional_lights.data[idx].shadow_split_offsets.x / directional_lights.data[idx].shadow_split_offsets.w;
++		}
++
++		if (pssm_blend > 0.0) {
++			coord2 /= coord2.w;
++			float shadow2 = float(sample_directional_pcf_shadow(
++					directional_shadow_atlas,
++					scene_data_block.data.directional_shadow_pixel_size * directional_lights.data[idx].soft_shadow_scale * blur_factor2,
++					coord2,
++					scene_data_block.data.taa_frame_count));
++			shadow = mix(shadow, shadow2, pssm_blend);
++		}
++	}
++
++	shadow = mix(shadow, 1.0, smoothstep(directional_lights.data[idx].fade_from, directional_lights.data[idx].fade_to, vertex.z));
++	return mix(1.0, shadow, directional_lights.data[idx].shadow_opacity);
++#endif
++#endif
++}
++
+ #endif // SHADOWS_DISABLED
++
++#ifdef SHADOWS_DISABLED
++float sample_directional_shadow(uint idx, vec3 vertex) {
++	return 1.0;
++}
++#endif
+@@ -729,4 +832,4 @@ void light_process_omni(uint idx, vec3 vertex, hvec3 eye_vec, hvec3 normal, vec
+ 	}
+ 
+ 	vec3 light_rel_vec_norm = light_rel_vec / light_length;
+-	light_compute(normal, hvec3(light_rel_vec_norm), eye_vec, size, hvec3(color), false, omni_attenuation * shadow, f0, roughness, metallic, half(omni_lights.data[idx].specular_amount), albedo, alpha, screen_uv, energy_compensation,
++	light_compute(idx, normal, hvec3(light_rel_vec_norm), eye_vec, size, hvec3(color), false, omni_attenuation * shadow, f0, roughness, metallic, half(omni_lights.data[idx].specular_amount), albedo, alpha, screen_uv, energy_compensation,
+@@ -934,1 +1037,1 @@ void light_process_spot(uint idx, vec3 vertex, hvec3 eye_vec, hvec3 normal, vec
+-	light_compute(normal, hvec3(light_rel_vec_norm), eye_vec, size, hvec3(color), false, spot_attenuation * shadow, f0, roughness, metallic, half(spot_lights.data[idx].specular_amount), albedo, alpha, screen_uv, energy_compensation,
++	light_compute(idx, normal, hvec3(light_rel_vec_norm), eye_vec, size, hvec3(color), false, spot_attenuation * shadow, f0, roughness, metallic, half(spot_lights.data[idx].specular_amount), albedo, alpha, screen_uv, energy_compensation,
+diff --git a/servers/rendering/renderer_rd/shaders/forward_clustered/scene_forward_clustered.glsl b/servers/rendering/renderer_rd/shaders/forward_clustered/scene_forward_clustered.glsl
+--- a/servers/rendering/renderer_rd/shaders/forward_clustered/scene_forward_clustered.glsl
++++ b/servers/rendering/renderer_rd/shaders/forward_clustered/scene_forward_clustered.glsl
+@@ -1907,1 +1907,1 @@ void main() {
+-						light_compute(normal, L_view, view, 0.0, specular_light_color, true, 1.0, f0, roughness, metallic, specular_intensity, albedo, alpha, screen_uv, energy_compensation,
++						light_compute(0xFFFFFFFFu, normal, L_view, view, 0.0, specular_light_color, true, 1.0, f0, roughness, metallic, specular_intensity, albedo, alpha, screen_uv, energy_compensation,
+@@ -2758,1 +2758,1 @@ void main() {
+-			light_compute(normal, directional_lights.data[i].direction, normalize(view), size_A,
++			light_compute(i, normal, directional_lights.data[i].direction, normalize(view), size_A,
+diff --git a/servers/rendering/renderer_rd/shaders/forward_mobile/scene_forward_mobile.glsl b/servers/rendering/renderer_rd/shaders/forward_mobile/scene_forward_mobile.glsl
+--- a/servers/rendering/renderer_rd/shaders/forward_mobile/scene_forward_mobile.glsl
++++ b/servers/rendering/renderer_rd/shaders/forward_mobile/scene_forward_mobile.glsl
+@@ -1800,1 +1800,1 @@ void main() {
+-						light_compute(normal, hvec3(L_view_highp), view, saturateHalf(0.0), specular_light_color, true, half(1.0), f0, roughness, metallic, half(specular_intensity), albedo, alpha,
++						light_compute(0xFFFFFFFFu, normal, hvec3(L_view_highp), view, saturateHalf(0.0), specular_light_color, true, half(1.0), f0, roughness, metallic, half(specular_intensity), albedo, alpha,
+@@ -2205,1 +2205,1 @@ void main() {
+-			light_compute(normal, hvec3(directional_lights.data[i].direction), view, saturateHalf(size_A),
++			light_compute(i, normal, hvec3(directional_lights.data[i].direction), view, saturateHalf(size_A),
