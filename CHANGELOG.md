@@ -5,6 +5,20 @@ Maintained per branch; entries are added by whoever makes the change.
 
 ## [Unreleased] — `codex`
 
+### 2026-09-30 - Add debug diorama map foundation (codex)
+
+Added
+- Debug-only 500 × 320 upper-left diorama map using a live shared-world
+  SubViewport camera: 30 m default height, 36° FOV, 64° pitch and 12° yaw.
+- FOLLOW, FREE and RECENTERING modes; drag enters free pan, wheel zooms from
+  18–60 m, CENTER smoothly returns to Henry, and a gold marker tracks him.
+- A focused headless state test plus an existing-workflow preview job that
+  captures full placement and map-only PNGs without running the GIS pipeline.
+
+Notes
+- The tool self-removes from release builds and owns no gameplay/streaming state.
+  Its perspective camera creates the trapezoid; the viewport image is not warped.
+
 ### 2026-09-30 - Make agent pre-task sync mandatory (codex)
 
 Changed
