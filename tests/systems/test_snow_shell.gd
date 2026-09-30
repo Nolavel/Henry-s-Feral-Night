@@ -23,6 +23,7 @@ func _run() -> void:
 	_test_deeper_snow_is_slower()
 	_test_the_world_builds_it()
 	_test_the_city_wind_field_varies_depth()
+	_test_low_tier_builds_no_window()
 	if _failures > 0:
 		push_error("snow shell: %d check(s) failed" % _failures)
 		quit(1)
@@ -138,3 +139,15 @@ func _test_the_city_wind_field_varies_depth() -> void:
 		hi = maxf(hi, f)
 	_check(lo < 0.6 and hi > 1.4, "the wind field is flat: %.2f..%.2f" % [lo, hi])
 	_check(field.wind_factor(Vector2(-3000.0, -2500.0)) < 0.05, "open sea should hold no settled snow")
+
+
+func _test_low_tier_builds_no_window() -> void:
+	var before: Variant = ProjectSettings.get_setting("hfn/snow/quality", "high")
+	ProjectSettings.set_setting("hfn/snow/quality", "low")
+	var shell: Node3D = SHELL_SCRIPT.new()
+	root.add_child(shell)
+	_check(shell.get_child_count() == 0, "the low tier still built the snow window")
+	_check(not shell.is_physics_processing(), "the low tier still runs the snow window")
+	shell.recentre_to(Vector2(10.0, 10.0))
+	shell.free()
+	ProjectSettings.set_setting("hfn/snow/quality", before)

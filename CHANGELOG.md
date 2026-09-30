@@ -5,6 +5,19 @@ Maintained per branch; entries are added by whoever makes the change.
 
 ## [Unreleased] — `codex`
 
+### 2026-09-30 - Answer the #139 post-merge audit: layers, budget, snow tier (claudeflow)
+
+- Render layers are reserved in `RenderLayers` and named in `project.godot`:
+  layer 19 `snow_contact`, layer 20 `dev_map_label`. Snow contact and dev map
+  labels no longer share layer 20, and the dev map camera skips snow contact.
+  `test_render_layers.gd` locks this in.
+- Measured the snow budget: `SnowField.rebuild` takes 0.5–0.9 s per window move and
+  `SnowChunkCover.build` about 0.3 s per chunk (`docs/technical/SNOW_COVER.md`).
+- The ~65 MiB wind field image is shared by every SnowField. Pickups are tagged
+  once and on spawn instead of by a full-tree scan on every window move.
+- New setting `hfn/snow/quality` (`high` default, `low`): low builds no snow
+  window, no contact passes and no chunk cover.
+
 ### 2026-09-30 - Gate the developer map behind World and M (codex)
 
 Changed

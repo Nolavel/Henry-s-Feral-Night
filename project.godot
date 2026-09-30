@@ -942,6 +942,8 @@ locale/translations=PackedStringArray("res://localization/strings.en.translation
 
 3d_render/layer_5="henry_render"
 3d_render/layer_6="gizmo_render"
+3d_render/layer_19="snow_contact"
+3d_render/layer_20="dev_map_label"
 3d_physics/layer_1="ground"
 
 [rendering]
@@ -978,3 +980,7 @@ frost_amount={
 "type": "float",
 "value": 0.3
 }
+
+[hfn]
+
+snow/quality="high"

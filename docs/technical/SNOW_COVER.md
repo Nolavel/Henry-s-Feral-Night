@@ -210,5 +210,16 @@ snow_ground.gdshader: top − packed + rim          MovementController speed
   presses while the toe is above the surface.
 - **Window.** 25.6 m, moved in 3.2 m steps; packing is shifted with it. The
   mesh is 3 cm near Henry and coarsens to 25 cm at the edge; packing is 2.5 cm.
-- **Cost.** One extra 512² render of layer 20 and one 512² 2D pass per frame,
-  plus a CPU field rebuild (~16k samples) each time the window moves.
+- **Cost.** One extra 1024² render of layer 19 (`snow_contact`) and one 1024² 2D
+  pass per frame (`packed_res`), plus a CPU field rebuild each time the window moves.
+- **Measured budget** (lavapipe CPU box, `main@9ec6f03`, Key West):
+
+  | Place | `SnowField.rebuild` avg / max | Ground samples | `SnowChunkCover.build` |
+  |---|---|---|---|
+  | Old Town | 478 / 573 ms | 16 384 | 316 ms |
+  | Fort Street | 758 / 864 ms | 16 384 | 259 ms |
+  | Open coast | 669 / 735 ms | 16 384 | 291 ms |
+
+  Ground rays are ~25% of a rebuild; the rest is GDScript field math. A rebuild
+  every 3.2 m is a visible hitch, so an incremental (strip) rebuild is the next
+  snow task. The wind field image is ~65 MiB and is now shared by every SnowField.

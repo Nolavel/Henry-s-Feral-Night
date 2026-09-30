@@ -12,8 +12,8 @@ const TERRAIN_SCRIPT: GDScript = preload("res://scripts/systems/world/terrain/is
 const PRESENTATION_SCRIPT: GDScript = preload("res://scripts/systems/world/snow/snow_presentation_system.gd")
 const PICKUP_SCRIPT: GDScript = preload("res://scripts/environment/interactive/item_pickup.gd")
 const SENSOR_SCRIPT: GDScript = preload("res://scripts/actors/player/henry/components/foot_contact_sensor.gd")
-## Render layer 20: meshes on it press into the snow.
-const CONTACT_LAYER: int = 1 << 19
+## Render layer 19 (snow_contact): meshes on it press into the snow.
+const CONTACT_LAYER: int = RenderLayers.SNOW_CONTACT
 
 @export_group("Window")
 ## Side of the square window around the player, in metres.
@@ -94,6 +94,10 @@ var _gait: Node
 
 
 func _ready() -> void:
+	if not SnowField.high_quality():
+		set_process(false)
+		set_physics_process(false)
+		return
 	field.window_m = window_m
 	field.res = field_res
 	field.sea_level_m = sea_level_m
@@ -106,6 +110,8 @@ func _ready() -> void:
 
 
 func on_world_ready(context: WorldContext) -> void:
+	if not SnowField.high_quality():
+		return
 	_player = context.player
 	_world_root = context.world
 	_weather = context.get_system(WEATHER_SCRIPT) as WeatherController
@@ -119,6 +125,13 @@ func on_world_ready(context: WorldContext) -> void:
 		_mover = _player.get_node_or_null(^"MovementController")
 		_gait = _player.find_child("Wade", true, false)
 	_sensor = context.find_in_scene(SENSOR_SCRIPT) as FootContactSensor
+	## Pickups press snow: tag the ones already placed once, then each as it spawns.
+	if _world_root != null:
+		for pickup: Node in _world_root.find_children("*", "", true, false):
+			if is_instance_of(pickup, PICKUP_SCRIPT):
+				tag_contact(pickup)
+	if is_inside_tree() and not get_tree().node_added.is_connected(_on_node_added):
+		get_tree().node_added.connect(_on_node_added)
 
 
 ## Puts every mesh under `root` on the contact layer, so it presses into snow.
@@ -196,6 +209,8 @@ func _process(delta: float) -> void:
 
 ## Moves the window so it is centred near a point and rebuilds the settled field.
 func recentre_to(centre: Vector2) -> void:
+	if _surface == null:
+		return  # Low snow tier: no window.
 	var half: float = window_m * 0.5
 	var wanted := Vector2(
 		snappedf(centre.x - half, recentre_step_m), snappedf(centre.y - half, recentre_step_m)
@@ -213,10 +228,6 @@ func recentre_to(centre: Vector2) -> void:
 	RenderingServer.global_shader_parameter_set(&"snow_wind", wind.normalized() if wind.length_squared() > 0.0001 else Vector2(0, -1))
 	RenderingServer.global_shader_parameter_set(&"snow_window", Vector4(wanted.x, wanted.y, window_m, 1.0))
 	_field_tex.set_image(field.image)
-	if _world_root != null:
-		for pickup: Node in _world_root.find_children("*", "", true, false):
-			if is_instance_of(pickup, PICKUP_SCRIPT):
-				tag_contact(pickup)
 	_surface.set_shader_parameter("origin", wanted)
 	_mesh.global_position = Vector3(wanted.x + half, 0.0, wanted.y + half)
 	_contact_cam.global_transform = Transform3D(
@@ -474,3 +485,9 @@ func _is_broad(space: PhysicsDirectSpaceState3D, at: Vector3) -> bool:
 		if hit.is_empty() or absf((hit["position"] as Vector3).y - at.y) > 0.05:
 			return false
 	return true
+
+
+func _on_node_added(node: Node) -> void:
+	if is_instance_of(node, PICKUP_SCRIPT):
+		## Its visuals are built in _ready, after node_added fires.
+		node.ready.connect(tag_contact.bind(node), CONNECT_ONE_SHOT)

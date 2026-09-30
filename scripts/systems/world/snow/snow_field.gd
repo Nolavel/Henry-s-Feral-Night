@@ -32,6 +32,8 @@ var wind_field_max: float = 2.5
 ## Share of the storm pattern over the prevailing one.
 var storm_share: float = 0.4
 
+static var _wind_cache: Dictionary = {}
+
 var _ground: PackedVector2Array = []
 var _bed: PackedFloat32Array = []
 var _noise: FastNoiseLite = FastNoiseLite.new()
@@ -51,13 +53,17 @@ func load_wind_field(png_path: String) -> bool:
 	var meta: Variant = JSON.parse_string(FileAccess.get_file_as_string(meta_path))
 	if typeof(meta) != TYPE_DICTIONARY:
 		return false
-	var tex := load(png_path) as Texture2D
-	if tex == null:
-		return false
-	wind_texture = tex
-	wind_field = tex.get_image()
-	if wind_field.is_compressed():
-		wind_field.decompress()
+	## Every SnowField shares one CPU copy; the image alone is ~65 MiB.
+	if not _wind_cache.has(png_path):
+		var tex := load(png_path) as Texture2D
+		if tex == null:
+			return false
+		var img: Image = tex.get_image()
+		if img.is_compressed():
+			img.decompress()
+		_wind_cache[png_path] = [tex, img]
+	wind_texture = _wind_cache[png_path][0]
+	wind_field = _wind_cache[png_path][1]
 	var o: Array = (meta as Dictionary).get("origin", [0, 0])
 	wind_field_origin = Vector2(float(o[0]), float(o[1]))
 	wind_field_cell_m = float((meta as Dictionary).get("cell_m", 4.0))
@@ -100,6 +106,12 @@ static func ridge_openness(city: float) -> float:
 ## Drift crest height for a snow_cover value.
 func drift_amplitude(cover: float) -> float:
 	return pow(clampf(cover, 0.0, 1.0), 1.5) * drift_m
+
+
+## True on the high snow tier: Henry's deformable window and chunk-wide depth.
+## Low keeps shader cover, frost and footprint decals only.
+static func high_quality() -> bool:
+	return String(ProjectSettings.get_setting("hfn/snow/quality", "high")) != "low"
 
 
 ## Settled depth for a snow_cover value, before the city's wind reshapes it.

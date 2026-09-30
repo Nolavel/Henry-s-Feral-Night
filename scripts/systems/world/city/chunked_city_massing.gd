@@ -181,7 +181,7 @@ func activate_stream_chunk(stream_id: StringName, _container: Node3D) -> Node3D:
 		if props != null:
 			(state["node"] as Node3D).add_child(props)
 		state["props"] = props
-	if state.get("snow") == null:
+	if state.get("snow") == null and SnowField.high_quality():
 		var chunk: Dictionary = state["data"]
 		var o: Array = chunk.get("origin", [0, 0])
 		var snow := SnowChunkCover.build(terrain, Vector2(float(o[0]), float(o[1])), chunk_size_m)
