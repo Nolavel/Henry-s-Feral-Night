@@ -234,3 +234,11 @@ snow_ground.gdshader: top − packed + rim          MovementController speed
 Chunk cover meshes are cached (12 chunks, LRU) and built in 4 ms slices per
 frame; chunks near `SnowShell.live_window` are built at once so Henry never
 stands on a chunk without snow.
+
+### Storm layer
+
+`snow_storm_share` (written only by `SnowPresentationSystem`) mixes the baked
+city wind field: R is the old prevailing base, G the fresh storm pattern.
+Snow falling in wind drives the share toward `wind / storm_wind_mps`; without
+snowfall it consolidates back to `calm_storm_share` over hours. SnowField keeps
+both factors per cell, so a share change rebuilds depth only.

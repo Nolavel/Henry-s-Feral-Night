@@ -42,7 +42,7 @@ var wind_texture: Texture2D
 var wind_field_origin: Vector2 = Vector2.ZERO
 var wind_field_cell_m: float = 4.0
 var wind_field_max: float = 2.5
-## Share of the storm pattern over the prevailing one.
+## Share of fresh storm snow over the old prevailing base; set per rebuild.
 var storm_share: float = 0.4
 
 static var _wind_cache: Dictionary = {}
@@ -56,7 +56,9 @@ var _col1: PackedFloat32Array = []
 var _row2: PackedFloat32Array = []
 var _bed: PackedFloat32Array = []
 var _wall: PackedFloat32Array = []
-var _city: PackedFloat32Array = []
+## Prevailing and storm wind factors per grid cell; mixed by storm_share at depth time.
+var _prevail: PackedFloat32Array = []
+var _storm: PackedFloat32Array = []
 var _grain: PackedFloat32Array = []
 var _job_active: bool = false
 var _job_stage: int = 0
@@ -64,6 +66,7 @@ var _job_cursor: int = 0
 var _job_spans: Array[Vector3i] = []
 var _job_shift: Vector2i = Vector2i.ZERO
 var _job_origin: Vector2 = Vector2.ZERO
+var _job_storm: float = 0.4
 var _job_cover: float = 0.0
 var _job_wind: Vector2 = Vector2(0, -1)
 var _job_ahead: Vector2i = Vector2i.ZERO
@@ -171,19 +174,25 @@ func is_building(at: Vector2) -> bool:
 
 ## How the city's wind scales settled snow here: under 1 scoured, over 1 deposited.
 func wind_factor(at: Vector2) -> float:
+	var both: Vector2 = wind_factors(at)
+	return lerpf(both.x, both.y, storm_share)
+
+
+## Prevailing and storm depth factors at a world point, each 1.0 outside the city.
+func wind_factors(at: Vector2) -> Vector2:
 	if wind_field == null:
-		return 1.0
+		return Vector2.ONE
 	var p: Vector2 = (at - wind_field_origin) / wind_field_cell_m - Vector2(0.5, 0.5)
 	## Outside the baked city the wind leaves settled snow as it fell.
 	if p.x < 0.0 or p.y < 0.0 or p.x > wind_field.get_width() - 1 or p.y > wind_field.get_height() - 1:
-		return 1.0
+		return Vector2.ONE
 	var x0: int = clampi(floori(p.x), 0, wind_field.get_width() - 2)
 	var y0: int = clampi(floori(p.y), 0, wind_field.get_height() - 2)
 	var f := Vector2(clampf(p.x - float(x0), 0.0, 1.0), clampf(p.y - float(y0), 0.0, 1.0))
 	var top: Color = wind_field.get_pixel(x0, y0).lerp(wind_field.get_pixel(x0 + 1, y0), f.x)
 	var bottom: Color = wind_field.get_pixel(x0, y0 + 1).lerp(wind_field.get_pixel(x0 + 1, y0 + 1), f.x)
 	var c: Color = top.lerp(bottom, f.y)
-	return lerpf(c.r, c.g, storm_share) * wind_field_max
+	return Vector2(c.r, c.g) * wind_field_max
 
 
 func texel_m() -> float:
@@ -205,6 +214,7 @@ func begin_rebuild(new_origin: Vector2, cover: float, wind: Vector2) -> void:
 		invalidate()
 	_job_origin = new_origin
 	_job_cover = clampf(cover, 0.0, 1.0)
+	_job_storm = clampf(storm_share, 0.0, 1.0)
 	_job_wind = wind.normalized() if wind.length_squared() > 0.0001 else Vector2(0, -1)
 	var grid_origin: Vector2 = new_origin - Vector2(APRON, APRON) * texel_m()
 	var n: int = res + 2 * APRON
@@ -305,7 +315,7 @@ func _start_grid(grid_origin: Vector2, shift: Vector2i) -> void:
 	var n: int = res + 2 * APRON
 	if _n != n:
 		_n = n
-		for layer: String in ["_height", "_row1", "_col1", "_row2", "_bed", "_wall", "_city", "_grain"]:
+		for layer: String in ["_height", "_row1", "_col1", "_row2", "_bed", "_wall", "_prevail", "_storm", "_grain"]:
 			var arr := PackedFloat32Array()
 			arr.resize(n * n)
 			set(layer, arr)
@@ -319,7 +329,8 @@ func _start_grid(grid_origin: Vector2, shift: Vector2i) -> void:
 		_row2 = _shifted(_row2, shift)
 		_bed = _shifted(_bed, shift)
 		_wall = _shifted(_wall, shift)
-		_city = _shifted(_city, shift)
+		_prevail = _shifted(_prevail, shift)
+		_storm = _shifted(_storm, shift)
 		_grain = _shifted(_grain, shift)
 	_grid_origin = grid_origin
 	_job_shift = shift
@@ -369,7 +380,9 @@ func _grid_span(stage: int, span: Vector3i) -> void:
 				var g: Vector2 = ground_sampler.call(at)
 				_ground[k] = g
 				_height[k] = g.x
-				_city[k] = wind_factor(at)
+				var both: Vector2 = wind_factors(at)
+				_prevail[k] = both.x
+				_storm[k] = both.y
 				_grain[k] = _noise.get_noise_2d(at.x * 1.3, at.y * 1.3)
 			STAGE_ROW1:
 				var sum: float = 0.0
@@ -487,7 +500,7 @@ func _assemble_row(lj: int) -> void:
 		if g.y > 0.5:
 			continue
 		var at: Vector2 = _grid_world(i, j)
-		var city: float = _city[k]
+		var city: float = lerpf(_prevail[k], _storm[k], _job_storm)
 		var drift: float = amp * ridge_at(at, _job_wind) * minf(city, 1.5) * ridge_openness(city)
 		var lee: float = _job_cover * lee_m * _lee(i, j, _job_upwind, _job_ahead)
 		## Wind scours the face that rises into it and fills hollows.
@@ -525,7 +538,7 @@ func _output_row(ty: int) -> void:
 		_job_px[o] = top
 		_job_px[o + 1] = top - g.x
 		_job_px[o + 2] = 1.0 if g.x < sea_level_m + 0.02 else 0.0
-		_job_px[o + 3] = _city[k]
+		_job_px[o + 3] = lerpf(_prevail[k], _storm[k], _job_storm)
 
 
 func _finish() -> void:

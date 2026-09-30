@@ -16,7 +16,8 @@ uniform sampler2D wind_tex : filter_linear, repeat_disable;
 uniform vec2 wind_origin = vec2(0.0);
 uniform vec2 wind_extent = vec2(0.0);
 uniform float wind_max = 2.5;
-uniform float storm_share = 0.4;
+// Share of fresh storm snow over the old base, from SnowPresentationSystem.
+global uniform float snow_storm_share;
 
 float city_at(vec2 xz) {
 	if (wind_extent.x <= 0.0) {
@@ -27,7 +28,7 @@ float city_at(vec2 xz) {
 		return 1.0;
 	}
 	vec4 w = texture(wind_tex, uv);
-	return mix(w.r, w.g, storm_share) * wind_max;
+	return mix(w.r, w.g, snow_storm_share) * wind_max;
 }
 
 // Settled depth here; the vertex's shore fade (UV.y) keeps the sea edge clean.

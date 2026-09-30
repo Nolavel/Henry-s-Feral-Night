@@ -123,7 +123,6 @@ static func _ensure_shared() -> void:
 		_material.set_shader_parameter("wind_extent",
 			Vector2(_field.wind_field.get_width(), _field.wind_field.get_height()) * _field.wind_field_cell_m)
 		_material.set_shader_parameter("wind_max", _field.wind_field_max)
-		_material.set_shader_parameter("storm_share", _field.storm_share)
 
 
 static func _sample_row(job: Job, j: int) -> void:

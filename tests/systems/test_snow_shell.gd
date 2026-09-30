@@ -28,6 +28,7 @@ func _run() -> void:
 	_test_sliced_rebuild_matches_whole()
 	_test_chunk_cover_slices_and_caches()
 	_test_tiers_size_the_captures()
+	_test_storm_share_rebuilds_in_place()
 	if _failures > 0:
 		push_error("snow shell: %d check(s) failed" % _failures)
 		quit(1)
@@ -263,3 +264,28 @@ func _test_tiers_size_the_captures() -> void:
 		_check(packed.size == Vector2i(1024, 1024), "%s packed field is %s" % [tier, packed.size])
 		shell.free()
 	ProjectSettings.set_setting("hfn/snow/quality", before)
+
+
+## Changing the storm share and rebuilding in place lands on the field built fresh
+## at that share: prevailing and storm factors are cached apart.
+func _test_storm_share_rebuilds_in_place() -> void:
+	var cached := SnowField.new()
+	var fresh := SnowField.new()
+	cached.load_wind_field("res://data/world/key_west/snow_wind.png")
+	fresh.load_wind_field("res://data/world/key_west/snow_wind.png")
+	for f: SnowField in [cached, fresh]:
+		f.ground_sampler = _synthetic_ground
+	var o := Vector2(-3225.0, 1148.0)
+	cached.storm_share = 0.1
+	cached.rebuild(o, 0.8, Vector2(0.6, -0.8))
+	cached.storm_share = 0.9
+	cached.rebuild(o, 0.8, Vector2(0.6, -0.8))
+	fresh.storm_share = 0.9
+	fresh.rebuild(o, 0.8, Vector2(0.6, -0.8))
+	var worst: float = 0.0
+	for y: int in range(cached.res):
+		for x: int in range(cached.res):
+			var a: Color = cached.image.get_pixel(x, y)
+			var b: Color = fresh.image.get_pixel(x, y)
+			worst = maxf(worst, maxf(absf(a.g - b.g), absf(a.a - b.a)))
+	_check(worst < 1e-5, "an in-place storm rebuild drifted from a fresh one by %.6f" % worst)

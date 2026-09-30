@@ -13,6 +13,8 @@ const PRESENTATION_SCRIPT: GDScript = preload("res://scripts/systems/world/snow/
 const PICKUP_SCRIPT: GDScript = preload("res://scripts/environment/interactive/item_pickup.gd")
 ## Contact capture side on the medium tier; the packed field keeps its resolution.
 const MEDIUM_CONTACT_RES: int = 512
+## Change in storm share that is worth rebuilding the window for.
+const STORM_REBUILD_STEP: float = 0.05
 ## Colliders in this group are kept clear of snow, like swept steps.
 const SWEPT_GROUP: StringName = &"snow_swept"
 const SENSOR_SCRIPT: GDScript = preload("res://scripts/actors/player/henry/components/foot_contact_sensor.gd")
@@ -236,6 +238,7 @@ func recentre_to(centre: Vector2) -> void:
 	var old: Vector2 = field.origin
 	var cover: float = _cover()
 	var wind: Vector2 = _wind()
+	field.storm_share = _storm_share()
 	field.rebuild(wanted, cover, wind)
 	_apply_window(old, wanted, cover, wind)
 
@@ -260,7 +263,10 @@ func _follow(centre: Vector2) -> void:
 			_apply_window(_move_from, field.origin, _move_cover, _move_wind)
 		return
 	var wanted: Vector2 = _snapped_origin(centre)
-	if field.origin.x != INF and wanted.is_equal_approx(field.origin):
+	var storm: float = _storm_share()
+	## A storm reshaping the drifts rebuilds the window where it stands.
+	var restorm: bool = absf(storm - field.storm_share) >= STORM_REBUILD_STEP
+	if field.origin.x != INF and wanted.is_equal_approx(field.origin) and not restorm:
 		return
 	if field.origin.x == INF or wanted.distance_to(field.origin) > window_m * 0.5:
 		recentre_to(centre)
@@ -268,6 +274,7 @@ func _follow(centre: Vector2) -> void:
 	_move_from = field.origin
 	_move_cover = _cover()
 	_move_wind = _wind()
+	field.storm_share = storm
 	field.begin_rebuild(wanted, _move_cover, _move_wind)
 	if field.step_rebuild(rebuild_budget_usec):
 		_apply_window(_move_from, field.origin, _move_cover, _move_wind)
@@ -461,6 +468,13 @@ func _viewport(node_name: String, side: int) -> SubViewport:
 
 
 ## Settled cover, never read back from RenderingServer (that stalls).
+## Share of fresh storm snow, from the presentation system; 0.4 without one.
+func _storm_share() -> float:
+	if _presentation != null and _presentation.has_method(&"get_storm_share"):
+		return clampf(float(_presentation.call(&"get_storm_share")), 0.0, 1.0)
+	return field.storm_share
+
+
 func _cover() -> float:
 	if _presentation != null:
 		return clampf(float(_presentation.call(&"get_settled_snow")), 0.0, 1.0)
