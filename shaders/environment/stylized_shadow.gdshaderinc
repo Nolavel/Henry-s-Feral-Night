@@ -18,10 +18,13 @@ global uniform float stylized_shadow_break_softness;
 global uniform float stylized_shadow_macro_scale;
 global uniform float stylized_shadow_detail_scale;
 global uniform float stylized_shadow_detail_amount;
-global uniform float stylized_shadow_warp_m;
-global uniform float stylized_shadow_texture_scale;
-global uniform float stylized_shadow_texture_detail_scale;
-global uniform float stylized_shadow_texture_detail_mix;
+// Compile-time production constants. Keeping these out of Project Settings
+// prevents an editor reload race where a new global uniform is referenced
+// before Godot has registered it.
+const float HFN_SHADOW_WARP_M = 0.28;
+const float HFN_SHADOW_TEXTURE_SCALE = 0.12;
+const float HFN_SHADOW_TEXTURE_DETAIL_SCALE = 0.45;
+const float HFN_SHADOW_TEXTURE_DETAIL_MIX = 0.28;
 
 
 float hfn_shadow_hash(vec2 p) {
@@ -54,25 +57,25 @@ float hfn_shadow_world_noise(vec3 world_pos, float scale) {
 
 vec3 hfn_stylized_shadow_world_warp(vec3 world_pos) {
 	float strength = clamp(stylized_shadow_strength, 0.0, 1.0);
-	if (strength <= 0.0001 || stylized_shadow_warp_m <= 0.0001) {
+	if (strength <= 0.0001 || HFN_SHADOW_WARP_M <= 0.0001) {
 		return vec3(0.0);
 	}
 
 	float macro_a = hfn_shadow_world_noise(
 		world_pos + vec3(17.3, 0.0, -6.1),
-		stylized_shadow_texture_scale
+		HFN_SHADOW_TEXTURE_SCALE
 	);
 	float macro_b = hfn_shadow_world_noise(
 		world_pos + vec3(-9.7, 3.1, 13.9),
-		stylized_shadow_texture_scale
+		HFN_SHADOW_TEXTURE_SCALE
 	);
 	float detail_a = hfn_shadow_world_noise(
 		world_pos + vec3(2.6, -7.2, 5.8),
-		stylized_shadow_texture_detail_scale
+		HFN_SHADOW_TEXTURE_DETAIL_SCALE
 	);
 	float detail_b = hfn_shadow_world_noise(
 		world_pos + vec3(-4.4, 8.3, -12.7),
-		stylized_shadow_texture_detail_scale
+		HFN_SHADOW_TEXTURE_DETAIL_SCALE
 	);
 
 	vec2 macro = vec2(macro_a, macro_b) * 2.0 - 1.0;
@@ -80,12 +83,12 @@ vec3 hfn_stylized_shadow_world_warp(vec3 world_pos) {
 	vec2 warp = mix(
 		macro,
 		detail,
-		clamp(stylized_shadow_texture_detail_mix, 0.0, 1.0)
+		clamp(HFN_SHADOW_TEXTURE_DETAIL_MIX, 0.0, 1.0)
 	);
 
 	float amplitude_noise = hfn_shadow_world_noise(
 		world_pos + vec3(31.0, -11.0, 7.0),
-		stylized_shadow_texture_scale * 0.47
+		HFN_SHADOW_TEXTURE_SCALE * 0.47
 	);
 	// Quantising part of the amplitude is intentional: broad regions shift by
 	// noticeably different amounts instead of producing one smooth wavy edge.
@@ -93,7 +96,7 @@ vec3 hfn_stylized_shadow_world_warp(vec3 world_pos) {
 	float amplitude = mix(island, amplitude_noise, 0.22);
 
 	return vec3(warp.x, 0.0, warp.y)
-		* stylized_shadow_warp_m
+		* HFN_SHADOW_WARP_M
 		* amplitude
 		* strength;
 }
