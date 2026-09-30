@@ -13,6 +13,7 @@ void vertex() {
 }
 
 void fragment() {
+	LIGHT_VERTEX = VERTEX + hfn_stylized_shadow_view_warp(world_pos, VIEW_MATRIX);
 	vec2 uv = (world_pos.xz - world_origin) / world_size;
 	if (uv.x < 0.0 || uv.y < 0.0 || uv.x > 1.0 || uv.y > 1.0) {
 		discard;
