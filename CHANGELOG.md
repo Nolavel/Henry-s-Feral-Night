@@ -464,7 +464,7 @@ Validated consumers
 - shelter furniture dismantling → TimeCostedAction.
 
 Deferred
-- Generic garment/item repair is not marked adopted because RIMEWATCH currently has no real repair
+- Generic garment/item repair is not marked adopted because Hoarbound currently has no real repair
   interaction, repair material/tool contract or gameplay owner. `EquipmentComponent.repair_garment()`
   remains the simulation seam for a later concrete repair verb rather than inventing a fake recipe here.
 

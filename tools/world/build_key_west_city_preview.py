@@ -77,7 +77,7 @@ out center geom;"""
         request = urllib.request.Request(
             endpoint,
             data=body,
-            headers={"User-Agent": "HFN-RIMEWATCH-KeyWest-Preview/2.0"},
+            headers={"User-Agent": "HFN-Hoarbound-KeyWest-Preview/2.0"},
             method="POST",
         )
         for attempt in range(2):

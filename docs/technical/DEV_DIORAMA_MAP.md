@@ -12,7 +12,7 @@ state.
 - 64 degree downward pitch with a 12 degree yaw offset. The trapezoid comes from
   the real perspective camera; the viewport texture is not distorted.
 
-The map is follow-only. RIMEWATCH's normal TPS scene has no free mouse cursor,
+The map is follow-only. Hoarbound's normal TPS scene has no free mouse cursor,
 so free-pan and recenter controls are deliberately absent.
 
 World exposes `enable_runtime_dev_map` under Developer tools. It defaults to

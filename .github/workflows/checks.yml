@@ -109,7 +109,7 @@ jobs:
       - name: Upload colour grade previews
         uses: actions/upload-artifact@v4
         with:
-          name: rimewatch-color-grades
+          name: hoarbound-color-grades
           path: docs/runtime_previews/color_grading/*.png
           if-no-files-found: error
           retention-days: 3
@@ -150,7 +150,7 @@ jobs:
       - name: Upload developer diorama previews
         uses: actions/upload-artifact@v4
         with:
-          name: rimewatch-dev-diorama-map
+          name: hoarbound-dev-diorama-map
           path: docs/runtime_previews/dev_diorama_map/*.png
           if-no-files-found: error
           retention-days: 3
@@ -181,7 +181,7 @@ jobs:
         if: contains(github.event.head_commit.message, '[key-west-tps]') || contains(github.event.head_commit.message, '[key-west-first-exit]')
         uses: actions/download-artifact@v4
         with:
-          name: rimewatch-key-west-preview
+          name: hoarbound-key-west-preview
           run-id: 36524001180
           github-token: ${{ github.token }}
           path: /tmp/keywest-stage5
@@ -260,7 +260,7 @@ jobs:
       - name: Upload Key West previews
         uses: actions/upload-artifact@v4
         with:
-          name: ${{ contains(github.event.head_commit.message, '[key-west-first-exit]') && 'rimewatch-key-west-first-exit' || (contains(github.event.head_commit.message, '[key-west-tps]') && 'rimewatch-key-west-tps' || 'rimewatch-key-west-preview') }}
+          name: ${{ contains(github.event.head_commit.message, '[key-west-first-exit]') && 'hoarbound-key-west-first-exit' || (contains(github.event.head_commit.message, '[key-west-tps]') && 'hoarbound-key-west-tps' || 'hoarbound-key-west-preview') }}
           path: |
             docs/runtime_previews/key_west/*.png
             docs/runtime_previews/key_west/source_report.json

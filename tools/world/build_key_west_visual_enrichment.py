@@ -263,7 +263,7 @@ out geom;"""
             endpoint,
             data=body,
             method="POST",
-            headers={"User-Agent": "HFN-RIMEWATCH-KeyWest-Visuals/1.0"},
+            headers={"User-Agent": "HFN-Hoarbound-KeyWest-Visuals/1.0"},
         )
         for attempt in range(2):
             try:
