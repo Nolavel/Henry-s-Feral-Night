@@ -182,8 +182,7 @@ static func _add_crossings(parent: Node3D, pts: Array, index: Dictionary, terrai
 	arrays[Mesh.ARRAY_INDEX] = ind
 	var mesh := ArrayMesh.new()
 	mesh.add_surface_from_arrays(Mesh.PRIMITIVE_TRIANGLES, arrays)
-	var paint := _mat(Color(0.93, 0.94, 0.9), 0.75)
-	paint.shading_mode = BaseMaterial3D.SHADING_MODE_UNSHADED
+	var paint := StylizedEnvironmentMaterial.make_unshaded(Color(0.93, 0.94, 0.9))
 	mesh.surface_set_material(0, paint)
 	var inst := MeshInstance3D.new()
 	inst.name = "Crossings"

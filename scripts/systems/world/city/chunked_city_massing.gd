@@ -906,10 +906,9 @@ func _build_chunk_grid() -> Node3D:
 		_append_ribbon_segment(vertices, normals, indices, b, c, half, 0.35)
 		_append_ribbon_segment(vertices, normals, indices, c, d, half, 0.35)
 		_append_ribbon_segment(vertices, normals, indices, d, a, half, 0.35)
-	var material := _standard_material(Color(0.92, 0.08, 0.06), 0.82)
-	material.emission_enabled = true
-	material.emission = Color(0.92, 0.08, 0.06)
-	material.emission_energy_multiplier = 1.8
+	## Debug chunk boundaries stay deliberately unshaded and outside the
+	## production stylized-lighting contract.
+	var material := StylizedEnvironmentMaterial.make_unshaded(Color(0.92, 0.08, 0.06))
 	var instance := MeshInstance3D.new()
 	instance.mesh = _mesh_from_arrays(vertices, normals, indices, material)
 	holder.add_child(instance)

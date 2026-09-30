@@ -7,20 +7,12 @@ const MAIN_SCENE: String = "res://scenes/world/key_west/key_west.tscn"
 const OUT_DIR: String = "res://docs/runtime_previews/stylized_shadows"
 const BUNKER := Vector2(-3452.88, 2273.84)
 const SHELTER := Vector2(-3579.85, 1574.51)
-const FIRST_ACTION_FRAME: int = 210
-const SETTLE_FRAMES: int = 36
-const BETWEEN_SHOTS: int = 90
+const FIRST_ACTION_FRAME: int = 20
+const SETTLE_FRAMES: int = 4
+## One representative production view is enough for visual regression.
+## The headless contract test covers the shader families; CI only needs a
+## matched physical/stylized image pair, not a six-frame cinematic sweep.
 var _shots: Array[Dictionary] = [
-	{
-		"name": "bunker",
-		"at": BUNKER,
-		"look": BUNKER.lerp(SHELTER, 0.22),
-	},
-	{
-		"name": "city_route",
-		"at": BUNKER.lerp(SHELTER, 0.58),
-		"look": SHELTER,
-	},
 	{
 		"name": "shelter",
 		"at": SHELTER + (BUNKER - SHELTER).normalized() * 26.0,
@@ -48,8 +40,12 @@ func _initialize() -> void:
 
 func _process(_delta: float) -> bool:
 	_frame += 1
-	if _frame == 20:
+	if _frame == 8:
 		_bind()
+	if _frame > 80 and (_player == null or _terrain == null):
+		push_error("stylized shadow capture: production scene did not bind")
+		quit(1)
+		return true
 	if _player == null or _terrain == null or _frame < _next_frame:
 		return false
 
@@ -75,7 +71,7 @@ func _process(_delta: float) -> bool:
 		_capture("%02d_%s_stylized" % [_shot_index * 2 + 2, String(shot["name"])])
 		_shot_index += 1
 		_phase = 0
-		_next_frame = _frame + BETWEEN_SHOTS
+		_next_frame = _frame + SETTLE_FRAMES
 	return false
 
 
