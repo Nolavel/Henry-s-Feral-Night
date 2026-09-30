@@ -57,11 +57,21 @@ try {
 
     if ($VerifyProject) {
         $ProjectRoot = (Resolve-Path (Join-Path $PSScriptRoot "..\..")).Path
+
+        # First let Godot import the project and generate shader/cache metadata.
         & $Editor.FullName --headless --path $ProjectRoot --editor --quit-after 3
         if ($LASTEXITCODE -ne 0) {
             throw "Project import/compile verification failed under patched Godot."
         }
-        Write-Host "HFN project import succeeded with the patched editor."
+
+        # Then run the contract test with the patched executable. This loads all
+        # production receiver shaders that use LIGHT_INDEX/sample_directional_shadow.
+        & $Editor.FullName --headless --path $ProjectRoot --script tests/systems/test_stylized_shadows.gd
+        if ($LASTEXITCODE -ne 0) {
+            throw "Stylized-shadow sampler contract test failed under patched Godot."
+        }
+
+        Write-Host "HFN project import and custom shadow sampler contract passed."
     }
 }
 finally {

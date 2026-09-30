@@ -43,9 +43,10 @@ The script:
 3. applies `tools/engine/patches/godot-4.8-dev6-directional-shadow-sampler.patch`;
 4. builds the Windows .NET editor;
 5. generates Mono glue and GodotSharp assemblies;
-6. optionally imports HFN with that patched editor.
+6. optionally imports HFN with that patched editor;
+7. runs `tests/systems/test_stylized_shadows.gd` with the patched executable, which forces the production custom-sampler shaders to compile.
 
-No GitHub Actions are used.
+No GitHub Actions are used. `-VerifyProject` is the final local gate: a stock Godot editor cannot compile the HFN shaders that reference `LIGHT_INDEX` and `sample_directional_shadow()`, while the patched editor must import them and pass the contract test.
 
 ## Why this exists
 
