@@ -40,11 +40,11 @@ const WEATHER_GROUP: StringName = &"weather_controller"
 @export_group("Hinge dynamics")
 ## Effective rotational inertia, not kilograms. Higher values make body pushes
 ## take longer to build angular speed.
-@export_range(0.5, 12.0, 0.1) var angular_inertia: float = 3.5
+@export_range(0.5, 12.0, 0.1) var angular_inertia: float = 1.8
 ## Viscous hinge friction in torque per rad/s.
-@export_range(0.0, 30.0, 0.1) var hinge_damping: float = 9.0
+@export_range(0.0, 30.0, 0.1) var hinge_damping: float = 5.0
 ## Converts Henry's real closing speed at a collision into force on the leaf.
-@export_range(0.0, 30.0, 0.1) var body_push_force_scale: float = 10.0
+@export_range(0.0, 30.0, 0.1) var body_push_force_scale: float = 24.0
 ## Prevents a moving kinematic collider from sweeping farther than Henry's capsule
 ## can reasonably resolve in one physics tick.
 @export_range(20.0, 180.0, 1.0) var max_angular_speed_deg: float = 90.0

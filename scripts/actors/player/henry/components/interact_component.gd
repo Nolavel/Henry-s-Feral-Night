@@ -329,7 +329,9 @@ func _focus_point(area: InteractiveArea) -> Vector3:
 	if not is_instance_valid(area):
 		return Vector3.ZERO
 	if area is HingedDoor:
-		return (area as HingedDoor).get_preferred_handle_position(from)
+		var camera := get_viewport().get_camera_3d()
+		var observer: Vector3 = camera.global_position if camera != null else (_player.global_position if _player != null else area.global_position)
+		return (area as HingedDoor).get_preferred_handle_position(observer)
 	if is_instance_valid(area.focus_anchor):
 		return area.focus_anchor.global_position
 	var mesh: MeshInstance3D = area.interactive_mesh
