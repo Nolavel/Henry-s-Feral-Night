@@ -56,7 +56,6 @@ folder_colors={
 "res://autoloads/": "purple",
 "res://components/": "orange",
 "res://docs/": "blue",
-"res://experimental_location/": "pink",
 "res://garbage/": "red",
 "res://levels/": "gray",
 "res://scenes/": "green",
