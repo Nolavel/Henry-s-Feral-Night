@@ -94,8 +94,20 @@ global uniform float snow_settled_depth;
 global uniform float snow_drift_m;
 global uniform vec2 snow_wind;
 
+// Ridges only where the wind runs free: sheltered yards and drift banks lie smooth.
+// SnowField.ridge_openness() mirrors this.
+float snow_ridge_openness(float city) {
+	return 1.0 - smoothstep(0.85, 1.35, city);
+}
+
+// Smooth settled depth, the part a 2 m grid can hold; both layers meet on it.
+float snow_base_geom(float city) {
+	return snow_settled_depth * city;
+}
+
+// Full settled depth with wind ridges, for shading and thin-snow tint.
 float snow_base_depth(vec2 xz, float city) {
-	return snow_settled_depth * city + snow_drift_m * min(city, 1.5) * snow_ridge(xz, snow_wind);
+	return snow_base_geom(city) + snow_drift_m * min(city, 1.5) * snow_ridge_openness(city) * snow_ridge(xz, snow_wind);
 }
 
 // Thin snow lets the ground grey through; full cover reads white.

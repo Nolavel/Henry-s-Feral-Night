@@ -68,8 +68,8 @@ void vertex() {
 	float ground = f.r - f.g;
 	v_ground = ground;
 	// Toward the window edge the surface eases onto the chunk-wide snow (snow_chunk_cover).
-	float base = snow_base_depth(world.xz, f.a);
-	v_depth = mix(base, f.g, v_edge);
+	float base = snow_base_geom(f.a);
+	v_depth = mix(snow_base_depth(world.xz, f.a), f.g, v_edge);
 	float top = ground + mix(base, f.g - v_packed + v_rim, v_edge);
 	VERTEX.y = max(top, ground + 0.004) - MODEL_MATRIX[3].y;
 	v_world = vec3(world.x, top, world.z);

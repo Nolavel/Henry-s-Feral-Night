@@ -11,6 +11,9 @@ Maintained per branch; entries are added by whoever makes the change.
   and windward banks with a scoured wall foot.
 - Chunk cover samples the wind field per pixel, so lee tongues and scoured
   streets shade between vertices; scoured crust reads greyer, drift banks brighter.
+- Wind ridges form only on open ground; sheltered yards and drift banks lie smooth.
+- Both snow layers share a smooth geometric base at the window edge (ridges live
+  in shading there), which removes the seam around Henry's window.
 
 ### 2026-09-30 - Chunk-wide settled snow (claudeflow)
 

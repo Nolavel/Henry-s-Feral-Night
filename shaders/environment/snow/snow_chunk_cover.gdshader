@@ -42,7 +42,9 @@ void vertex() {
 	vec3 world = (MODEL_MATRIX * vec4(VERTEX, 1.0)).xyz;
 	v_shore = UV.y;
 	v_ground_normal = normalize((MODEL_MATRIX * vec4(NORMAL, 0.0)).xyz);
-	VERTEX.y += depth_at(world.xz, v_shore);
+	// Geometry carries only the smooth base, which Henry's window meets exactly;
+	// ridges live in the per-pixel normal below.
+	VERTEX.y += snow_base_geom(city_at(world.xz) * v_shore);
 	v_world = (MODEL_MATRIX * vec4(VERTEX, 1.0)).xyz;
 }
 

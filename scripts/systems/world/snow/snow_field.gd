@@ -92,6 +92,11 @@ static func _vnoise(p: Vector2) -> float:
 	)
 
 
+## 1 where the wind runs free enough to cut ridges, 0 in sheltered drift banks.
+static func ridge_openness(city: float) -> float:
+	return 1.0 - smoothstep(0.85, 1.35, city)
+
+
 ## Drift crest height for a snow_cover value.
 func drift_amplitude(cover: float) -> float:
 	return pow(clampf(cover, 0.0, 1.0), 1.5) * drift_m
@@ -167,7 +172,7 @@ func rebuild(new_origin: Vector2, cover: float, wind: Vector2) -> void:
 			var ridge: float = ridge_at(at, wind)
 			## The city field sets how much this street keeps; local lee piles ride on top.
 			var city: float = wind_factor(at)
-			var drift: float = drift_amplitude(cover) * ridge * minf(city, 1.5)
+			var drift: float = drift_amplitude(cover) * ridge * minf(city, 1.5) * ridge_openness(city)
 			var lee: float = cover * lee_m * _lee(tx, ty, wind, step)
 			## Wind scours the face that rises into it and fills hollows.
 			var bed: float = _bed[i]
