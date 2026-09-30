@@ -37,10 +37,8 @@ static func make_materials() -> Dictionary:
 	materials["sand"] = _material(Color(0.45, 0.43, 0.37), 0.99)
 	materials["sidewalk"] = _material(Color(0.54, 0.55, 0.55), 0.96)
 	materials["curb"] = _material(Color(0.72, 0.73, 0.72), 0.94)
-	materials["white_line"] = _material(Color(0.97, 0.98, 0.96), 0.72)
-	materials["yellow_line"] = _material(Color(1.0, 0.72, 0.08), 0.72)
-	(materials["white_line"] as StandardMaterial3D).shading_mode = BaseMaterial3D.SHADING_MODE_UNSHADED
-	(materials["yellow_line"] as StandardMaterial3D).shading_mode = BaseMaterial3D.SHADING_MODE_UNSHADED
+	materials["white_line"] = StylizedEnvironmentMaterial.make_unshaded(Color(0.97, 0.98, 0.96))
+	materials["yellow_line"] = StylizedEnvironmentMaterial.make_unshaded(Color(1.0, 0.72, 0.08))
 	materials["coast"] = _material(Color(0.20, 0.23, 0.24), 0.98)
 	materials["pier"] = _material(Color(0.30, 0.31, 0.30), 0.96)
 	materials["barrier"] = _material(Color(0.31, 0.33, 0.33), 0.93, false, true)
@@ -1073,14 +1071,18 @@ static func _mesh(
 	return mesh
 
 
-static func _material(color: Color, roughness: float, vertex_color: bool = false, double_sided: bool = false) -> StandardMaterial3D:
-	var material := StandardMaterial3D.new()
-	material.albedo_color = color
-	material.roughness = roughness
-	material.vertex_color_use_as_albedo = vertex_color
-	if double_sided:
-		material.cull_mode = BaseMaterial3D.CULL_DISABLED
-	return material
+static func _material(
+	color: Color,
+	roughness: float,
+	vertex_color: bool = false,
+	double_sided: bool = false
+) -> Material:
+	return StylizedEnvironmentMaterial.make(
+		color,
+		roughness,
+		vertex_color,
+		double_sided
+	)
 
 
 static func _parse_color(value: String) -> Color:

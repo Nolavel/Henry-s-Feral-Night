@@ -3,6 +3,7 @@
 shader_type spatial;
 
 #include "res://shaders/environment/snow/snow_surface.gdshaderinc"
+#include "res://shaders/environment/stylized_shadow.gdshaderinc"
 
 uniform vec4 base_color : source_color = vec4(0.32, 0.3, 0.28, 1.0);
 uniform sampler2D base_texture : source_color, hint_default_white, filter_linear_mipmap;
@@ -31,14 +32,17 @@ instance uniform vec3 box_half_extents = vec3(0.0);
 instance uniform vec3 box_center_offset = vec3(0.0);
 
 varying vec3 local_pos;
+varying vec3 shadow_world_pos;
 
 void vertex() {
 	local_pos = VERTEX;
+	shadow_world_pos = (MODEL_MATRIX * vec4(VERTEX, 1.0)).xyz;
 }
 
 void fragment() {
+	LIGHT_VERTEX = VERTEX + hfn_stylized_shadow_view_warp(shadow_world_pos, VIEW_MATRIX);
 	vec3 world_normal = (INV_VIEW_MATRIX * vec4(NORMAL, 0.0)).xyz;
-	vec3 world_pos = (INV_VIEW_MATRIX * vec4(VERTEX, 1.0)).xyz;
+	vec3 world_pos = shadow_world_pos;
 
 	vec3 albedo = base_color.rgb * texture(base_texture, UV).rgb;
 	float roughness = base_roughness;

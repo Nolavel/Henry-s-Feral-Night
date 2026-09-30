@@ -182,8 +182,7 @@ static func _add_crossings(parent: Node3D, pts: Array, index: Dictionary, terrai
 	arrays[Mesh.ARRAY_INDEX] = ind
 	var mesh := ArrayMesh.new()
 	mesh.add_surface_from_arrays(Mesh.PRIMITIVE_TRIANGLES, arrays)
-	var paint := _mat(Color(0.93, 0.94, 0.9), 0.75)
-	paint.shading_mode = BaseMaterial3D.SHADING_MODE_UNSHADED
+	var paint := StylizedEnvironmentMaterial.make_unshaded(Color(0.93, 0.94, 0.9))
 	mesh.surface_set_material(0, paint)
 	var inst := MeshInstance3D.new()
 	inst.name = "Crossings"
@@ -665,20 +664,12 @@ static func _materials() -> Dictionary:
 
 
 ## Takes its albedo from the MultiMesh instance colour.
-static func _vertex_mat(roughness: float) -> StandardMaterial3D:
-	var m := StandardMaterial3D.new()
-	m.vertex_color_use_as_albedo = true
-	m.roughness = roughness
-	return m
+static func _vertex_mat(roughness: float) -> Material:
+	return StylizedEnvironmentMaterial.make(Color.WHITE, roughness, true)
 
 
-static func _mat(color: Color, roughness: float, double_sided: bool = false) -> StandardMaterial3D:
-	var m := StandardMaterial3D.new()
-	m.albedo_color = color
-	m.roughness = roughness
-	if double_sided:
-		m.cull_mode = BaseMaterial3D.CULL_DISABLED
-	return m
+static func _mat(color: Color, roughness: float, double_sided: bool = false) -> Material:
+	return StylizedEnvironmentMaterial.make(color, roughness, false, double_sided)
 
 
 ## Merges primitive parts into one mesh, one surface per material.

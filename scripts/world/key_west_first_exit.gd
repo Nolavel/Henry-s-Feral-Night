@@ -4,6 +4,7 @@ extends Node3D
 const FIRST_EXIT_TEMPLATE: PackedScene = preload("res://scenes/world/first_exit/first_exit_blockout.tscn")
 const STREAMING_SCRIPT: GDScript = preload("res://core/world/streaming_system.gd")
 const CITY_SCRIPT: GDScript = preload("res://scripts/systems/world/city/chunked_city_massing.gd")
+const FROZEN_SEA_SHADER: Shader = preload("res://shaders/environment/ice/frozen_sea.gdshader")
 
 const CITY_JSON: String = "res://data/world/key_west/city_preview.json"
 const ENRICHMENT_JSON: String = "res://data/world/key_west/visual_enrichment.json"
@@ -118,6 +119,9 @@ func _transplant_first_exit() -> void:
 	shelter.position = _target_shelter - house_offset
 	_add_plinth(house)
 	_add_stair_ramp(house, stairs)
+	## Convert the transplanted opaque shelter materials without touching
+	## transparent/unshaded specials or the player/VFX hierarchy.
+	StylizedEnvironmentMaterial.apply_to_tree(house)
 	_porch_spawn = foot + (foot - Vector3(SHELTER_XZ.x, 0.0, SHELTER_XZ.y)).normalized() * SPAWN_BEFORE_STAIRS_M
 	_porch_spawn.y = maxf(_terrain.get_height(_porch_spawn.x, _porch_spawn.z), 0.0) + 0.15
 	var bunker_ground: float = maxf(_terrain.get_height(BUNKER_XZ.x, BUNKER_XZ.y), 0.0)
@@ -236,9 +240,7 @@ func _add_plinth(house: Node3D) -> void:
 		return
 	var mesh := BoxMesh.new()
 	mesh.size = Vector3(floor_box.size.x - 0.2, top - bottom, floor_box.size.z - 0.2)
-	var material := StandardMaterial3D.new()
-	material.albedo_color = Color(0.16, 0.15, 0.14)
-	material.roughness = 0.95
+	var material := StylizedEnvironmentMaterial.make(Color(0.16, 0.15, 0.14), 0.95)
 	mesh.material = material
 	var plinth := MeshInstance3D.new()
 	plinth.name = "Plinth"
@@ -253,13 +255,8 @@ func _build_bunker_vestibule(yaw: float) -> void:
 	chamber.position = _target_bunker
 	chamber.rotation.y = yaw
 	add_child(chamber)
-	var concrete := StandardMaterial3D.new()
-	concrete.albedo_color = Color(0.19, 0.21, 0.22)
-	concrete.roughness = 0.92
-	var dark := StandardMaterial3D.new()
-	dark.albedo_color = Color(0.055, 0.06, 0.065)
-	dark.metallic = 0.55
-	dark.roughness = 0.58
+	var concrete := StylizedEnvironmentMaterial.make(Color(0.19, 0.21, 0.22), 0.92)
+	var dark := StylizedEnvironmentMaterial.make(Color(0.055, 0.06, 0.065), 0.58, false, false, 0.55)
 	_box(chamber, Vector3(-3.05, 1.35, 6.6), Vector3(0.28, 2.7, 6.2), concrete)
 	_box(chamber, Vector3(3.05, 1.35, 6.6), Vector3(0.28, 2.7, 6.2), concrete)
 	_box(chamber, Vector3(0.0, 2.72, 6.6), Vector3(6.35, 0.28, 6.2), concrete)
@@ -307,26 +304,8 @@ func _build_masked_ice() -> void:
 	var width_m: float = float(int(meta["width"]) - 1) * float(meta["m_per_px"])
 	var depth_m: float = float(int(meta["height"]) - 1) * float(meta["m_per_px"])
 	var origin := Vector2(float(meta["origin_x"]), float(meta["origin_z"]))
-	var shader := Shader.new()
-	shader.code = """
-shader_type spatial;
-render_mode cull_disabled, depth_draw_opaque;
-uniform sampler2D ocean_mask : filter_nearest, repeat_disable;
-uniform vec2 world_origin;
-uniform vec2 world_size;
-varying vec3 world_pos;
-void vertex() { world_pos = (MODEL_MATRIX * vec4(VERTEX, 1.0)).xyz; }
-void fragment() {
-	vec2 uv = (world_pos.xz - world_origin) / world_size;
-	if (uv.x < 0.0 || uv.y < 0.0 || uv.x > 1.0 || uv.y > 1.0) discard;
-	if (texture(ocean_mask, uv).r < 0.5) discard;
-	ALBEDO = vec3(0.38, 0.46, 0.54);
-	ROUGHNESS = 0.38;
-	METALLIC = 0.05;
-}
-"""
 	var material := ShaderMaterial.new()
-	material.shader = shader
+	material.shader = FROZEN_SEA_SHADER
 	material.set_shader_parameter("ocean_mask", mask_texture)
 	material.set_shader_parameter("world_origin", origin)
 	material.set_shader_parameter("world_size", Vector2(width_m, depth_m))

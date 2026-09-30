@@ -43,12 +43,12 @@ var _excluded_building_ids: Dictionary = {}
 ## Chunk snow built a slice per frame, keyed by chunk id.
 var _snow_jobs: Dictionary = {}
 
-var _massing_material: StandardMaterial3D
-var _detail_material: StandardMaterial3D
-var _road_material: StandardMaterial3D
-var _runway_material: StandardMaterial3D
-var _taxiway_material: StandardMaterial3D
-var _apron_material: StandardMaterial3D
+var _massing_material: Material
+var _detail_material: Material
+var _road_material: Material
+var _runway_material: Material
+var _taxiway_material: Material
+var _apron_material: Material
 
 
 func configure(terrain_node: IslandTerrain, data_path: String, enrichment_path: String = "") -> bool:
@@ -552,11 +552,8 @@ func _make_materials() -> void:
 	_apron_material = _standard_material(Color(0.31, 0.32, 0.33), 0.93)
 
 
-func _standard_material(color: Color, roughness: float) -> StandardMaterial3D:
-	var material := StandardMaterial3D.new()
-	material.albedo_color = color
-	material.roughness = roughness
-	return material
+func _standard_material(color: Color, roughness: float) -> Material:
+	return StylizedEnvironmentMaterial.make(color, roughness)
 
 
 func _create_chunk_states() -> void:
@@ -965,10 +962,9 @@ func _build_chunk_grid() -> Node3D:
 		_append_ribbon_segment(vertices, normals, indices, b, c, half, 0.35)
 		_append_ribbon_segment(vertices, normals, indices, c, d, half, 0.35)
 		_append_ribbon_segment(vertices, normals, indices, d, a, half, 0.35)
-	var material := _standard_material(Color(0.92, 0.08, 0.06), 0.82)
-	material.emission_enabled = true
-	material.emission = Color(0.92, 0.08, 0.06)
-	material.emission_energy_multiplier = 1.8
+	## Debug chunk boundaries stay deliberately unshaded and outside the
+	## production stylized-lighting contract.
+	var material := StylizedEnvironmentMaterial.make_unshaded(Color(0.92, 0.08, 0.06))
 	var instance := MeshInstance3D.new()
 	instance.mesh = _mesh_from_arrays(vertices, normals, indices, material)
 	holder.add_child(instance)

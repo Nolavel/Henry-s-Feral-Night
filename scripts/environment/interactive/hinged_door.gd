@@ -36,6 +36,7 @@ func _ready() -> void:
 	if door_hinge != null:
 		_leaf = door_hinge.get_node_or_null(^"DoorLeaf") as MeshInstance3D
 		_add_snow_blockers()
+		StylizedEnvironmentMaterial.apply_to_tree(door_hinge)
 	if breach != null:
 		add_to_group(&"snow_doors")
 		breach.boardable = false
@@ -164,10 +165,13 @@ func _make_handle_side(node_name: StringName, x: float, z: float) -> void:
 	root.name = node_name
 	root.position = Vector3(x, 0.0, z)
 	door_hinge.add_child(root)
-	var brass := StandardMaterial3D.new()
-	brass.albedo_color = Color(0.40, 0.31, 0.16)
-	brass.metallic = 0.65
-	brass.roughness = 0.38
+	var brass := StylizedEnvironmentMaterial.make(
+		Color(0.40, 0.31, 0.16),
+		0.38,
+		false,
+		false,
+		0.65
+	)
 	var plate := MeshInstance3D.new()
 	plate.name = "Plate"
 	var plate_mesh := BoxMesh.new()

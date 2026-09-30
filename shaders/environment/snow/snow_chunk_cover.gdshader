@@ -5,6 +5,7 @@ render_mode cull_back, depth_draw_opaque;
 // Henry's window (snow_base_depth); UV.y carries the shore fade. Ridges shade per
 // pixel, so they read on a coarse grid. See docs/technical/SNOW_COVER.md.
 #include "res://shaders/environment/snow/snow_surface.gdshaderinc"
+#include "res://shaders/environment/stylized_shadow.gdshaderinc"
 
 // xy: window min corner, z: window size, w: 1 when the window is live.
 global uniform vec4 snow_window;
@@ -49,6 +50,7 @@ void vertex() {
 }
 
 void fragment() {
+	LIGHT_VERTEX = VERTEX + hfn_stylized_shadow_view_warp(v_world, VIEW_MATRIX);
 	vec2 in_window = (v_world.xz - snow_window.xy) / max(snow_window.z, 0.001);
 	bool inside = snow_window.w > 0.5 && all(greaterThan(in_window, vec2(0.0))) && all(lessThan(in_window, vec2(1.0)));
 	float depth = depth_at(v_world.xz, v_shore);
@@ -66,4 +68,15 @@ void fragment() {
 	color *= mix(1.0, 1.03, smoothstep(0.1, 0.4, depth));
 	ALBEDO = snow_thin_tint(snow_wind_tint(color, city_at(v_world.xz) * v_shore), depth);
 	ROUGHNESS = 0.85;
+}
+
+
+void light() {
+	float ndotl = max(dot(NORMAL, LIGHT), 0.0);
+	float attenuation = hfn_stylized_shadow_attenuation(
+		ATTENUATION,
+		v_world,
+		LIGHT_IS_DIRECTIONAL
+	);
+	DIFFUSE_LIGHT += ndotl * attenuation * LIGHT_COLOR / PI;
 }

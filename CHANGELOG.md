@@ -62,6 +62,24 @@ Maintained per branch; entries are added by whoever makes the change.
   once and on spawn instead of by a full-tree scan on every window move.
 - New setting `hfn/snow/quality` (`high` default, `low`): low builds no snow
   window, no contact passes and no chunk cover.
+### 2026-09-30 - Integrate stylized shadows across production rendering (codex)
+
+Changed
+- Replace the standalone shadow-material experiment with a shared stock-Godot
+  lighting contract: solid physical shadow core plus a noise-broken perimeter.
+- Wire the contract into IslandTerrain, local/chunk snow, Key West city/roads/
+  airport/street props, masked sea ice and opaque First Exit shelter materials.
+- Add restrained Omni/Spot support without allowing local-light stylization to
+  brighten above physical distance falloff.
+- Preserve transparent/unshaded VFX and interaction-preview materials on their
+  existing paths instead of forcing them through opaque shadow lighting.
+
+Validation
+- Add a headless material/shader contract test.
+- Extend the existing Key West CI render job (no second pipeline) with a
+  `[stylized-shadows]` mode that captures three matched physical/stylized PNG
+  pairs and uploads them as `hoarbound-stylized-shadows`.
+
 
 ### 2026-09-30 - Gate the developer map behind World and M (codex)
 

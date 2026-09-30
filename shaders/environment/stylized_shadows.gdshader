@@ -1,146 +1,44 @@
 shader_type spatial;
 render_mode diffuse_lambert, specular_disabled;
 
-// HFN stock-Godot adaptation of "Stylized shadows, not a post processing"
-// by ShaderError.
-// Source: https://godotshaders.com/shader/stylized-shadows-not-a-post-processing/
-// Original shader code is CC0.
-//
-// The original sample calls a custom sample_directional_shadow() built-in and
-// therefore requires a modified Godot shader pipeline. This version stays on
-// stock Godot: ATTENUATION already contains the real shadow-map result, so two
-// triplanar noise bands perturb the shadow transition inside light().
+// Legacy showcase material retained for TestScene. Production shader families
+// use the same shared contract directly rather than replacing their materials.
+#include "res://shaders/environment/stylized_shadow.gdshaderinc"
 
-uniform sampler2D noise_texture : source_color, filter_linear_mipmap, repeat_enable;
 uniform sampler2D albedo_texture : source_color, filter_linear_mipmap_anisotropic, repeat_enable;
-
 uniform bool use_albedo_texture = false;
 uniform vec4 albedo_tint : source_color = vec4(0.64, 0.68, 0.72, 1.0);
 uniform float roughness : hint_range(0.0, 1.0) = 0.92;
-
-uniform float noise_strength_1 : hint_range(0.0, 1.0) = 0.18;
-uniform float noise_strength_2 : hint_range(0.0, 1.0) = 0.08;
-uniform vec3 uv_scale_1 = vec3(0.42);
-uniform vec3 uv_offset_1 = vec3(0.0);
-uniform vec3 uv_scale_2 = vec3(1.35);
-uniform vec3 uv_offset_2 = vec3(11.7, -4.3, 7.1);
-
 uniform bool use_world = true;
-uniform float shadow_strength : hint_range(0.0, 1.0) = 0.95;
-uniform float shadow_threshold : hint_range(0.0, 1.0) = 0.52;
-uniform float shadow_softness : hint_range(0.001, 0.35) = 0.035;
-uniform float shadow_floor : hint_range(0.0, 0.5) = 0.035;
-uniform float shadow_pattern_light : hint_range(0.0, 0.5) = 0.17;
-uniform float shadow_pattern_threshold : hint_range(0.0, 1.0) = 0.52;
-uniform float shadow_break_softness : hint_range(0.001, 0.25) = 0.055;
-uniform float shadow_detail_amount : hint_range(0.0, 1.0) = 0.22;
 
 varying vec3 sample_position;
-varying vec3 sample_normal;
-varying float shadow_noise;
-varying float shadow_macro;
-varying float shadow_detail;
-
-
-float triplanar_noise(sampler2D tex, vec3 p, vec3 n) {
-	vec3 weight = abs(n);
-	weight = max(weight, vec3(0.0001));
-	weight /= weight.x + weight.y + weight.z;
-
-	float x = texture(tex, p.yz).r;
-	float y = texture(tex, p.xz).r;
-	float z = texture(tex, p.xy).r;
-	return x * weight.x + y * weight.y + z * weight.z;
-}
-
 
 void vertex() {
-	if (use_world) {
-		sample_position = (MODEL_MATRIX * vec4(VERTEX, 1.0)).xyz;
-		sample_normal = normalize(mat3(MODEL_MATRIX) * NORMAL);
-	} else {
-		sample_position = VERTEX;
-		sample_normal = NORMAL;
-	}
+	sample_position = use_world
+		? (MODEL_MATRIX * vec4(VERTEX, 1.0)).xyz
+		: VERTEX;
 }
 
-
 void fragment() {
-	float n1 = triplanar_noise(
-		noise_texture,
-		sample_position * uv_scale_1 + uv_offset_1,
-		sample_normal
-	);
-	float n2 = triplanar_noise(
-		noise_texture,
-		sample_position * uv_scale_2 + uv_offset_2,
-		sample_normal
-	);
-
-	shadow_macro = n1;
-	shadow_detail = n2;
-	shadow_noise =
-		(n1 - 0.5) * noise_strength_1
-		+ (n2 - 0.5) * noise_strength_2;
-
+	if (use_world) {
+		LIGHT_VERTEX = VERTEX + hfn_stylized_shadow_view_warp(sample_position, VIEW_MATRIX);
+	}
 	vec4 base = albedo_tint;
 	if (use_albedo_texture) {
 		base *= texture(albedo_texture, UV);
 	}
-
 	ALBEDO = base.rgb;
 	ROUGHNESS = roughness;
 	METALLIC = 0.0;
 	SPECULAR = 0.0;
 }
 
-
 void light() {
 	float ndotl = max(dot(NORMAL, LIGHT), 0.0);
-
-	if (LIGHT_IS_DIRECTIONAL) {
-		float physical_shadow = clamp(1.0 - ATTENUATION, 0.0, 1.0);
-
-		// Keep the middle of the cast shadow solid. Once the physical shadow is
-		// deep enough, noise has zero authority to punch white holes through it.
-		float solid_core = smoothstep(0.48, 0.68, physical_shadow);
-
-		// Only the penumbra/periphery is eligible for silhouette destruction.
-		// The gate fades out before the solid core so the two regions overlap
-		// cleanly instead of creating a bright seam.
-		float perimeter_gate =
-			smoothstep(0.10, 0.22, physical_shadow)
-			* (1.0 - smoothstep(0.50, 0.72, physical_shadow));
-
-		// Distort the edge field with one large noise band and a restrained
-		// detail band. This changes the OUTER SHAPE rather than texturing the
-		// interior of the shadow.
-		float edge_field =
-			physical_shadow * 0.56
-			+ shadow_macro * 0.78
-			+ (shadow_detail - 0.5) * 0.10 * shadow_detail_amount;
-
-		float ragged_edge = smoothstep(
-			shadow_pattern_threshold - shadow_break_softness,
-			shadow_pattern_threshold + shadow_break_softness,
-			edge_field
-		);
-
-		float perimeter_ink = ragged_edge * perimeter_gate;
-		float ink_mask = clamp(max(solid_core, perimeter_ink), 0.0, 1.0);
-
-		// Core stays almost black; only peripheral fragments get a slightly
-		// lighter ink value so the torn silhouette remains readable.
-		float edge_darkness = mix(
-			shadow_pattern_light,
-			shadow_floor,
-			smoothstep(0.42, 0.72, shadow_macro)
-		);
-		float ink_darkness = mix(edge_darkness, shadow_floor, solid_core);
-		float stylized_shadow = mix(1.0, ink_darkness, ink_mask * shadow_strength);
-
-		DIFFUSE_LIGHT += ndotl * stylized_shadow * LIGHT_COLOR / PI;
-	} else {
-		DIFFUSE_LIGHT += ndotl * ATTENUATION * LIGHT_COLOR / PI;
-	}
+	float attenuation = hfn_stylized_shadow_attenuation(
+		ATTENUATION,
+		sample_position,
+		LIGHT_IS_DIRECTIONAL
+	);
+	DIFFUSE_LIGHT += ndotl * attenuation * LIGHT_COLOR / PI;
 }

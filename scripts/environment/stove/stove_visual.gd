@@ -17,6 +17,13 @@ const WALL: float = 0.03
 const DOOR_W: float = 0.44
 const DOOR_H: float = 0.34
 const FLUE_H: float = 1.7
+## Thermal warm-up remains simulation-driven. Presentation must read immediately.
+const VISUAL_FIRE_FLOOR: float = 0.50
+const FIREBOX_LIGHT_ENERGY: float = 1.9
+const FIREBOX_LIGHT_RANGE: float = 2.2
+const ROOM_LIGHT_ENERGY: float = 4.2
+const ROOM_LIGHT_RANGE: float = 6.5
+const EMBER_EMISSION_ENERGY: float = 3.0
 
 @export var source: HeatSource
 
@@ -103,6 +110,45 @@ func is_glowing() -> bool:
 	return _glow != null and _glow.visible
 
 
+func get_firebox_light_energy() -> float:
+	return _glow.light_energy if _glow != null else 0.0
+
+
+func get_room_light_energy() -> float:
+	if source == null or source.flame_light == null:
+		return 0.0
+	return source.flame_light.light_energy
+
+
+func _visual_fire_strength() -> float:
+	if _acting and _kindle > 0.0 and not _burning():
+		return clampf(_kindle, 0.0, 1.0)
+	if source == null or not source.is_burning():
+		return 0.0
+	## Heat starts at 8% during the 20 s warm-up, but a caught flame must still
+	## light the room immediately. Presentation ramps 50% -> 100% independently.
+	return lerpf(
+		VISUAL_FIRE_FLOOR,
+		1.0,
+		clampf(source.get_intensity(), 0.0, 1.0)
+	)
+
+
+func _apply_fire_presentation(flicker: float) -> void:
+	var strength: float = _visual_fire_strength()
+	_glow.light_energy = FIREBOX_LIGHT_ENERGY * flicker * strength
+	_embers.emission_energy_multiplier = EMBER_EMISSION_ENERGY * flicker * strength
+	var flame_scale: float = maxf(strength, 0.35)
+	for flame: MeshInstance3D in _flames:
+		flame.scale.y = (0.72 + 0.28 * flicker) * flame_scale
+	if source != null and source.flame_light != null and source.flame_light.visible:
+		source.flame_light.light_energy = (
+			ROOM_LIGHT_ENERGY
+			* (0.90 + 0.10 * flicker)
+			* strength
+		)
+
+
 func _process(delta: float) -> void:
 	if _acting and _kindle > 0.0 and not _glow.visible:
 		_glow.visible = true
@@ -110,14 +156,8 @@ func _process(delta: float) -> void:
 	if not is_glowing():
 		return
 	_flicker_t += delta
-	var flicker: float = 0.8 + 0.2 * sin(_flicker_t * 7.3) * sin(_flicker_t * 3.1 + 1.7)
-	var strength: float = _kindle if _acting and _kindle > 0.0 and not _burning() else source.get_intensity() if source != null else 0.0
-	_glow.light_energy = 1.4 * flicker * strength
-	_embers.emission_energy_multiplier = 2.2 * flicker * strength
-	for flame: MeshInstance3D in _flames:
-		flame.scale.y = (0.7 + 0.3 * flicker) * strength
-	if source != null and source.flame_light != null and source.flame_light.visible:
-		source.flame_light.light_energy = 2.5 * (0.85 + 0.15 * flicker) * strength
+	var flicker: float = 0.82 + 0.18 * sin(_flicker_t * 7.3) * sin(_flicker_t * 3.1 + 1.7)
+	_apply_fire_presentation(flicker)
 
 
 func _burning() -> bool:
@@ -136,6 +176,12 @@ func _refresh() -> void:
 		flame.visible = _glow.visible
 	_embers.emission_enabled = burning or (_acting and _kindle > 0.0)
 	_embers.albedo_color = Color(0.9, 0.35, 0.1) if burning else Color(0.18, 0.17, 0.16)
+	if _glow.visible:
+		## Successful ignition must be visible immediately, before the next frame.
+		_apply_fire_presentation(1.0)
+	else:
+		_glow.light_energy = 0.0
+		_embers.emission_energy_multiplier = 0.0
 
 
 func _build() -> void:
@@ -181,9 +227,12 @@ func _build() -> void:
 		_logs.append(log_node)
 	_glow = OmniLight3D.new()
 	_glow.light_color = Color(1.0, 0.5, 0.2)
-	_glow.omni_range = 1.4
+	_glow.omni_range = FIREBOX_LIGHT_RANGE
 	_glow.position = Vector3(hx + 0.15, mid_y, 0.0)  # spills out through the door slots
 	add_child(_glow)
+	if source != null and source.flame_light is OmniLight3D:
+		var room_light := source.flame_light as OmniLight3D
+		room_light.omni_range = maxf(room_light.omni_range, ROOM_LIGHT_RANGE)
 	var flame_material := _material(Color(1.0, 0.48, 0.08), 1.0, 0.0)
 	flame_material.shading_mode = BaseMaterial3D.SHADING_MODE_UNSHADED
 	flame_material.emission_enabled = true

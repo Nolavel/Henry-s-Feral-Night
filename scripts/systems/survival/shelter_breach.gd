@@ -270,9 +270,7 @@ func _spawn_placed_board(local_y: float) -> void:
 	plank.name = "Board_%02d" % _placed_root.get_child_count()
 	var mesh := BoxMesh.new()
 	mesh.size = get_board_size()
-	var material := StandardMaterial3D.new()
-	material.albedo_color = Color(0.42, 0.30, 0.19)
-	material.roughness = 0.95
+	var material := StylizedEnvironmentMaterial.make(Color(0.42, 0.30, 0.19), 0.95)
 	mesh.material = material
 	plank.mesh = mesh
 	plank.position = Vector3(0.0, local_y, 0.12)
@@ -289,9 +287,7 @@ func _refresh_staged_visual() -> void:
 		var plank := MeshInstance3D.new()
 		var mesh := BoxMesh.new()
 		mesh.size = Vector3(minf(opening_width_m + 0.3, 1.35), 0.055, 0.18)
-		var material := StandardMaterial3D.new()
-		material.albedo_color = Color(0.34, 0.23, 0.14)
-		material.roughness = 1.0
+		var material := StylizedEnvironmentMaterial.make(Color(0.34, 0.23, 0.14), 1.0)
 		mesh.material = material
 		plank.mesh = mesh
 		plank.position = Vector3(opening_width_m * 0.5 + 0.25, staging_floor_y + 0.04 + i * 0.065, 0.65)

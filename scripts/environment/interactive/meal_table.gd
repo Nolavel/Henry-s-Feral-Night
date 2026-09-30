@@ -206,9 +206,5 @@ func _box(size: Vector3, at: Vector3, material: Material) -> void:
 	add_child(node)
 
 
-func _material(albedo: Color, roughness: float, metallic: float) -> StandardMaterial3D:
-	var material := StandardMaterial3D.new()
-	material.albedo_color = albedo
-	material.roughness = roughness
-	material.metallic = metallic
-	return material
+func _material(albedo: Color, roughness: float, metallic: float) -> Material:
+	return StylizedEnvironmentMaterial.make(albedo, roughness, false, false, metallic)
