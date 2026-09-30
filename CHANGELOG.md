@@ -5,6 +5,69 @@ Maintained per branch; entries are added by whoever makes the change.
 
 ## [Unreleased] — `codex`
 
+### 2026-09-30 - Trench walls slump to the angle of repose (claudeflow)
+
+- Packed-snow accumulation lets no texel sit deeper than its neighbours by more
+  than tan(repose) per texel (`SnowShell.repose_deg`, 40° default): steep
+  footprint walls slump into sloped sides one texel per frame.
+
+### 2026-09-30 - Swept shelter stairs, slowed walk in deep snow (claudeflow)
+
+- The shelter's stair ramp is in the `snow_swept` group: no snow lies on the
+  steps, so Henry climbs them at full speed instead of wading.
+- Below walking speed (deep snow, heavy load) the walk clip plays slowed
+  instead of blending with idle, so feet keep pace and the torso stays upright.
+
+### 2026-09-30 - Street props stream per city chunk (claudeflow)
+
+- Small props (benches, hydrants, signs, gates, cars, boats, scrub, vaults,
+  golf markers, lamps) are filed per chunk and instanced only while their
+  chunk is streamed in. Palms, bare trees, power poles, wires and tanks stay
+  island-wide silhouettes. Transforms are computed once and stay deterministic.
+- Frame load on lavapipe: 40 M → 22 M primitives; draw calls 1542 → 1499
+  (Fort Street). Reference frames unchanged.
+
+### 2026-09-30 - Separate contact and packed snow resolutions (claudeflow)
+
+- SnowShell.contact_res sizes the per-frame contact capture apart from the
+  packed field. High stays 1024/1024; the reference frames are unchanged.
+- New `medium` snow tier: contact 512, packed 1024. On lavapipe it gains
+  nothing measurable (walk frame 131 vs 133 ms, CPU-bound); a real GPU must
+  confirm it before it is recommended. SnowField.quality() reads the tier.
+
+### 2026-09-30 - Cached, frame-sliced chunk snow (claudeflow)
+
+- SnowChunkCover keeps the finished mesh of the last 12 chunks (weather-free),
+  so a chunk streamed back in gets its snow at once.
+- Uncached chunks build in 4 ms per-frame slices; chunks within 256 m of
+  Henry's snow window, and any queued chunk the window reaches, finish at once.
+- SnowShell.live_window publishes the window, since reading shader globals
+  back fails outside the editor.
+
+### 2026-09-30 - Incremental, frame-sliced SnowField rebuild (claudeflow)
+
+- SnowField keeps a 20-cell apron of cached, wind-independent layers (ground,
+  bed blur passes, wall share, city factor, grain). A window move samples only
+  the newly exposed strips: 3 904 ground rays instead of 16 384.
+- While walking, a move is rebuilt within a 4 ms per-frame budget and switched
+  in whole; the old window stays live. First window and teleports stay immediate.
+- Measured on lavapipe: window move 500–860 ms → no hitch; walking physics frame
+  max 23.5 ms, p95 7.3 ms. Tests pin full == incremental and sliced == whole.
+- Window-edge cells now see real neighbours instead of clamped ones; the author
+  approved the smoother edge seen in the Old Town reference frame.
+
+### 2026-09-30 - Answer the #139 post-merge audit: layers, budget, snow tier (claudeflow)
+
+- Render layers are reserved in `RenderLayers` and named in `project.godot`:
+  layer 19 `snow_contact`, layer 20 `dev_map_label`. Snow contact and dev map
+  labels no longer share layer 20, and the dev map camera skips snow contact.
+  `test_render_layers.gd` locks this in.
+- Measured the snow budget: `SnowField.rebuild` takes 0.5–0.9 s per window move and
+  `SnowChunkCover.build` about 0.3 s per chunk (`docs/technical/SNOW_COVER.md`).
+- The ~65 MiB wind field image is shared by every SnowField. Pickups are tagged
+  once and on spawn instead of by a full-tree scan on every window move.
+- New setting `hfn/snow/quality` (`high` default, `low`): low builds no snow
+  window, no contact passes and no chunk cover.
 ### 2026-09-30 - Integrate stylized shadows across production rendering (codex)
 
 Changed

@@ -11,9 +11,13 @@ const WEATHER_SCRIPT: GDScript = preload("res://scripts/systems/world/WeatherCon
 const TERRAIN_SCRIPT: GDScript = preload("res://scripts/systems/world/terrain/island_terrain.gd")
 const PRESENTATION_SCRIPT: GDScript = preload("res://scripts/systems/world/snow/snow_presentation_system.gd")
 const PICKUP_SCRIPT: GDScript = preload("res://scripts/environment/interactive/item_pickup.gd")
+## Contact capture side on the medium tier; the packed field keeps its resolution.
+const MEDIUM_CONTACT_RES: int = 512
+## Colliders in this group are kept clear of snow, like swept steps.
+const SWEPT_GROUP: StringName = &"snow_swept"
 const SENSOR_SCRIPT: GDScript = preload("res://scripts/actors/player/henry/components/foot_contact_sensor.gd")
-## Render layer 20: meshes on it press into the snow.
-const CONTACT_LAYER: int = 1 << 19
+## Render layer 19 (snow_contact): meshes on it press into the snow.
+const CONTACT_LAYER: int = RenderLayers.SNOW_CONTACT
 
 @export_group("Window")
 ## Side of the square window around the player, in metres.
@@ -28,8 +32,12 @@ const CONTACT_LAYER: int = 1 << 19
 @export_range(32, 256) var field_res: int = 128
 ## Texels along one side of the packed-snow field.
 @export_range(128, 2048) var packed_res: int = 1024
+## Texels along one side of the contact capture, rendered every frame.
+@export_range(128, 2048) var contact_res: int = 1024
 ## The window moves in steps of this size, so the snow never swims.
 @export var recentre_step_m: float = 3.2
+## Frame budget for a window move while walking; the old window stays live meanwhile.
+@export var rebuild_budget_usec: int = 4000
 
 @export_group("Snow")
 ## Settled depth at snow_cover 0 and 1, in metres.
@@ -43,6 +51,8 @@ const CONTACT_LAYER: int = 1 << 19
 @export_file("*.png") var wind_field_path: String = "res://data/world/key_west/snow_wind.png"
 ## Share of the settled depth a foot or body packs down.
 @export_range(0.0, 1.0) var max_pack: float = 0.85
+## Steepest a trench wall stands before it slumps in, degrees (loose snow ~40).
+@export_range(20.0, 80.0) var repose_deg: float = 40.0
 
 @export_group("Fill")
 ## Seconds packed snow takes to fill back in with no snow falling.
@@ -66,6 +76,9 @@ const CONTACT_LAYER: int = 1 << 19
 ## Width and length of the toe that drags through snow on a lifted foot.
 @export var drag_size_m: Vector2 = Vector2(0.07, 0.14)
 
+## Henry's live snow window (min corner, size, 1 when live), the same as the snow_window global.
+static var live_window: Vector4 = Vector4.ZERO
+
 var field: SnowField = SnowField.new()
 
 var _field_tex: ImageTexture
@@ -80,6 +93,10 @@ var _parity: int = 0
 var _warmup: int = 3
 var _pending_shift: Vector2 = Vector2.ZERO
 var _base_y: float = 0.0
+## The move a streamed rebuild is working on.
+var _move_from: Vector2 = Vector2(INF, INF)
+var _move_cover: float = 0.0
+var _move_wind: Vector2 = Vector2(0, -1)
 var _player: Node3D
 var _mover: Node
 var _weather: WeatherController
@@ -94,6 +111,12 @@ var _gait: Node
 
 
 func _ready() -> void:
+	if not SnowField.high_quality():
+		set_process(false)
+		set_physics_process(false)
+		return
+	if SnowField.quality() == &"medium":
+		contact_res = MEDIUM_CONTACT_RES
 	field.window_m = window_m
 	field.res = field_res
 	field.sea_level_m = sea_level_m
@@ -106,6 +129,8 @@ func _ready() -> void:
 
 
 func on_world_ready(context: WorldContext) -> void:
+	if not SnowField.high_quality():
+		return
 	_player = context.player
 	_world_root = context.world
 	_weather = context.get_system(WEATHER_SCRIPT) as WeatherController
@@ -119,6 +144,13 @@ func on_world_ready(context: WorldContext) -> void:
 		_mover = _player.get_node_or_null(^"MovementController")
 		_gait = _player.find_child("Wade", true, false)
 	_sensor = context.find_in_scene(SENSOR_SCRIPT) as FootContactSensor
+	## Pickups press snow: tag the ones already placed once, then each as it spawns.
+	if _world_root != null:
+		for pickup: Node in _world_root.find_children("*", "", true, false):
+			if is_instance_of(pickup, PICKUP_SCRIPT):
+				tag_contact(pickup)
+	if is_inside_tree() and not get_tree().node_added.is_connected(_on_node_added):
+		get_tree().node_added.connect(_on_node_added)
 
 
 ## Puts every mesh under `root` on the contact layer, so it presses into snow.
@@ -134,7 +166,7 @@ func _physics_process(_delta: float) -> void:
 	if _player == null:
 		return
 	var at: Vector3 = _player.global_position
-	recentre_to(Vector2(at.x, at.z))
+	_follow(Vector2(at.x, at.z))
 	var depth: float = field.get_depth(at.x, at.z)
 	if _mover != null and &"snow_speed_multiplier" in _mover:
 		_mover.set(&"snow_speed_multiplier", get_speed_multiplier(depth))
@@ -196,34 +228,16 @@ func _process(delta: float) -> void:
 
 ## Moves the window so it is centred near a point and rebuilds the settled field.
 func recentre_to(centre: Vector2) -> void:
-	var half: float = window_m * 0.5
-	var wanted := Vector2(
-		snappedf(centre.x - half, recentre_step_m), snappedf(centre.y - half, recentre_step_m)
-	)
+	if _surface == null:
+		return  # Low snow tier: no window.
+	var wanted: Vector2 = _snapped_origin(centre)
 	if field.origin.x != INF and wanted.is_equal_approx(field.origin):
 		return
-	if field.origin.x != INF:
-		_pending_shift += (wanted - field.origin) / window_m
-	_base_y = _floor_y()
-	field.rebuild(wanted, _cover(), _wind())
-	## Chunk-wide snow reads the same settled depth and hides inside this window.
-	RenderingServer.global_shader_parameter_set(&"snow_settled_depth", field.settled_depth(_cover()))
-	RenderingServer.global_shader_parameter_set(&"snow_drift_m", field.drift_amplitude(_cover()))
+	var old: Vector2 = field.origin
+	var cover: float = _cover()
 	var wind: Vector2 = _wind()
-	RenderingServer.global_shader_parameter_set(&"snow_wind", wind.normalized() if wind.length_squared() > 0.0001 else Vector2(0, -1))
-	RenderingServer.global_shader_parameter_set(&"snow_window", Vector4(wanted.x, wanted.y, window_m, 1.0))
-	_field_tex.set_image(field.image)
-	if _world_root != null:
-		for pickup: Node in _world_root.find_children("*", "", true, false):
-			if is_instance_of(pickup, PICKUP_SCRIPT):
-				tag_contact(pickup)
-	_surface.set_shader_parameter("origin", wanted)
-	_mesh.global_position = Vector3(wanted.x + half, 0.0, wanted.y + half)
-	_contact_cam.global_transform = Transform3D(
-		Basis(Vector3.RIGHT, Vector3.BACK, Vector3.DOWN),
-		Vector3(wanted.x + half, _base_y - 5.0, wanted.y + half)
-	)
-	_contact_quad.set_shader_parameter("base_y", _base_y)
+	field.rebuild(wanted, cover, wind)
+	_apply_window(old, wanted, cover, wind)
 
 
 ## Speed share while wading through `depth_m` of settled snow.
@@ -234,6 +248,56 @@ func get_speed_multiplier(depth_m: float) -> float:
 
 func get_origin() -> Vector2:
 	return field.origin
+
+
+## Streams window moves while walking: a move is rebuilt a slice per frame and
+## switched in whole. The first window and long jumps are rebuilt at once.
+func _follow(centre: Vector2) -> void:
+	if _surface == null:
+		return
+	if field.is_rebuilding():
+		if field.step_rebuild(rebuild_budget_usec):
+			_apply_window(_move_from, field.origin, _move_cover, _move_wind)
+		return
+	var wanted: Vector2 = _snapped_origin(centre)
+	if field.origin.x != INF and wanted.is_equal_approx(field.origin):
+		return
+	if field.origin.x == INF or wanted.distance_to(field.origin) > window_m * 0.5:
+		recentre_to(centre)
+		return
+	_move_from = field.origin
+	_move_cover = _cover()
+	_move_wind = _wind()
+	field.begin_rebuild(wanted, _move_cover, _move_wind)
+	if field.step_rebuild(rebuild_budget_usec):
+		_apply_window(_move_from, field.origin, _move_cover, _move_wind)
+
+
+func _snapped_origin(centre: Vector2) -> Vector2:
+	var half: float = window_m * 0.5
+	return Vector2(snappedf(centre.x - half, recentre_step_m), snappedf(centre.y - half, recentre_step_m))
+
+
+## Puts a freshly rebuilt field on screen: shader, packed-snow shift, globals.
+func _apply_window(old: Vector2, wanted: Vector2, cover: float, wind: Vector2) -> void:
+	var half: float = window_m * 0.5
+	if old.x != INF:
+		_pending_shift += (wanted - old) / window_m
+	_base_y = _floor_y()
+	## Chunk-wide snow reads the same settled depth and hides inside this window.
+	RenderingServer.global_shader_parameter_set(&"snow_settled_depth", field.settled_depth(cover))
+	RenderingServer.global_shader_parameter_set(&"snow_drift_m", field.drift_amplitude(cover))
+	RenderingServer.global_shader_parameter_set(&"snow_wind", wind.normalized() if wind.length_squared() > 0.0001 else Vector2(0, -1))
+	live_window = Vector4(wanted.x, wanted.y, window_m, 1.0)
+	RenderingServer.global_shader_parameter_set(&"snow_window", live_window)
+	_field_tex.set_image(field.image)
+	_surface.set_shader_parameter("origin", wanted)
+	_mesh.global_position = Vector3(wanted.x + half, 0.0, wanted.y + half)
+	_contact_cam.global_transform = Transform3D(
+		Basis(Vector3.RIGHT, Vector3.BACK, Vector3.DOWN),
+		Vector3(wanted.x + half, _base_y - 5.0, wanted.y + half)
+	)
+	_contact_quad.set_shader_parameter("base_y", _base_y)
 
 
 func _build_surface() -> void:
@@ -316,7 +380,7 @@ func _graded_grid() -> ArrayMesh:
 
 
 func _build_capture() -> void:
-	_contact = _viewport("SnowContact")
+	_contact = _viewport("SnowContact", contact_res)
 	_contact.disable_3d = false
 	_contact.render_target_update_mode = SubViewport.UPDATE_ALWAYS
 	_contact_cam = Camera3D.new()
@@ -366,13 +430,14 @@ func _build_capture() -> void:
 		add_child(drag)
 		_drags.append(drag)
 	for i: int in range(2):
-		var vp: SubViewport = _viewport("SnowPacked%d" % i)
+		var vp: SubViewport = _viewport("SnowPacked%d" % i, packed_res)
 		vp.render_target_update_mode = SubViewport.UPDATE_DISABLED
 		var mat := ShaderMaterial.new()
 		mat.shader = ACCUMULATE_SHADER
 		mat.set_shader_parameter("contact_tex", _contact.get_texture())
 		mat.set_shader_parameter("field", _field_tex)
 		mat.set_shader_parameter("max_pack", max_pack)
+		mat.set_shader_parameter("slump_m", tan(deg_to_rad(repose_deg)) * window_m / float(packed_res))
 		var rect := ColorRect.new()
 		rect.size = Vector2(packed_res, packed_res)
 		rect.material = mat
@@ -383,10 +448,10 @@ func _build_capture() -> void:
 	_accum_mat[1].set_shader_parameter("previous", _accum[0].get_texture())
 
 
-func _viewport(node_name: String) -> SubViewport:
+func _viewport(node_name: String, side: int) -> SubViewport:
 	var vp := SubViewport.new()
 	vp.name = node_name
-	vp.size = Vector2i(packed_res, packed_res)
+	vp.size = Vector2i(side, side)
 	vp.use_hdr_2d = true
 	vp.disable_3d = true
 	vp.transparent_bg = false
@@ -447,6 +512,9 @@ func _sample_ground(at: Vector2) -> Vector2:
 		return Vector2(ground_y, 0.0 if _terrain != null else 1.0)
 	var hit_at: Vector3 = hit["position"]
 	var normal: Vector3 = hit["normal"]
+	var collider: Object = hit.get("collider")
+	if collider is Node and (collider as Node).is_in_group(SWEPT_GROUP):
+		return Vector2(hit_at.y, 2.0)
 	## Steep faces, and anything standing over a metre high, are walls: snow
 	## drapes low decks and crates, never a house.
 	if hit_at.y > ground_y + 0.3 and (
@@ -474,3 +542,9 @@ func _is_broad(space: PhysicsDirectSpaceState3D, at: Vector3) -> bool:
 		if hit.is_empty() or absf((hit["position"] as Vector3).y - at.y) > 0.05:
 			return false
 	return true
+
+
+func _on_node_added(node: Node) -> void:
+	if is_instance_of(node, PICKUP_SCRIPT):
+		## Its visuals are built in _ready, after node_added fires.
+		node.ready.connect(tag_contact.bind(node), CONNECT_ONE_SHOT)

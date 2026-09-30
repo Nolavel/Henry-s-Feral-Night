@@ -4,6 +4,19 @@ extends RefCounted
 ## The one answer to "how much snow is here": ground, settled depth, drifts and
 ## lee piles on a grid that follows Henry. Shaders and gameplay read the same data.
 
+## Cells of cached ground kept around the window, so edge cells see real
+## neighbours and a window move only samples the newly exposed strips.
+const APRON: int = 20
+## Rebuild stages: wind-independent grid layers, then depth, then the image.
+const STAGE_GROUND: int = 0
+const STAGE_ROW1: int = 1
+const STAGE_COL1: int = 2
+const STAGE_ROW2: int = 3
+const STAGE_BED: int = 4
+const STAGE_WALL: int = 5
+const STAGE_DEPTH: int = 6
+const STAGE_OUTPUT: int = 7
+
 ## Ground height and obstacle flag at a world point, as Vector2(height, 0 or 1).
 var ground_sampler: Callable
 
@@ -32,8 +45,32 @@ var wind_field_max: float = 2.5
 ## Share of the storm pattern over the prevailing one.
 var storm_share: float = 0.4
 
+static var _wind_cache: Dictionary = {}
+
+var _n: int = 0
+var _grid_origin: Vector2 = Vector2(INF, INF)
 var _ground: PackedVector2Array = []
+var _height: PackedFloat32Array = []
+var _row1: PackedFloat32Array = []
+var _col1: PackedFloat32Array = []
+var _row2: PackedFloat32Array = []
 var _bed: PackedFloat32Array = []
+var _wall: PackedFloat32Array = []
+var _city: PackedFloat32Array = []
+var _grain: PackedFloat32Array = []
+var _job_active: bool = false
+var _job_stage: int = 0
+var _job_cursor: int = 0
+var _job_spans: Array[Vector3i] = []
+var _job_shift: Vector2i = Vector2i.ZERO
+var _job_origin: Vector2 = Vector2.ZERO
+var _job_cover: float = 0.0
+var _job_wind: Vector2 = Vector2(0, -1)
+var _job_ahead: Vector2i = Vector2i.ZERO
+var _job_upwind: Array[Vector2i] = []
+var _job_depth: PackedFloat32Array = []
+var _job_weight: PackedFloat32Array = []
+var _job_px: PackedFloat32Array = []
 var _noise: FastNoiseLite = FastNoiseLite.new()
 
 
@@ -51,13 +88,17 @@ func load_wind_field(png_path: String) -> bool:
 	var meta: Variant = JSON.parse_string(FileAccess.get_file_as_string(meta_path))
 	if typeof(meta) != TYPE_DICTIONARY:
 		return false
-	var tex := load(png_path) as Texture2D
-	if tex == null:
-		return false
-	wind_texture = tex
-	wind_field = tex.get_image()
-	if wind_field.is_compressed():
-		wind_field.decompress()
+	## Every SnowField shares one CPU copy; the image alone is ~65 MiB.
+	if not _wind_cache.has(png_path):
+		var tex := load(png_path) as Texture2D
+		if tex == null:
+			return false
+		var img: Image = tex.get_image()
+		if img.is_compressed():
+			img.decompress()
+		_wind_cache[png_path] = [tex, img]
+	wind_texture = _wind_cache[png_path][0]
+	wind_field = _wind_cache[png_path][1]
 	var o: Array = (meta as Dictionary).get("origin", [0, 0])
 	wind_field_origin = Vector2(float(o[0]), float(o[1]))
 	wind_field_cell_m = float((meta as Dictionary).get("cell_m", 4.0))
@@ -102,6 +143,17 @@ func drift_amplitude(cover: float) -> float:
 	return pow(clampf(cover, 0.0, 1.0), 1.5) * drift_m
 
 
+## True on the high and medium tiers: Henry's deformable window and chunk-wide depth.
+## Low keeps shader cover, frost and footprint decals only.
+static func high_quality() -> bool:
+	return quality() != &"low"
+
+
+## The snow tier from hfn/snow/quality: high, medium or low.
+static func quality() -> StringName:
+	return StringName(ProjectSettings.get_setting("hfn/snow/quality", "high"))
+
+
 ## Settled depth for a snow_cover value, before the city's wind reshapes it.
 func settled_depth(cover: float) -> float:
 	return lerpf(cover_depth_m.x, cover_depth_m.y, clampf(cover, 0.0, 1.0))
@@ -138,74 +190,82 @@ func texel_m() -> float:
 	return window_m / float(res)
 
 
-## Rebuilds the field for a window whose minimum corner is `new_origin`.
+## Rebuilds the field for a window whose minimum corner is `new_origin`, all at once.
 func rebuild(new_origin: Vector2, cover: float, wind: Vector2) -> void:
-	origin = new_origin
-	cover = clampf(cover, 0.0, 1.0)
-	wind = wind.normalized() if wind.length_squared() > 0.0001 else Vector2(0, -1)
-	_ground.resize(res * res)
-	for ty: int in range(res):
-		for tx: int in range(res):
-			_ground[ty * res + tx] = ground_sampler.call(_world_of(tx, ty))
-	_smooth_bed()
-	if image == null or image.get_width() != res:
-		image = Image.create_empty(res, res, false, Image.FORMAT_RGBAF)
-	var side := Vector2(-wind.y, wind.x)
-	var settled: float = settled_depth(cover)
-	var step: int = maxi(1, roundi(0.35 / texel_m()))
-	var n: int = res * res
-	var depth_sum := PackedFloat32Array()
-	var weight := PackedFloat32Array()
-	var fill := PackedFloat32Array()
-	depth_sum.resize(n)
-	weight.resize(n)
-	fill.resize(n)
-	for ty: int in range(res):
-		for tx: int in range(res):
-			var i: int = ty * res + tx
-			var g: Vector2 = _ground[i]
-			if g.y > 0.5:
-				continue
-			var at: Vector2 = _world_of(tx, ty)
-			var along: float = at.dot(wind)
-			var across: float = at.dot(side)
-			var ridge: float = ridge_at(at, wind)
-			## The city field sets how much this street keeps; local lee piles ride on top.
-			var city: float = wind_factor(at)
-			var drift: float = drift_amplitude(cover) * ridge * minf(city, 1.5) * ridge_openness(city)
-			var lee: float = cover * lee_m * _lee(tx, ty, wind, step)
-			## Wind scours the face that rises into it and fills hollows.
-			var bed: float = _bed[i]
-			var rise: float = _bed_at(tx + roundi(wind.x * step), ty + roundi(wind.y * step)) - bed
-			var scour: float = clampf(1.0 - rise / (0.35 * float(step) * texel_m()) * 0.5, 0.35, 1.25)
-			var depth: float = (settled * city + max(drift, lee) + min(drift, lee) * 0.3) * scour
-			depth += settled * 0.15 * _noise.get_noise_2d(at.x * 1.3, at.y * 1.3)
-			## Snow thins to nothing at the water's edge and never lies below it.
-			var shore: float = smoothstep(sea_level_m + 0.05, sea_level_m + 0.8, g.x)
-			depth_sum[i] = maxf(depth * shore, 0.0)
-			weight[i] = 1.0
-			fill[i] = (bed - g.x) * shore
-	## Wind never leaves one-cell spikes: soften depth over ~0.5 m, ignoring
-	## cells nothing lies on so snow still meets walls at full height.
-	var r: int = maxi(1, roundi(0.25 / texel_m()))
-	var tmp := PackedFloat32Array()
-	tmp.resize(n)
-	_blur_rows(depth_sum, tmp, r)
-	_blur_cols(tmp, depth_sum, r)
-	_blur_rows(weight, tmp, r)
-	_blur_cols(tmp, weight, r)
-	for ty: int in range(res):
-		for tx: int in range(res):
-			var i: int = ty * res + tx
-			var g: Vector2 = _ground[i]
-			if g.y > 0.5:
-				image.set_pixel(tx, ty, Color(g.x, 0.0, 1.0, 0.0))
-				continue
-			var depth: float = depth_sum[i] / maxf(weight[i], 0.0001)
-			var cut: float = 1.0 if g.x < sea_level_m + 0.02 else 0.0
-			## Depth is measured from the real ground, so the shader's ground stays true.
-			var top: float = g.x + fill[i] + depth
-			image.set_pixel(tx, ty, Color(top, top - g.x, cut, wind_factor(_world_of(tx, ty))))
+	begin_rebuild(new_origin, cover, wind)
+	while not step_rebuild(1 << 60):
+		pass
+
+
+## Starts a rebuild that `step_rebuild` finishes over several frames. Cached ground
+## work is reused across window moves; only newly exposed strips are sampled.
+func begin_rebuild(new_origin: Vector2, cover: float, wind: Vector2) -> void:
+	## A half-finished job left some grid layers moved but not recomputed.
+	if _job_active:
+		invalidate()
+	_job_origin = new_origin
+	_job_cover = clampf(cover, 0.0, 1.0)
+	_job_wind = wind.normalized() if wind.length_squared() > 0.0001 else Vector2(0, -1)
+	var grid_origin: Vector2 = new_origin - Vector2(APRON, APRON) * texel_m()
+	var n: int = res + 2 * APRON
+	var shift := Vector2i(n, n)
+	if _n == n and _grid_origin.x != INF:
+		var d: Vector2 = (grid_origin - _grid_origin) / texel_m()
+		var whole := Vector2i(roundi(d.x), roundi(d.y))
+		if d.distance_to(Vector2(whole)) < 0.001 and absi(whole.x) < n and absi(whole.y) < n:
+			shift = whole
+	_start_grid(grid_origin, shift)
+	_job_stage = 0
+	_job_cursor = 0
+	_job_spans = _stage_spans(0)
+	_job_active = true
+
+
+## Advances the running rebuild for about `budget_usec`; true once the new field
+## is live (origin and image switch together).
+func step_rebuild(budget_usec: int) -> bool:
+	if not _job_active:
+		return true
+	var deadline: int = Time.get_ticks_usec() + budget_usec
+	while true:
+		if _job_stage <= STAGE_WALL:
+			if _job_cursor < _job_spans.size():
+				_grid_span(_job_stage, _job_spans[_job_cursor])
+				_job_cursor += 1
+			else:
+				_next_stage()
+		elif _job_stage == STAGE_DEPTH:
+			if _job_cursor == 0:
+				_begin_assemble()
+			if _job_cursor < res + 2:
+				_assemble_row(_job_cursor)
+				_job_cursor += 1
+			else:
+				_next_stage()
+		elif _job_stage == STAGE_OUTPUT:
+			if _job_cursor == 0:
+				var r: int = maxi(1, roundi(0.25 / texel_m()))
+				_job_depth = _blur(_job_depth, res + 2, r)
+				_job_weight = _blur(_job_weight, res + 2, r)
+				_job_px.resize(res * res * 4)
+			if _job_cursor < res:
+				_output_row(_job_cursor)
+				_job_cursor += 1
+			else:
+				_finish()
+				return true
+		if Time.get_ticks_usec() >= deadline:
+			return false
+	return false
+
+
+func is_rebuilding() -> bool:
+	return _job_active
+
+
+## Forgets the cached ground, so the next rebuild samples every cell again.
+func invalidate() -> void:
+	_grid_origin = Vector2(INF, INF)
 
 
 ## Snow top at a world point (bilinear), or -INF outside the window.
@@ -235,82 +295,297 @@ func _sample(x: float, z: float) -> Vector2:
 	return Vector2(top, depth)
 
 
-func _world_of(tx: int, ty: int) -> Vector2:
-	return origin + (Vector2(tx, ty) + Vector2(0.5, 0.5)) * texel_m()
+func _grid_world(i: int, j: int) -> Vector2:
+	return _grid_origin + (Vector2(i, j) + Vector2(0.5, 0.5)) * texel_m()
+
+
+## Moves every cached grid layer by `shift` cells; a shift of the full grid size
+## means nothing can be kept and every cell is recomputed.
+func _start_grid(grid_origin: Vector2, shift: Vector2i) -> void:
+	var n: int = res + 2 * APRON
+	if _n != n:
+		_n = n
+		for layer: String in ["_height", "_row1", "_col1", "_row2", "_bed", "_wall", "_city", "_grain"]:
+			var arr := PackedFloat32Array()
+			arr.resize(n * n)
+			set(layer, arr)
+		_ground.resize(n * n)
+		shift = Vector2i(n, n)
+	elif shift != Vector2i.ZERO and shift.x < n:
+		_ground = _shifted_v2(_ground, shift)
+		_height = _shifted(_height, shift)
+		_row1 = _shifted(_row1, shift)
+		_col1 = _shifted(_col1, shift)
+		_row2 = _shifted(_row2, shift)
+		_bed = _shifted(_bed, shift)
+		_wall = _shifted(_wall, shift)
+		_city = _shifted(_city, shift)
+		_grain = _shifted(_grain, shift)
+	_grid_origin = grid_origin
+	_job_shift = shift
+
+
+## Cells each grid layer recomputes: every cell except those still (rx, ry) inside
+## the old grid, the reach of that layer's blur passes.
+func _stage_spans(stage: int) -> Array[Vector3i]:
+	var rb: int = _bed_radius()
+	match stage:
+		STAGE_GROUND:
+			return _spans(_job_shift, 0, 0)
+		STAGE_ROW1:
+			return _spans(_job_shift, rb, 0)
+		STAGE_COL1:
+			return _spans(_job_shift, rb, rb)
+		STAGE_ROW2:
+			return _spans(_job_shift, 2 * rb, rb)
+		STAGE_BED:
+			return _spans(_job_shift, 2 * rb, 2 * rb)
+		_:
+			return _spans(_job_shift, 1, 1)
+
+
+func _next_stage() -> void:
+	_job_stage += 1
+	_job_cursor = 0
+	if _job_stage <= STAGE_WALL:
+		_job_spans = _stage_spans(_job_stage)
+
+
+func _bed_radius() -> int:
+	return maxi(1, roundi(smooth_m / texel_m() * 0.5))
+
+
+## One row span of one wind-independent grid layer.
+func _grid_span(stage: int, span: Vector3i) -> void:
+	var n: int = _n
+	var j: int = span.x
+	var rb: int = _bed_radius()
+	var w: float = float(2 * rb + 1)
+	for i: int in range(span.y, span.z):
+		var k: int = j * n + i
+		match stage:
+			STAGE_GROUND:
+				var at: Vector2 = _grid_world(i, j)
+				var g: Vector2 = ground_sampler.call(at)
+				_ground[k] = g
+				_height[k] = g.x
+				_city[k] = wind_factor(at)
+				_grain[k] = _noise.get_noise_2d(at.x * 1.3, at.y * 1.3)
+			STAGE_ROW1:
+				var sum: float = 0.0
+				for d: int in range(-rb, rb + 1):
+					sum += _height[j * n + clampi(i + d, 0, n - 1)]
+				_row1[k] = sum / w
+			STAGE_COL1:
+				var sum: float = 0.0
+				for d: int in range(-rb, rb + 1):
+					sum += _row1[clampi(j + d, 0, n - 1) * n + i]
+				_col1[k] = sum / w
+			STAGE_ROW2:
+				var sum: float = 0.0
+				for d: int in range(-rb, rb + 1):
+					sum += _col1[j * n + clampi(i + d, 0, n - 1)]
+				_row2[k] = sum / w
+			STAGE_BED:
+				var sum: float = 0.0
+				for d: int in range(-rb, rb + 1):
+					sum += _row2[clampi(j + d, 0, n - 1) * n + i]
+				## Snow settles on the blurred ground, never below it.
+				_bed[k] = maxf(sum / w, _height[k])
+			_:
+				_wall[k] = _wall_share(i, j)
+
+
+## Row spans (row, from, to) of cells to recompute after `shift`: every cell except
+## those still at least (rx, ry) cells inside the old grid.
+func _spans(shift: Vector2i, rx: int, ry: int) -> Array[Vector3i]:
+	var n: int = _n
+	var x0: int = clampi(-shift.x + rx, 0, n)
+	var x1: int = clampi(n - shift.x - rx, 0, n)
+	var y0: int = clampi(-shift.y + ry, 0, n)
+	var y1: int = clampi(n - shift.y - ry, 0, n)
+	var out: Array[Vector3i] = []
+	for j: int in range(n):
+		if j >= y0 and j < y1 and x0 < x1:
+			if x0 > 0:
+				out.append(Vector3i(j, 0, x0))
+			if x1 < n:
+				out.append(Vector3i(j, x1, n))
+		else:
+			out.append(Vector3i(j, 0, n))
+	return out
+
+
+## `arr` moved by `shift` cells; cells that come from outside are zero.
+func _shifted(arr: PackedFloat32Array, shift: Vector2i) -> PackedFloat32Array:
+	var n: int = _n
+	var pad := PackedFloat32Array()
+	pad.resize(absi(shift.x))
+	var blank := PackedFloat32Array()
+	blank.resize(n)
+	var out := PackedFloat32Array()
+	for j: int in range(n):
+		var sj: int = j + shift.y
+		if sj < 0 or sj >= n:
+			out.append_array(blank)
+		elif shift.x >= 0:
+			out.append_array(arr.slice(sj * n + shift.x, sj * n + n))
+			out.append_array(pad)
+		else:
+			out.append_array(pad)
+			out.append_array(arr.slice(sj * n, sj * n + n + shift.x))
+	return out
+
+
+func _shifted_v2(arr: PackedVector2Array, shift: Vector2i) -> PackedVector2Array:
+	var n: int = _n
+	var pad := PackedVector2Array()
+	pad.resize(absi(shift.x))
+	var blank := PackedVector2Array()
+	blank.resize(n)
+	var out := PackedVector2Array()
+	for j: int in range(n):
+		var sj: int = j + shift.y
+		if sj < 0 or sj >= n:
+			out.append_array(blank)
+		elif shift.x >= 0:
+			out.append_array(arr.slice(sj * n + shift.x, sj * n + n))
+			out.append_array(pad)
+		else:
+			out.append_array(pad)
+			out.append_array(arr.slice(sj * n, sj * n + n + shift.x))
+	return out
+
+
+## Wind- and cover-dependent depth over the window plus a one-cell rim, a row at
+## a time. Everything it reads is already cached in the grid.
+func _begin_assemble() -> void:
+	var m: int = res + 2
+	var step: int = maxi(1, roundi(0.35 / texel_m()))
+	_job_ahead = Vector2i(roundi(_job_wind.x * step), roundi(_job_wind.y * step))
+	_job_upwind.clear()
+	for k: int in range(1, 9):
+		_job_upwind.append(Vector2i(roundi(_job_wind.x * step * k), roundi(_job_wind.y * step * k)))
+	_job_depth = PackedFloat32Array()
+	_job_depth.resize(m * m)
+	_job_weight = PackedFloat32Array()
+	_job_weight.resize(m * m)
+
+
+func _assemble_row(lj: int) -> void:
+	var n: int = _n
+	var m: int = res + 2
+	var j: int = APRON - 1 + lj
+	var settled: float = settled_depth(_job_cover)
+	var amp: float = drift_amplitude(_job_cover)
+	var step: int = maxi(1, roundi(0.35 / texel_m()))
+	var scour_span: float = 0.35 * float(step) * texel_m()
+	for li: int in range(m):
+		var i: int = APRON - 1 + li
+		var k: int = j * n + i
+		var g: Vector2 = _ground[k]
+		if g.y > 0.5:
+			continue
+		var at: Vector2 = _grid_world(i, j)
+		var city: float = _city[k]
+		var drift: float = amp * ridge_at(at, _job_wind) * minf(city, 1.5) * ridge_openness(city)
+		var lee: float = _job_cover * lee_m * _lee(i, j, _job_upwind, _job_ahead)
+		## Wind scours the face that rises into it and fills hollows.
+		var bed: float = _bed[k]
+		var rise: float = _bed[clampi(j + _job_ahead.y, 0, n - 1) * n + clampi(i + _job_ahead.x, 0, n - 1)] - bed
+		var scour: float = clampf(1.0 - rise / scour_span * 0.5, 0.35, 1.25)
+		var depth: float = (settled * city + maxf(drift, lee) + minf(drift, lee) * 0.3) * scour
+		depth += settled * 0.15 * _grain[k]
+		## Snow thins to nothing at the water's edge and never lies below it.
+		var shore: float = smoothstep(sea_level_m + 0.05, sea_level_m + 0.8, g.x)
+		_job_depth[lj * m + li] = maxf(depth * shore, 0.0)
+		_job_weight[lj * m + li] = 1.0
+
+
+## One output row; wind never leaves one-cell spikes (the depth was softened over
+## ~0.5 m, ignoring cells nothing lies on so snow still meets walls at full height).
+func _output_row(ty: int) -> void:
+	var n: int = _n
+	var m: int = res + 2
+	for tx: int in range(res):
+		var k: int = (APRON + ty) * n + APRON + tx
+		var l: int = (ty + 1) * m + tx + 1
+		var o: int = (ty * res + tx) * 4
+		var g: Vector2 = _ground[k]
+		if g.y > 0.5:
+			_job_px[o] = g.x
+			_job_px[o + 1] = 0.0
+			_job_px[o + 2] = 1.0
+			_job_px[o + 3] = 0.0
+			continue
+		var depth: float = _job_depth[l] / maxf(_job_weight[l], 0.0001)
+		var shore: float = smoothstep(sea_level_m + 0.05, sea_level_m + 0.8, g.x)
+		## Depth is measured from the real ground, so the shader's ground stays true.
+		var top: float = _bed[k] * shore + g.x * (1.0 - shore) + depth
+		_job_px[o] = top
+		_job_px[o + 1] = top - g.x
+		_job_px[o + 2] = 1.0 if g.x < sea_level_m + 0.02 else 0.0
+		_job_px[o + 3] = _city[k]
+
+
+func _finish() -> void:
+	if image == null or image.get_width() != res:
+		image = Image.create_empty(res, res, false, Image.FORMAT_RGBAF)
+	image.set_data(res, res, false, Image.FORMAT_RGBAF, _job_px.to_byte_array())
+	origin = _job_origin
+	_job_active = false
+
+
+## Box blur of a square m×m grid, rows then columns, clamped at its edge.
+func _blur(src: PackedFloat32Array, m: int, r: int) -> PackedFloat32Array:
+	var w: float = float(2 * r + 1)
+	var tmp := PackedFloat32Array()
+	tmp.resize(m * m)
+	for y: int in range(m):
+		for x: int in range(m):
+			var sum: float = 0.0
+			for d: int in range(-r, r + 1):
+				sum += src[y * m + clampi(x + d, 0, m - 1)]
+			tmp[y * m + x] = sum / w
+	var out := PackedFloat32Array()
+	out.resize(m * m)
+	for y: int in range(m):
+		for x: int in range(m):
+			var sum: float = 0.0
+			for d: int in range(-r, r + 1):
+				sum += tmp[clampi(y + d, 0, m - 1) * m + x]
+			out[y * m + x] = sum / w
+	return out
 
 
 ## Only walls shelter a lee; a roofed floor is cut away but piles nothing.
-func _is_wall(tx: int, ty: int) -> bool:
-	var kind: float = _ground[ty * res + tx].y
+func _is_wall(i: int, j: int) -> bool:
+	var kind: float = _ground[j * _n + i].y
 	return kind > 0.5 and kind < 1.5
 
 
 ## Share of wall around a cell: a lone fence post shelters far less than a wall.
-func _wall_share(tx: int, ty: int) -> float:
+func _wall_share(i: int, j: int) -> float:
 	var walls: int = 0
 	for dy: int in range(-1, 2):
 		for dx: int in range(-1, 2):
-			if _is_wall(clampi(tx + dx, 0, res - 1), clampi(ty + dy, 0, res - 1)):
+			if _is_wall(clampi(i + dx, 0, _n - 1), clampi(j + dy, 0, _n - 1)):
 				walls += 1
 	return clampf(float(walls) / 3.0, 0.0, 1.0)
 
 
-func _bed_at(tx: int, ty: int) -> float:
-	tx = clampi(tx, 0, res - 1)
-	ty = clampi(ty, 0, res - 1)
-	return _bed[ty * res + tx]
-
-
-## The surface snow settles on: the ground box-blurred twice, never below it,
-## so hollows and terrain facets fill while nothing pokes through.
-func _smooth_bed() -> void:
-	var n: int = res * res
-	var a := PackedFloat32Array()
-	a.resize(n)
-	for i: int in range(n):
-		a[i] = _ground[i].x
-	var r: int = maxi(1, roundi(smooth_m / texel_m() * 0.5))
-	var b := PackedFloat32Array()
-	b.resize(n)
-	for _pass: int in range(2):
-		_blur_rows(a, b, r)
-		_blur_cols(b, a, r)
-	_bed.resize(n)
-	for i: int in range(n):
-		_bed[i] = maxf(a[i], _ground[i].x)
-
-
-func _blur_rows(src: PackedFloat32Array, dst: PackedFloat32Array, r: int) -> void:
-	for y: int in range(res):
-		var row: int = y * res
-		var sum: float = 0.0
-		for k: int in range(-r, r + 1):
-			sum += src[row + clampi(k, 0, res - 1)]
-		for x: int in range(res):
-			dst[row + x] = sum / float(2 * r + 1)
-			sum += src[row + mini(x + r + 1, res - 1)] - src[row + maxi(x - r, 0)]
-
-
-func _blur_cols(src: PackedFloat32Array, dst: PackedFloat32Array, r: int) -> void:
-	for x: int in range(res):
-		var sum: float = 0.0
-		for k: int in range(-r, r + 1):
-			sum += src[clampi(k, 0, res - 1) * res + x]
-		for y: int in range(res):
-			dst[y * res + x] = sum / float(2 * r + 1)
-			sum += src[mini(y + r + 1, res - 1) * res + x] - src[maxi(y - r, 0) * res + x]
-
-
 ## 0..1: how much an obstacle upwind shelters this point.
-func _lee(tx: int, ty: int, wind: Vector2, step: int) -> float:
+func _lee(i: int, j: int, upwind: Array[Vector2i], ahead: Vector2i) -> float:
+	var n: int = _n
 	var pile: float = 0.0
-	for k: int in range(1, 9):
-		var sx: int = tx - roundi(wind.x * step * k)
-		var sy: int = ty - roundi(wind.y * step * k)
-		if sx < 0 or sy < 0 or sx >= res or sy >= res:
+	for k: int in range(8):
+		var sx: int = i - upwind[k].x
+		var sy: int = j - upwind[k].y
+		if sx < 0 or sy < 0 or sx >= n or sy >= n:
 			break
-		pile = maxf(pile, _wall_share(sx, sy) * smoothstep(0.0, 1.5, float(k)) * (1.0 - float(k) / 9.0))
-	var fx: int = clampi(tx + roundi(wind.x * step), 0, res - 1)
-	var fy: int = clampi(ty + roundi(wind.y * step), 0, res - 1)
-	pile = maxf(pile, 0.6 * _wall_share(fx, fy))
+		var kk: float = float(k + 1)
+		pile = maxf(pile, _wall[sy * n + sx] * smoothstep(0.0, 1.5, kk) * (1.0 - kk / 9.0))
+	var fx: int = clampi(i + ahead.x, 0, n - 1)
+	var fy: int = clampi(j + ahead.y, 0, n - 1)
+	pile = maxf(pile, 0.6 * _wall[fy * n + fx])
 	return pile

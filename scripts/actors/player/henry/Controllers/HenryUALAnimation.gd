@@ -15,6 +15,8 @@ extends Node3D
 enum WorkPose { NONE, ENTERING, HOLDING, EXITING, RETURNING }
 
 const MOVEMENT_EPSILON: float = 0.05
+## Slowest a slowed walk plays before it would read as standing still.
+const MIN_WALK_PACE: float = 0.35
 const WORK_POSE_HOLD_SECONDS: float = 2.6
 
 const IDLE_ALIASES: Array[StringName] = [&"Idle_Loop", &"Idle"]
@@ -240,7 +242,14 @@ func update_animation_blend(_delta: float) -> void:
 	if Vector2(player.velocity.x, player.velocity.z).length() < MOVEMENT_EPSILON:
 		_blend_position = 0.0
 
-	animation_tree.set("parameters/base/Grounded/blend_position", _blend_position)
+	## Slower than a walk (deep snow, a heavy load): a slowed walk, never half idle,
+	## so the feet keep pace with the ground and the idle stance does not lean in.
+	var pace: float = 1.0
+	if _blend_position > 0.0 and _blend_position < walk_blend_position:
+		pace = maxf(_blend_position / walk_blend_position, MIN_WALK_PACE)
+		_blend_position = walk_blend_position
+	animation_tree.set("parameters/base/Grounded/loco/blend_position", _blend_position)
+	animation_tree.set("parameters/base/Grounded/pace/scale", pace)
 	var crouch_blend: float = 0.0
 	if player.has_method("get_crouch_speed_ratio"):
 		crouch_blend = float(player.call("get_crouch_speed_ratio"))
@@ -936,8 +945,14 @@ func _setup_animation_tree() -> void:
 	crouch.add_blend_point(_clip(_resolved_crouch_idle), 0.0, -1, &"idle")
 	crouch.add_blend_point(_clip(_resolved_crouch_fwd), 1.0, -1, &"forward")
 
+	var grounded := AnimationNodeBlendTree.new()
+	grounded.add_node(&"loco", locomotion, Vector2(-200.0, 0.0))
+	grounded.add_node(&"pace", AnimationNodeTimeScale.new(), Vector2(0.0, 0.0))
+	grounded.connect_node(&"pace", 0, &"loco")
+	grounded.connect_node(&"output", 0, &"pace")
+
 	var base := AnimationNodeStateMachine.new()
-	base.add_node(&"Grounded", locomotion, Vector2(0.0, 0.0))
+	base.add_node(&"Grounded", grounded, Vector2(0.0, 0.0))
 	base.add_node(&"Crouch", crouch, Vector2(0.0, 180.0))
 	base.add_node(&"JumpStart", _clip(_resolved_jump_start), Vector2(260.0, -120.0))
 	base.add_node(&"AirLoop", _clip(_resolved_jump_loop), Vector2(520.0, -120.0))
@@ -1024,7 +1039,7 @@ func _setup_animation_tree() -> void:
 	animation_tree.anim_player = animation_tree.get_path_to(animation_player)
 	animation_tree.active = true
 	animation_tree.set("parameters/work_pace/scale", 0.0)
-	animation_tree.set("parameters/base/Grounded/blend_position", 0.0)
+	animation_tree.set("parameters/base/Grounded/loco/blend_position", 0.0)
 	animation_tree.set("parameters/base/Crouch/blend_position", 0.0)
 	animation_tree.set("parameters/base/Carry/arms/blend_amount", 1.0)
 	_state_playback = animation_tree.get("parameters/base/playback") as AnimationNodeStateMachinePlayback

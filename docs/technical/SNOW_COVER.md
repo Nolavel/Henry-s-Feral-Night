@@ -91,6 +91,7 @@ front moves inward, and noise only breaks up that front.
 | Tier | What runs |
 |---|---|
 | Low (HD 620 class) | cover + rime from the shared include, decal footprints, bounded snowfall particles. No compute, no POM. |
+| Medium (Forward+) | as high, but the per-frame contact capture is 512² (packed field stays 1024²). Gain unproven on a real GPU. |
 | High (Forward+) | the above, plus — later — a local L0 accumulation field, POM near the camera, compute evolution. |
 
 Nobody enables compute on the low tier by default.
@@ -210,5 +211,26 @@ snow_ground.gdshader: top − packed + rim          MovementController speed
   presses while the toe is above the surface.
 - **Window.** 25.6 m, moved in 3.2 m steps; packing is shifted with it. The
   mesh is 3 cm near Henry and coarsens to 25 cm at the edge; packing is 2.5 cm.
-- **Cost.** One extra 512² render of layer 20 and one 512² 2D pass per frame,
-  plus a CPU field rebuild (~16k samples) each time the window moves.
+- **Cost.** One extra 1024² render of layer 19 (`snow_contact`) and one 1024² 2D
+  pass per frame (`packed_res`), plus a CPU field rebuild each time the window moves.
+- **Measured budget** (lavapipe CPU box, `main@9ec6f03`, Key West):
+
+  | Place | `SnowField.rebuild` avg / max | Ground samples | `SnowChunkCover.build` |
+  |---|---|---|---|
+  | Old Town | 478 / 573 ms | 16 384 | 316 ms |
+  | Fort Street | 758 / 864 ms | 16 384 | 259 ms |
+  | Open coast | 669 / 735 ms | 16 384 | 291 ms |
+
+  Ground rays are ~25% of a rebuild; the rest is GDScript field math. The wind
+  field image is ~65 MiB and is shared by every SnowField.
+- **Incremental rebuild.** Wind-independent layers live on a grid with a 20-cell
+  apron and are only recomputed in newly exposed strips plus each layer's blur
+  reach (3 904 rays per 3.2 m move). Wind-dependent depth is reassembled over the
+  window each move, sliced at 4 ms per frame; walking now peaks at 23.5 ms physics
+  frame (p95 7.3 ms) instead of a 0.5–0.9 s hitch.
+
+### Chunk snow streaming
+
+Chunk cover meshes are cached (12 chunks, LRU) and built in 4 ms slices per
+frame; chunks near `SnowShell.live_window` are built at once so Henry never
+stands on a chunk without snow.

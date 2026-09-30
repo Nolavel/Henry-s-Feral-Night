@@ -13,8 +13,7 @@ const CAMERA_FOV_DEG: float = 36.0
 const CAMERA_YAW_DEG: float = 12.0
 const CAMERA_PITCH_DEG: float = 64.0
 const FOLLOW_RESPONSE: float = 9.0
-const MAP_LABEL_LAYER_INDEX: int = 19
-const MAP_LABEL_MASK: int = 1 << MAP_LABEL_LAYER_INDEX
+const MAP_LABEL_MASK: int = RenderLayers.DEV_MAP_LABEL
 const LABEL_RADIUS_M: float = 95.0
 const LABEL_REFRESH_DISTANCE_M: float = 7.0
 const LABEL_REFRESH_SECONDS: float = 0.75
@@ -204,7 +203,7 @@ func _build_ui() -> void:
 	_camera.fov = CAMERA_FOV_DEG
 	_camera.near = 0.15
 	_camera.far = 1200.0
-	_camera.cull_mask = (1 << 20) - 1
+	_camera.cull_mask = ((1 << 20) - 1) & ~RenderLayers.SNOW_CONTACT
 	_viewport.add_child(_camera)
 	_camera.make_current()
 
