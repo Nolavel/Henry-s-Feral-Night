@@ -227,3 +227,9 @@ snow_ground.gdshader: top − packed + rim          MovementController speed
   reach (3 904 rays per 3.2 m move). Wind-dependent depth is reassembled over the
   window each move, sliced at 4 ms per frame; walking now peaks at 23.5 ms physics
   frame (p95 7.3 ms) instead of a 0.5–0.9 s hitch.
+
+### Chunk snow streaming
+
+Chunk cover meshes are cached (12 chunks, LRU) and built in 4 ms slices per
+frame; chunks near `SnowShell.live_window` are built at once so Henry never
+stands on a chunk without snow.

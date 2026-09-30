@@ -26,6 +26,7 @@ func _run() -> void:
 	_test_low_tier_builds_no_window()
 	_test_incremental_rebuild_matches_full()
 	_test_sliced_rebuild_matches_whole()
+	_test_chunk_cover_slices_and_caches()
 	if _failures > 0:
 		push_error("snow shell: %d check(s) failed" % _failures)
 		quit(1)
@@ -215,3 +216,33 @@ func _test_sliced_rebuild_matches_whole() -> void:
 			var b: Color = sliced.image.get_pixel(x, y)
 			worst = maxf(worst, maxf(absf(a.r - b.r), absf(a.g - b.g)))
 	_check(worst < 1e-6, "a sliced rebuild drifted from a whole one by %.7f" % worst)
+
+
+## A chunk built in slices matches one built whole, and a cached copy is the same mesh.
+func _test_chunk_cover_slices_and_caches() -> void:
+	var terrain := IslandTerrain.new()
+	SnowChunkCover.clear_cache()
+	var origin := Vector2(-64.0, -64.0)
+	var job: SnowChunkCover.Job = SnowChunkCover.begin(terrain, origin, 64.0)
+	var frames: int = 0
+	while not SnowChunkCover.step(job, 1):
+		frames += 1
+	_check(frames > 10, "a chunk at a 1 µs budget finished in %d frames" % frames)
+	var sliced: MeshInstance3D = SnowChunkCover.finish(job)
+	_check(SnowChunkCover.is_cached(origin), "a finished chunk was not cached")
+	var again: MeshInstance3D = SnowChunkCover.cached(origin)
+	_check(sliced == null or again.mesh == sliced.mesh, "the cache rebuilt the mesh")
+	SnowChunkCover.clear_cache()
+	var whole: MeshInstance3D = SnowChunkCover.build(terrain, origin, 64.0)
+	if sliced != null and whole != null:
+		var a: Array = sliced.mesh.surface_get_arrays(0)
+		var b: Array = whole.mesh.surface_get_arrays(0)
+		_check(a[Mesh.ARRAY_VERTEX] == b[Mesh.ARRAY_VERTEX] and a[Mesh.ARRAY_INDEX] == b[Mesh.ARRAY_INDEX]
+			and a[Mesh.ARRAY_TEX_UV] == b[Mesh.ARRAY_TEX_UV], "a sliced chunk differs from a whole one")
+	else:
+		_check(sliced == whole, "sliced and whole chunks disagree on holding snow")
+	for f: MeshInstance3D in [sliced, again, whole]:
+		if f != null:
+			f.free()
+	terrain.free()
+	SnowChunkCover.clear_cache()

@@ -14,6 +14,10 @@ extends Node3D
 const WALL_SINK_M: float = 0.3
 ## Height of the low wall round a flat roof.
 const PARAPET_M: float = 0.45
+## Frame time spent building chunk snow while it streams in.
+const SNOW_BUDGET_USEC: int = 4000
+## Chunks this close to Henry's snow window get their snow the same frame.
+const SNOW_SYNC_MARGIN_M: float = 256.0
 
 var terrain: IslandTerrain
 var data: Dictionary = {}
@@ -36,6 +40,8 @@ var _stream_to_chunk: Dictionary = {}
 var _stream_active: Dictionary = {}
 var _stream_ring0_ready: bool = false
 var _excluded_building_ids: Dictionary = {}
+## Chunk snow built a slice per frame, keyed by chunk id.
+var _snow_jobs: Dictionary = {}
 
 var _massing_material: StandardMaterial3D
 var _detail_material: StandardMaterial3D
@@ -181,13 +187,8 @@ func activate_stream_chunk(stream_id: StringName, _container: Node3D) -> Node3D:
 		if props != null:
 			(state["node"] as Node3D).add_child(props)
 		state["props"] = props
-	if state.get("snow") == null and SnowField.high_quality():
-		var chunk: Dictionary = state["data"]
-		var o: Array = chunk.get("origin", [0, 0])
-		var snow := SnowChunkCover.build(terrain, Vector2(float(o[0]), float(o[1])), chunk_size_m)
-		if snow != null:
-			(state["node"] as Node3D).add_child(snow)
-		state["snow"] = snow
+	if state.get("snow") == null and not _snow_jobs.has(cid) and SnowField.high_quality():
+		_start_snow(cid, state)
 	var massing := state["massing"] as Node3D
 	if massing != null:
 		massing.visible = false
@@ -199,6 +200,50 @@ func activate_stream_chunk(stream_id: StringName, _container: Node3D) -> Node3D:
 		roads.visible = true
 	_stream_active[stream_id] = true
 	return state["node"] as Node3D
+
+
+func _process(_delta: float) -> void:
+	if _snow_jobs.is_empty():
+		return
+	## After a jump the window lands late; chunks it now reaches finish at once.
+	for near: String in _snow_jobs.keys():
+		if _near_snow_window((_snow_jobs[near] as SnowChunkCover.Job).origin):
+			_finish_snow(near, 1 << 40)
+	if not _snow_jobs.is_empty():
+		_finish_snow(_snow_jobs.keys()[0], SNOW_BUDGET_USEC)
+
+
+func _finish_snow(cid: String, budget_usec: int) -> void:
+	var job: SnowChunkCover.Job = _snow_jobs[cid]
+	if SnowChunkCover.step(job, budget_usec):
+		_snow_jobs.erase(cid)
+		_attach_snow(_chunks[cid] as Dictionary, SnowChunkCover.finish(job))
+
+
+## True when Henry's snow window is not live yet or lies within reach of this chunk.
+func _near_snow_window(origin: Vector2) -> bool:
+	var window: Vector4 = SnowShell.live_window
+	var rect := Rect2(origin, Vector2.ONE * chunk_size_m).grow(SNOW_SYNC_MARGIN_M)
+	return window.w < 0.5 or rect.has_point(Vector2(window.x, window.y) + Vector2.ONE * window.z * 0.5)
+
+
+## Cached chunks and those Henry stands near get snow at once; the rest build in slices.
+func _start_snow(cid: String, state: Dictionary) -> void:
+	var o: Array = (state["data"] as Dictionary).get("origin", [0, 0])
+	var origin := Vector2(float(o[0]), float(o[1]))
+	if SnowChunkCover.is_cached(origin):
+		_attach_snow(state, SnowChunkCover.cached(origin))
+		return
+	if _near_snow_window(origin):
+		_attach_snow(state, SnowChunkCover.build(terrain, origin, chunk_size_m))
+		return
+	_snow_jobs[cid] = SnowChunkCover.begin(terrain, origin, chunk_size_m)
+
+
+func _attach_snow(state: Dictionary, snow: MeshInstance3D) -> void:
+	if snow != null:
+		(state["node"] as Node3D).add_child(snow)
+	state["snow"] = snow
 
 
 func deactivate_stream_chunk(stream_id: StringName) -> void:
@@ -218,6 +263,7 @@ func deactivate_stream_chunk(stream_id: StringName) -> void:
 	if is_instance_valid(props):
 		props.queue_free()
 	state["props"] = null
+	_snow_jobs.erase(cid)
 	var snow := state.get("snow") as Node3D
 	if is_instance_valid(snow):
 		snow.queue_free()

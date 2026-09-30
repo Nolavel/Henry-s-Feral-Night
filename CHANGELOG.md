@@ -5,6 +5,15 @@ Maintained per branch; entries are added by whoever makes the change.
 
 ## [Unreleased] — `codex`
 
+### 2026-09-30 - Cached, frame-sliced chunk snow (claudeflow)
+
+- SnowChunkCover keeps the finished mesh of the last 12 chunks (weather-free),
+  so a chunk streamed back in gets its snow at once.
+- Uncached chunks build in 4 ms per-frame slices; chunks within 256 m of
+  Henry's snow window, and any queued chunk the window reaches, finish at once.
+- SnowShell.live_window publishes the window, since reading shader globals
+  back fails outside the editor.
+
 ### 2026-09-30 - Incremental, frame-sliced SnowField rebuild (claudeflow)
 
 - SnowField keeps a 20-cell apron of cached, wind-independent layers (ground,

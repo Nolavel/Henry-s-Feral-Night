@@ -68,6 +68,9 @@ const CONTACT_LAYER: int = RenderLayers.SNOW_CONTACT
 ## Width and length of the toe that drags through snow on a lifted foot.
 @export var drag_size_m: Vector2 = Vector2(0.07, 0.14)
 
+## Henry's live snow window (min corner, size, 1 when live), the same as the snow_window global.
+static var live_window: Vector4 = Vector4.ZERO
+
 var field: SnowField = SnowField.new()
 
 var _field_tex: ImageTexture
@@ -275,7 +278,8 @@ func _apply_window(old: Vector2, wanted: Vector2, cover: float, wind: Vector2) -
 	RenderingServer.global_shader_parameter_set(&"snow_settled_depth", field.settled_depth(cover))
 	RenderingServer.global_shader_parameter_set(&"snow_drift_m", field.drift_amplitude(cover))
 	RenderingServer.global_shader_parameter_set(&"snow_wind", wind.normalized() if wind.length_squared() > 0.0001 else Vector2(0, -1))
-	RenderingServer.global_shader_parameter_set(&"snow_window", Vector4(wanted.x, wanted.y, window_m, 1.0))
+	live_window = Vector4(wanted.x, wanted.y, window_m, 1.0)
+	RenderingServer.global_shader_parameter_set(&"snow_window", live_window)
 	_field_tex.set_image(field.image)
 	_surface.set_shader_parameter("origin", wanted)
 	_mesh.global_position = Vector3(wanted.x + half, 0.0, wanted.y + half)
