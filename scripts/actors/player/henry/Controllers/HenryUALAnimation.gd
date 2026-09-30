@@ -534,6 +534,9 @@ func _setup_wade() -> void:
 	var wade := WadeModifier.new()
 	wade.name = "Wade"
 	skeleton.add_child(wade)
+	var feet := SnowFootModifier.new()
+	feet.name = "SnowFeet"
+	skeleton.add_child(feet)
 
 
 func _setup_head_look() -> void:

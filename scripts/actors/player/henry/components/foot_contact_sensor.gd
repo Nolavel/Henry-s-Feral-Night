@@ -152,11 +152,14 @@ func _skeleton() -> Skeleton3D:
 func _sample(skeleton: Skeleton3D, side: int) -> Dictionary:
 	var names: Dictionary = BONES[side]
 	var out: Dictionary = {}
+	## The walk clip's foot, not the one snow lifted: contact must not feed on itself.
+	var feet := skeleton.get_node_or_null(^"SnowFeet") as SnowFootModifier
+	var lift: Vector3 = Vector3.UP * feet.get_lift(side) if feet != null else Vector3.ZERO
 	for key: String in names:
 		var index: int = _index_of(skeleton, names[key])
 		if index < 0:
 			return {}
-		out[key] = skeleton.global_transform * skeleton.get_bone_global_pose(index).origin
+		out[key] = skeleton.global_transform * skeleton.get_bone_global_pose(index).origin - lift
 	return out
 
 

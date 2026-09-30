@@ -4,6 +4,8 @@ extends RefCounted
 ## The one answer to "how much snow is here": ground, settled depth, drifts and
 ## lee piles on a grid that follows Henry. Shaders and gameplay read the same data.
 
+## Softness is stored in the image B channel scaled below the 0.5 cut threshold.
+const SOFTNESS_SCALE: float = 0.49
 ## Cells of cached ground kept around the window, so edge cells see real
 ## neighbours and a window move only samples the newly exposed strips.
 const APRON: int = 20
@@ -75,12 +77,16 @@ var _job_depth: PackedFloat32Array = []
 var _job_weight: PackedFloat32Array = []
 var _job_px: PackedFloat32Array = []
 var _noise: FastNoiseLite = FastNoiseLite.new()
+var _density_noise: FastNoiseLite = FastNoiseLite.new()
 
 
 func _init() -> void:
 	_noise.noise_type = FastNoiseLite.TYPE_SIMPLEX_SMOOTH
 	_noise.frequency = 1.0
 	_noise.seed = 1901
+	_density_noise.noise_type = FastNoiseLite.TYPE_SIMPLEX_SMOOTH
+	_density_noise.frequency = 0.35
+	_density_noise.seed = 2207
 
 
 ## Loads a baked wind field (PNG + JSON beside it); false when absent.
@@ -284,6 +290,24 @@ func get_snow_top(x: float, z: float) -> float:
 
 
 ## Settled depth at a world point (bilinear), 0 outside the window.
+## How far a foot can press the snow here, 0.4 wind crust to 1.0 loose powder:
+## scoured ground is packed hard, lee drifts are soft, with patches between.
+func softness(at: Vector2, city: float) -> float:
+	var patch: float = _density_noise.get_noise_2d(at.x, at.y) * 0.25
+	return clampf(0.7 + (city - 1.0) * 0.35 + patch, 0.4, 1.0)
+
+
+## Softness stored in the field image (0 outside the window or on cut cells).
+func get_softness(x: float, z: float) -> float:
+	if image == null:
+		return 0.0
+	var p := Vector2i(((Vector2(x, z) - origin) / texel_m()).floor())
+	if p.x < 0 or p.y < 0 or p.x >= res or p.y >= res:
+		return 0.0
+	var b: float = image.get_pixel(p.x, p.y).b
+	return 0.0 if b > 0.5 else b / SOFTNESS_SCALE
+
+
 func get_depth(x: float, z: float) -> float:
 	return _sample(x, z).y
 
@@ -537,7 +561,9 @@ func _output_row(ty: int) -> void:
 		var top: float = _bed[k] * shore + g.x * (1.0 - shore) + depth
 		_job_px[o] = top
 		_job_px[o + 1] = top - g.x
-		_job_px[o + 2] = 1.0 if g.x < sea_level_m + 0.02 else 0.0
+		## B: 1 where snow is cut away, else softness scaled below 0.5.
+		var city: float = lerpf(_prevail[k], _storm[k], _job_storm)
+		_job_px[o + 2] = 1.0 if g.x < sea_level_m + 0.02 else softness(_grid_world(APRON + tx, APRON + ty), city) * SOFTNESS_SCALE
 		_job_px[o + 3] = lerpf(_prevail[k], _storm[k], _job_storm)
 
 

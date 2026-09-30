@@ -77,6 +77,8 @@ void vertex() {
 	vec2 uv = (world.xz - origin) / window_m;
 	vec4 f = texture(field, uv);
 	v_packed = sloped_packed(uv);
+	// The floor of a print is lumpy: grains pack unevenly under a boot.
+	v_packed += (snow_noise(world.xz * 9.0) - 0.5) * 0.02 * smoothstep(0.02, 0.06, v_packed);
 	v_rim = rim_at(uv, world.xz, v_packed);
 	v_cut = f.b;
 	v_city = f.a;
