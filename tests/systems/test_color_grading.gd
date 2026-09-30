@@ -90,14 +90,19 @@ func _check_switching(day: ColorGradeProfile, dusk: ColorGradeProfile, night: Co
 	_check(controller.get_current_profile_id() == ColorGradeController.NIGHT_PROFILE_ID, "night LUT did not activate")
 	environment.ambient_light_energy = 0.92
 	controller.initialize_for_interior(true)
-	controller._process(0.0)
 	_check(controller.get_current_profile_id() == ColorGradeController.SHELTER_PROFILE_ID, "shelter LUT did not override outdoor")
-	_check(environment.ambient_light_energy <= 0.20 + 0.001, "shelter did not cap outdoor ambient")
+	_check(is_equal_approx(environment.ambient_light_energy, 0.92), "ColorGradeController must not write ambient energy")
 	controller.update_for_time(12.0)
 	_check(controller.get_current_profile_id() == ColorGradeController.SHELTER_PROFILE_ID, "time changed the LUT while inside")
+	var day_night := DayNightManager.new()
+	day_night.color_grade_controller = controller
+	day_night.shelter_ambient_energy_cap = 0.20
+	_check(day_night._ambient_energy_for_context(0.92) <= 0.20 + 0.001, "DayNightManager did not cap shelter ambient")
 	controller.initialize_for_interior(false)
-	_check(environment.ambient_light_energy > 0.20, "leaving shelter did not restore outdoor ambient")
+	_check(is_equal_approx(environment.ambient_light_energy, 0.92), "ColorGradeController changed ambient while leaving shelter")
+	_check(is_equal_approx(day_night._ambient_energy_for_context(0.92), 0.92), "DayNightManager did not restore outdoor ambient policy")
 	_check(controller.get_current_profile_id() == ColorGradeController.DAY_PROFILE_ID, "leaving shelter did not restore current outdoor LUT")
+	day_night.free()
 	_check(world_environment.environment.adjustment_enabled, "Environment adjustments are disabled")
 	controller.free()
 	root.remove_child(world_environment)
