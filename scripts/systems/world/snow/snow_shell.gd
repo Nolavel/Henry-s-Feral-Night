@@ -7,6 +7,7 @@ extends Node3D
 const SURFACE_SHADER: Shader = preload("res://shaders/environment/snow/snow_ground.gdshader")
 const CONTACT_SHADER: Shader = preload("res://shaders/environment/snow/snow_contact_depth.gdshader")
 const ACCUMULATE_SHADER: Shader = preload("res://shaders/environment/snow/snow_accumulate.gdshader")
+const SHAPE_SHADER: Shader = preload("res://shaders/environment/snow/snow_shape.gdshader")
 const WEATHER_SCRIPT: GDScript = preload("res://scripts/systems/world/WeatherController.gd")
 const TERRAIN_SCRIPT: GDScript = preload("res://scripts/systems/world/terrain/island_terrain.gd")
 const PRESENTATION_SCRIPT: GDScript = preload("res://scripts/systems/world/snow/snow_presentation_system.gd")
@@ -76,8 +77,8 @@ const CONTACT_LAYER: int = RenderLayers.SNOW_CONTACT
 ## Deeper than this Henry wades: his whole body ploughs a trench. Shallower,
 ## only planted soles press, so steps stay separate prints.
 @export var wade_depth_m: float = 0.3
-## Henry starts high-stepping at the first depth and fully wades by the second.
-@export var wade_gait_m: Vector2 = Vector2(0.1, 0.28)
+## Henry starts leaning into the snow at the first depth and fully wades by the second.
+@export var wade_gait_m: Vector2 = Vector2(0.3, 0.55)
 ## Width of one sole and how far it reaches past the heel and toe bones.
 @export var sole_width_m: float = 0.11
 @export var sole_margin_m: float = 0.05
@@ -99,6 +100,8 @@ var _contact_cam: Camera3D
 var _contact_quad: ShaderMaterial
 var _accum: Array[SubViewport] = []
 var _accum_mat: Array[ShaderMaterial] = []
+var _shape: Array[SubViewport] = []
+var _shape_mat: Array[ShaderMaterial] = []
 var _parity: int = 0
 var _warmup: int = 3
 var _pending_shift: Vector2 = Vector2.ZERO
@@ -307,7 +310,9 @@ func _process(delta: float) -> void:
 	mat.set_shader_parameter("base_y", _base_y)
 	_pending_shift = Vector2.ZERO
 	_accum[target].render_target_update_mode = SubViewport.UPDATE_ONCE
-	_surface.set_shader_parameter("packed_field", _accum[target].get_texture())
+	_shape_mat[0].set_shader_parameter("source", _accum[target].get_texture())
+	for vp: SubViewport in _shape:
+		vp.render_target_update_mode = SubViewport.UPDATE_ONCE
 	_parity = 1 - _parity
 
 
@@ -541,6 +546,25 @@ func _build_capture() -> void:
 		mat.set_shader_parameter("restore", _restore_tex)
 	_accum_mat[0].set_shader_parameter("previous", _accum[1].get_texture())
 	_accum_mat[1].set_shader_parameter("previous", _accum[0].get_texture())
+	## What is drawn: walls dilated to the repose slope along x, then y, then softened.
+	var texel_m: float = window_m / float(packed_res)
+	for i: int in range(3):
+		var vp: SubViewport = _viewport("SnowShape%d" % i, packed_res)
+		vp.render_target_update_mode = SubViewport.UPDATE_DISABLED
+		var mat := ShaderMaterial.new()
+		mat.shader = SHAPE_SHADER
+		mat.set_shader_parameter("pass", i)
+		mat.set_shader_parameter("drop_per_texel", tan(deg_to_rad(repose_deg)) * texel_m)
+		mat.set_shader_parameter("reach", ceili(0.6 / (tan(deg_to_rad(repose_deg)) * texel_m)))
+		if i > 0:
+			mat.set_shader_parameter("source", _shape[i - 1].get_texture())
+		var rect := ColorRect.new()
+		rect.size = Vector2(packed_res, packed_res)
+		rect.material = mat
+		vp.add_child(rect)
+		_shape.append(vp)
+		_shape_mat.append(mat)
+	_surface.set_shader_parameter("packed_field", _shape[2].get_texture())
 
 
 ## A few lumps of snow that break off a print's rim and tumble into it.

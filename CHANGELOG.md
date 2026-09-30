@@ -5,6 +5,18 @@ Maintained per branch; entries are added by whoever makes the change.
 
 ## [Unreleased] — `codex`
 
+### 2026-09-30 - Snow prints without stair-steps; legs lift only as far as the snow needs (claudeflow)
+
+- Stair-steps came from the drawn slope: a max over five rings 9 cm apart made
+  terraces, and nearest-texel contact made the rim saw-toothed. The ground now
+  reads a shaped copy of the packed field: a separable dilation by the repose
+  cone along x then y (true 40° walls, no rings), then a 5x5 Gaussian
+  (`snow_shape.gdshader`, three passes after accumulation). Stored packing,
+  track tiles and collapse still use the raw field.
+- Legs: WadeModifier no longer lifts the knee a fixed 48°; SnowFootModifier
+  lifts a swinging boot exactly to clear the snow under it (+3 cm) and keeps a
+  planted boot on the print floor. Torso lean starts at 0.3 m of snow, not 0.1.
+
 ### 2026-09-30 - Smoother prints: no stair-stepping (claudeflow)
 
 - Contact is read with four sub-texel taps, so a boot edge presses part of a
