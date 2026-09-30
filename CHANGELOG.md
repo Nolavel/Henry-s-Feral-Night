@@ -1871,7 +1871,7 @@ Fixed
   at all — only a floating icon.
   - `ItemPickup` builds a small placeholder crate until items have meshes.
   - `BreachBoardUp` rings under the breach's boards; `HeatSourceFeed` under the
-    stove's body.
+	stove's body.
   - The base class is untouched; each subclass supplies its mesh before
     `super()._ready()`.
 
@@ -2003,11 +2003,11 @@ Fixed — Continue would have been a lie
   were not saved.** Loading would have put him at the spawn marker at dawn,
   fed and empty-handed.
   - `SessionState` (composition root): game clock and player position; resets
-    the thermal and weather hour trackers so a loaded clock jump is not billed
-    as time spent in the cold.
+	the thermal and weather hour trackers so a loaded clock jump is not billed
+	as time spent in the cold.
   - `BioMonitorManager` implements the save contract.
   - `SaveManager` adopts contract implementers inside the player, so inventory
-    and equipment are saved at last.
+	and equipment are saved at last.
 - `SaveManager.pending_load_slot` carries Continue from the title scene into
   the world; applied deferred, after every system adopted its scene state.
 
