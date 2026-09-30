@@ -21,6 +21,7 @@ void vertex() {
 }
 
 void fragment() {
+	LIGHT_VERTEX = VERTEX + hfn_stylized_shadow_view_warp(stylized_world_pos, VIEW_MATRIX);
 	vec2 uv = UV * uv_scale + uv_offset;
 	vec4 base = albedo_color;
 	if (use_vertex_color) {

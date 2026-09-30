@@ -15,11 +15,25 @@ func _process(_delta: float) -> bool:
 		stove.starts_burning = false
 		stove.burn_duration_h = 6.0
 		stove.hours_per_fuel_unit = 2.0
+		stove.warmup_seconds = 20.0
+		var room_light := OmniLight3D.new()
+		stove.add_child(room_light)
+		stove.flame_light = room_light
 		var visual := StoveVisual.new()
 		stove.add_child(visual)
 		root.add_child(stove)
 		_check(visual.get_visible_log_count() == 0 and not visual.is_glowing(), "a cold empty stove shows logs or glow")
+
+		_check(stove.add_logs(1), "cold stove would not accept a log")
+		_check(stove.start_loaded_fire(), "loaded stove would not start its warm-up")
+		visual._process(0.016)
+		_check(stove.get_intensity() <= 0.1, "test no longer exercises the low thermal warm-up")
+		_check(room_light.visible, "successful ignition did not reveal the room light")
+		_check(visual.get_room_light_energy() > 1.5, "warm-up leaves the room effectively dark")
+		_check(visual.get_firebox_light_energy() > 0.7, "firebox glow is too weak at ignition")
+
 		stove.ignite()
+		visual._process(0.016)
 		_check(visual.get_visible_log_count() == 3, "a full 6 h load does not show 3 logs (%d)" % visual.get_visible_log_count())
 		_check(visual.is_glowing(), "a burning stove does not glow")
 		stove.restore_fuel(1.5, true)
