@@ -187,6 +187,11 @@ func activate_stream_chunk(stream_id: StringName, _container: Node3D) -> Node3D:
 		if props != null:
 			(state["node"] as Node3D).add_child(props)
 		state["props"] = props
+	if state.get("prop_visuals") == null:
+		var visuals := KeyWestStreetProps.build_chunk_visuals(cid)
+		if visuals != null:
+			(state["node"] as Node3D).add_child(visuals)
+		state["prop_visuals"] = visuals
 	if state.get("snow") == null and not _snow_jobs.has(cid) and SnowField.high_quality():
 		_start_snow(cid, state)
 	var massing := state["massing"] as Node3D
@@ -263,6 +268,10 @@ func deactivate_stream_chunk(stream_id: StringName) -> void:
 	if is_instance_valid(props):
 		props.queue_free()
 	state["props"] = null
+	var prop_visuals := state.get("prop_visuals") as Node3D
+	if is_instance_valid(prop_visuals):
+		prop_visuals.queue_free()
+	state["prop_visuals"] = null
 	_snow_jobs.erase(cid)
 	var snow := state.get("snow") as Node3D
 	if is_instance_valid(snow):
@@ -818,6 +827,7 @@ func _build_global_visuals() -> void:
 	if _enrichment.is_empty():
 		return
 	KeyWestStreetProps.colliders.clear()
+	KeyWestStreetProps.visuals.clear()
 	_global_visuals = KeyWestCityVisuals.build_supplemental_node(terrain, _enrichment, _visual_materials)
 	_global_visuals.add_child(KeyWestStreetProps.build(terrain, _enrichment, _roads))
 	if _global_visuals != null and _global_visuals.get_child_count() > 0:

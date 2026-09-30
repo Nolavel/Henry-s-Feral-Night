@@ -5,6 +5,15 @@ Maintained per branch; entries are added by whoever makes the change.
 
 ## [Unreleased] — `codex`
 
+### 2026-09-30 - Street props stream per city chunk (claudeflow)
+
+- Small props (benches, hydrants, signs, gates, cars, boats, scrub, vaults,
+  golf markers, lamps) are filed per chunk and instanced only while their
+  chunk is streamed in. Palms, bare trees, power poles, wires and tanks stay
+  island-wide silhouettes. Transforms are computed once and stay deterministic.
+- Frame load on lavapipe: 40 M → 22 M primitives; draw calls 1542 → 1499
+  (Fort Street). Reference frames unchanged.
+
 ### 2026-09-30 - Separate contact and packed snow resolutions (claudeflow)
 
 - SnowShell.contact_res sizes the per-frame contact capture apart from the

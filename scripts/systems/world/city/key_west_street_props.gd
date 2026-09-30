@@ -5,6 +5,8 @@ extends RefCounted
 
 ## Collision shapes per city chunk id, filled by build() and the barrier builder.
 static var colliders: Dictionary = {}
+## Small props per city chunk id, shown only while that chunk streams in.
+static var visuals: Dictionary = {}
 
 const CHUNK_SIZE_M: float = 512.0
 ## Faded paint of abandoned cars and moored boats.
@@ -65,7 +67,7 @@ static func build(terrain: IslandTerrain, enrichment: Dictionary, roads: Array) 
 		(points[key] as Array).append(Vector2(float(c[0]), float(c[1])))
 
 	var pole := _cyl_shape(0.15, 8.0)
-	_add_facing(holder, "PowerPoles", points.get("osm_pole", []), _power_pole_mesh(mats), index, terrain, false, [pole, Vector3(0, 4.0, 0)])
+	_add_facing(holder, "PowerPoles", points.get("osm_pole", []), _power_pole_mesh(mats), index, terrain, false, [pole, Vector3(0, 4.0, 0)], false)
 	_add_facing(holder, "StreetLamps", points.get("osm_lamp", []), _lamp_mesh(mats), index, terrain, true, [_cyl_shape(0.1, 6.0), Vector3(0, 3.0, 0)])
 	_add_facing(holder, "TrafficSignals", points.get("traffic_signals", []), _signal_mesh(mats), index, terrain, true, [_cyl_shape(0.15, 5.0), Vector3(0, 2.5, 0)])
 	var post := [_cyl_shape(0.06, 2.2), Vector3(0, 1.1, 0)]
@@ -129,11 +131,10 @@ static func nearest_road(index: Dictionary, p: Vector2) -> Dictionary:
 
 ## Places a prop at each point; its local +Z looks at the nearest road.
 static func _add_facing(parent: Node3D, node_name: String, pts: Array, mesh: Mesh, index: Dictionary,
-		terrain: IslandTerrain, face_road: bool, collider: Array = []) -> void:
+		terrain: IslandTerrain, face_road: bool, collider: Array = [], streamed: bool = true) -> void:
 	if pts.is_empty():
 		return
 	var xfs: Array[Transform3D] = []
-	var mm := _multimesh(mesh, pts.size())
 	for i: int in range(pts.size()):
 		var p: Vector2 = pts[i]
 		var yaw: float = float(hash(p) % 628) * 0.01
@@ -149,8 +150,7 @@ static func _add_facing(parent: Node3D, node_name: String, pts: Array, mesh: Mes
 			var d: Vector2 = road["dir"]
 			yaw = atan2(d.x, d.y)
 		xfs.append(Transform3D(Basis(Vector3.UP, yaw), _ground(terrain, p)))
-		mm.set_instance_transform(i, xfs[i])
-	_add_instance(parent, node_name, mm)
+	_add_transforms(parent, node_name, mesh, xfs, streamed)
 	if not collider.is_empty():
 		_add_bodies(parent, node_name + "Collision", collider[0], collider[1], xfs)
 
@@ -251,8 +251,8 @@ static func _add_vegetation(parent: Node3D, index: Dictionary, terrain: IslandTe
 		var h: int = absi(hash(p))
 		var s: float = 0.6 + float(h % 70) * 0.01
 		bush_xf.append(Transform3D(Basis(Vector3.UP, float(h % 628) * 0.01).scaled(Vector3(s, s * 0.7, s)), _ground(terrain, p)))
-	_add_transforms(parent, "Palms", _palm_mesh(mats), palms)
-	_add_transforms(parent, "BareTrees", _bare_tree_mesh(mats), broad)
+	_add_transforms(parent, "Palms", _palm_mesh(mats), palms, false)
+	_add_transforms(parent, "BareTrees", _bare_tree_mesh(mats), broad, false)
 	_add_transforms(parent, "Scrub", _bush_mesh(mats), bush_xf)
 	var trunk := _cyl_shape(0.22, 3.0)
 	_add_bodies(parent, "PalmCollision", trunk, Vector3(0, 1.5, 0), _unscaled(palms))
@@ -351,13 +351,7 @@ static func _add_parking(parent: Node3D, enrichment: Dictionary, terrain: Island
 			kept_colors.append(colors[int(float(k) * stride)])
 		cars = kept
 		colors = kept_colors
-	var mm := _multimesh(_car_mesh(mats), 0)
-	mm.use_colors = true
-	mm.instance_count = cars.size()
-	for i: int in range(cars.size()):
-		mm.set_instance_transform(i, cars[i])
-		mm.set_instance_color(i, colors[i])
-	_add_instance(parent, "AbandonedCars", mm)
+	_stream("AbandonedCars", _car_mesh(mats), cars, colors)
 	_add_bodies(parent, "CarCollision", _box_shape(Vector3(1.8, 1.4, 4.4)), Vector3(0, 0.7, 0), cars)
 
 
@@ -400,13 +394,7 @@ static func _add_boats(parent: Node3D, _features: Array, marinas: Array[PackedVe
 					colors.append(BOAT_COLORS[(h / 11) % BOAT_COLORS.size()])
 	if boats.is_empty():
 		return
-	var mm := _multimesh(_boat_mesh(mats), 0)
-	mm.use_colors = true
-	mm.instance_count = boats.size()
-	for i: int in range(boats.size()):
-		mm.set_instance_transform(i, boats[i])
-		mm.set_instance_color(i, colors[i])
-	_add_instance(parent, "MooredBoats", mm)
+	_stream("MooredBoats", _boat_mesh(mats), boats, colors)
 	_add_bodies(parent, "BoatCollision", _box_shape(Vector3(2.4, 1.6, 7.0)), Vector3(0, 0.8, 0), _unscaled(boats))
 
 
@@ -474,7 +462,7 @@ static func _add_wires(parent: Node3D, enrichment: Dictionary, terrain: IslandTe
 					var z: Vector3 = to - from
 					var basis := Basis.looking_at(z.normalized(), Vector3.UP).scaled_local(Vector3(1, 1, z.length()))
 					spans.append(Transform3D(basis, (from + to) * 0.5 + shift))
-	_add_transforms(parent, "PowerWires", _compose([[_box(Vector3(0.03, 0.03, 1.0)), Transform3D.IDENTITY, mats["wire"]]]), spans)
+	_add_transforms(parent, "PowerWires", _compose([[_box(Vector3(0.03, 0.03, 1.0)), Transform3D.IDENTITY, mats["wire"]]]), spans, false)
 
 
 ## Mapped storage tanks and water towers as cylinders sized to their outline.
@@ -494,7 +482,7 @@ static func _add_tanks(parent: Node3D, enrichment: Dictionary, terrain: IslandTe
 		var r: float = clampf((hi - lo).length() * 0.35, 2.0, 30.0)
 		var h: float = 30.0 if kind == "water_tower" else clampf(r * 0.8, 4.0, 14.0)
 		tanks.append(Transform3D(Basis.IDENTITY.scaled(Vector3(r, h, r)), _ground(terrain, (lo + hi) * 0.5)))
-	_add_transforms(parent, "StorageTanks", _compose([[_cyl(1.0, 1.0, 16), _at(0, 0.5, 0), mats["tank"]]]), tanks)
+	_add_transforms(parent, "StorageTanks", _compose([[_cyl(1.0, 1.0, 16), _at(0, 0.5, 0), mats["tank"]]]), tanks, false)
 	for xf: Transform3D in tanks:
 		var shape := CylinderShape3D.new()
 		shape.radius = xf.basis.x.length()
@@ -586,13 +574,57 @@ static func _multimesh(mesh: Mesh, count: int) -> MultiMesh:
 	return mm
 
 
-static func _add_transforms(parent: Node3D, node_name: String, mesh: Mesh, xfs: Array[Transform3D]) -> void:
+## Tall silhouettes go in one island-wide instance; small props are filed per chunk.
+static func _add_transforms(parent: Node3D, node_name: String, mesh: Mesh, xfs: Array[Transform3D],
+		streamed: bool = true) -> void:
 	if xfs.is_empty():
+		return
+	if streamed:
+		_stream(node_name, mesh, xfs)
 		return
 	var mm := _multimesh(mesh, xfs.size())
 	for i: int in range(xfs.size()):
 		mm.set_instance_transform(i, xfs[i])
 	_add_instance(parent, node_name, mm)
+
+
+static func _stream(node_name: String, mesh: Mesh, xfs: Array[Transform3D], colors: Array[Color] = []) -> void:
+	for i: int in range(xfs.size()):
+		var key: String = chunk_key(Vector2(xfs[i].origin.x, xfs[i].origin.z))
+		if not visuals.has(key):
+			visuals[key] = {}
+		var kinds: Dictionary = visuals[key]
+		if not kinds.has(node_name):
+			var placed: Array[Transform3D] = []
+			var tints: Array[Color] = []
+			kinds[node_name] = [mesh, placed, tints]
+		(kinds[node_name][1] as Array).append(xfs[i])
+		if not colors.is_empty():
+			(kinds[node_name][2] as Array).append(colors[i])
+
+
+## Small props of one streamed chunk, or null when it holds none.
+static func build_chunk_visuals(chunk_id: String) -> Node3D:
+	var kinds: Dictionary = visuals.get(chunk_id, {})
+	if kinds.is_empty():
+		return null
+	var holder := Node3D.new()
+	holder.name = "StreetPropsChunk"
+	for node_name: String in kinds:
+		var entry: Array = kinds[node_name]
+		var xfs: Array = entry[1]
+		var colors: Array = entry[2]
+		var mm := MultiMesh.new()
+		mm.transform_format = MultiMesh.TRANSFORM_3D
+		mm.use_colors = not colors.is_empty()
+		mm.mesh = entry[0]
+		mm.instance_count = xfs.size()
+		for i: int in range(xfs.size()):
+			mm.set_instance_transform(i, xfs[i])
+			if mm.use_colors:
+				mm.set_instance_color(i, colors[i])
+		_add_instance(holder, node_name, mm)
+	return holder
 
 
 static func _add_instance(parent: Node3D, node_name: String, mm: MultiMesh) -> void:
