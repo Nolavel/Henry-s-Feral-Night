@@ -325,23 +325,12 @@ func _apply_hinge_angle() -> void:
 	door_hinge.rotation.y = current_angle_rad
 	if door_hinge.is_inside_tree():
 		door_hinge.force_update_transform()
-	_sync_leaf_body_velocity()
 
 
-## StaticBody3D stays the collision authority. These velocities tell CharacterBody
-## contacts how the manually rotated surface itself is moving around the hinge.
-func _sync_leaf_body_velocity() -> void:
-	if _leaf == null or door_hinge == null:
-		return
-	var axis: Vector3 = door_hinge.global_basis.y.normalized()
-	var omega: Vector3 = axis * angular_velocity
-	for child: Node in _leaf.find_children("*", "StaticBody3D", true, false):
-		var body := child as StaticBody3D
-		if body == null:
-			continue
-		body.constant_angular_velocity = omega
-		body.constant_linear_velocity = omega.cross(body.global_position - door_hinge.global_position)
-
+## The authored StaticBody3D remains the collision authority, but it deliberately
+## carries no constant surface velocity. Feeding hinge velocity back through a
+## StaticBody makes CharacterBody3D treat the leaf like a moving wall and pushes
+## Henry away instead of letting his real contact torque open it.
 
 func _set_latched(value: bool) -> void:
 	if _latched == value:
