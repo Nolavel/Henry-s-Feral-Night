@@ -1,18 +1,13 @@
 extends SceneTree
 
-## Captures the follow-only developer diorama map with OSM address/street labels.
+## Temporary lightweight evidence capture for the runtime debug panel.
 
 const MAIN_SCENE: String = "res://scenes/world/key_west/key_west.tscn"
 const OUT_DIR: String = "res://docs/runtime_previews/dev_diorama_map"
-const BIND_FRAME: int = 35
-const FIRST_CAPTURE_FRAME: int = 240
+const CAPTURE_FRAME: int = 90
 
 var _scene: Node3D
-var _player: Player
-var _map: DevDioramaMap
 var _frame: int = 0
-var _phase: int = 0
-var _next_capture: int = FIRST_CAPTURE_FRAME
 
 
 func _initialize() -> void:
@@ -20,69 +15,25 @@ func _initialize() -> void:
 	DirAccess.make_dir_recursive_absolute(ProjectSettings.globalize_path(OUT_DIR))
 	_scene = (load(MAIN_SCENE) as PackedScene).instantiate() as Node3D
 	if _scene is World:
-		(_scene as World).enable_runtime_dev_map = true
+		(_scene as World).enable_runtime_dev_map = false
+		(_scene as World).enable_runtime_debug_panel = true
+		(_scene as World).print_runtime_debug_stats = false
 	root.add_child(_scene)
 
 
 func _process(_delta: float) -> bool:
 	_frame += 1
-	if _frame == BIND_FRAME:
-		_bind()
-	if _frame < _next_capture or _map == null or _player == null:
+	if _frame < CAPTURE_FRAME:
 		return false
-
-	if _phase == 0:
-		_capture_full("00_runtime_debug_panel")
-		_map._on_toggle_requested()
-		_next_capture = _frame + 90
-		_phase = 1
-		return false
-
-	if _phase == 1:
-		_capture_full("01_follow_with_labels")
-		_capture_map("02_map_labels_close")
-		_player.global_position += Vector3(24.0, 0.0, -18.0)
-		_next_capture = _frame + 90
-		_phase = 2
-		return false
-
-	_capture_map("03_map_labels_followed")
-	print("dev diorama map capture: complete; labels=", _map.get_visible_label_count())
-	quit()
-	return true
-
-
-func _bind() -> void:
-	_player = get_first_node_in_group(&"player") as Player
-	_map = get_first_node_in_group(DevDioramaMap.GROUP) as DevDioramaMap
 	var splash := _scene.get_node_or_null(^"StartupTitleCard")
 	if splash != null:
-		splash.queue_free()
-	if _player != null:
-		_player.set_physics_process(false)
-	if _map == null:
-		push_error("dev diorama map capture: map UI did not initialize")
+		splash.visible = false
+	var path := "%s/00_runtime_debug_panel.png" % OUT_DIR
+	var error := root.get_texture().get_image().save_png(path)
+	if error != OK:
+		push_error("runtime debug panel capture: cannot save %s (%d)" % [path, error])
 		quit(1)
-		return
-
-
-func _capture_full(name: String) -> void:
-	var path: String = "%s/%s.png" % [OUT_DIR, name]
-	var error: Error = root.get_texture().get_image().save_png(path)
-	if error != OK:
-		push_error("dev diorama map capture: cannot save %s (%d)" % [path, error])
-	else:
-		print("[dev-diorama] ", path)
-
-
-func _capture_map(name: String) -> void:
-	var image: Image = _map.get_map_image()
-	var path: String = "%s/%s.png" % [OUT_DIR, name]
-	if image == null or image.is_empty():
-		push_error("dev diorama map capture: viewport returned no image")
-		return
-	var error: Error = image.save_png(path)
-	if error != OK:
-		push_error("dev diorama map capture: cannot save %s (%d)" % [path, error])
-	else:
-		print("[dev-diorama] ", path)
+		return true
+	print("[runtime-debug-panel] ", path)
+	quit()
+	return true
