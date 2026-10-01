@@ -1,4 +1,4 @@
-# Как декомпозировать работу в Henry's Feral Night
+# Как декомпозировать работу в Hoarbound
 
 Единый принцип: **PRD → Epic → User Story → Task → Subtask**.
 

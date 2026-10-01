@@ -1,4 +1,4 @@
-# Henry's Feral Night — Product Requirements Document (PRD)
+# Hoarbound — Product Requirements Document (PRD)
 
 > Живой документ. Обновляется при закрытии milestone или смене приоритета.  
 > Владелец: Nolavel.  
