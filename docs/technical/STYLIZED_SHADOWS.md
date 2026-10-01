@@ -81,8 +81,11 @@ levers are the stove's room light (`StoveVisual.ROOM_LIGHT_ENERGY`) against
 
 ## Tuning
 
-Constants at the top of `stylized_shadow.gdshaderinc`. One global,
-`stylized_shadow_strength` (0 = physical), drives the A/B captures.
+Constants at the top of `stylized_shadow.gdshaderinc`. The global
+`stylized_shadow_strength` (0 = physical) drives the A/B captures.
+`stylized_shadow_brush_mix` (0 = value noise, 1 = mask) and
+`stylized_shadow_brush_mask` swap the spray for a brush-stroke mask; see
+`docs/art/LIGHT_AND_SHADOW_DIRECTION.md` for the measured comparison.
 Light-side settings: `SunLight.shadow_blur` in `WorldEnvironmentSystem.tscn`,
 `Flame.shadow_blur` in `first_exit_blockout.tscn`, and
 `rendering/lights_and_shadows/directional_shadow/soft_shadow_filter_quality`
@@ -97,6 +100,7 @@ fully lit snow once cut into tones.
 `tools/runtime/capture_stylized_shadows.gd` writes matched physical/stylized
 frames of Key West: outside at noon, inside the shelter at noon, by stove light
 at night, and the stove frame under the Day, Dusk and Night LUTs.
+With `-- brush` it renders physical, noise twice, dry and flat masks instead.
 
 On lavapipe, outside and in the shelter: no new boot-log errors, and the
 stylized shelter frame at noon is brighter than physical by more than 10 L\* on

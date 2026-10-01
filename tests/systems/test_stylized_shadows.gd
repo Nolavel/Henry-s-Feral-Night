@@ -52,15 +52,18 @@ func _run() -> void:
 		"road marking should remain deliberately unshaded"
 	)
 
-	## Stock Godot only: the contract keeps one live global and no engine sampler.
+	## Stock Godot only: the contract reads its globals and no engine sampler.
 	var contract_source := FileAccess.get_file_as_string(
 		"res://shaders/environment/stylized_shadow.gdshaderinc"
 	)
 	_check(not contract_source.contains("sample_directional_shadow"), "shared contract calls an engine-patched sampler")
-	_check(
-		ProjectSettings.has_setting("shader_globals/stylized_shadow_strength"),
-		"missing global shader parameter: stylized_shadow_strength"
-	)
+	for global_name: String in ["stylized_shadow_strength", "stylized_shadow_brush_mask", "stylized_shadow_brush_mix"]:
+		_check(
+			ProjectSettings.has_setting("shader_globals/%s" % global_name),
+			"missing global shader parameter: %s" % global_name
+		)
+	var brush_mask: Dictionary = ProjectSettings.get_setting("shader_globals/stylized_shadow_brush_mask", {})
+	_check(load(String(brush_mask.get("value", ""))) is Texture2D, "brush mask global does not point at a texture")
 
 	if _failures > 0:
 		push_error("stylized shadows: %d check(s) failed" % _failures)

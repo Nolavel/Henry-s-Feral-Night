@@ -267,6 +267,39 @@ Predictions for Key West (noon outside, Henry close-up, shelter at noon):
 4. Flat reads as brush strokes; dry as fine hatching that may break up on
    Henry. Expected pick: flat.
 
+### Brush masks: measured in Key West
+
+![Brush masks in our scenes: physical, noise, dry, flat](stylized_shadows/05_brush_masks_in_scene.jpg)
+
+`capture_stylized_shadows.gd -- brush`, lavapipe, noon. Each view rendered
+physical, noise, noise again (the floor: falling snow and Henry's idle motion),
+dry and flat. Pixels count as changed above 4 L\* after a 7 px median, which
+removes small snowflakes; Henry and the HUD are masked out.
+
+| Prediction | Measured | Verdict |
+|---|---|---|
+| 1. Only the penumbra changes | Shelter: floor 0.02 %, dry 0.29 %, flat 0.44 % of the frame, all on the edges of sun patches; lit and dark interiors identical. Outside, near band (< 5.7 m): floor 0.50 %, dry 1.47 %, flat 1.52 %, all in Henry's shadow. | Holds |
+| 2. Nothing changes beyond ~8.5 m | Far ground band: floor 0.19 %, dry 0.49 %, flat 0.40 %. Every changed blob there is a near-camera snowflake larger than the median filter; the bench and porch shadows at ~25 m are identical in all variants. | Holds |
+| 3. Masks show one direction, noise does not | Close camera, shadow region: noise 0.20, dry 0.66, flat 0.50. TPS view, ground under the shadow: noise 0.58, dry 0.86, flat 0.83. There the noise follows the perspective-squashed outline of the shadow (167° on screen against the physical 172°). The masks set their own direction (145°). | Holds for the masks; noise was not isotropic in the TPS view |
+| 4. Flat reads as strokes, dry as hatching | Dry turns Henry's shadow into a scratchy hatch and the shelter edge into a comb. Flat gives broad strokes and a torn, coastline-like shelter edge. No mask showed on Henry's body here: his lit side faces the camera. | Holds |
+
+Found, not predicted:
+
+- **Thin sun slivers are all penumbra**, so the spray alone decides what stays
+  lit. A shelter floor sliver keeps 49 % of its length with the shipped noise
+  (15 pieces), 66 % with dry (21 pieces) and 79 % with flat (15 pieces). The
+  noise loses more of the sliver than either mask. This is a limit of the
+  shipped contract too.
+- At noon Henry's whole shadow is penumbra (shadow blur 3.3 over a small
+  caster), so the masks restyle the entire shadow, not just its rim. Strokes
+  run past the physical blob as mid-tone streaks, about one stroke length.
+
+Recommendation: **flat**, when the surfaces get painted textures. The global
+stays at noise (`stylized_shadow_brush_mix = 0`) until the author decides. To
+look at it in the editor, set the mix to 1 in Project Settings › Shader Globals;
+the mask global selects dry or flat. A baked mask from Brushstroke Tools drops
+in as the same 1024² grey PNG.
+
 ## Henry's shadow in the shelter: measured
 
 Same night, same view, with and without Henry, firebox glow on and off. With
@@ -294,7 +327,7 @@ above; see its verification.
 | P0 | Check the frame cost of Soft High and the stove's cube shadow on a real GPU | an editor session | author's machine |
 | P1 | ~~Character shader on the shadow contract, with rim light~~ Done 2026-10-01: body, garments, Kenny, pack, carried logs and boards | — | rim strength is a look call |
 | P1 | ~~Day palette: key over a sky-blue fill~~ Done 2026-10-01; dusk and night unchanged | — | look check in the editor |
-| P2 | Brush-stroke texture drives the spray and the lookup offset (world-space biplanar, like the reference's noise texture); sources listed above | half a day, plus one tileable mask baked with Brushstroke Tools or painted with Revoy's CC0 brushes | first painterly textures |
+| P2 | ~~Brush-stroke mask drives the spray~~ Built 2026-10-01, off by default: dry and flat placeholder masks, measured in Key West (above). The lookup offset stays on noise | — | **[decision]**: noise or flat; an artist's baked mask |
 | P2 | Three-tone halo for the stove: the stove publishes its position, range and decay, and `light()` divides its falloff out of `ATTENUATION` | half a day | **[decision]**: couples one light to the material |
 | P2 | Grounding: SSAO. A trial at noon (radius 0.8, intensity 1.5, ambient only) was inconclusive. On open snow it changed a mean 1 level per pixel, inside the frame-to-frame noise of falling snow and idle animation. It needs a static, contact-rich view (shelter props, city kerbs) | hours | look check |
 | P3 | Sharper edges near Henry (focal point), softer far away | hours | P1 first |
@@ -317,6 +350,8 @@ Not recommended, with reasons:
   antialiased; FXAA covers part of it.
 - Local lights (the stove, flares) tear their shadow, but have no tone cut until
   the P2 item above lands.
+- A sun sliver narrower than the penumbra is all penumbra, so the spray breaks
+  it into pieces: the shelter floor sliver keeps 49 % of its length.
 
 ## Research notes
 

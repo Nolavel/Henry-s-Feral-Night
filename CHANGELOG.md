@@ -18,6 +18,14 @@ Maintained per branch; entries are added by whoever makes the change.
   on the noise's base-octave window. Predictions and the Key West A/B:
   `docs/art/LIGHT_AND_SHADOW_DIRECTION.md`. `capture_stylized_shadows.gd -- brush`
   renders physical, noise twice, dry and flat for each view.
+- Measured in Key West at noon, all four predictions held. Only penumbra
+  pixels change (shelter: 0.29–0.44 % of the frame against a 0.02 % floor).
+  Nothing changes beyond ~8.5 m on the ground. The masks impose one stroke
+  direction (agreement 0.50–0.86 against 0.20–0.58 for noise). Flat reads as
+  broad strokes, dry as hatching. Recommended: flat, once surfaces are painted;
+  the default stays noise until the author decides.
+- Found: a sun sliver narrower than the penumbra is all penumbra. The shelter
+  floor sliver keeps 49 % of its length with the shipped noise, 79 % with flat.
 
 ### 2026-10-01 - Stove light leaves through the door, not all around (claudeflow)
 
