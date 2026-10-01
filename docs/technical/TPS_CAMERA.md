@@ -162,6 +162,13 @@ Key West, the real shelter (1.5 m door), same harness with `scene=` and the
 The camera now comes closer in the doorway. The old assist swung it away even
 while the player aimed; the new one leaves the aim alone and dithers Henry.
 
+Frames: `docs/runtime_previews/tps_camera/` holds before/after sheets from
+`capture_tps_camera.gd` (lavapipe, 960×540). The poses are: doorway with the
+mouse moving and at rest, corner aimed and at rest, crouched under a slab, a
+thin pole, leaving the shelter, and open ground. With the mouse moving, the old
+camera had already swung away from the player's aim; the new one holds the aim
+and dithers Henry until the mouse rests.
+
 ## Known limits
 
 - **There is physically no room for the camera beside Henry in a 1.2 m doorway**
