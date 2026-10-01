@@ -126,6 +126,7 @@ uniform float cloud_depth : hint_range(0.0, 6.0, 0.1) = 2.35;
 uniform float cloud_sag : hint_range(0.25, 6.0, 0.05) = 2.0;
 uniform vec2 cloud_noise_tiling = vec2(1.0);
 uniform vec2 cloud_wind_speed = vec2(0.24, 0.08);
+uniform float cloud_time = 0.0;
 uniform float cloud_parallax_strength : hint_range(0.0, 1.0, 0.01) = 0.22;
 uniform float cloud_parallax_layer_separation : hint_range(0.0, 1.0, 0.01) = 0.35;
 uniform float cloud_parallax_detail_weight : hint_range(0.0, 1.0, 0.01) = 0.45;
@@ -437,7 +438,7 @@ vec3 hfn_apply_parallax_clouds(vec3 atmosphere_color, vec3 sun_direction, vec3 e
 		return atmosphere_color;
 	}
 
-	vec2 wind_uv = cloud_wind_speed * TIME * 0.1;
+	vec2 wind_uv = cloud_wind_speed * cloud_time * 0.1;
 	vec3 tiling = vec3(cloud_noise_tiling.x, 1.0, cloud_noise_tiling.y) * 0.2;
 	vec3 cloud_position = eye_direction * t * tiling;
 
