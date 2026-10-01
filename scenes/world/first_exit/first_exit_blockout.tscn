@@ -6101,14 +6101,16 @@ script = ExtResource("8_xu305")
 transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 0, 0.3, 0)
 shape = SubResource("BoxShape3D_nmvqx")
 
-[node name="Flame" type="OmniLight3D" parent="ShelterHouse/House/ShelterZone/Stove" unique_id=660168121]
-transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 0, 1.1, 0)
+[node name="Flame" type="SpotLight3D" parent="ShelterHouse/House/ShelterZone/Stove" unique_id=660168121]
+transform = Transform3D(0, 0, 1, 0, 1, 0, -1, 0, 0, 0.16, 0.4, 0)
 visible = false
 light_color = Color(1, 0.55, 0.2, 1)
 light_energy = 2.5
 shadow_enabled = true
 shadow_blur = 2.0
-omni_range = 6.0
+spot_range = 9.0
+spot_attenuation = 0.5
+spot_angle = 65.0
 
 [node name="FeedFocus" type="Marker3D" parent="ShelterHouse/House/ShelterZone/Stove" unique_id=403145794]
 transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 0.28, 0.4, 0)

@@ -22,7 +22,12 @@ const VISUAL_FIRE_FLOOR: float = 0.50
 const FIREBOX_LIGHT_ENERGY: float = 1.9
 const FIREBOX_LIGHT_RANGE: float = 2.2
 const ROOM_LIGHT_ENERGY: float = 4.2
-const ROOM_LIGHT_RANGE: float = 6.5
+## Reaches the far wall (6.7 m) of the shelter; the flatter falloff keeps the light
+## the door throws there readable against the room's fill.
+const ROOM_LIGHT_RANGE: float = 9.0
+const ROOM_LIGHT_FALLOFF: float = 0.5
+## Covers the open door's corners (61 degrees off axis) as seen from the fire.
+const ROOM_LIGHT_SPOT_ANGLE: float = 65.0
 const EMBER_EMISSION_ENERGY: float = 3.0
 
 @export var source: HeatSource
@@ -230,9 +235,8 @@ func _build() -> void:
 	_glow.omni_range = FIREBOX_LIGHT_RANGE
 	_glow.position = Vector3(hx + 0.15, mid_y, 0.0)  # spills out through the door slots
 	add_child(_glow)
-	if source != null and source.flame_light is OmniLight3D:
-		var room_light := source.flame_light as OmniLight3D
-		room_light.omni_range = maxf(room_light.omni_range, ROOM_LIGHT_RANGE)
+	if source != null and source.flame_light != null:
+		_place_room_light(source.flame_light, Vector3(hx - 0.15, floor_y + 0.24, 0.0))
 	var flame_material := _material(Color(1.0, 0.48, 0.08), 1.0, 0.0)
 	flame_material.shading_mode = BaseMaterial3D.SHADING_MODE_UNSHADED
 	flame_material.emission_enabled = true
@@ -252,6 +256,22 @@ func _build() -> void:
 	## Flue: a collar on the cooktop at the back, a pipe to the roof.
 	_cylinder(0.08, 0.06, Vector3(-hx + 0.15, top_y + 0.06, 0.0), _iron)
 	_cylinder(0.065, FLUE_H, Vector3(-hx + 0.15, top_y + 0.06 + FLUE_H * 0.5, 0.0), _iron)
+
+
+## The room light sits in the fire and shines out through the door (+X). The
+## firebox walls and door bars are its shadow mask: closed, it leaves only through the bars.
+func _place_room_light(light: Light3D, fire: Vector3) -> void:
+	light.global_transform = global_transform * Transform3D(Basis(Vector3.UP, -PI * 0.5), fire)
+	light.shadow_enabled = true
+	if light is SpotLight3D:
+		var spot := light as SpotLight3D
+		spot.spot_range = maxf(spot.spot_range, ROOM_LIGHT_RANGE)
+		spot.spot_attenuation = ROOM_LIGHT_FALLOFF
+		spot.spot_angle = ROOM_LIGHT_SPOT_ANGLE
+	elif light is OmniLight3D:
+		var omni := light as OmniLight3D
+		omni.omni_range = maxf(omni.omni_range, ROOM_LIGHT_RANGE)
+		omni.omni_attenuation = ROOM_LIGHT_FALLOFF
 
 
 ## A door hinged on its -Z edge: solid lower half, vertical bars above with gaps

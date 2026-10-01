@@ -5,6 +5,22 @@ Maintained per branch; entries are added by whoever makes the change.
 
 ## [Unreleased] — `codex`
 
+### 2026-10-01 - Stove light leaves through the door, not all around (claudeflow)
+
+- The shelter stove's room light was an omni 0.41 m above the cooktop, lighting
+  every direction. `StoveVisual` now places it in the fire, 0.16 m behind the
+  door, aimed out through it. `Flame` is a `SpotLight3D` (65°, range 9 m,
+  falloff 0.5). The firebox walls and door bars are its shadow mask: closed, the
+  light leaves only through the bars; open, a floor pool appears.
+- Predicted from the stove and room geometry before rendering, then measured.
+  The wall behind the stove went from L* 41 to 21. The ceiling shows bar stripes
+  at ΔL* 23 (predicted ≈ 20). Henry's silhouette on the far wall rose from
+  ΔL* 6.6 to 17 (predicted ≈ 15).
+- `LIGHT_AND_SHADOW_DIRECTION.md` adds the measured cause of Henry's weak
+  shelter shadow, the cloud-shadow calculation (today's sky covers ~2 %, so
+  sky-matched shadows would show nothing within the fog's 100 m), the snowfall
+  coverage inversion it found, and brush-stroke sources with licences.
+
 ### 2026-10-01 - Day palette: key over a sky-blue fill, air unchanged (claudeflow)
 
 - Day key 1.12 → 1.5, colour (1.0, 0.98, 0.95) → (1.0, 0.97, 0.92). Fill
