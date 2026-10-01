@@ -32,11 +32,18 @@ func _process(_delta: float) -> bool:
 		return false
 
 	if _phase == 0:
+		_capture_full("00_runtime_debug_panel")
+		_map._on_toggle_requested()
+		_next_capture = _frame + 90
+		_phase = 1
+		return false
+
+	if _phase == 1:
 		_capture_full("01_follow_with_labels")
 		_capture_map("02_map_labels_close")
 		_player.global_position += Vector3(24.0, 0.0, -18.0)
 		_next_capture = _frame + 90
-		_phase = 1
+		_phase = 2
 		return false
 
 	_capture_map("03_map_labels_followed")
@@ -57,7 +64,6 @@ func _bind() -> void:
 		push_error("dev diorama map capture: map UI did not initialize")
 		quit(1)
 		return
-	_map._on_toggle_requested()
 
 
 func _capture_full(name: String) -> void:
