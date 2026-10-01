@@ -4,7 +4,7 @@ extends SceneTree
 
 const MAIN_SCENE: String = "res://scenes/world/key_west/key_west.tscn"
 const OUT_DIR: String = "res://docs/runtime_previews/dev_diorama_map"
-const BIND_FRAME: int = 20
+const BIND_FRAME: int = 35
 const FIRST_CAPTURE_FRAME: int = 60
 
 var _scene: Node3D
@@ -26,7 +26,7 @@ func _initialize() -> void:
 
 func _process(_delta: float) -> bool:
 	_frame += 1
-	if _frame == BIND_FRAME:
+	if _frame >= BIND_FRAME and (_map == null or _player == null):
 		_bind()
 	if _frame < _next_capture or _map == null or _player == null:
 		return false
@@ -58,7 +58,8 @@ func _bind() -> void:
 		push_error("dev diorama map capture: map UI did not initialize")
 		quit(1)
 		return
-	_map._on_toggle_requested()
+	if _player != null and _map != null and not _map.is_map_open():
+		_map._on_toggle_requested()
 
 
 func _capture_full(name: String) -> void:
