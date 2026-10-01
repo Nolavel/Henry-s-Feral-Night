@@ -5,6 +5,29 @@ Maintained per branch; entries are added by whoever makes the change.
 
 ## [Unreleased] — `codex`
 
+### 2026-10-01 - TPS camera follows the mouse every frame (claudeflow, #170 T2)
+
+- Measured first with `tools/runtime/trace_tps_camera.gd` (TestScene, real
+  Henry, 144 fps against 60 Hz physics): the camera turned on 42 % of frames,
+  trailed the mouse by 30 ms and needed 76 ms for 90 % of a 13° flick; walking,
+  camera and body stood still on 84 of 144 frames.
+- Cause: look and pose lived in `_physics_process`, physics interpolation was
+  off, and `look_smoothing` filtered the mouse on top.
+- `physics/common/physics_interpolation` is on. `TpsCamera` runs in `_process`
+  on Henry's interpolated transform; mouse look is applied as it arrives with
+  no filter. Follow lag now trails only the orbit centre (16 across the ground,
+  10 in height), so the orbit answers the mouse at once.
+- `InputSystems.consume_look_delta()` replaces `get_look_delta()` and reads
+  `screen_relative`: the viewport stretch no longer rescales mouse look (0.75×
+  on a 2560×1440 screen, 19× in headless).
+- `TpsCamera.snap_to_target()`; a target jump over 1.5 m in one frame snaps
+  the camera too. Spawn, sitting down and save load reset Henry's
+  interpolation. Snowfall emitters, moved per frame, opt out of it.
+- After: 100 % of frames turn, lag 0, a flick lands on the next frame (7 ms),
+  walking camera step cv 1.18 → 0.008, a teleport no longer flies for 1.3 s.
+  `test_dev_diorama_map`, `test_door_draft` and `test_shelter_workflow` fail
+  identically on the base commit; all other suites pass.
+
 ### 2026-10-01 - Review angles for #156 rendered against predictions (claudeflow)
 
 - `capture_stylized_shadows.gd -- review` renders physical/dry pairs for normal

@@ -62,7 +62,6 @@ var _interact_claimant: Node = null
 var _interact_duration: float = 0.0
 var _interact_active: bool = false
 var _look_accum: Vector2 = Vector2.ZERO
-var _frame_look_delta: Vector2 = Vector2.ZERO
 var _look_capture: bool = false
 var _shoulder_latch: bool = false
 
@@ -73,10 +72,11 @@ func _ready() -> void:
 		state.connect(&"mode_changed", func(_old: int, _new: int) -> void: _apply_mouse_mode())
 
 
-## Mouse motion is accumulated per event and handed out once per physics frame.
+## Mouse motion is accumulated per event; the camera takes it every rendered frame.
+## Screen pixels, not viewport ones, so the stretch mode cannot rescale the look.
 func _input(event: InputEvent) -> void:
 	if event is InputEventMouseMotion and _look_capture and not _is_gameplay_blocked():
-		_look_accum += (event as InputEventMouseMotion).relative * MOUSE_SENSITIVITY
+		_look_accum += (event as InputEventMouseMotion).screen_relative * MOUSE_SENSITIVITY
 
 
 func _unhandled_input(event: InputEvent) -> void:
@@ -102,8 +102,6 @@ func _unhandled_input(event: InputEvent) -> void:
 
 
 func _physics_process(delta: float) -> void:
-	_frame_look_delta = Vector2.ZERO if _is_gameplay_blocked() else _look_accum
-	_look_accum = Vector2.ZERO
 	_tick_interact(delta)
 	var sprinting: bool = is_sprinting()
 	if sprinting != _was_sprinting:
@@ -239,9 +237,12 @@ func consume_switch_shoulder() -> bool:
 	return pressed
 
 
-## Mouse look this physics frame in radians; zero while paused or not captured.
-func get_look_delta() -> Vector2:
-	return _frame_look_delta
+## Mouse look since the last call, in radians; the look camera is its one reader.
+## Zero while paused or not captured.
+func consume_look_delta() -> Vector2:
+	var delta: Vector2 = Vector2.ZERO if _is_gameplay_blocked() else _look_accum
+	_look_accum = Vector2.ZERO
+	return delta
 
 
 ## A mouse-look camera asks for the pointer; menus get it back while open.

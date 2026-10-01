@@ -59,6 +59,8 @@ func on_world_ready(context: WorldContext) -> void:
 
 
 func _ready() -> void:
+	## Emitters follow Henry and the camera every rendered frame, not per tick.
+	physics_interpolation_mode = Node.PHYSICS_INTERPOLATION_MODE_OFF
 	_runtime_visuals_enabled = DisplayServer.get_name() != "headless"
 	if not _runtime_visuals_enabled:
 		set_process(false)

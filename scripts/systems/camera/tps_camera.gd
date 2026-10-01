@@ -45,8 +45,11 @@ const SHOULDER_RATIO: float = 0.82
 @export var breathing_speed: float = 0.6
 
 @export_group("Follow")
+## Lag of the point the camera orbits, horizontally and vertically; mouse look has none.
 @export_range(1.0, 40.0, 0.5) var follow_speed: float = 16.0
-@export_range(1.0, 60.0, 0.5) var look_smoothing: float = 30.0
+@export_range(1.0, 40.0, 0.5) var follow_speed_vertical: float = 10.0
+## A target jump longer than this in one frame is a teleport: the camera snaps.
+@export var teleport_distance: float = 1.5
 @export var lead_distance: float = 0.6
 @export_range(0.5, 20.0, 0.5) var lead_smoothing: float = 2.5
 @export var sprint_pullback: float = 0.4
@@ -98,9 +101,9 @@ var tension: float = 0.0
 
 var _yaw: float = 0.0
 var _pitch_deg: float = -12.0
-var _current_yaw: float = 0.0
-var _current_pitch_deg: float = -12.0
-var _current_pos: Vector3 = Vector3.ZERO
+## Henry's interpolated transform for this rendered frame.
+var _target := Transform3D.IDENTITY
+var _pivot_smooth: Vector3 = Vector3.ZERO
 var _lead: Vector3 = Vector3.ZERO
 var _pullback: float = 0.0
 var _openness: float = 1.0
@@ -129,11 +132,9 @@ func _ready() -> void:
 	_shoulder.right_offset = shoulder_offset
 	_shoulder.left_offset = -shoulder_offset
 	_pitch_deg = start_pitch_deg
-	_current_pitch_deg = start_pitch_deg
 	_boom = far_distance
 	if is_instance_valid(player):
 		_yaw = player.global_rotation.y
-		_current_yaw = _yaw
 	_set_look_capture(true)
 	make_current()
 
@@ -142,9 +143,19 @@ func _exit_tree() -> void:
 	_set_look_capture(false)
 
 
-func _physics_process(delta: float) -> void:
+## Runs every rendered frame: look is applied as it arrives, Henry is followed
+## at his interpolated pose, so neither steps at the physics rate.
+func _process(delta: float) -> void:
 	if not is_instance_valid(player):
 		return
+	var target: Transform3D = player.get_global_transform_interpolated()
+	if _has_position and target.origin.distance_to(_target.origin) > teleport_distance:
+		snap_to_target()
+	_target = target
+	if not _has_position:
+		_openness = measure_openness()
+		_boom = get_target_distance()
+		_probe_timer = 1.0 / probe_rate_hz
 	_apply_look_input()
 	_apply_lean_and_shoulder_input(delta)
 	_probe_timer -= delta
@@ -165,9 +176,16 @@ func get_yaw() -> float:
 ## Aims the camera directly, for spawn and tests.
 func set_look(yaw: float, pitch_deg: float) -> void:
 	_yaw = yaw
-	_current_yaw = yaw
 	_pitch_deg = clampf(pitch_deg, pitch_min_deg, pitch_max_deg)
-	_current_pitch_deg = _pitch_deg
+
+
+## Drops all follow and collision memory; the next frame starts on the goal.
+func snap_to_target() -> void:
+	_has_position = false
+	_collision_distance = -1.0
+	_side_limit = -1.0
+	_lead = Vector3.ZERO
+	_pullback = 0.0
 
 
 ## 0 in a tight doorway, 1 in the open; last value from the rods.
@@ -214,7 +232,7 @@ func _apply_look_input() -> void:
 	var input_systems: Node = get_node_or_null(^"/root/InputSystems")
 	if input_systems == null:
 		return
-	var look: Vector2 = input_systems.call(&"get_look_delta")
+	var look: Vector2 = input_systems.call(&"consume_look_delta")
 	var x_sign: float = -1.0 if invert_look_x else 1.0
 	var y_sign: float = -1.0 if invert_look_y else 1.0
 	_yaw = wrapf(_yaw - look.x * look_sensitivity_x * x_sign, -PI, PI)
@@ -234,7 +252,7 @@ func _update_transform(delta: float) -> void:
 	var distance: float = _boom + _pullback
 	var roominess: float = clampf(inverse_lerp(near_distance, far_distance, _boom), 0.0, 1.0)
 	var shoulder: float = _shoulder.update(delta) * lerpf(tight_shoulder_fraction, 1.0, roominess)
-	var pivot: Vector3 = _feet_position() + Vector3.UP * body_height * SHOULDER_RATIO + _lead
+	var pivot: Vector3 = _follow_pivot(delta, _feet_position() + Vector3.UP * body_height * SHOULDER_RATIO + _lead)
 	var side_amount: float = shoulder * (1.0 - shoulder_frustum_ratio) + _lean * lean_camera_offset
 	_update_wall_assist(delta, pivot, distance, side_amount)
 	var view_yaw: float = _yaw + _assist_yaw
@@ -245,19 +263,11 @@ func _update_transform(delta: float) -> void:
 
 	h_offset = lerpf(h_offset, shoulder * shoulder_frustum_ratio, _damp(lens_offset_smoothing, delta))
 
-	## The goal itself is kept clear first, so the follow never chases a point in a wall.
-	target_pos = _clear_point(target_pos)
-	if not _has_position:
-		_current_pos = target_pos
-		_has_position = true
-	_current_pos = _current_pos.lerp(target_pos, _damp(follow_speed, delta))
-	## Wall safety is the last layer so a retract is immediate, not filtered.
-	_current_pos = _clamp_to_walls(delta, _current_pos)
-
-	_current_pitch_deg = lerpf(_current_pitch_deg, view_pitch_deg + sway, _damp(look_smoothing, delta))
-	_current_yaw = lerp_angle(_current_yaw, view_yaw, _damp(look_smoothing, delta))
-	global_position = _current_pos
-	global_rotation = Vector3(deg_to_rad(_current_pitch_deg), _current_yaw, 0.0)
+	## Walls retract the boom at once and release it slowly; no filter on top.
+	target_pos = _clamp_to_walls(delta, _clear_point(target_pos))
+	_has_position = true
+	global_position = target_pos
+	global_rotation = Vector3(deg_to_rad(view_pitch_deg + sway), view_yaw, 0.0)
 	_update_body_fade()
 
 
@@ -275,7 +285,18 @@ func _apply_lean_and_shoulder_input(delta: float) -> void:
 
 
 func _feet_position() -> Vector3:
-	return player.global_position - Vector3.UP * origin_above_feet
+	return _target.origin - Vector3.UP * origin_above_feet
+
+
+## The orbit centre trails Henry: lag across the ground, softer lag in height.
+func _follow_pivot(delta: float, pivot: Vector3) -> Vector3:
+	if not _has_position:
+		_pivot_smooth = pivot
+		return pivot
+	var flat: Vector2 = Vector2(_pivot_smooth.x, _pivot_smooth.z).lerp(Vector2(pivot.x, pivot.z), _damp(follow_speed, delta))
+	var height: float = lerpf(_pivot_smooth.y, pivot.y, _damp(follow_speed_vertical, delta))
+	_pivot_smooth = Vector3(flat.x, height, flat.y)
+	return _pivot_smooth
 
 
 func _eye_position() -> Vector3:
