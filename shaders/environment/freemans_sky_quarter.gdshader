@@ -1,4 +1,4 @@
-// Henry's Feral Night experiment.
+// Hoarbound experiment.
 // Upstream: NiwlGames/GodotStarterAssets shaders/sky_quarter.gdshader (CC0-1.0).
 
 shader_type sky;

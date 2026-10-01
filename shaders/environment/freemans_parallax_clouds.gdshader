@@ -1,4 +1,4 @@
-// Henry's Feral Night production atmosphere + parallax-cloud sky.
+// Hoarbound production atmosphere + parallax-cloud sky.
 // Upstream: NiwlGames/GodotStarterAssets shaders/sky_full.gdshader (CC0-1.0).
 // Freeman uses a dedicated solar direction; HFN clouds keep LIGHT0 for sun/moon lighting.
 
