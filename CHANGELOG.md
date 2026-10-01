@@ -5,6 +5,20 @@ Maintained per branch; entries are added by whoever makes the change.
 
 ## [Unreleased] — `codex`
 
+### 2026-10-01 - Light and shadow direction: research and roadmap (claudeflow)
+
+- `docs/art/LIGHT_AND_SHADOW_DIRECTION.md`: what Disco Elysium, The Long Dark
+  and Diablo IV do, what painters and technical artists say about shadow
+  colour, edge hierarchy, massing, brushwork, character readability and
+  grounding, and where Hoarbound stands on each. Includes the 2.5D camera
+  implications and a prioritised roadmap with the decisions it needs.
+- New evidence in `docs/art/stylized_shadows/`, including a key/fill colour
+  comparison. Shadows only turn blue once the key dominates (~4:1); today's day
+  fill is nearly as strong as the sun.
+- Sub-pixel camera-shift test: the world-space noise adds no shimmer at
+  distance. Hard tone-cut edges near the camera flip 0.37 % of pixels
+  (0.15 % physical). Recorded in `STYLIZED_SHADOWS.md`.
+
 ### 2026-10-01 - Stylized shadows rebuilt on stock Godot, shelter included (claudeflow)
 
 - Author decisions: no engine fork; stylize the shadows only.

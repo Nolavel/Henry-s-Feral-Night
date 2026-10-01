@@ -1,7 +1,9 @@
 # Stylized shadows
 
 Status: production contract since 2026-10-01. Author decisions: stock Godot only
-(no engine fork); stylize the shadows only, not the whole light ramp.
+(no engine fork); stylize the shadows only, not the whole light ramp. What is
+still missing around shadows, and its cost:
+[`docs/art/LIGHT_AND_SHADOW_DIRECTION.md`](../art/LIGHT_AND_SHADOW_DIRECTION.md).
 
 Reference: [Stylized shadows, not a post processing](https://godotshaders.com/shader/stylized-shadows-not-a-post-processing/)
 (ShaderError, CC0, May 2023): cast shadows with a torn, noise-displaced
@@ -101,6 +103,11 @@ stylized shelter frame at noon is brighter than physical by more than 10 L\* on
 0.07 % of pixels, all along existing sunlit edges (no light leaking through
 walls).
 
-Not yet verified: frame cost and camera-motion stability on a real GPU.
+Sub-pixel camera shift (lab replica, distant props): pixels changing by more
+than 32 levels were 0.026 % for both physical and stylized, so the world-space
+noise adds no shimmer at distance. Near the camera, hard tone-cut edges flip
+0.37 % of pixels against 0.15 % physical: shading is not antialiased.
+
+Not yet verified: frame cost on a real GPU.
 Characters keep their own materials: Henry's cast shadow is stylized where it
 lands, but shadows falling on Henry are physical.
