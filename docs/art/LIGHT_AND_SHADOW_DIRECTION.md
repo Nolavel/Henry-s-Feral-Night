@@ -316,6 +316,41 @@ weather is blizzard.
 | Shelter exterior | calm, 12:00, 11 m north of the shelter | The house's ground shadow lies ~9–14 m away, beyond the 8.5 m ground fade, so its edge is a clean toon cut. Strokes show only on the nearest part and on the walls. **Risk to judge:** whether a building shadow at 10 m+ should still show brushwork. |
 | Low sun | calm, 16:30, TPS as normal daylight | Sun altitude 20.6°, azimuth 157.5°: the camera looks into the light, and Henry's 4.8 m shadow (4.6 × noon) runs toward the camera and out of frame. Penumbra stretched 2.8 × along the shadow. Key on flat snow is 18 % of noon (energy 0.67 × sin 20.6°) with the fill unchanged: lit snow L\* ≈ 50 (noon ≈ 88), shadow ΔL\* ≈ 19 (noon ≈ 56). Henry's camera-facing side is in shadow, edged by the rim. **Expected to look dim:** a palette issue, not the shadow method. |
 
+### Review angles: measured
+
+![Review angles: physical against stylized (dry brush)](stylized_shadows/06_review_angles.jpg)
+
+Lavapipe, median-filtered L\*. "Changed" means stylized differs from physical by
+more than 4 L\*, per screen band of the TPS view.
+
+| Angle | Lit snow / darkest ground L\* | Changed: far / mid / near band | Against the prediction |
+|---|---|---|---|
+| Normal daylight | 98.9 / 36.3 (contrast 62.6) | 0.16 / 0.06 / 3.38 % | As predicted: all of Henry's shadow is strokes. |
+| Heavy snow | 88.2 / 33.8 (54.5) | 0.99 / 0.13 / 3.31 % | Shapes identical to calm. Contrast is 13 % lower, not the 6–10 % predicted (grade brightness and contrast compound). Far band is snowfall. |
+| City street | 98.9 / 36.8 (62.1) | 1.42 / 0.57 / 5.52 % | As predicted: ground strokes stay near the camera, and facades keep strokes further out. |
+| Shelter exterior | 99.2 / 36.3 (63.0) | 0.96 / 0.62 / 3.95 % | The house's own ground shadow is out of view. **Not predicted:** the camera-facing wall is hatched all over (next point). |
+| Low sun 16:30 | 62.3 / 31.0 (31.3) | 0.08 / 0.04 / 4.73 % | Dimmer and flatter, as predicted, but less: lit snow L\* 62 (predicted ≈ 50), contrast 31 (predicted ≈ 19). Tonemapping compresses the noon end more than my linear estimate. Henry's long shadow runs toward the camera as predicted. **Not predicted:** strokes on open snow (next point). |
+
+Two findings:
+
+- **Soft roof shadow on the shelter wall becomes hatching.** The physical
+  wall shades from L\* 46 under the eave to 49 at the foot: a penumbra that
+  covers the whole wall height. The tone cut turns it into strokes, both darker
+  (16 % of the wall) and lighter (13 %) than physical. The share of dark
+  strokes falls from 41 % under the eave to 6 % at the foot. This is the method
+  working as designed on a very wide penumbra. Whether a wall should carry that
+  much brushwork is a look call.
+- **Faint penumbrae become full mid-tone strokes at low sun.** On open snow at
+  16:30 the physical frame is nearly uniform (L\* 60.7, std 1.9), but strokes
+  of −17…+13 L\* appear. A thin, distant caster leaves a wide, shallow dip in
+  attenuation. Most likely it is the utility pole, whose shadow is ~24 m at
+  20.6°; the caster was not isolated. The ±0.3 jitter
+  pushes any attenuation below 0.96 into mid tone, so a 20 % dip reads like a
+  real shadow with no caster in view. Fix candidate, not applied: scale the
+  jitter by penumbra depth, for example `0.3 · smoothstep(1.0, 0.7, attenuation)`,
+  so a shallow dip only reaches mid tone where it is genuinely dark. Cost: an
+  hour plus one re-render of these angles.
+
 ## Henry's shadow in the shelter: measured
 
 Same night, same view, with and without Henry, firebox glow on and off. With

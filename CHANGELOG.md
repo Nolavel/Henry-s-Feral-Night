@@ -5,6 +5,21 @@ Maintained per branch; entries are added by whoever makes the change.
 
 ## [Unreleased] — `codex`
 
+### 2026-10-01 - Review angles for #156 rendered against predictions (claudeflow)
+
+- `capture_stylized_shadows.gd -- review` renders physical/dry pairs for normal
+  daylight, heavy snow, a Duval Street block, the shelter exterior and a 16:30
+  low sun, with the clock and Henry frozen. Predictions were recorded in
+  `LIGHT_AND_SHADOW_DIRECTION.md` before the render.
+- Held: snow and street shapes, facades keeping strokes beyond the ground fade.
+  Off: heavy-snow contrast drops 13 % (predicted 6–10 %); low sun is dimmer and
+  flatter but less than predicted (lit snow L* 62, contrast 31 against noon 99
+  and 63).
+- Found: the shelter wall's soft eave shadow becomes hatching, as designed. At
+  low sun, faint penumbrae from thin distant casters become full mid-tone
+  strokes on open snow. A fix candidate is recorded, not applied: jitter scaled
+  by penumbra depth.
+
 ### 2026-10-01 - Dry brush strokes are the default shadow spray (claudeflow)
 
 - Author's pick after the Key West A/B: `stylized_shadow_brush_mix = 1` with
