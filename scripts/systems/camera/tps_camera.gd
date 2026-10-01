@@ -406,7 +406,13 @@ func _find_room(safe: Vector3, want: float) -> Vector2:
 	return pick
 
 
+## Fades only while this camera draws the frame; another camera (the Hub's
+## inspection view) must see Henry and the props whole.
 func _update_fades(delta: float, camera: Vector3) -> void:
+	if not is_current():
+		_fader.update_body(0.0, delta)
+		_fader.update_occluders([], delta)
+		return
 	var eye: Vector3 = _feet_position() + Vector3.UP * body_height * _stance * EYE_RATIO
 	var fade: float = clampf(inverse_lerp(body_fade_start, body_fade_end, camera.distance_to(eye)), 0.0, 1.0)
 	_fader.update_body(fade, delta)
