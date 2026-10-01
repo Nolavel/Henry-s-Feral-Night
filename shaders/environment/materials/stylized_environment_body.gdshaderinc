@@ -13,8 +13,6 @@ uniform vec2 uv_scale = vec2(1.0);
 uniform vec2 uv_offset = vec2(0.0);
 uniform vec3 emission_color : source_color = vec3(0.0);
 uniform float emission_energy : hint_range(0.0, 16.0) = 0.0;
-// Historical parameter name retained so converted shelter materials can opt out.
-uniform bool stylized_shadow_warp_enabled = true;
 
 varying vec3 stylized_world_pos;
 
@@ -23,9 +21,7 @@ void vertex() {
 }
 
 void fragment() {
-	if (stylized_shadow_warp_enabled) {
-		LIGHT_VERTEX = VERTEX + HFN_STYLIZED_SHADOW_WARP(stylized_world_pos, VIEW_MATRIX);
-	}
+	HFN_SHADOW_FRAGMENT(stylized_world_pos);
 	vec2 uv = UV * uv_scale + uv_offset;
 	vec4 base = albedo_color;
 	if (use_vertex_color) {
@@ -46,14 +42,7 @@ void fragment() {
 
 void light() {
 	float ndotl = max(dot(NORMAL, LIGHT), 0.0);
-	float attenuation = hfn_stylized_shadow_attenuation(
-		ATTENUATION,
-		stylized_world_pos,
-		LIGHT_IS_DIRECTIONAL,
-		HFN_LIGHT_INDEX,
-		VIEW_MATRIX,
-		stylized_shadow_warp_enabled
-	);
+	float attenuation = hfn_stylized_shadow(ATTENUATION, LIGHT_IS_DIRECTIONAL);
 	DIFFUSE_LIGHT += ndotl * attenuation * LIGHT_COLOR / PI;
 
 	// Cheap restrained specular keeps metal/glass-adjacent props readable

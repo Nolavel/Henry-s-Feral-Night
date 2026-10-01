@@ -20,9 +20,7 @@ void vertex() {
 }
 
 void fragment() {
-	if (use_world) {
-		LIGHT_VERTEX = VERTEX + HFN_STYLIZED_SHADOW_WARP(sample_position, VIEW_MATRIX);
-	}
+	HFN_SHADOW_FRAGMENT(sample_position);
 	vec4 base = albedo_tint;
 	if (use_albedo_texture) {
 		base *= texture(albedo_texture, UV);
@@ -35,13 +33,6 @@ void fragment() {
 
 void light() {
 	float ndotl = max(dot(NORMAL, LIGHT), 0.0);
-	float attenuation = hfn_stylized_shadow_attenuation(
-		ATTENUATION,
-		sample_position,
-		LIGHT_IS_DIRECTIONAL,
-		HFN_LIGHT_INDEX,
-		VIEW_MATRIX,
-		true
-	);
+	float attenuation = hfn_stylized_shadow(ATTENUATION, LIGHT_IS_DIRECTIONAL);
 	DIFFUSE_LIGHT += ndotl * attenuation * LIGHT_COLOR / PI;
 }

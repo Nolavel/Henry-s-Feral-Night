@@ -952,6 +952,7 @@ textures/vram_compression/import_etc2_astc=true
 anti_aliasing/quality/msaa_2d=1
 anti_aliasing/quality/msaa_3d=1
 anti_aliasing/quality/screen_space_aa=1
+lights_and_shadows/directional_shadow/soft_shadow_filter_quality=4
 
 [shader_globals]
 
@@ -986,38 +987,6 @@ snow_storm_share={
 stylized_shadow_strength={
 "type": "float",
 "value": 1.0
-}
-stylized_shadow_local_strength={
-"type": "float",
-"value": 0.5
-}
-stylized_shadow_floor={
-"type": "float",
-"value": 0.01
-}
-stylized_shadow_edge_light={
-"type": "float",
-"value": 0.055
-}
-stylized_shadow_threshold={
-"type": "float",
-"value": 0.43
-}
-stylized_shadow_break_softness={
-"type": "float",
-"value": 0.085
-}
-stylized_shadow_macro_scale={
-"type": "float",
-"value": 0.055
-}
-stylized_shadow_detail_scale={
-"type": "float",
-"value": 0.52
-}
-stylized_shadow_detail_amount={
-"type": "float",
-"value": 0.26
 }
 
 [hfn]

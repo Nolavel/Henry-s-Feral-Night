@@ -1,33 +1,28 @@
 extends SceneTree
 
-## Production visual regression for the shared stylized-shadow contract.
-## Captures the same Key West views with the global effect disabled/enabled.
+## Production regression for the stylized-shadow contract: matched physical/stylized
+## Key West frames outside, and inside the shelter by day and by stove light.
 
 const MAIN_SCENE: String = "res://scenes/world/key_west/key_west.tscn"
 const OUT_DIR: String = "res://docs/runtime_previews/stylized_shadows"
 const BUNKER := Vector2(-3452.88, 2273.84)
 const SHELTER := Vector2(-3579.85, 1574.51)
 const FIRST_ACTION_FRAME: int = 20
-const SETTLE_FRAMES: int = 4
-## One representative production view is enough for visual regression.
-## The headless contract test covers the shader families; CI only needs a
-## matched physical/stylized image pair, not a six-frame cinematic sweep.
-var _shots: Array[Dictionary] = [
-	{
-		"name": "shelter",
-		"at": SHELTER + (BUNKER - SHELTER).normalized() * 26.0,
-		"look": SHELTER,
-	},
-]
+const SETTLE_FRAMES: int = 6
+const GRADES: Array[StringName] = [&"HFN_ColdAsh_Day", &"HFN_ColdAsh_Dusk", &"HFN_ColdAsh_Night"]
 
 var _scene: Node3D
 var _player: Player
 var _camera: TpsCamera
 var _terrain: IslandTerrain
+var _stove: HeatSource
+var _grade: ColorGradeController
+var _day_night: DayNightManager
+var _inside_camera: Camera3D
 var _frame: int = 0
-var _shot_index: int = 0
-var _phase: int = 0
 var _next_frame: int = FIRST_ACTION_FRAME
+var _queue: Array[Callable] = []
+var _saved: Array[String] = []
 
 
 func _initialize() -> void:
@@ -36,42 +31,40 @@ func _initialize() -> void:
 	RenderingServer.global_shader_parameter_set(&"stylized_shadow_strength", 1.0)
 	_scene = (load(MAIN_SCENE) as PackedScene).instantiate() as Node3D
 	root.add_child(_scene)
+	_queue = [
+		_set_hour.bind(12.0),
+		_place_outside,
+		_pair.bind("01_outside_noon"),
+		_place_inside,
+		_pair.bind("02_inside_noon"),
+		_set_hour.bind(23.0),
+		_light_stove,
+		_pair.bind("03_inside_stove_night"),
+	]
+	for grade: StringName in GRADES:
+		_queue.append(_use_grade.bind(grade))
+		_queue.append(_capture.bind("04_inside_stove_lut_%s" % String(grade).trim_prefix("HFN_ColdAsh_")))
 
 
 func _process(_delta: float) -> bool:
 	_frame += 1
 	if _frame == 8:
 		_bind()
-	if _frame > 80 and (_player == null or _terrain == null):
+	if _frame > 80 and (_player == null or _terrain == null or _stove == null):
 		push_error("stylized shadow capture: production scene did not bind")
 		quit(1)
 		return true
-	if _player == null or _terrain == null or _frame < _next_frame:
+	if _player == null or _terrain == null or _stove == null or _frame < _next_frame:
 		return false
-
-	if _shot_index >= _shots.size():
+	if _queue.is_empty():
 		RenderingServer.global_shader_parameter_set(&"stylized_shadow_strength", 1.0)
 		_write_report()
 		print("[stylized-shadows] production regression capture complete")
 		quit()
 		return true
-
-	var shot: Dictionary = _shots[_shot_index]
-	if _phase == 0:
-		_place_player(shot["at"] as Vector2, shot["look"] as Vector2)
-		RenderingServer.global_shader_parameter_set(&"stylized_shadow_strength", 0.0)
-		_phase = 1
-		_next_frame = _frame + SETTLE_FRAMES
-	elif _phase == 1:
-		_capture("%02d_%s_physical" % [_shot_index * 2 + 1, String(shot["name"])])
-		RenderingServer.global_shader_parameter_set(&"stylized_shadow_strength", 1.0)
-		_phase = 2
-		_next_frame = _frame + SETTLE_FRAMES
-	else:
-		_capture("%02d_%s_stylized" % [_shot_index * 2 + 2, String(shot["name"])])
-		_shot_index += 1
-		_phase = 0
-		_next_frame = _frame + SETTLE_FRAMES
+	var step: Callable = _queue.pop_front()
+	step.call()
+	_next_frame = _frame + SETTLE_FRAMES
 	return false
 
 
@@ -79,6 +72,13 @@ func _bind() -> void:
 	_player = get_first_node_in_group(&"player") as Player
 	_camera = _scene.get_node_or_null(^"PlayerCamera") as TpsCamera
 	_terrain = _scene.get_node_or_null(^"IslandTerrain") as IslandTerrain
+	var zone := _scene.find_child("ShelterZone", true, false)
+	if zone != null:
+		_stove = zone.find_child("Stove", true, false) as HeatSource
+	for node: Node in _scene.find_children("*", "ColorGradeController", true, false):
+		_grade = node as ColorGradeController
+	for node: Node in _scene.find_children("*", "DayNightManager", true, false):
+		_day_night = node as DayNightManager
 	var splash := _scene.get_node_or_null(^"StartupTitleCard")
 	if splash != null:
 		splash.queue_free()
@@ -86,10 +86,24 @@ func _bind() -> void:
 		_player.set_physics_process(false)
 
 
-func _place_player(at: Vector2, look: Vector2) -> void:
+## Physical then stylized frame of the same view; the pair shares every other input.
+func _pair(name: String) -> void:
+	RenderingServer.global_shader_parameter_set(&"stylized_shadow_strength", 0.0)
+	_queue.push_front(_capture.bind("%s_stylized" % name))
+	_queue.push_front(RenderingServer.global_shader_parameter_set.bind(&"stylized_shadow_strength", 1.0))
+	_queue.push_front(_capture.bind("%s_physical" % name))
+
+
+func _set_hour(hour: float) -> void:
+	if _day_night != null:
+		_day_night.total_game_time_hours = floorf(_day_night.total_game_time_hours / 24.0) * 24.0 + hour
+
+
+func _place_outside() -> void:
+	var at: Vector2 = SHELTER + (BUNKER - SHELTER).normalized() * 26.0
 	var y: float = maxf(_terrain.get_height(at.x, at.y), 0.0) + 1.0
 	_player.global_position = Vector3(at.x, y, at.y)
-	var direction := (look - at).normalized()
+	var direction := (SHELTER - at).normalized()
 	var yaw: float = atan2(direction.x, direction.y) + PI
 	_player.global_rotation.y = yaw
 	if _camera != null:
@@ -97,6 +111,39 @@ func _place_player(at: Vector2, look: Vector2) -> void:
 	var streaming := _find_streaming()
 	if streaming != null:
 		streaming.scan(_player.global_position)
+
+
+## Henry stands at the stove door (stove local +X); a fixed camera across the room
+## frames him and the floor his stove shadow falls on.
+func _place_inside() -> void:
+	_player.global_position = _stove.to_global(Vector3(1.1, 1.0, 0.35))
+	_player.global_rotation.y = _stove.global_rotation.y + PI * 0.5
+	if _inside_camera == null:
+		_inside_camera = Camera3D.new()
+		_inside_camera.fov = 62.0
+		if _camera != null:
+			_inside_camera.cull_mask = _camera.cull_mask
+		_scene.add_child(_inside_camera)
+	_inside_camera.global_position = _stove.to_global(Vector3(4.6, 1.7, 4.5))
+	_inside_camera.look_at(_stove.to_global(Vector3(1.6, 0.2, 0.2)), Vector3.UP)
+	_inside_camera.make_current()
+
+
+func _light_stove() -> void:
+	_stove.restore_fuel(1.5, true)
+	_stove.ignite()
+
+
+func _use_grade(grade: StringName) -> void:
+	## Presentation-only swap of the LUT while Henry stays inside.
+	if _grade == null:
+		return
+	var profile: ColorGradeProfile = _grade.get(StringName(String(grade).trim_prefix("HFN_ColdAsh_").to_lower() + "_profile"))
+	var environment: Environment = _grade.world_environment.environment
+	environment.adjustment_color_correction = profile.lut
+	environment.adjustment_brightness = profile.brightness
+	environment.adjustment_contrast = profile.contrast
+	environment.adjustment_saturation = profile.saturation
 
 
 func _find_streaming() -> StreamingSystem:
@@ -118,17 +165,15 @@ func _capture(name: String) -> void:
 		push_error("stylized shadow capture: save failed %s" % error)
 		quit(1)
 		return
-	print("[stylized-shadows] saved ", path)
+	_saved.append(name)
+	print("[stylized-shadows] saved ", path, " grade=", _grade.get_current_profile_id() if _grade != null else &"")
 
 
 func _write_report() -> void:
 	var report := {
 		"scene": MAIN_SCENE,
-		"views": _shots.size(),
-		"pairs": _shots.size(),
-		"directional_strength": 1.0,
-		"local_light_strength": 0.45,
-		"contract": "solid physical core + noise-broken perimeter",
+		"frames": _saved,
+		"contract": "torn shadow lookup for all lights + three-tone directional shadow",
 	}
 	var file := FileAccess.open("%s/report.json" % OUT_DIR, FileAccess.WRITE)
 	file.store_string(JSON.stringify(report, "\t"))

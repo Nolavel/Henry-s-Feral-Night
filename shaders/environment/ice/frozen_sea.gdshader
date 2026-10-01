@@ -13,7 +13,7 @@ void vertex() {
 }
 
 void fragment() {
-	LIGHT_VERTEX = VERTEX + HFN_STYLIZED_SHADOW_WARP(world_pos, VIEW_MATRIX);
+	HFN_SHADOW_FRAGMENT(world_pos);
 	vec2 uv = (world_pos.xz - world_origin) / world_size;
 	if (uv.x < 0.0 || uv.y < 0.0 || uv.x > 1.0 || uv.y > 1.0) {
 		discard;
@@ -28,13 +28,6 @@ void fragment() {
 
 void light() {
 	float ndotl = max(dot(NORMAL, LIGHT), 0.0);
-	float attenuation = hfn_stylized_shadow_attenuation(
-		ATTENUATION,
-		world_pos,
-		LIGHT_IS_DIRECTIONAL,
-		HFN_LIGHT_INDEX,
-		VIEW_MATRIX,
-		true
-	);
+	float attenuation = hfn_stylized_shadow(ATTENUATION, LIGHT_IS_DIRECTIONAL);
 	DIFFUSE_LIGHT += ndotl * attenuation * LIGHT_COLOR / PI;
 }

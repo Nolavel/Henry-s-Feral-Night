@@ -5,6 +5,31 @@ Maintained per branch; entries are added by whoever makes the change.
 
 ## [Unreleased] — `codex`
 
+### 2026-10-01 - Stylized shadows rebuilt on stock Godot, shelter included (claudeflow)
+
+- Author decisions: no engine fork; stylize the shadows only.
+- The old contract edited `ATTENUATION` only inside a few-centimetre penumbra,
+  with 2–18 m noise: on a replica of the reference it rendered as physical
+  shadows. It is replaced, not tuned.
+- New `stylized_shadow.gdshaderinc`: every light's shadow lookup moves by
+  world-space noise in the surface plane (`LIGHT_VERTEX`), tearing cast
+  silhouettes; the directional shadow is cut into three tones with
+  noise-jittered cuts, so the penumbra breaks into a halo of mid-tone islands.
+  N·L stays physical; noise octaves fade before they alias.
+- Sun `shadow_blur` 3.3 widens the penumbra the halo is cut from. The
+  directional soft-shadow filter is Soft High (16 taps): Soft Low's per-pixel
+  PCF dither turned into speckle once cut into tones. Quality also scales the
+  filter radius (2/3/4 for Low/High/Ultra), so blur was lowered to keep the
+  width. Real-GPU cost still to be checked.
+- Shelter: the stove `Flame` casts shadows; the house is no longer converted
+  with stylization off; local lights get the torn lookup.
+- Removed the patched-engine sampler path, `tools/engine/*`, its doc, eight
+  unused shader globals and an unreferenced noise texture.
+- `capture_stylized_shadows.gd` adds shelter interior frames (noon, stove at
+  night, each LUT). Model and measurements: `docs/technical/STYLIZED_SHADOWS.md`.
+- `test_color_grading.gd` compiled with an undeclared `environment` and failed
+  the import gate on `main`; declared it.
+
 ### 2026-10-01 - Engineering contract raised to production quality bar (codex)
 
 - Expanded `AGENTS.md` with root-cause-first engineering, research before
