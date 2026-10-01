@@ -15,6 +15,7 @@ stream_container = NodePath("StreamContainer")
 player = NodePath("Player")
 camera = NodePath("PlayerCamera")
 spawn_at_shelter = true
+print_runtime_debug_stats = true
 enable_runtime_dev_map = true
 
 [node name="StartupTitleCard" parent="." unique_id=1741706405 instance=ExtResource("7_startup")]
@@ -33,4 +34,3 @@ heightmap_meta_path = "res://world/terrain/key_west_preview_2m_la8.json"
 focus = NodePath("../Player")
 
 [node name="WorldEnvironmentSystem" parent="." unique_id=1188689186 instance=ExtResource("6_environment")]
-

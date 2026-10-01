@@ -10,7 +10,7 @@ var _elapsed: float = 0.0
 var _frames: int = 0
 var _console_elapsed: float = 0.0
 var _show_panel: bool = true
-var _print_to_console: bool = false
+var _print_to_console: bool = true
 
 
 func _ready() -> void:

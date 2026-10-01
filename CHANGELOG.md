@@ -67,7 +67,7 @@ Maintained per branch; entries are added by whoever makes the change.
   are capped at 70 %.
 - `test_tps_camera`:
   - adds "control yaw unchanged after an automatic turn", 5 and 20 poles before
-    a beam, and "gameplay ray ignores an 8° sway";
+	a beam, and "gameplay ray ignores an 8° sway";
   - each check fails on a mutation of the bug it guards.
 - `trace_tps_camera.gd` measures heading against the mouse yaw again.
 

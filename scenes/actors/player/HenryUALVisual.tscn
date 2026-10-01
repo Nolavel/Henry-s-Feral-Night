@@ -1,11 +1,11 @@
-[gd_scene format=3]
+[gd_scene format=3 uid="uid://do28umopmom25"]
 
-[ext_resource type="Script" path="res://scripts/actors/player/henry/Controllers/HenryUALAnimation.gd" id="1_anim"]
-[ext_resource type="PackedScene" path="res://assets/characters/henry/henry_outfit.glb" id="2_model"]
-[ext_resource type="PackedScene" path="res://assets/animation/ual/Unreal-Godot_2/UAL2_Standard.glb" id="3_ual2"]
+[ext_resource type="Script" uid="uid://b6ga6pkkrxcj3" path="res://scripts/actors/player/henry/Controllers/HenryUALAnimation.gd" id="1_anim"]
+[ext_resource type="PackedScene" uid="uid://bx4jrfijun8h4" path="res://assets/characters/henry/henry_outfit.glb" id="2_model"]
+[ext_resource type="PackedScene" uid="uid://bemij2esac8p2" path="res://assets/animation/ual/Unreal-Godot_2/UAL2_Standard.glb" id="3_ual2"]
 
-[node name="HenryUALVisual" type="Node3D"]
+[node name="HenryUALVisual" type="Node3D" unique_id=1385313891]
 script = ExtResource("1_anim")
 secondary_library_scene = ExtResource("3_ual2")
 
-[node name="Model" parent="." instance=ExtResource("2_model")]
+[node name="Model" parent="." unique_id=1686693308 instance=ExtResource("2_model")]

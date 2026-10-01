@@ -95,9 +95,9 @@ Milestone считается закрытым, когда:
 ```
 PRD (этот документ)
  └─ Epic         = GitHub Milestone (+ опционально epic-issue)
-     └─ User Story = issue «Как игрок, я хочу…» + acceptance checklist
-         └─ Task     = дочерний issue / PR
-             └─ Subtask = пункт чек-листа Task (= один коммит/дифф + тест где возможно)
+	 └─ User Story = issue «Как игрок, я хочу…» + acceptance checklist
+		 └─ Task     = дочерний issue / PR
+			 └─ Subtask = пункт чек-листа Task (= один коммит/дифф + тест где возможно)
 ```
 
 Подробные правила и шаблоны — в `CONTRIBUTING_DECOMPOSITION.md` и `.github/ISSUE_TEMPLATE/`.
