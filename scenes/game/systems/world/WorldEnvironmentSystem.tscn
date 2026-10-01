@@ -19,7 +19,11 @@ ambient_light_sky_contribution = 0.0
 fog_mode = 1
 fog_light_energy = 0.1
 fog_density = 1.0
+## Keep world-space whiteout intact, but do not let post fog erase the authored sky.
+## Both properties default to 1.0, which fully obscured Freeman/parallax clouds.
+fog_sky_affect = 0.25
 volumetric_fog_enabled = true
+volumetric_fog_sky_affect = 0.25
 
 [sub_resource type="LabelSettings" id="LabelSettings_u2kgs"]
 font_color = Color(0.03, 0.03, 0.03, 1)
