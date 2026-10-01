@@ -2,6 +2,10 @@
 // HFN_SHADOW_FRAGMENT(world_pos); light() multiplies N.L by hfn_stylized_shadow().
 
 global uniform float stylized_shadow_strength;
+// Brush-stroke mask for the spray (tools/art/generate_shadow_brush_masks.py); mix 0 keeps
+// the value noise, 1 uses the mask.
+global uniform sampler2D stylized_shadow_brush_mask : filter_linear_mipmap, repeat_enable;
+global uniform float stylized_shadow_brush_mix;
 
 // Lookup offset: amplitude in metres and base frequency in cycles per metre.
 const float HFN_SHADOW_OFFSET_M = 0.18;
@@ -10,6 +14,9 @@ const float HFN_SHADOW_OFFSET_FREQ = 3.0;
 const float HFN_SHADOW_SPRAY_FREQ = 9.0;
 const float HFN_SHADOW_SPRAY_JITTER = 0.6;
 const float HFN_SHADOW_SPRAY_CONTRAST = 2.5;
+// One mask tile covers this many metres; contrast maps mask 0..1 onto the spray.
+const float HFN_SHADOW_BRUSH_TILE_M = 1.5;
+const float HFN_SHADOW_BRUSH_CONTRAST = 1.4;
 // Three tones of the directional shadow term: core 0, mid, lit 1.
 const float HFN_SHADOW_CUT_LOW = 0.34;
 const float HFN_SHADOW_CUT_HIGH = 0.66;
@@ -60,6 +67,21 @@ vec3 hfn_shadow_fbm3(vec3 world_pos, float freq, float pixel_m) {
 }
 
 
+// Brush mask on the three world planes, faded like the spray's base octave: mip
+// averages keep the unpainted gaps, so they never settle to 0.5 on their own.
+float hfn_shadow_brush(vec3 noise_pos, vec3 n, float pixel_m) {
+	vec3 w = n * n;
+	w *= w;
+	w /= max(w.x + w.y + w.z, 1e-5);
+	vec3 p = noise_pos / HFN_SHADOW_BRUSH_TILE_M;
+	float m = texture(stylized_shadow_brush_mask, p.xz).r * w.y
+		+ texture(stylized_shadow_brush_mask, p.zy).r * w.x
+		+ texture(stylized_shadow_brush_mask, p.xy).r * w.z;
+	float keep = 1.0 - smoothstep(0.2, 0.45, HFN_SHADOW_SPRAY_FREQ * pixel_m);
+	return clamp((m - 0.5) * 2.0 * HFN_SHADOW_BRUSH_CONTRAST, -1.0, 1.0) * keep;
+}
+
+
 // View-space LIGHT_VERTEX offset in the surface plane; also returns the spray.
 // noise_pos is metric and fixed to the surface: world for static meshes, model for movers.
 vec4 hfn_shadow_prepare(vec3 noise_pos, vec3 view_normal, mat4 inv_view, mat4 view, float offset_scale) {
@@ -69,8 +91,15 @@ vec4 hfn_shadow_prepare(vec3 noise_pos, vec3 view_normal, mat4 inv_view, mat4 vi
 	vec3 noise = hfn_shadow_fbm3(noise_pos, HFN_SHADOW_OFFSET_FREQ, pixel_m);
 	vec3 tangent = noise - n * dot(noise, n);
 	vec3 offset = (view * vec4(tangent * HFN_SHADOW_OFFSET_M * offset_scale * strength, 0.0)).xyz;
-	float spray = hfn_shadow_fbm3(noise_pos + vec3(41.3, -7.9, 23.1), HFN_SHADOW_SPRAY_FREQ, pixel_m).x;
-	spray = clamp(spray * HFN_SHADOW_SPRAY_CONTRAST, -1.0, 1.0);
+	float brush_mix = clamp(stylized_shadow_brush_mix, 0.0, 1.0);
+	float spray = 0.0;
+	if (brush_mix < 1.0) {
+		spray = hfn_shadow_fbm3(noise_pos + vec3(41.3, -7.9, 23.1), HFN_SHADOW_SPRAY_FREQ, pixel_m).x;
+		spray = clamp(spray * HFN_SHADOW_SPRAY_CONTRAST, -1.0, 1.0);
+	}
+	if (brush_mix > 0.0) {
+		spray = mix(spray, hfn_shadow_brush(noise_pos, n, pixel_m), brush_mix);
+	}
 	return vec4(offset, spray);
 }
 

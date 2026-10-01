@@ -1,10 +1,15 @@
 extends SceneTree
 
 ## Production regression for the stylized-shadow contract: matched physical/stylized
-## Key West frames outside, and inside the shelter by day and by stove light.
+## Key West frames outside and in the shelter. `-- brush` compares spray masks instead.
 
 const MAIN_SCENE: String = "res://scenes/world/key_west/key_west.tscn"
 const OUT_DIR: String = "res://docs/runtime_previews/stylized_shadows"
+const BRUSH_OUT_DIR: String = "res://docs/runtime_previews/shadow_brush"
+const BRUSH_MASKS: Dictionary[String, String] = {
+	"dry": "res://assets/textures/shadows/shadow_brush_dry.png",
+	"flat": "res://assets/textures/shadows/shadow_brush_flat.png",
+}
 const BUNKER := Vector2(-3452.88, 2273.84)
 const SHELTER := Vector2(-3579.85, 1574.51)
 const FIRST_ACTION_FRAME: int = 20
@@ -23,14 +28,29 @@ var _frame: int = 0
 var _next_frame: int = FIRST_ACTION_FRAME
 var _queue: Array[Callable] = []
 var _saved: Array[String] = []
+var _out_dir: String = OUT_DIR
 
 
 func _initialize() -> void:
 	OS.set_environment("HFN_WORLD", "key_west_test")
-	DirAccess.make_dir_recursive_absolute(ProjectSettings.globalize_path(OUT_DIR))
+	var brush: bool = OS.get_cmdline_user_args().has("brush")
+	if brush:
+		_out_dir = BRUSH_OUT_DIR
+	DirAccess.make_dir_recursive_absolute(ProjectSettings.globalize_path(_out_dir))
 	RenderingServer.global_shader_parameter_set(&"stylized_shadow_strength", 1.0)
 	_scene = (load(MAIN_SCENE) as PackedScene).instantiate() as Node3D
 	root.add_child(_scene)
+	if brush:
+		_queue = [
+			_set_hour.bind(12.0),
+			_place_outside,
+			_brush_set.bind("01_outside_noon"),
+			_frame_close.bind(Vector3(1.4, 0.5, 1.2)),
+			_brush_set.bind("01b_outside_noon_close"),
+			_place_inside,
+			_brush_set.bind("02_inside_noon"),
+		]
+		return
 	_queue = [
 		_set_hour.bind(12.0),
 		_place_outside,
@@ -97,6 +117,31 @@ func _pair(name: String) -> void:
 	_queue.push_front(_capture.bind("%s_stylized" % name))
 	_queue.push_front(RenderingServer.global_shader_parameter_set.bind(&"stylized_shadow_strength", 1.0))
 	_queue.push_front(_capture.bind("%s_physical" % name))
+
+
+## Physical, noise twice (frame-to-frame floor), then each brush mask, same view.
+func _brush_set(name: String) -> void:
+	var steps: Array[Callable] = [
+		_set_spray.bind(0.0, "", 0.0),
+		_capture.bind("%s_physical" % name),
+		_set_spray.bind(1.0, "", 0.0),
+		_capture.bind("%s_noise" % name),
+		_capture.bind("%s_noise_repeat" % name),
+	]
+	for mask: String in BRUSH_MASKS:
+		steps.append(_set_spray.bind(1.0, mask, 1.0))
+		steps.append(_capture.bind("%s_%s" % [name, mask]))
+	steps.append(_set_spray.bind(1.0, "", 0.0))
+	steps.reverse()
+	for step: Callable in steps:
+		_queue.push_front(step)
+
+
+func _set_spray(strength: float, mask: String, brush_mix: float) -> void:
+	RenderingServer.global_shader_parameter_set(&"stylized_shadow_strength", strength)
+	RenderingServer.global_shader_parameter_set(&"stylized_shadow_brush_mix", brush_mix)
+	if not mask.is_empty():
+		RenderingServer.global_shader_parameter_set(&"stylized_shadow_brush_mask", load(BRUSH_MASKS[mask]))
 
 
 func _set_hour(hour: float) -> void:
@@ -185,7 +230,7 @@ func _capture(name: String) -> void:
 		push_error("stylized shadow capture: viewport image is null")
 		quit(1)
 		return
-	var path := "%s/%s.png" % [OUT_DIR, name]
+	var path := "%s/%s.png" % [_out_dir, name]
 	var error := image.save_png(path)
 	if error != OK:
 		push_error("stylized shadow capture: save failed %s" % error)
@@ -201,6 +246,6 @@ func _write_report() -> void:
 		"frames": _saved,
 		"contract": "torn shadow lookup for all lights + three-tone directional shadow",
 	}
-	var file := FileAccess.open("%s/report.json" % OUT_DIR, FileAccess.WRITE)
+	var file := FileAccess.open("%s/report.json" % _out_dir, FileAccess.WRITE)
 	file.store_string(JSON.stringify(report, "\t"))
 	file.close()

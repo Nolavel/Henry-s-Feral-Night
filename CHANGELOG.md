@@ -5,6 +5,20 @@ Maintained per branch; entries are added by whoever makes the change.
 
 ## [Unreleased] — `codex`
 
+### 2026-10-01 - Brush-stroke masks for the shadow spray, off by default (claudeflow)
+
+- `tools/art/generate_shadow_brush_masks.py` stamps two tileable placeholder
+  masks (1024² = 1.5 m, strokes at 35°): `shadow_brush_dry.png` and
+  `shadow_brush_flat.png`. An artist's baked or painted mask replaces them.
+- The shadow spray can read a mask instead of value noise: triplanar in world
+  space (model space on Henry), selected by the globals
+  `stylized_shadow_brush_mask` and `stylized_shadow_brush_mix` (0 keeps noise).
+- Calculated before rendering: mipmaps alone do not fade a stroke mask (std
+  0.47–0.71 left at a 4.8 cm pixel, where the noise is gone), so the mask fades
+  on the noise's base-octave window. Predictions and the Key West A/B:
+  `docs/art/LIGHT_AND_SHADOW_DIRECTION.md`. `capture_stylized_shadows.gd -- brush`
+  renders physical, noise twice, dry and flat for each view.
+
 ### 2026-10-01 - Stove light leaves through the door, not all around (claudeflow)
 
 - The shelter stove's room light was an omni 0.41 m above the cooktop, lighting

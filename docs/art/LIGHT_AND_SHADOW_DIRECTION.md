@@ -212,9 +212,60 @@ value noise once painted textures exist. Sources close to the Blender "2.5D" loo
 - OpenGameArt hand-painted sets: licences vary per asset, so check each
   ([example][oga-hp]).
 
-Integration: sample the mask biplanar in world space, as the reference did with
-its noise texture. Let mip levels replace the octave fade, keep the ±0.3
-jitter margins, and tile at 1–2 m.
+Integration: sample the mask triplanar in world space (model space on Henry), as
+the reference did with its noise texture. Keep the ±0.3 jitter margins and tile
+at 1.5 m. Until an artist bakes a mask,
+[`generate_shadow_brush_masks.py`](../../tools/art/generate_shadow_brush_masks.py)
+stamps two placeholder masks with the right structure: **dry** (thin strokes
+with bristle streaks) and **flat** (wide, even strokes). Both run at 35° in
+world space. The global `stylized_shadow_brush_mix` blends noise (0) into the
+mask (1), and `stylized_shadow_brush_mask` picks the mask.
+
+### Brush masks: calculated before rendering
+
+Offline, on a 1.5 m ground patch, with the shader's own hash, noise and cut
+(`v = attenuation + 0.3·spray`, cuts 0.34 / 0.66):
+
+| | noise (shipped) | dry | flat |
+|---|---|---|---|
+| Spray std / share clamped at ±1 | 0.59 / 13 % | 0.75 / 34 % | 0.85 / 49 % |
+| Stroke direction agreement (0 = none, 1 = all) | 0.05 | 0.95 at 35° | 0.86 at 34° |
+| Correlation length along / across the stroke | 6.9 / 5.9 cm | 3.4 / 0.9 cm | 6.7 / 2.1 cm |
+| Lit islands mid-penumbra: elongation (median) | 1.8 | 5.5 | 10.8 |
+| Tones mid-penumbra, core / mid / lit | 0.18 / 0.55 / 0.27 | 0.32 / 0.34 / 0.34 | 0.36 / 0.14 / 0.50 |
+| Tones over the whole penumbra | 0.31 / 0.33 / 0.36 | 0.34 / 0.33 / 0.33 | 0.31 / 0.33 / 0.36 |
+
+Reading:
+
+- The masks are nearly two-valued (stroke or gap), so in the middle of the
+  penumbra they cut straight from core to lit. Mid tone moves to the band's
+  edges: mid strokes on the core side, mid gaps on the lit side. The penumbra
+  keeps a third of its area in mid tone either way.
+- Dry is finer than the noise: 0.9 cm across, 1–3 px at Henry's distance. It
+  should read as hatching. Flat matches the noise's scale along the stroke.
+- **Mipmaps do not fade a stroke mask.** With a 4.8 cm pixel footprint the
+  noise spray is gone (std 0.01), but mip-averaged masks keep std 0.47 (dry)
+  and 0.71 (flat), and 0.33 / 0.56 at 9.6 cm. The unpainted gaps are as large
+  as the strokes, so averages do not settle to 0.5. Distant shadows would stay
+  blotchy, with a visible 1.5 m repeat. The shader therefore fades the mask on
+  the same window as the noise's base octave: from 2.2 to 5 cm per pixel. On
+  the ground from the TPS camera (70° FOV, 1080p, eye ~1.9 m) that is 5.7 to
+  8.5 m away; on a wall facing the camera, 17 to 38 m.
+- Cost: the mask replaces the 24-hash spray fbm with three texture reads.
+
+Predictions for Key West (noon outside, Henry close-up, shelter at noon):
+
+1. Pixels that differ between noise and a mask lie only in the penumbra. Fully
+   lit and fully shadowed pixels match within the frame-to-frame floor (noise
+   rendered twice).
+2. Nothing changes beyond ~8.5 m on the ground: no difference above the floor
+   in the top part of the outside frame.
+3. In the penumbra, the mask frames show one stroke direction; the noise does
+   not. Measured as direction agreement of the stylized minus physical
+   difference, expect noise < 0.2 and both masks > 0.4 (perspective lowers the
+   offline values).
+4. Flat reads as brush strokes; dry as fine hatching that may break up on
+   Henry. Expected pick: flat.
 
 ## Henry's shadow in the shelter: measured
 
