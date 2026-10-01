@@ -212,9 +212,11 @@ func _ensure_authoring_context() -> bool:
 	_animation_player = _find_animation_player(_authoring_model)
 	if _skeleton == null:
 		_set_status("Henry authoring copy has no Skeleton3D.")
+		_clear_authoring_context()
 		return false
 	if _animation_player == null:
 		_set_status("Henry authoring copy has no AnimationPlayer.")
+		_clear_authoring_context()
 		return false
 
 	_add_secondary_library()
