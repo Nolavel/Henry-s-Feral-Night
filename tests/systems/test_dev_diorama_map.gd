@@ -49,6 +49,7 @@ func _test_enabled_world_toggles_and_follows() -> void:
 	_check(is_equal_approx(map.get_height_m(), 30.0), "map height is not fixed at 30 m")
 	_check(map.get_focus_world().distance_to(player.global_position) < 0.01, "map did not center on Henry")
 	_check((main_camera.cull_mask & DevDioramaMap.MAP_LABEL_MASK) == 0, "TPS camera still sees map-only labels")
+	_check_live_viewport_projection(map)
 	_check_marker_tracks_ground_position(map, player)
 
 	map.set_process(false)
@@ -61,6 +62,15 @@ func _test_enabled_world_toggles_and_follows() -> void:
 	_check(not map.is_map_open() and not map.visible, "second M did not hide authorized map")
 	_dispose(fixture["world"] as Node)
 	_dispose(map)
+
+
+func _check_live_viewport_projection(map: DevDioramaMap) -> void:
+	var projected_focus: Vector2 = map._project_world_to_map(map.get_focus_world())
+	var expected_center: Vector2 = map._map_container.position + map._map_container.size * 0.5
+	_check(
+		projected_focus.distance_to(expected_center) < 1.0,
+		"map camera target is not projected to the displayed map center"
+	)
 
 
 func _check_marker_tracks_ground_position(map: DevDioramaMap, player: Node3D) -> void:
