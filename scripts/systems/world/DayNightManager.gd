@@ -93,6 +93,7 @@ var last_game_minute: int = -1
 var sky_resource: Sky
 var sky_material: ShaderMaterial
 var _noise_texture: NoiseTexture2D
+var _cloud_time_s: float = 0.0
 
 
 func _ready() -> void:
@@ -111,6 +112,11 @@ func _ready() -> void:
 
 
 func _process(delta: float) -> void:
+	# Shader TIME ignores SceneTree pause. Drive cloud phase from this pausable node instead.
+	_cloud_time_s += delta
+	if sky_material != null:
+		sky_material.set_shader_parameter("cloud_time", _cloud_time_s)
+
 	var total_cycle_duration: float = maxf(settings.day_duration + settings.night_duration, 0.001)
 	var game_hours_per_second: float = 24.0 / total_cycle_duration
 
@@ -240,6 +246,7 @@ func _apply_static_sky_parameters() -> void:
 	sky_material.set_shader_parameter("cloud_sag", settings.cloud_sag)
 	sky_material.set_shader_parameter("cloud_noise_tiling", settings.cloud_tiling)
 	sky_material.set_shader_parameter("cloud_wind_speed", settings.cloud_wind_speed)
+	sky_material.set_shader_parameter("cloud_time", _cloud_time_s)
 	sky_material.set_shader_parameter("cloud_parallax_strength", settings.cloud_parallax_strength)
 	sky_material.set_shader_parameter("cloud_parallax_layer_separation", settings.cloud_parallax_layer_separation)
 	sky_material.set_shader_parameter("cloud_parallax_detail_weight", settings.cloud_parallax_detail_weight)
