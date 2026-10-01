@@ -5,8 +5,8 @@ for the current Whitehead Spit -> Fort Street route. This document preserves the
 archived Graciosa layout and the shared template's original authored coordinates.
 
 The shared reference for every agent working on milestone **First Exit**
-([#42](https://github.com/Nolavel/Henry-s-Feral-Night/issues/42), north star
-[#24](https://github.com/Nolavel/Henry-s-Feral-Night/issues/24)). Numbers come
+([#42](https://github.com/Nolavel/Hoarbound/issues/42), north star
+[#24](https://github.com/Nolavel/Hoarbound/issues/24)). Numbers come
 from the real heightfield; the tools below regenerate them.
 
 **Source of truth for positions:** `data/world/first_exit_layout.json`.
