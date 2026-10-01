@@ -5,6 +5,16 @@ Maintained per branch; entries are added by whoever makes the change.
 
 ## [Unreleased] — `codex`
 
+### 2026-10-01 - Dry brush strokes are the default shadow spray (claudeflow)
+
+- Author's pick after the Key West A/B: `stylized_shadow_brush_mix = 1` with
+  `shadow_brush_dry.png` in `project.godot`. Penumbras now break into scratchy
+  35° strokes instead of value-noise islands; lit and core tones are unchanged.
+  Flat stays in the repo; mix 0 brings the noise back.
+- `capture_stylized_shadows.gd` restores the project's spray after a brush run,
+  and `-- shimmer` renders each spray from the TPS pose and shifted half a pixel
+  sideways, with clock, snowfall and Henry frozen.
+
 ### 2026-10-01 - Brush-stroke masks for the shadow spray, off by default (claudeflow)
 
 - `tools/art/generate_shadow_brush_masks.py` stamps two tileable placeholder

@@ -52,7 +52,7 @@ darkness", with every element designed for the isometric camera
 | **Shadows take the colour of what fills them**: on a sunny day cast shadows are blue because they only see the sky ([Gurney, *Color and Light*][gurney]); in stylized shading shadows are a hue, not just darker ([Gooch/TF2][tf2]). | Done: day key 1.5 (1.0, 0.97, 0.92) against a sky-blue fill 0.55 (0.46, 0.58, 0.86). Before, key 1.12 and fill 0.92 were almost the same hue, and shadows read grey. | A warm key also warms the volumetric fog, so the key stays near neutral and the blue comes from the fill (see "Palette" below). |
 | **Edge hierarchy**: cast shadows are sharpest where the caster touches and soften with distance; form shadows are softer than cast shadows; the sharpest edges sit at the focal point ([lost and found edges][edges], [Proko][proko]). | Cast shadows torn with one blur width everywhere; form shadow (N·L) physical and smooth. | Form shadow already matches the painters (keeps the author's "shadows only" decision). Missing: contact hardening and focal-point emphasis. |
 | **Massing**: edit detail into big shapes; vary edge quality with the brush to steer the eye ([Disney, *Painterly CG concepts* / *Bolt*][disney]). | Shadow core is one flat value; islands only in the penumbra. | Textures keep full contrast inside shadow (painters simplify there). Future. |
-| **Brushwork unifies everything** (Disco Elysium, The Long Dark, Disney "raypainting"; [Brushed Shading][brushed] bends normals through a painted stroke map). | Shadow islands come from procedural value noise. | When painterly textures arrive, the shadow breakup must use the same strokes, or it will read as a second, foreign texture. |
+| **Brushwork unifies everything** (Disco Elysium, The Long Dark, Disney "raypainting"; [Brushed Shading][brushed] bends normals through a painted stroke map). | Shadow breakup comes from a dry brush-stroke mask (since 2026-10-01). | The mask is a generated placeholder. When painterly textures arrive, it must use the same strokes, or it will read as a second, foreign texture. |
 | **Paint sticks to surfaces**: strokes must stay fixed to the world, not the screen ([Meier 1996][meier]). Screen-space "painterly" filters such as Kuwahara smear the whole frame. | Noise is fixed in world space. A sub-pixel camera shift changed distant shadows exactly as much as physical ones (0.026 % of pixels each). | None. Keep effects in-material; reject post-process paint filters. |
 | **Characters must read against the world**: TF2 uses rim highlights and value/saturation patterns so characters never blend into scenery ([Mitchell et al. 2007][tf2]); Disco Elysium lights its real-time characters with the painting's own maps. | Done: Henry's body, garments, Kenny, pack and carried props use the shared material with the shadow contract and a restrained rim on the lit silhouette edge. | Rim strength (0.6) is a look call. |
 | **Ground the object**: a dark occlusion accent where things touch; AO is for grounding, not for faking shadows ([AO in games][ao]). The Long Dark ships without AO. | No AO; the sun's blur softens contact. | Optional: a subtle SSAO trial (it darkens only the fill, which is our shadow core). |
@@ -93,9 +93,10 @@ largest, closest surface on screen is Henry himself:
   Blender keeps one shading language for characters and sets, as Disco Elysium
   does. Henry is now on the same shadow contract; see the roadmap.
 - **Grain near the camera.** At 1–3 m a 1080p pixel is a few millimetres, so
-  the spray (base 9 cycles/m, ~11 cm) reads as large brush blobs on and around
-  Henry, never as pixel noise. Thin limbs take a third of the lookup offset, and
-  the noise rides in model space so it does not slide over the body as he walks.
+  the dry strokes (1.5–3 cm wide, 18–38 cm long) read as brushwork on and
+  around Henry, never as pixel noise. Thin limbs take a third of the lookup
+  offset, and noise and strokes ride in model space so they do not slide over
+  the body as he walks.
 - **Readable silhouette.** A third-person view puts Henry against snow by day
   and against darkness by night; a restrained rim on the lit edge keeps him
   separate (TF2). It is stylistic, not physical, and set once for every
@@ -294,11 +295,11 @@ Found, not predicted:
   caster), so the masks restyle the entire shadow, not just its rim. Strokes
   run past the physical blob as mid-tone streaks, about one stroke length.
 
-Recommendation: **flat**, when the surfaces get painted textures. The global
-stays at noise (`stylized_shadow_brush_mix = 0`) until the author decides. To
-look at it in the editor, set the mix to 1 in Project Settings › Shader Globals;
-the mask global selects dry or flat. A baked mask from Brushstroke Tools drops
-in as the same 1024² grey PNG.
+My recommendation was flat, once surfaces get painted textures. **Author's
+decision (2026-10-01): dry is the default.** Project Settings › Shader Globals
+holds `stylized_shadow_brush_mix = 1` and `stylized_shadow_brush_mask` = dry.
+Flat stays in the repo; mix 0 brings back the value noise. A baked mask from
+Brushstroke Tools drops in as the same 1024² grey PNG.
 
 ## Henry's shadow in the shelter: measured
 
@@ -327,7 +328,7 @@ above; see its verification.
 | P0 | Check the frame cost of Soft High and the stove's cube shadow on a real GPU | an editor session | author's machine |
 | P1 | ~~Character shader on the shadow contract, with rim light~~ Done 2026-10-01: body, garments, Kenny, pack, carried logs and boards | — | rim strength is a look call |
 | P1 | ~~Day palette: key over a sky-blue fill~~ Done 2026-10-01; dusk and night unchanged | — | look check in the editor |
-| P2 | ~~Brush-stroke mask drives the spray~~ Built 2026-10-01, off by default: dry and flat placeholder masks, measured in Key West (above). The lookup offset stays on noise | — | **[decision]**: noise or flat; an artist's baked mask |
+| P2 | ~~Brush-stroke mask drives the spray~~ Done 2026-10-01: dry is the default (author's pick), flat kept. Measured in Key West (above). The lookup offset stays on noise | — | an artist's baked mask |
 | P2 | Three-tone halo for the stove: the stove publishes its position, range and decay, and `light()` divides its falloff out of `ATTENUATION` | half a day | **[decision]**: couples one light to the material |
 | P2 | Grounding: SSAO. A trial at noon (radius 0.8, intensity 1.5, ambient only) was inconclusive. On open snow it changed a mean 1 level per pixel, inside the frame-to-frame noise of falling snow and idle animation. It needs a static, contact-rich view (shelter props, city kerbs) | hours | look check |
 | P3 | Sharper edges near Henry (focal point), softer far away | hours | P1 first |

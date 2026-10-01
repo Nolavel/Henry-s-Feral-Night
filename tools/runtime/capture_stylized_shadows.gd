@@ -1,11 +1,14 @@
 extends SceneTree
 
 ## Production regression for the stylized-shadow contract: matched physical/stylized
-## Key West frames outside and in the shelter. `-- brush` compares spray masks instead.
+## Key West frames. `-- brush` compares spray masks; `-- shimmer` shifts the camera.
 
 const MAIN_SCENE: String = "res://scenes/world/key_west/key_west.tscn"
 const OUT_DIR: String = "res://docs/runtime_previews/stylized_shadows"
 const BRUSH_OUT_DIR: String = "res://docs/runtime_previews/shadow_brush"
+const SHIMMER_OUT_DIR: String = "res://docs/runtime_previews/shadow_shimmer"
+## About half a pixel on the ground 4-5 m ahead of the TPS camera.
+const SHIMMER_SHIFT_M: float = 0.003
 const BRUSH_MASKS: Dictionary[String, String] = {
 	"dry": "res://assets/textures/shadows/shadow_brush_dry.png",
 	"flat": "res://assets/textures/shadows/shadow_brush_flat.png",
@@ -34,8 +37,11 @@ var _out_dir: String = OUT_DIR
 func _initialize() -> void:
 	OS.set_environment("HFN_WORLD", "key_west_test")
 	var brush: bool = OS.get_cmdline_user_args().has("brush")
+	var shimmer: bool = OS.get_cmdline_user_args().has("shimmer")
 	if brush:
 		_out_dir = BRUSH_OUT_DIR
+	elif shimmer:
+		_out_dir = SHIMMER_OUT_DIR
 	DirAccess.make_dir_recursive_absolute(ProjectSettings.globalize_path(_out_dir))
 	RenderingServer.global_shader_parameter_set(&"stylized_shadow_strength", 1.0)
 	_scene = (load(MAIN_SCENE) as PackedScene).instantiate() as Node3D
@@ -50,6 +56,9 @@ func _initialize() -> void:
 			_place_inside,
 			_brush_set.bind("02_inside_noon"),
 		]
+		return
+	if shimmer:
+		_queue = [_set_hour.bind(12.0), _place_outside, _freeze_motion, _shimmer_set]
 		return
 	_queue = [
 		_set_hour.bind(12.0),
@@ -131,10 +140,47 @@ func _brush_set(name: String) -> void:
 	for mask: String in BRUSH_MASKS:
 		steps.append(_set_spray.bind(1.0, mask, 1.0))
 		steps.append(_capture.bind("%s_%s" % [name, mask]))
-	steps.append(_set_spray.bind(1.0, "", 0.0))
+	steps.append(_restore_spray)
 	steps.reverse()
 	for step: Callable in steps:
 		_queue.push_front(step)
+
+
+## Each spray from the TPS pose, then the same pose shifted sideways by SHIMMER_SHIFT_M.
+func _shimmer_set() -> void:
+	var camera := _capture_camera()
+	camera.fov = _camera.fov
+	camera.global_transform = _camera.global_transform
+	camera.make_current()
+	var base: Transform3D = camera.global_transform
+	var shifted := base.translated(base.basis.x * SHIMMER_SHIFT_M)
+	var steps: Array[Callable] = []
+	for variant: Array in [["physical", 0.0, "", 0.0], ["noise", 1.0, "", 0.0], ["dry", 1.0, "dry", 1.0], ["flat", 1.0, "flat", 1.0]]:
+		steps.append(_set_spray.bind(variant[1], variant[2], variant[3]))
+		steps.append(camera.set_global_transform.bind(base))
+		steps.append(_capture.bind("shimmer_%s_base" % variant[0]))
+		steps.append(camera.set_global_transform.bind(shifted))
+		steps.append(_capture.bind("shimmer_%s_shift" % variant[0]))
+	steps.append(_restore_spray)
+	steps.reverse()
+	for step: Callable in steps:
+		_queue.push_front(step)
+
+
+## Only the camera may change between shimmer frames: clock, snowfall and Henry stop.
+func _freeze_motion() -> void:
+	if _day_night != null:
+		_day_night.set_process(false)
+	for node: Node in _scene.find_children("*", "SnowfallVFX", true, false):
+		(node as Node3D).visible = false
+	_player.process_mode = Node.PROCESS_MODE_DISABLED
+
+
+## Back to the project's shipped spray: Shader Globals in project.godot.
+func _restore_spray() -> void:
+	for global_name: String in ["stylized_shadow_brush_mix", "stylized_shadow_brush_mask"]:
+		var value: Variant = (ProjectSettings.get_setting("shader_globals/" + global_name) as Dictionary)["value"]
+		RenderingServer.global_shader_parameter_set(global_name, load(value) if value is String else value)
 
 
 func _set_spray(strength: float, mask: String, brush_mix: float) -> void:

@@ -24,9 +24,11 @@ volumetrics and the colour grade apply after them unchanged.
    sampling inside themselves.
 2. **Three tones (directional only).** `light()` cuts the directional shadow
    term into core 0, mid 0.45 and lit 1, with the two cuts (0.34, 0.66)
-   jittered by a second noise (base 9 cycles/m, contrast 2.5, clamped to ±0.3).
-   The jitter never reaches a fully lit or fully shadowed fragment, so only the
-   penumbra breaks into islands. The sun's `shadow_blur = 3.3` widens that
+   jittered by a "spray" clamped to ±0.3. By default the spray is a dry
+   brush-stroke mask (1.5 m tile, strokes at 35°, triplanar in world space).
+   With `stylized_shadow_brush_mix = 0` it is value noise instead (base
+   9 cycles/m, contrast 2.5). The jitter never reaches a fully lit or fully
+   shadowed fragment, so only the penumbra breaks into strokes or islands. The sun's `shadow_blur = 3.3` widens that
    penumbra so the islands form a visible halo, and the directional soft-shadow
    filter runs at Soft High: at the default Soft Low the rotated PCF samples
    leave per-pixel dither in the penumbra, which the tone cut turns into speckle.
@@ -37,8 +39,10 @@ volumetrics and the colour grade apply after them unchanged.
 N·L stays physical, and so does everything that is not a shadow.
 
 Noise octaves fade before they fall under ~3 px (`fwidth` of the world
-position), so distant shadows settle to three clean tones rather than sub-pixel
-noise. The noise is fixed to the world, so it does not swim with the camera.
+position), and the brush mask fades on the same window as the base octave. Mip
+averages alone do not neutralise a stroke mask. Distant shadows therefore settle
+to three clean tones rather than sub-pixel noise. Noise and mask are fixed to the
+world, so they do not swim with the camera.
 
 ### Local lights
 
