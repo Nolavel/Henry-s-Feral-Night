@@ -22,7 +22,7 @@ void vertex() {
 }
 
 void fragment() {
-	LIGHT_VERTEX = VERTEX + HFN_STYLIZED_SHADOW_WARP(world_pos, VIEW_MATRIX);
+	HFN_SHADOW_FRAGMENT(world_pos);
 	float up = clamp(world_normal.y, 0.0, 1.0);
 	float grain = snow_breakup(world_pos, 0.35);
 	vec3 ground = mix(turf_color.rgb, rock_color.rgb, smoothstep(0.93, 0.8, up + (grain - 0.5) * 0.08));
@@ -37,13 +37,6 @@ void fragment() {
 
 void light() {
 	float ndotl = max(dot(NORMAL, LIGHT), 0.0);
-	float attenuation = hfn_stylized_shadow_attenuation(
-		ATTENUATION,
-		world_pos,
-		LIGHT_IS_DIRECTIONAL,
-		HFN_LIGHT_INDEX,
-		VIEW_MATRIX,
-		true
-	);
+	float attenuation = hfn_stylized_shadow(ATTENUATION, LIGHT_IS_DIRECTIONAL);
 	DIFFUSE_LIGHT += ndotl * attenuation * LIGHT_COLOR / PI;
 }

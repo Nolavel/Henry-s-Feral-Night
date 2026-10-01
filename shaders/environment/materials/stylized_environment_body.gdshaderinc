@@ -13,19 +13,21 @@ uniform vec2 uv_scale = vec2(1.0);
 uniform vec2 uv_offset = vec2(0.0);
 uniform vec3 emission_color : source_color = vec3(0.0);
 uniform float emission_energy : hint_range(0.0, 16.0) = 0.0;
-// Historical parameter name retained so converted shelter materials can opt out.
-uniform bool stylized_shadow_warp_enabled = true;
+// Characters: rim on the lit silhouette edge, a shorter shadow-lookup offset for
+// thin limbs, and shadow noise in model space so it rides with the body.
+uniform float rim_strength : hint_range(0.0, 2.0) = 0.0;
+uniform float rim_power : hint_range(1.0, 8.0) = 3.5;
+uniform float shadow_offset_scale : hint_range(0.0, 1.0) = 1.0;
+uniform bool shadow_noise_in_model_space = false;
 
-varying vec3 stylized_world_pos;
+varying vec3 stylized_noise_pos;
 
 void vertex() {
-	stylized_world_pos = (MODEL_MATRIX * vec4(VERTEX, 1.0)).xyz;
+	stylized_noise_pos = shadow_noise_in_model_space ? VERTEX : (MODEL_MATRIX * vec4(VERTEX, 1.0)).xyz;
 }
 
 void fragment() {
-	if (stylized_shadow_warp_enabled) {
-		LIGHT_VERTEX = VERTEX + HFN_STYLIZED_SHADOW_WARP(stylized_world_pos, VIEW_MATRIX);
-	}
+	HFN_SHADOW_FRAGMENT_SCALED(stylized_noise_pos, shadow_offset_scale);
 	vec2 uv = UV * uv_scale + uv_offset;
 	vec4 base = albedo_color;
 	if (use_vertex_color) {
@@ -46,15 +48,13 @@ void fragment() {
 
 void light() {
 	float ndotl = max(dot(NORMAL, LIGHT), 0.0);
-	float attenuation = hfn_stylized_shadow_attenuation(
-		ATTENUATION,
-		stylized_world_pos,
-		LIGHT_IS_DIRECTIONAL,
-		HFN_LIGHT_INDEX,
-		VIEW_MATRIX,
-		stylized_shadow_warp_enabled
-	);
+	float attenuation = hfn_stylized_shadow(ATTENUATION, LIGHT_IS_DIRECTIONAL);
 	DIFFUSE_LIGHT += ndotl * attenuation * LIGHT_COLOR / PI;
+	if (rim_strength > 0.0) {
+		float fresnel = pow(1.0 - clamp(dot(NORMAL, VIEW), 0.0, 1.0), rim_power);
+		float lit_side = smoothstep(-0.2, 0.4, dot(NORMAL, LIGHT));
+		DIFFUSE_LIGHT += fresnel * lit_side * rim_strength * attenuation * LIGHT_COLOR / PI;
+	}
 
 	// Cheap restrained specular keeps metal/glass-adjacent props readable
 	// without reintroducing the built-in PBR path that bypasses our light().

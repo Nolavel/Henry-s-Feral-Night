@@ -608,10 +608,7 @@ func _add_secondary_library() -> void:
 
 
 func _paint_body() -> void:
-	var material := StandardMaterial3D.new()
-	material.albedo_color = body_color
-	material.roughness = 0.85
-	_override_materials(model, material)
+	_override_materials(model, StylizedEnvironmentMaterial.make_character(body_color, 0.85))
 
 
 func _override_materials(node: Node, material: Material) -> void:
@@ -710,9 +707,7 @@ func get_pack_rig() -> PackRig:
 ## Kenny strapped to the outside of the pack: a teddy silhouette facing back,
 ## sat on the pack's lower half. Shown only while he rides on his fixture.
 func _attach_kenny(pack: PackRig) -> void:
-	var material := StandardMaterial3D.new()
-	material.albedo_color = kenny_color
-	material.roughness = 1.0
+	var material := StylizedEnvironmentMaterial.make_character(kenny_color, 1.0)
 	var kenny := Node3D.new()
 	kenny.name = "Kenny"
 	## Strapped over the bottom flap, so he swings down with it when the pack opens.
@@ -746,9 +741,7 @@ func _attach_kenny(pack: PackRig) -> void:
 		kenny.add_child(blob)
 	var strap := BoxMesh.new()
 	strap.size = Vector3(backpack_size.x + 0.02, 0.025, 0.2)
-	var strap_mat := StandardMaterial3D.new()
-	strap_mat.albedo_color = Color(0.15, 0.14, 0.13)
-	strap.material = strap_mat
+	strap.material = StylizedEnvironmentMaterial.make_character(Color(0.15, 0.14, 0.13), 0.9)
 	var band := MeshInstance3D.new()
 	band.mesh = strap
 	band.layers = portrait_render_layers
@@ -775,10 +768,9 @@ func _attach_garments() -> void:
 			mesh_inst.material_override = null  # drop the body paint
 			for surface: int in mesh_inst.mesh.get_surface_count():
 				var source := mesh_inst.mesh.surface_get_material(surface) as BaseMaterial3D
-				var material := StandardMaterial3D.new()
-				material.albedo_color = source.albedo_color if source != null else body_color
-				material.roughness = 1.0
-				material.set_meta(&"dry_color", material.albedo_color)
+				var dry: Color = source.albedo_color if source != null else body_color
+				var material := StylizedEnvironmentMaterial.make_character(dry, 1.0)
+				material.set_meta(&"dry_color", dry)
 				mesh_inst.set_surface_override_material(surface, material)
 				_garment_materials["%s:%d" % [part, surface]] = material
 			mesh_inst.reparent(group)
@@ -809,9 +801,7 @@ func _attach_carry_props() -> void:
 	firewood.transform = load_transform
 	firewood.visible = false
 	attachment.add_child(firewood)
-	var bark := StandardMaterial3D.new()
-	bark.albedo_color = Color(0.36, 0.26, 0.18)
-	bark.roughness = 1.0
+	var bark := StylizedEnvironmentMaterial.make_character(Color(0.36, 0.26, 0.18), 1.0)
 	var logs: Array = [
 		[Vector3(-0.06, 0.0, 0.0), 0.055, 0.46, 4.0],
 		[Vector3(0.06, 0.0, 0.01), 0.05, 0.42, -6.0],
@@ -836,9 +826,7 @@ func _attach_carry_props() -> void:
 	boards.transform = load_transform
 	boards.visible = false
 	attachment.add_child(boards)
-	var wood := StandardMaterial3D.new()
-	wood.albedo_color = Color(0.42, 0.3, 0.19)
-	wood.roughness = 0.95
+	var wood := StylizedEnvironmentMaterial.make_character(Color(0.42, 0.3, 0.19), 0.95)
 	var board_specs: Array = [
 		[Vector3(0.0, -0.02, 0.0), -4.0],
 		[Vector3(0.0, 0.045, 0.015), 5.0],
@@ -860,9 +848,9 @@ func _attach_carry_props() -> void:
 ## Soaked clothing reads darker; 0 dry to 1 soaked.
 func set_wetness(wetness: float) -> void:
 	_wetness = clampf(wetness, 0.0, 1.0)
-	for material: StandardMaterial3D in _garment_materials.values():
+	for material: ShaderMaterial in _garment_materials.values():
 		var dry: Color = material.get_meta(&"dry_color")
-		material.albedo_color = dry.darkened(wet_darkening * _wetness)
+		material.set_shader_parameter("albedo_color", dry.darkened(wet_darkening * _wetness))
 
 
 ## Shows a garment's mesh only while that garment is worn.

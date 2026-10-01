@@ -14,40 +14,30 @@ This is a local transparent volume, not a fullscreen post-process.
 ## Stylized Shadows
 
 Production contract:
-`res://shaders/environment/stylized_shadow.gdshaderinc`
+`res://shaders/environment/stylized_shadow.gdshaderinc`. Model, tuning and
+verification: [`docs/technical/STYLIZED_SHADOWS.md`](technical/STYLIZED_SHADOWS.md).
 
-The contract implements the **solid physical core + noise-broken perimeter**
-look on top of stock Godot `ATTENUATION`. It does not patch the engine and is
-not a fullscreen post-process.
+Only the shadow term is stylized, on stock Godot: every light's shadow lookup
+is moved by world-space noise (`LIGHT_VERTEX`), and the directional shadow is
+cut into three tones with noise-jittered cuts. N·L stays physical. It is not a
+fullscreen post-process and does not patch the engine.
 
-It is currently consumed by:
-- `IslandTerrain`;
-- local and chunk-wide snow surfaces;
-- Key West building, road, airport and street-prop material factories;
-- the masked frozen sea;
-- opaque static shelter meshes and runtime boards/door/table materials.
+It is consumed by `IslandTerrain`, local and chunk-wide snow, the frozen sea,
+and every material made by `StylizedEnvironmentMaterial` (Key West buildings,
+roads, street props, the shelter house, doors, boards and tables).
 
-`StylizedEnvironmentMaterial` is the adapter for ordinary opaque
-`StandardMaterial3D` environment assets. It preserves base colour, roughness,
-metallic, albedo/normal textures, vertex colour, double-sided state and
-emission. Transparent and deliberately unshaded materials stay on their
-original path because their blend/preview/VFX semantics are not physical
-shadow receivers.
+`StylizedEnvironmentMaterial` adapts ordinary opaque `StandardMaterial3D`
+environment assets. Transparent and deliberately unshaded materials stay on
+their original path because they are not shadow receivers.
 
-Directional lights may tear the real cast-shadow penumbra while keeping a
-solid dark core. Omni/Spot lights use the same world-space ink pattern at a
-lower global strength; because Godot combines local-light distance falloff and
-shadowing in `ATTENUATION`, the local path never brightens above the physical
-falloff.
+`stylized_shadow_strength` (`[shader_globals]` in `project.godot`) set to 0
+restores physical shadows without swapping materials.
 
-Global tuning lives in `project.godot` under `[shader_globals]`, headed by
-`stylized_shadow_strength` and `stylized_shadow_local_strength`. Setting the
-main strength to 0 restores physical attenuation without swapping materials.
-
-Legacy showcase material:
+Showcase material:
 `res://scenes/environment/visual_fx/StylizedShadowMaterial.tres`
 
-CI visual regression:
-`tools/runtime/capture_stylized_shadows.gd` captures three production Key West
-views twice, with the global strength at 0 and 1, through the existing
-`checks.yml` Key West render job using the `[stylized-shadows]` commit marker.
+Visual regression:
+`tools/runtime/capture_stylized_shadows.gd` captures matched physical/stylized
+Key West frames outside at noon, inside the shelter at noon and by stove light
+at night, and the stove frame under each outdoor LUT. It runs in the existing
+`checks.yml` Key West render job with the `[stylized-shadows]` commit marker.

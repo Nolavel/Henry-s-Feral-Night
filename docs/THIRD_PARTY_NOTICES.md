@@ -65,9 +65,10 @@ recorded in [`technical/PORTED_FROM_ADT.md`](technical/PORTED_FROM_ADT.md).
 - Author: ShaderError
 - Published: May 22, 2023
 - License: CC0
-- Hoarbound changes: adapted for stock Godot without the source shader's custom
-  `sample_directional_shadow()` engine-pipeline modification. The HFN version
-  stylizes the built-in `ATTENUATION` shadow result inside `light()`.
+- Hoarbound changes: reimplemented for stock Godot without the source shader's
+  custom `sample_directional_shadow()` engine modification. The shadow lookup is
+  moved through `LIGHT_VERTEX`, and the directional `ATTENUATION` is cut into
+  three tones inside `light()`.
 
 ## Simple Overcast cloud layer
 

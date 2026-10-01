@@ -5,6 +5,139 @@ Maintained per branch; entries are added by whoever makes the change.
 
 ## [Unreleased] — `codex`
 
+### 2026-10-01 - Review angles for #156 rendered against predictions (claudeflow)
+
+- `capture_stylized_shadows.gd -- review` renders physical/dry pairs for normal
+  daylight, heavy snow, a Duval Street block, the shelter exterior and a 16:30
+  low sun, with the clock and Henry frozen. Predictions were recorded in
+  `LIGHT_AND_SHADOW_DIRECTION.md` before the render.
+- Held: snow and street shapes, facades keeping strokes beyond the ground fade.
+  Off: heavy-snow contrast drops 13 % (predicted 6–10 %); low sun is dimmer and
+  flatter but less than predicted (lit snow L* 62, contrast 31 against noon 99
+  and 63).
+- Found: the shelter wall's soft eave shadow becomes hatching, as designed. At
+  low sun, faint penumbrae from thin distant casters become full mid-tone
+  strokes on open snow. A fix candidate is recorded, not applied: jitter scaled
+  by penumbra depth.
+
+### 2026-10-01 - Dry brush strokes are the default shadow spray (claudeflow)
+
+- Author's pick after the Key West A/B: `stylized_shadow_brush_mix = 1` with
+  `shadow_brush_dry.png` in `project.godot`. Penumbras now break into scratchy
+  35° strokes instead of value-noise islands; lit and core tones are unchanged.
+  Flat stays in the repo; mix 0 brings the noise back.
+- `capture_stylized_shadows.gd` restores the project's spray after a brush run,
+  and `-- shimmer` renders each spray from the TPS pose and shifted half a pixel
+  sideways, with clock, snowfall and Henry frozen.
+- Shimmer measured in Key West. The far band matches physical for every spray.
+  Near the camera, dry flips 1.18 % of pixels beyond physical (noise 0.45 %).
+  Every flip is on a world-locked stroke edge (0.49 per edge pixel against 0.67
+  for geometry edges), with no isolated popping: crawl along unantialiased
+  edges, not shimmer. The capture tool no longer errors if its output folder
+  disappears before the report is written.
+
+### 2026-10-01 - Brush-stroke masks for the shadow spray, off by default (claudeflow)
+
+- `tools/art/generate_shadow_brush_masks.py` stamps two tileable placeholder
+  masks (1024² = 1.5 m, strokes at 35°): `shadow_brush_dry.png` and
+  `shadow_brush_flat.png`. An artist's baked or painted mask replaces them.
+- The shadow spray can read a mask instead of value noise: triplanar in world
+  space (model space on Henry), selected by the globals
+  `stylized_shadow_brush_mask` and `stylized_shadow_brush_mix` (0 keeps noise).
+- Calculated before rendering: mipmaps alone do not fade a stroke mask (std
+  0.47–0.71 left at a 4.8 cm pixel, where the noise is gone), so the mask fades
+  on the noise's base-octave window. Predictions and the Key West A/B:
+  `docs/art/LIGHT_AND_SHADOW_DIRECTION.md`. `capture_stylized_shadows.gd -- brush`
+  renders physical, noise twice, dry and flat for each view.
+- Measured in Key West at noon, all four predictions held. Only penumbra
+  pixels change (shelter: 0.29–0.44 % of the frame against a 0.02 % floor).
+  Nothing changes beyond ~8.5 m on the ground. The masks impose one stroke
+  direction (agreement 0.50–0.86 against 0.20–0.58 for noise). Flat reads as
+  broad strokes, dry as hatching. Recommended: flat, once surfaces are painted;
+  the default stays noise until the author decides.
+- Found: a sun sliver narrower than the penumbra is all penumbra. The shelter
+  floor sliver keeps 49 % of its length with the shipped noise, 79 % with flat.
+
+### 2026-10-01 - Stove light leaves through the door, not all around (claudeflow)
+
+- The shelter stove's room light was an omni 0.41 m above the cooktop, lighting
+  every direction. `StoveVisual` now places it in the fire, 0.16 m behind the
+  door, aimed out through it. `Flame` is a `SpotLight3D` (65°, range 9 m,
+  falloff 0.5). The firebox walls and door bars are its shadow mask: closed, the
+  light leaves only through the bars; open, a floor pool appears.
+- Predicted from the stove and room geometry before rendering, then measured.
+  The wall behind the stove went from L* 41 to 21. The ceiling shows bar stripes
+  at ΔL* 23 (predicted ≈ 20). Henry's silhouette on the far wall rose from
+  ΔL* 6.6 to 17 (predicted ≈ 15).
+- `LIGHT_AND_SHADOW_DIRECTION.md` adds the measured cause of Henry's weak
+  shelter shadow, the cloud-shadow calculation (today's sky covers ~2 %, so
+  sky-matched shadows would show nothing within the fog's 100 m), the snowfall
+  coverage inversion it found, and brush-stroke sources with licences.
+
+### 2026-10-01 - Day palette: key over a sky-blue fill, air unchanged (claudeflow)
+
+- Day key 1.12 → 1.5, colour (1.0, 0.98, 0.95) → (1.0, 0.97, 0.92). Fill
+  0.92 → 0.55, colour (0.58, 0.64, 0.70) → (0.46, 0.58, 0.86). Shadows on snow
+  read blue instead of grey. Before, the fill was nearly as strong as the sun
+  and the same hue.
+- New `DayNightSettings.day_atmosphere_light_energy` (1.12): the sun energy the
+  volumetric fog and the cloud lighting see. Without it the stronger key
+  brightened the air; with a warm key it turned the fog beige. Measured: fog/sky
+  unchanged, shadow core under Henry 88/93/91 → 70/78/89 sRGB.
+- Night values are unchanged. Values and comparison:
+  `docs/art/LIGHT_AND_SHADOW_DIRECTION.md`.
+
+### 2026-10-01 - Henry on the stylized shadow contract, with a rim (claudeflow)
+
+- Henry's body, garments, Kenny and his strap, the pack, and the carried logs and
+  boards use `StylizedEnvironmentMaterial.make_character()` instead of
+  `StandardMaterial3D`. Shadows falling on him now break up like the world's.
+  Wetness still darkens the garments, now through the shader's `albedo_color`.
+- The shared opaque material gains character settings, all off by default: a
+  rim on the lit silhouette edge (0.6), a third of the shadow-lookup offset for
+  thin limbs, and shadow noise in model space so the breakup rides with the body.
+- The camera stays third person; `LIGHT_AND_SHADOW_DIRECTION.md` now describes
+  "2.5D" as a look, not a camera, and drops the isometric-camera items.
+- `capture_stylized_shadows.gd` adds close frames of Henry: outside at noon,
+  and backlit by the stove.
+
+### 2026-10-01 - Light and shadow direction: research and roadmap (claudeflow)
+
+- `docs/art/LIGHT_AND_SHADOW_DIRECTION.md`: what Disco Elysium, The Long Dark
+  and Diablo IV do, what painters and technical artists say about shadow
+  colour, edge hierarchy, massing, brushwork, character readability and
+  grounding, and where Hoarbound stands on each. Includes the 2.5D camera
+  implications and a prioritised roadmap with the decisions it needs.
+- New evidence in `docs/art/stylized_shadows/`, including a key/fill colour
+  comparison. Shadows only turn blue once the key dominates (~4:1); today's day
+  fill is nearly as strong as the sun.
+- Sub-pixel camera-shift test: the world-space noise adds no shimmer at
+  distance. Hard tone-cut edges near the camera flip 0.37 % of pixels
+  (0.15 % physical). Recorded in `STYLIZED_SHADOWS.md`.
+
+### 2026-10-01 - Stylized shadows rebuilt on stock Godot, shelter included (claudeflow)
+
+- Author decisions: no engine fork; stylize the shadows only.
+- The old contract edited `ATTENUATION` only inside a few-centimetre penumbra,
+  with 2–18 m noise: on a replica of the reference it rendered as physical
+  shadows. It is replaced, not tuned.
+- New `stylized_shadow.gdshaderinc`: every light's shadow lookup moves by
+  world-space noise in the surface plane (`LIGHT_VERTEX`), tearing cast
+  silhouettes; the directional shadow is cut into three tones with
+  noise-jittered cuts, so the penumbra breaks into a halo of mid-tone islands.
+  N·L stays physical; noise octaves fade before they alias.
+- Sun `shadow_blur` 3.3 widens the penumbra the halo is cut from. The
+  directional soft-shadow filter is Soft High (16 taps): Soft Low's per-pixel
+  PCF dither turned into speckle once cut into tones. Quality also scales the
+  filter radius (2/3/4 for Low/High/Ultra), so blur was lowered to keep the
+  width. Real-GPU cost still to be checked.
+- Shelter: the stove `Flame` casts shadows; the house is no longer converted
+  with stylization off; local lights get the torn lookup.
+- Removed the patched-engine sampler path, `tools/engine/*`, its doc, eight
+  unused shader globals and an unreferenced noise texture.
+- `capture_stylized_shadows.gd` adds shelter interior frames (noon, stove at
+  night, each LUT). Model and measurements: `docs/technical/STYLIZED_SHADOWS.md`.
+
 ### 2026-10-01 - Dev map marker aligned to Henry's geographic position (codex)
 
 - Fixed the primary marker drift: SubViewportContainer stretch can resize the live SubViewport, but the marker conversion incorrectly scaled Camera3D output against the initial 640×360 allocation a second time.

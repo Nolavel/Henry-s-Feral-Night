@@ -27,15 +27,6 @@ func _run() -> void:
 	_check(double_sided is ShaderMaterial, "double-sided environment factory failed")
 	_check(double_sided.shader != material.shader, "double-sided material did not select its cull-disabled shader")
 
-	var shelter_source := StandardMaterial3D.new()
-	var shelter_material := StylizedEnvironmentMaterial.from_standard(shelter_source, false) as ShaderMaterial
-	_check(shelter_material != null, "shelter material conversion failed")
-	if shelter_material != null:
-		_check(
-			shelter_material.get_shader_parameter("stylized_shadow_warp_enabled") == false,
-			"shelter receiver still warps local-light shadow lookup"
-		)
-
 	var source := StandardMaterial3D.new()
 	source.albedo_color = Color(0.3, 0.4, 0.5)
 	source.roughness = 0.77
@@ -61,40 +52,18 @@ func _run() -> void:
 		"road marking should remain deliberately unshaded"
 	)
 
+	## Stock Godot only: the contract reads its globals and no engine sampler.
 	var contract_source := FileAccess.get_file_as_string(
 		"res://shaders/environment/stylized_shadow.gdshaderinc"
 	)
-	_check(contract_source.contains("hfn_shadow_value_noise"), "shared contract lost procedural breakup noise")
-	_check(contract_source.contains("sample_directional_shadow"), "shared contract is not using the custom engine sampler")
-	_check(contract_source.contains("LIGHT_INDEX"), "shared contract is not addressing the current directional light")
-	_check(contract_source.contains("if (!directional)"), "local-light physical attenuation guard is missing")
-	_check(contract_source.contains("return base;"), "local lights are still being ink-darkened")
-
-	for key: String in [
-		"stylized_shadow_strength",
-		"stylized_shadow_local_strength",
-		"stylized_shadow_floor",
-		"stylized_shadow_edge_light",
-		"stylized_shadow_threshold",
-		"stylized_shadow_break_softness",
-		"stylized_shadow_macro_scale",
-		"stylized_shadow_detail_scale",
-		"stylized_shadow_detail_amount",
-	]:
+	_check(not contract_source.contains("sample_directional_shadow"), "shared contract calls an engine-patched sampler")
+	for global_name: String in ["stylized_shadow_strength", "stylized_shadow_brush_mask", "stylized_shadow_brush_mix"]:
 		_check(
-			ProjectSettings.has_setting("shader_globals/%s" % key),
-			"missing global shader parameter: %s" % key
+			ProjectSettings.has_setting("shader_globals/%s" % global_name),
+			"missing global shader parameter: %s" % global_name
 		)
-
-	_check(contract_source.contains("HFN_SHADOW_OFFSET_1_M"), "primary shadow sample offset is missing")
-	_check(contract_source.contains("HFN_SHADOW_OFFSET_2_M"), "secondary shadow sample offset is missing")
-	var body_source := FileAccess.get_file_as_string(
-		"res://shaders/environment/materials/stylized_environment_body.gdshaderinc"
-	)
-	_check(body_source.contains("HFN_STYLIZED_SHADOW_WARP"), "generic environment lost the stock shadow-lookup warp")
-	## Stock Godot is the baseline: the patched sampler must stay behind its define.
-	_check(contract_source.contains("// #define HFN_PATCHED_SHADOW_SAMPLER"), "the patched shadow sampler is switched on by default")
-	_check(contract_source.contains("coarse_islands"), "stock contract lost hard noise islands")
+	var brush_mask: Dictionary = ProjectSettings.get_setting("shader_globals/stylized_shadow_brush_mask", {})
+	_check(load(String(brush_mask.get("value", ""))) is Texture2D, "brush mask global does not point at a texture")
 
 	if _failures > 0:
 		push_error("stylized shadows: %d check(s) failed" % _failures)
