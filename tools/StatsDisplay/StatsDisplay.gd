@@ -2,10 +2,13 @@ extends Control
 
 @export_range(0.1, 2.0, 0.05) var update_interval: float = 0.25
 
+const CONSOLE_INTERVAL: float = 1.0
+
 var _panel: PanelContainer
 var _label: Label
 var _elapsed: float = 0.0
 var _frames: int = 0
+var _console_elapsed: float = 0.0
 var _show_panel: bool = true
 var _print_to_console: bool = false
 
@@ -63,6 +66,7 @@ func on_world_ready(context: WorldContext) -> void:
 
 func _process(delta: float) -> void:
 	_elapsed += delta
+	_console_elapsed += delta
 	_frames += 1
 
 	if _elapsed < update_interval:
@@ -82,8 +86,9 @@ func _process(delta: float) -> void:
 
 	if _show_panel:
 		_label.text = snapshot
-	if _print_to_console:
+	if _print_to_console and _console_elapsed >= CONSOLE_INTERVAL:
 		print("[RuntimeStats]\n%s" % snapshot)
+		_console_elapsed = 0.0
 
 	_elapsed = 0.0
 	_frames = 0
