@@ -40,6 +40,8 @@ const GROUP: StringName = &"hinged_doors"
 @export_range(0.0, 1.0, 0.05) var closed_breach_multiplier: float = 0.05
 @export var breach: ShelterBreach
 @export var opening_size: Vector2 = Vector2(1.5, 2.25)
+## Depth of the wall the frame sits in; Henry's traversal and the camera read it.
+@export var wall_thickness_m: float = 0.2
 @export var latch_audio: AudioStreamPlayer3D
 
 @export_group("Hinge dynamics")
@@ -138,6 +140,7 @@ func _ready() -> void:
 	if player_animation_action == &"":
 		player_animation_action = &"none"
 	add_to_group(GROUP)
+	add_to_group(PassageInfo.GROUP)
 	_latched = not starts_open
 	current_angle_rad = _open_sign() * deg_to_rad(minf(absf(open_angle_deg), 80.0)) if starts_open else 0.0
 	angular_velocity = 0.0
@@ -188,6 +191,31 @@ func is_swinging() -> bool:
 
 func can_interact() -> bool:
 	return super() and door_hinge != null
+
+
+## The doorway as a passage for Henry and the camera; null while the leaf is latched.
+## An open leaf stands at the hinge jamb and takes its thickness off the opening.
+func get_passage_info() -> PassageInfo:
+	if _latched or door_hinge == null:
+		return null
+	var frame: Transform3D = global_transform.orthonormalized()
+	var info := PassageInfo.new()
+	var axis: Vector3 = frame.basis.z
+	axis.y = 0.0
+	info.axis = axis.normalized() if axis.length_squared() > 1e-6 else Vector3.FORWARD
+	info.center = frame.origin - Vector3.UP * opening_size.y * 0.5
+	info.clear_width = opening_size.x
+	if _leaf != null and is_open():
+		var thickness: float = _half_thickness() * 2.0
+		var across: Vector3 = frame.basis.x
+		across.y = 0.0
+		info.clear_width -= thickness
+		info.center -= across.normalized() * signf(door_hinge.position.x) * thickness * 0.5
+	info.clear_height = opening_size.y
+	info.wall_thickness = wall_thickness_m
+	info.authored = true
+	info.source_id = get_instance_id()
+	return info
 
 
 func _on_interaction_performed() -> void:

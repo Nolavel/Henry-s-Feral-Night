@@ -5,6 +5,65 @@ Maintained per branch; entries are added by whoever makes the change.
 
 ## [Unreleased] — `codex`
 
+### 2026-10-01 - Doorway camera: compose before the jamb, never fade (claudeflow, after #170)
+
+- Author's direction: "360° freedom of view != 360° physical orbit". `TpsCamera`
+  splits the **view** (where the player looks; only the mouse turns it) from the
+  **orbit** (where the camera body may stand). In a doorway the body is held in a
+  cone derived from the opening; the view may look past it only while Henry stays
+  in frame. Outside doorways both are the same, as before.
+- Passage data is authored, not guessed:
+  - `PassageInfo` describes it: plane, axis, clear width and height, wall depth,
+    shoulder side, and optional yaw limit, distance and FOV.
+  - It comes from a new `NarrowPassage` marker or from an open `HingedDoor`
+    (new `wall_thickness_m`).
+  - The raycast guess stays as the fallback. It now finds the door plane and wall
+    depth; before, its centre moved with Henry.
+- `PassageTraversalComponent`:
+  - Walking at a passage engages it; standing in its frame does too. With no key
+    held, an approach lets go after 0.5 s.
+  - Past the threshold the traversal commits. Released keys carry Henry on until
+    his capsule is 0.3 m clear of the wall, then he stops. S reverses, and
+    sideways input is dropped.
+  - Without a key at the threshold nothing moves him. Neither the Hub, actions nor
+    scripted walks commit; `Player` passes that in.
+- Doorway framing, all derived from the passage:
+  - **Pre-compress.** The frame starts closing 1.0 m (plus a speed lead, more on a
+    slanted approach) before Henry's capsule reaches the wall. It stays closed
+    while the boom behind him crosses the frame. It closes at rate 8 and opens at
+    rate 3. A camera leading Henry backwards frames the door before he reaches it.
+  - **Shoulder.** Kept within half the free opening round the centre line, so it
+    slides inward or across when Henry is off-centre. Your shoulder choice is never
+    changed.
+  - **Boom.** 1.4 m less any wall depth beyond 0.2 m, at least 1.0 m.
+  - **Rise and FOV.** Rise is at most half the room under the lintel. FOV is +5°,
+    capped at 80°.
+  - **Cone.** Yaw room comes from the clear width, Henry's offset and the depth to
+    the far wall face; pitch room comes from the lintel and the floor. The cone
+    closes at once as Henry walks in, opens at the release rate, and ramps in over
+    0.5 m as the boom tip nears the wall.
+  - **Mouse.** Eases into a soft stop over 10°; looking back in is never eased.
+    The fixed ±35° stop and the hard mouse block are gone. Pitch stays free until
+    Henry would leave the frame.
+  - **Automatic turns.** Off in a doorway, and any standing offset glides out.
+- Recompose before fade: closer than 1.1 m to the eyes, the shoulder gives way to
+  the centre line, plus +3° FOV, if same-frame casts say that gives the boom room.
+  It never does so with Henry's back to a wall, where it would bring the camera
+  closer. The body fade is now the last resort.
+- `framing_pivot_share` puts the orbit pivot anywhere between the shoulder joints
+  (0, default, 1.40 m) and the coat (1, 1.52 m), for the author's pivot study.
+- Tests (not run here, the author runs them):
+  - New `test_doorway_camera` drives 12 scenarios through the real Key West
+    shelter door. It checks: no dither, no camera in a wall, no near clip, head
+    never occluded or off screen, no pops, FOV under 45°/s, control yaw only from
+    the mouse, Henry clear of the frame after a traversal, full mouse freedom
+    after the door. `-- <label> [pivot=<share>]` writes per-frame traces.
+  - `test_passage_traversal` adds: a key released in the door, and authored
+    passages at 1.45 × 2.20 and 1.60 × 2.30.
+- Baseline before this pass (Key West door, standing in the plane, 360° mouse
+  sweep at 144 fps): Henry dithered in 192 of 432 frames (max 0.79), the camera
+  came within 0.33 m of his head, and one 0.63 m single-frame pull-in.
+
 ### 2026-10-01 - Henry's measured body, doorway traversal (claudeflow, #170)
 
 - `HenryMetrics` (`data/characters/henry_metrics.tres`) holds Henry measured

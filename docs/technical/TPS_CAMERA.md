@@ -1,6 +1,8 @@
 # TPS camera
 
-Owner: Claude (`claudeflow`). Story: #170. Code: `scripts/systems/camera/`.
+Owner: Claude (`claudeflow`). Story: #170 and the doorway pass after it. Code:
+`scripts/systems/camera/`, `scripts/environment/passage/`,
+`scripts/actors/player/henry/components/passage_traversal_component.gd`.
 
 The gameplay camera is an over-the-shoulder follow camera in the line of
 Naughty Dog's player cameras (Uncharted 3, The Last of Us Part II) and Rockstar's
@@ -20,10 +22,14 @@ Unreal Fest sample.
   the camera eases back out.
 - **Thin things never move the camera.** Posts, planks, trunks, people and loose
   props let the boom pass; when they cross the view they turn see-through.
-- **A narrow doorway is a short traversal.** Holding a key along it carries
-  Henry through its centre, and the frame closes round him from behind. Only
-  where geometry leaves no room at all do his near parts dither out (head,
-  shoulder, pack; the legs stay); he is never cut out in one frame.
+- **Freedom of view is not a guaranteed physical orbit.** The mouse always
+  turns the view. Where walls leave the camera body less room, in a doorway, it
+  orbits less, and the view may look past it only while Henry stays in frame.
+- **A doorway is composed before the jamb, and Henry never dithers in one.**
+  Approach, pre-compress, guided passage, soft release. Past the threshold the
+  traversal carries Henry clear of the frame even with the keys let go. His near
+  parts dither out only as a last resort, where geometry leaves no room at all
+  (head, shoulder, pack; the legs stay).
 - **The mouse owns where Henry walks.** WASD turns by the control yaw, and only
   the mouse (or `set_look`) changes it.
 - **The camera turns by itself only after the mouse has rested for 0.9 s**, and
@@ -52,7 +58,38 @@ the camera recentres behind a walking Henry; mouse response is P0.
 4. The rods judge how open the space is, every frame, which sets the boom
    length. They cover the camera's half of the circle (straight back weighs
    most) and the ceiling over Henry, so a wall in front of him does not count.
-5. The rig is swept (below), then the fades are updated.
+5. The passage blend is set from Henry's `PassageTraversalComponent` (below),
+   before the mouse is applied, so the soft stop reads this frame's doorway.
+6. The rig is swept (below), then the fades are updated.
+
+**Priority stack.** A lower layer never undoes a higher one.
+
+| # | Layer | What it owns |
+|---|---|---|
+| 1 | Teleport / load safety | snap, no smoothing |
+| 2 | Passage | blend, cone, shoulder share, boom cap, rise, FOV; turns auto-look off |
+| 3 | Hard wall collision | sphere sweeps snap the boom in |
+| 4 | Mouse | the control look; soft stop only at the passage's limit |
+| 5 | Shoulder framing | side, lean, recompose to the centre line |
+| 6 | Adaptive distance | openness rods |
+| 7 | Auto-look | room search, recentre, whiskers; only after the mouse rests, never in a passage |
+| 8 | Breathing | presentation only |
+
+The body fade is not a layer. It is the last resort when 1–6 still leave the
+camera inside Henry's reach.
+
+**Spaces.**
+
+| | Open ground | Interior (roof over Henry) | Narrow passage |
+|---|---|---|---|
+| Boom | up to 3.0 m (rods find room) | shorter: the ceiling rod and walls lower openness | 1.4 m less wall depth past 0.2 m, at least 1.0 m |
+| Shoulder | 0.85 m | shrinks with the boom to 20 % | within half the free opening round the centre line |
+| Physical orbit | free | free; walls snap the boom | cone from the opening |
+| Auto-look | recentre only matters | whiskers, room search after rest | off |
+| Recompose | — | when the centre line gives more room | same |
+
+Interior has no separate parameter set: it falls out of the rods and the ceiling
+cast. If testing shows it needs its own tuning, it gets its own profile.
 
 The camera node opts out of physics interpolation. Teleport sites call
 `reset_physics_interpolation()`: world spawn, sitting down and save load.
@@ -67,6 +104,10 @@ only the view.
   by it.
 - `_auto_yaw`, `_auto_pitch_deg`: the automatic offset. The view is control plus
   offset (`get_view_yaw()`, `get_view_pitch_deg()`).
+- The **orbit** is where the camera body stands, separate from the **view** it
+  looks along. Outside passages they are equal. In a passage the orbit is the
+  view clamped into the doorway's cone. The drawn rotation stays the view, so the
+  mouse never loses a degree to the geometry.
 - On mouse travel the offset folds into the control look, so the player takes
   over the view they see without a jump.
 - While movement keys steer, the recentre target is zero and the offset glides
@@ -137,60 +178,101 @@ scale or capsule changes. `TpsCamera` warns when the capsule no longer matches.
   pivot on the coat (0.10 m under the eyes), a camera pressed against a wall
   behind Henry sat 0.20 m from his eyes and hid him; `test_tps_camera_orbit`
   caught that.
-- **The eyes** are used for line of sight and the body fade.
+- **The eyes** are used for line of sight and the body fade. The eye height is
+  the midpoint of chin and crown, an approximation. A real eye landmark or an
+  authored `CameraEyeReference` on the skeleton would be exact; not urgent.
+- **Pivot study (author's call).** `framing_pivot_share` moves the pivot between
+  the shoulder joints (0, 1.40 m, default) and the coat (1, 1.52 m); 0.5 gives
+  1.46 m. Judge it by frame share, silhouette stability, head clearance, crouch
+  and the doorway, not by anatomy. Run the doorway test once per value:
+  `-- pivot0 pivot=0`, `-- pivot5 pivot=0.5`, `-- pivot10 pivot=1`. Compare
+  `height_share_mean`, `height_share_std`, `min_head_m`, `faded` in each
+  `summary.json`; `test_tps_camera_orbit` guards the back-to-wall case.
 - **Between stances** the heights follow the capsule's own height (2.0 ↔ 1.3)
   with one damp. A crouch drops Henry's eyes by 0.72 m; scaling 1.8 m by the
   capsule ratio would have put them 0.20 m too high.
 
-## Doorways (`PassageTraversalComponent`)
+## Doorways (`PassageInfo`, `PassageTraversalComponent`, `TpsPassageFraming`)
 
-Author's direction (#170): in a narrow doorway, keep Henry in frame through
-composition and a short traversal, not free orbit and not a fade.
+Author's direction (after #170): Hoarbound's camera is not a 360° orbit that
+must survive any geometry. In a normal door Henry never dithers. The order is
+**approach → pre-compress → Henry stays visible → guided passage → soft release**,
+never collision → collapse → fade.
 
-**Henry (physics, `PassageTraversalComponent` on the player):**
-- **Detection.** Every physics frame, at 1.3 m over the feet, opposite rays
-  look for two solid faces turned toward each other (normals within ~45° of
-  opposite), less than 1.9 m apart. Walking at a wall, the wall is scanned for
-  a floor-level gap 0.7–1.9 m wide, which is then measured from inside. Thin
-  props do not count, by the same rule as the boom.
-- **Short or corridor.** A gap is a doorway only if it opens up within 0.9 m
-  along its axis on at least one side. A corridor is narrow at both ends and
-  never starts a traversal.
-- **Steering.** While a movement key pushes along the axis (at least 25 % of
-  the input), the direction is bent toward the axis and onto the centre line.
-  The bend is full within 0.4 m of the door plane and gone 1.1 m past it. W
-  carries Henry through; S carries him back out. Animation, speed and
-  collision are unchanged, and nothing is teleported.
+### Where the passage comes from
 
-**Camera (`TpsCamera`):** a blend rises as Henry nears the door plane (full
-inside 0.35 m) and falls by 1.1 m past it. It drives:
+`PassageInfo` holds, in world space:
+- the door plane centre at floor height, the axis, the clear width and height;
+- the wall depth, which places the safe exit points either side;
+- the shoulder (player's, left, right, centre);
+- optional yaw limit, camera distance and FOV.
 
-| | Free | In the door |
+1. **Authored** (preferred). A `NarrowPassage` node (origin on the floor in the
+   middle of the opening, local Z across the wall), or an unlatched `HingedDoor`.
+   The door derives it from its own frame, `opening_size` and `wall_thickness_m`.
+   An open leaf takes its thickness off the hinge side. A latched door is no
+   passage.
+2. **Raycast guess** (fallback for unmarked geometry). Facing jamb rays find the
+   gap, as before, and a corridor is still no doorway. It now steps along the axis
+   to find where the jambs start and end, so the plane and wall depth are measured.
+   Before, the guessed centre moved with Henry.
+
+### Henry: `PassageTraversalComponent`
+
+All distances are from the wall face, with Henry's capsule (r 0.5) as the body.
+
+| State | When | What Henry does |
 |---|---|---|
-| Boom | open-space length | at most 1.4 m |
-| Shoulder offset | 0.85 m | 25 % (0.21 m) |
-| Pivot | shoulder joints | +0.15 m |
-| FOV | base | +6° |
-| View yaw | free | within ±35° of the passage axis; the mouse cannot push past |
-| Automatic turns | as usual | off |
+| Known | within reach + 1.5 m | nothing; the camera may frame a door it is backing into |
+| Engaged | a key pushes toward the plane (≥ 25 % along the axis) within 1.0 m + 0.3 s × speed, or Henry stands in the frame | steered onto the centre line, bend full near the plane |
+| Committed | engaged, a key along the axis, centre within 0.15 m of the wall face | carried along the axis: lateral input dropped, S reverses, released keys carry him on |
+| Done | capsule 0.3 m clear of the far face (0.9 m from the plane for a 0.2 m wall), or stalled 0.5 s with no key | stops; no autopilot |
 
-- **The frame closes fast and opens softly:** the blend damps at rate 12 on
-  the way in and at 3 on the way out. Each quantity reads that one blend, and
-  pivot heights are added after the follow lag, so nothing is smoothed twice.
-- **The body fade stays as a fallback** for geometry that leaves no room. It
-  is no longer the plan for a door.
+- An approach with no key held lets go after 0.5 s. Stopping short of the
+  threshold leaves Henry where he is, and the camera opens back out.
+- Only the player's own keys commit. The Hub, a working action and a scripted
+  walk (`move_to_position`) never do; `Player` passes that in.
+- No teleport: speed, animation and collision are the normal walk.
 
-**Fit, from the measured body** (shelter door 1.46 m clear with the leaf open,
-2.25 m high):
+### Camera: `TpsCamera` with `TpsPassageFraming`
 
-| Room per side, walking the centre line | 1.46 m door | 1.2 m stress case |
+**Blend.** It is 1 while Henry's capsule or the boom behind him is in the frame.
+It falls over 1.0 m of space, plus 0.3 s × speed, ×1.5 at a 90° approach. The
+space is measured from Henry on his way in, and from the predicted camera on its
+way out or when it leads Henry backwards. The prediction uses the passage boom,
+not the current one, so the blend never feeds itself. Before Henry engages, only
+a boom running along the axis into the opening counts, so walking past a door
+along a wall leaves the camera alone. It closes at rate 8 and opens at rate 3.
+
+**Composition, all derived from the passage:**
+
+| | Rule | Shelter door 1.46 × 2.25, wall 0.2 |
 |---|---|---|
-| Capsule Ø 1.00 | 0.23 m | 0.10 m |
-| Visual body 0.60 | 0.43 m | 0.30 m |
-| Camera on the axis (sphere 0.2 + margin 0.1): largest shoulder offset | 0.43 m | 0.30 m |
+| Boom | `passage_boom` 1.4 less wall depth past 0.2, ≥ 1.0; authored distance wins | 1.4 m |
+| Shoulder | player's side, kept within `band × 0.5` round the centre line (band = half width − 0.3) | ≤ 0.22 m; slides across when Henry is off-centre |
+| Rise | ≤ 0.15 m and ≤ half the room under the lintel | 0.15 m |
+| FOV | +5° (authored wins), total ≤ 80° | 75° |
+| Orbit cone, yaw | the boom keeps within the band to the far face, or to its tip if shorter: `max(atan(room/depth), asin(room/boom))` per side | ~90° in the plane, ~18° with the boom fully through |
+| Orbit cone, pitch | same, against the lintel (−0.3) and the floor (+0.3) | ~17–45° elevation |
+| View yaw soft stop | cone + (half horizontal FOV − 8°); an authored yaw limit caps it | ≥ 60° at 16:9 |
+| View pitch soft stop | cone + (half vertical FOV − 8°) | |
+| Auto-look | off; any standing offset glides out at 120°/s | |
 
-The doorway shoulder (0.21 m) fits both. Under the lintel, the camera passes
-behind Henry at about 2.0 m with the default pitch, against a 2.25 m opening.
+- **The cone closes at once and opens softly** (release rate 3). It ramps in
+  over 0.5 m as the boom tip nears the wall, so it never snaps in or out in one
+  frame.
+- **The mouse is never blocked.** It eases into the soft stop over 10°, and
+  looking back in is always free. The control yaw changes only by the mouse.
+  Once Henry and the camera are clear, the cone and the stop are gone.
+
+### Recompose before fade
+
+When the camera, after walls, would sit closer than 1.1 m to Henry's eyes, it
+compares two booms with stateless casts in the same frame: from the shoulder,
+and from the centre line. If the centre line gives at least 5 cm more room, the
+shoulder gives way to it, fully at 0.8 m, with +3° FOV. It goes in at rate 12
+and out at rate 2. With Henry's back to a wall the centre line is worse, so
+nothing changes. Only then does the body fade, as before.
 
 ## What stops the boom
 
@@ -253,6 +335,38 @@ move only the view offset, never the control yaw.
   aside): `user://shots/tps_doorway/<label>/`. No frames were rendered for
   the doorway pass; the author reviews it locally.
 - `tools/runtime/measure_henry_metrics.gd` rebuilds `HenryMetrics`.
+- `tests/systems/test_doorway_camera.gd` is the doorway acceptance test, on
+  the real Key West shelter door (1.46 clear with the leaf open, 2.25 high, wall
+  0.2). It runs 12 scenarios:
+  - W straight; W 35° off; stop 0.7 m short; W released past the plane;
+  - W in, then S from the plane; S backwards from inside, camera leading;
+  - hard mouse yaw ±100–200° inside; mouse pitch down and up;
+  - left shoulder; crouched; leaf 40° open;
+  - standing in the plane with 360° sweeps at −10/−40/+30.
+
+  Every frame must have:
+  - no dither, no camera inside geometry, no near-plane clip;
+  - the head unoccluded and Henry in the frustum;
+  - no pop (over 0.15 m in a frame and faster than 6 m/s);
+  - FOV under 45°/s, and the control yaw turned only on mouse frames.
+
+  After a traversal Henry must rest 0.6 m clear of the plane, and 90° of mouse
+  must turn the yaw exactly 90°. Add `--fixed-fps 144` and a label for per-frame
+  CSVs under `user://traces/tps_doorway/<label>/`.
+
+### Doorway pass after #170: before
+
+Key West door, `trace_tps_camera.gd shelter` at 144 fps, standing in the plane
+with a 360° mouse sweep, on `c715600` before this pass:
+
+| Pitch | Frames dithered | Max fade | Closest to the head | Largest one-frame pull-in |
+|---|---|---|---|---|
+| −10° | 192 / 432 | 0.79 | 0.33 m | 0.63 m |
+| −40° | 158 / 432 | 0.88 | 0.30 m | 0.78 m |
+| +30° | 84 / 432 | 0.18 | 0.66 m | 0.02 m |
+
+After: not measured here. The author runs `test_doorway_camera` and the traces
+locally; record the after column from that run.
 
 Before (`a604f60`) → after (#170, with the review fixes), TestScene at 144 fps:
 
@@ -302,22 +416,27 @@ and dithers Henry until the mouse rests.
 ## Known limits
 
 - **There is physically no room for the camera beside Henry in a 1.2 m doorway**
-  (capsule radius 0.5 m). The traversal frames him from behind along the axis;
-  orbiting the mouse sideways in a doorway is limited to ±35°.
+  (capsule radius 0.5 m). The cone holds the camera body near the axis, and the
+  view looks past it. 1.2 m is a stress test only: no break, no clip, control
+  kept. Visual quality is judged on the production door.
+- **The doorway standard is not fixed yet.** The tests cover 1.45 × 2.20 and
+  1.60 × 2.30 with authored passages and the real 1.46 × 2.25 shelter door. Fix
+  the Hoarbound standard after the author's run.
 - **The capsule (Ø 1.0 m) is much wider than Henry (0.60 m).** His coat stops
-  0.2 m short of a wall, while the pack (0.54 m behind his axis) reaches 4 cm
-  past the capsule. The capsule size and the doorway standard are design and
-  level calls; 1.5 m with the leaf open (1.46 clear) by 2.25 m is the working
-  hypothesis, and 1.2 m is the stress case.
-- **Releasing the keys inside a doorway stops Henry there.** The traversal
-  only acts while a key pushes along the passage.
-- **A wall between camera and Henry still snaps the boom**, by decision: up to
-  about 1 m in one frame on a sideways door pass, and 0.3–0.45 m when the
-  camera behind Henry grazes the jamb on the way out.
+  0.2 m short of a wall, and the pack (0.54 m behind his axis) reaches 4 cm past
+  the capsule. That is a separate task, not camera tuning: it covers the feeling
+  of walking into air, doorways, wall contact, stairs, the door leaf and the pack.
+- **A partly open leaf is not in the passage data.** Henry pushes it as before,
+  and the boom treats it as a wall until it swings clear.
+- **A wall between camera and Henry still snaps the boom**, by decision. In a
+  doorway the cone keeps the boom off the jambs, so normal passes should not
+  snap at all.
 - **While an automatic view offset stands, W walks along the control yaw, not
   the screen centre.** That is the price of WASD never following automatic
   turns. The first mouse motion folds the offset in, and steering keys glide it
   back out.
+- **In a passage, W walks along the control yaw even when the camera body sits
+  off it.** The view and WASD stay on the mouse; only the camera position bends.
 - **Space queries run in `_process`.** That is safe while physics runs on the
   main thread (the project default).
 - **Occluder fades use the transparent pipeline** while they are active.

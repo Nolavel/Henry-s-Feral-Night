@@ -135,8 +135,9 @@ func _physics_process(delta: float) -> void:
 		jump_is_pressed = false
 		jump_just_released = false
 		sprint_is_pressed = false
+	## Only the player's own keys may commit a doorway traversal that carries Henry on.
 	if _passage != null:
-		world_dir = _passage.steer(world_dir)
+		world_dir = _passage.steer(world_dir, not movement_locked and not _walking_to_target)
 	_face_towards(world_dir, delta)
 	input_dir = global_transform.basis.orthonormalized().inverse() * world_dir
 
