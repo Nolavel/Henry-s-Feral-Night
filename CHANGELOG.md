@@ -5,6 +5,14 @@ Maintained per branch; entries are added by whoever makes the change.
 
 ## [Unreleased] — `codex`
 
+### 2026-10-01 - Dev map marker aligned to Henry's geographic position (codex)
+
+- Fixed the primary marker drift: SubViewportContainer stretch can resize the live SubViewport, but the marker conversion incorrectly scaled Camera3D output against the initial 640×360 allocation a second time.
+- Marker projection now converts from the live SubViewport size to the actual displayed map rect instead of a hardcoded render size.
+- Henry's exact X/Z is projected onto the live IslandTerrain height; worlds without terrain fall back to the bottom of Henry's collision capsule instead of a point above his body.
+- Existing dev-map regression coverage now checks live viewport-to-panel projection, ground projection and X/Z tracking after movement.
+- Dev-map capture records a second full frame after Henry moves so positional alignment can be visually reviewed.
+
 ### 2026-10-01 - Runtime performance panel moved into World developer tools (codex)
 
 - `StatsDisplay` now shows FPS, frame time, process time, physics-process time and engine-session uptime directly in the panel.

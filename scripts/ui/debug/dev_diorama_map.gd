@@ -223,6 +223,7 @@ func _build_ui() -> void:
 	_marker.add_theme_color_override("font_outline_color", Color(0.02, 0.02, 0.025, 0.95))
 	_marker.add_theme_constant_override("outline_size", 4)
 	_map_area.add_child(_marker)
+	_marker.reset_size()
 
 
 func _panel_style() -> StyleBoxFlat:
@@ -248,22 +249,60 @@ func _update_camera() -> void:
 func _update_marker() -> void:
 	if _marker == null or _camera == null or _player == null or _map_area == null:
 		return
-	var world_point: Vector3 = _player.global_position + Vector3.UP * 1.2
-	if _camera.is_position_behind(world_point) or _map_area.size.x <= 1.0 or _map_area.size.y <= 1.0:
+	var world_point: Vector3 = _marker_world_point()
+	if _camera.is_position_behind(world_point):
 		_marker.visible = false
 		return
-	var point: Vector2 = _camera.unproject_position(world_point)
-	var scale_to_panel := Vector2(
-		_map_area.size.x / float(RENDER_SIZE.x),
-		_map_area.size.y / float(RENDER_SIZE.y)
-	)
-	_marker.position = point * scale_to_panel - Vector2(9.0, 9.0)
+	var marker_center: Vector2 = _project_world_to_map(world_point)
+	if not is_finite(marker_center.x) or not is_finite(marker_center.y):
+		_marker.visible = false
+		return
+	_marker.position = marker_center - _marker.size * 0.5
 	_marker.visible = (
-		_marker.position.x > -18.0
-		and _marker.position.y > -18.0
-		and _marker.position.x < _map_area.size.x
-		and _marker.position.y < _map_area.size.y
+		marker_center.x >= 0.0
+		and marker_center.y >= 0.0
+		and marker_center.x <= _map_area.size.x
+		and marker_center.y <= _map_area.size.y
 	)
+
+
+## Camera3D returns coordinates in its live SubViewport. SubViewportContainer
+## with stretch enabled may resize that viewport, so RENDER_SIZE is only an
+## initial allocation and must never be used as the runtime conversion scale.
+func _project_world_to_map(world_point: Vector3) -> Vector2:
+	if _camera == null or _viewport == null or _map_container == null:
+		return Vector2(INF, INF)
+	var viewport_size := Vector2(_viewport.size)
+	if viewport_size.x <= 1.0 or viewport_size.y <= 1.0:
+		return Vector2(INF, INF)
+	if _map_container.size.x <= 1.0 or _map_container.size.y <= 1.0:
+		return Vector2(INF, INF)
+	var viewport_point: Vector2 = _camera.unproject_position(world_point)
+	var scale_to_display := Vector2(
+		_map_container.size.x / viewport_size.x,
+		_map_container.size.y / viewport_size.y
+	)
+	return _map_container.position + viewport_point * scale_to_display
+
+
+## Geographic marker position: Henry's X/Z projected onto the world surface.
+## Never use body/chest height here — this is an oblique perspective map, so a
+## vertical offset becomes a false horizontal offset on screen.
+func _marker_world_point() -> Vector3:
+	var point: Vector3 = _player.global_position if _player != null else Vector3.ZERO
+	if _terrain != null and is_instance_valid(_terrain) and _terrain.heightmap != null:
+		point.y = _terrain.get_height(point.x, point.z)
+		return point
+
+	## Fallback for fixtures/worlds without IslandTerrain: use the bottom of
+	## Henry's collision capsule rather than the CharacterBody origin.
+	if _player != null:
+		var collision := _player.find_child("Main_Collision", true, false) as CollisionShape3D
+		if collision != null:
+			var capsule := collision.shape as CapsuleShape3D
+			if capsule != null:
+				point.y = collision.global_position.y - capsule.height * 0.5 * collision.global_basis.y.length()
+	return point
 
 
 func _refresh_labels() -> void:
