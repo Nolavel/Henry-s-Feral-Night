@@ -1,13 +1,12 @@
-[gd_resource type="Resource" script_class="ItemResource" load_steps=3 format=3]
+[gd_resource type="Resource" script_class="ItemResource" format=3 uid="uid://bw82gyv0e4t1y"]
 
-[ext_resource type="Script" path="res://core/items/item_resource.gd" id="item"]
-[ext_resource type="Script" path="res://core/items/held_fit.gd" id="fit_script"]
+[ext_resource type="Script" uid="uid://cix8jgl8q6mss" path="res://core/items/held_fit.gd" id="fit_script"]
+[ext_resource type="Script" uid="uid://cg2frilcr5ygl" path="res://core/items/item_resource.gd" id="item"]
 
 [sub_resource type="Resource" id="HeldFit_flare"]
 script = ExtResource("fit_script")
-hand = 0
-offset = Vector3(0, 0.12, 0.06)
-rotation_deg = Vector3(-55, 0, 90)
+offset = Vector3(0.055, 0.1, 0.05)
+rotation_deg = Vector3(85.99999, 0, 0)
 
 [resource]
 script = ExtResource("item")
@@ -15,6 +14,5 @@ id = &"road_flare"
 display_name = "Road flare"
 weight = 0.2
 max_stack = 6
-size_class = 0
 prefer_quick_access = true
 held_fit = SubResource("HeldFit_flare")
