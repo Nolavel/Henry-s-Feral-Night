@@ -91,7 +91,7 @@ func _process(delta: float) -> void:
 
 func _format_session_uptime() -> String:
 	var total_seconds: int = int(Time.get_ticks_msec() / 1000)
-	var hours: int = total_seconds / 3600
-	var minutes: int = (total_seconds % 3600) / 60
+	var hours: int = floori(float(total_seconds) / 3600.0)
+	var minutes: int = floori(float(total_seconds % 3600) / 60.0)
 	var seconds: int = total_seconds % 60
 	return "%02d:%02d:%02d" % [hours, minutes, seconds]
