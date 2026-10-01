@@ -108,6 +108,8 @@ func _clear_item_preview() -> void:
 func _clear_authoring_context() -> void:
 	_set_preview_playing(false)
 	_selected_animation = &""
+	if is_instance_valid(_skeleton):
+		_skeleton.reset_bone_poses()
 	if is_instance_valid(_animation_player):
 		_animation_player.stop()
 		if _animation_player.get_parent() != null:
@@ -334,10 +336,8 @@ func _show_rest_pose() -> void:
 	_time_slider.set_value_no_signal(0.0)
 	if _animation_player != null:
 		_animation_player.stop()
-		if _animation_player.has_animation(&"RESET"):
-			_animation_player.play(&"RESET")
-			_animation_player.pause()
-			_animation_player.seek(0.0, true)
+	if is_instance_valid(_skeleton):
+		_skeleton.reset_bone_poses()
 	_update_time_label()
 
 
