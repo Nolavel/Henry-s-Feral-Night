@@ -3,7 +3,7 @@
 [ext_resource type="Script" path="res://addons/item_fitter/item_fitter_dock.gd" id="1_dock"]
 
 [node name="ItemFitter" type="Control"]
-custom_minimum_size = Vector2(0, 235)
+custom_minimum_size = Vector2(0, 285)
 layout_mode = 3
 anchors_preset = 15
 anchor_right = 1.0
@@ -55,6 +55,20 @@ layout_mode = 2
 max_value = 1.0
 step = 0.01
 
+[node name="PlaybackRow" type="HBoxContainer" parent="Layout"]
+layout_mode = 2
+
+[node name="PlayButton" type="Button" parent="Layout/PlaybackRow"]
+custom_minimum_size = Vector2(72, 0)
+layout_mode = 2
+text = "Play"
+
+[node name="TimeLabel" type="Label" parent="Layout/PlaybackRow"]
+layout_mode = 2
+size_flags_horizontal = 3
+text = "0.00 / 0.00 s"
+horizontal_alignment = 2
+
 [node name="Buttons" type="HBoxContainer" parent="Layout"]
 layout_mode = 2
 
@@ -65,7 +79,6 @@ text = "Save to item"
 
 [node name="RevertButton" type="Button" parent="Layout/Buttons"]
 layout_mode = 2
-size_flags_horizontal = 3
 text = "Revert"
 
 [node name="Status" type="Label" parent="Layout"]
