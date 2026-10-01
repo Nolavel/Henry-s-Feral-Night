@@ -4,8 +4,8 @@ extends SceneTree
 
 const MAIN_SCENE: String = "res://scenes/world/key_west/key_west.tscn"
 const OUT_DIR: String = "res://docs/runtime_previews/dev_diorama_map"
-const BIND_FRAME: int = 35
-const FIRST_CAPTURE_FRAME: int = 240
+const BIND_FRAME: int = 20
+const FIRST_CAPTURE_FRAME: int = 60
 
 var _scene: Node3D
 var _player: Player
@@ -35,7 +35,7 @@ func _process(_delta: float) -> bool:
 		_capture_full("01_follow_with_labels")
 		_capture_map("02_map_labels_close")
 		_player.global_position += Vector3(24.0, 0.0, -18.0)
-		_next_capture = _frame + 90
+		_next_capture = _frame + 20
 		_phase = 1
 		return false
 
