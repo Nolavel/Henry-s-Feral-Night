@@ -135,6 +135,9 @@ uniform float cloud_shape_contrast : hint_range(0.0, 1.0, 0.01) = 0.52;
 uniform float cloud_shadow_strength : hint_range(0.0, 1.0, 0.01) = 0.34;
 // Legacy name: this value is the cloud-mask threshold. Lower = more visible cloud.
 uniform float cloud_coverage : hint_range(0.0, 0.95, 0.01) = 0.34;
+// Upper edge of the cloud-mask smoothstep. Lower values make surviving noise
+// become a readable cloud body sooner without changing the noise itself.
+uniform float cloud_mask_top : hint_range(0.4, 0.95, 0.01) = 0.92;
 uniform float cloud_opacity : hint_range(0.0, 1.0, 0.01) = 0.92;
 uniform vec4 cloud_sun_color : source_color = vec4(1.0);
 uniform float cloud_sun_energy : hint_range(0.0, 32.0, 0.1) = 1.0;
@@ -455,7 +458,7 @@ vec3 hfn_apply_parallax_clouds(vec3 atmosphere_color, vec3 sun_direction, vec3 e
 	);
 	cloud_height = mix(cloud_height, depth_height, 0.42);
 
-	float cloud_mask = smoothstep(cloud_coverage, 0.92, cloud_height);
+	float cloud_mask = smoothstep(cloud_coverage, max(cloud_mask_top, cloud_coverage + 0.02), cloud_height);
 	float view_up = clamp(eye_direction.y, 0.0, 1.0);
 	float transmission = hfn_cloud_beer(
 		cloud_density,

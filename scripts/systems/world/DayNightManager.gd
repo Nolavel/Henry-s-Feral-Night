@@ -53,6 +53,7 @@ const DUSK_END_HOUR: float = 22.0
 ## it by at most this amount so storms thicken the deck without flattening the
 ## whole sky into a solid sheet.
 const WEATHER_CLOUD_THRESHOLD_DROP_MAX: float = 0.10
+const WEATHER_CLOUD_MASK_TOP_DROP_MAX: float = 0.22
 
 @export var perfomance_visible_display: bool = true
 @export var sky_shader: Shader = DEFAULT_SKY_SHADER
@@ -577,6 +578,19 @@ func apply_weather_visual_profile(profile: WeatherProfile) -> void:
 		0.68
 	)
 	sky_material.set_shader_parameter("cloud_coverage", cloud_threshold)
+	## The upper smoothstep edge controls how quickly surviving cloud noise
+	## reaches opaque body. Keep clear weather at the authored 0.92, but lower
+	## it in snow so cloud masses become readable instead of remaining faint haze.
+	var cloud_mask_top: float = lerpf(0.92, 0.92 - WEATHER_CLOUD_MASK_TOP_DROP_MAX, snow)
+	sky_material.set_shader_parameter("cloud_mask_top", cloud_mask_top)
+	sky_material.set_shader_parameter(
+		"cloud_shape_contrast",
+		lerpf(0.52, 0.70, snow)
+	)
+	sky_material.set_shader_parameter(
+		"cloud_shadow_strength",
+		lerpf(0.34, 0.50, snow)
+	)
 	sky_material.set_shader_parameter(
 		"cloud_density",
 		settings.cloud_density * lerpf(0.88, 1.18, snow)

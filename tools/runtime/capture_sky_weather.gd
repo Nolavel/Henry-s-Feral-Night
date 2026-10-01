@@ -15,6 +15,7 @@ var _scene: Node3D
 var _player: Player
 var _weather: WeatherController
 var _day_night: DayNightManager
+var _camera: TpsCamera
 var _frame: int = 0
 var _shot: int = 0
 var _next_capture: int = FIRST_CAPTURE_FRAME
@@ -60,7 +61,8 @@ func _bind() -> bool:
 	_player = get_first_node_in_group(&"player") as Player
 	_weather = get_first_node_in_group(&"weather_controller") as WeatherController
 	_day_night = _scene.get_node_or_null(^"WorldEnvironmentSystem/DayNightManager") as DayNightManager
-	if _player == null or _weather == null or _day_night == null:
+	_camera = _scene.get_node_or_null(^"PlayerCamera") as TpsCamera
+	if _player == null or _weather == null or _day_night == null or _camera == null:
 		return false
 	if _weather.profiles.is_empty() or _day_night.sky_material == null:
 		return false
@@ -69,6 +71,13 @@ func _bind() -> bool:
 	if splash != null:
 		splash.queue_free()
 	_player.set_physics_process(false)
+	## Freeze the runtime TPS transform and tilt it upward so this acceptance
+	## capture judges the cloud deck itself instead of mostly ground/fog.
+	_camera.set_physics_process(false)
+	var sky_rotation := _camera.global_rotation
+	sky_rotation.x = deg_to_rad(24.0)
+	_camera.global_rotation = sky_rotation
+	_camera.make_current()
 
 	## Lock all three frames to the same noon lighting and the same TPS camera.
 	_day_night.total_game_time_hours = 12.0
@@ -94,6 +103,9 @@ func _capture_current() -> void:
 	var threshold := float(_day_night.sky_material.get_shader_parameter("cloud_coverage"))
 	var density := float(_day_night.sky_material.get_shader_parameter("cloud_density"))
 	var opacity := float(_day_night.sky_material.get_shader_parameter("cloud_opacity"))
+	var mask_top := float(_day_night.sky_material.get_shader_parameter("cloud_mask_top"))
+	var shape_contrast := float(_day_night.sky_material.get_shader_parameter("cloud_shape_contrast"))
+	var shadow_strength := float(_day_night.sky_material.get_shader_parameter("cloud_shadow_strength"))
 	_thresholds.append(threshold)
 	_report_rows.append({
 		"profile": String(profile.id),
@@ -101,6 +113,9 @@ func _capture_current() -> void:
 		"cloud_mask_threshold": threshold,
 		"cloud_density": density,
 		"cloud_opacity": opacity,
+		"cloud_mask_top": mask_top,
+		"cloud_shape_contrast": shape_contrast,
+		"cloud_shadow_strength": shadow_strength,
 	})
 	var path := "%s/%s.png" % [OUT_DIR, SHOT_NAMES[_shot]]
 	root.get_texture().get_image().save_png(path)
@@ -109,7 +124,10 @@ func _capture_current() -> void:
 		" snow=", profile.snowfall_density,
 		" threshold=", threshold,
 		" density=", density,
-		" opacity=", opacity
+		" opacity=", opacity,
+		" mask_top=", mask_top,
+		" shape=", shape_contrast,
+		" shadow=", shadow_strength
 	)
 
 
@@ -134,7 +152,7 @@ func _validate_threshold_order() -> bool:
 
 func _write_report() -> void:
 	var report := {
-		"camera_contract": "same runtime TPS camera, player position and noon lighting for all three frames",
+		"camera_contract": "same runtime TPS camera position and noon lighting; camera tilted upward 24 deg for cloud readability",
 		"threshold_semantics": "lower cloud_coverage uniform = more visible cloud",
 		"samples": _report_rows,
 	}
