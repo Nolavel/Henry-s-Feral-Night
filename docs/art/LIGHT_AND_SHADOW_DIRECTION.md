@@ -301,6 +301,21 @@ holds `stylized_shadow_brush_mix = 1` and `stylized_shadow_brush_mask` = dry.
 Flat stays in the repo; mix 0 brings back the value noise. A baked mask from
 Brushstroke Tools drops in as the same 1024² grey PNG.
 
+## Review angles for #156: predicted before rendering
+
+`capture_stylized_shadows.gd -- review` renders each angle as a physical/dry pair.
+The clock and Henry are frozen, so both frames share one sun. Weather is set
+instantly. Calm everywhere except the heavy-snow angle; the world's default
+weather is blizzard.
+
+| Angle | Setup | Prediction |
+|---|---|---|
+| Normal daylight | calm, 12:00, TPS 26 m north of the shelter | Like the blizzard noon frame, but the grade is lighter: brightness 1.03 vs 0.92, contrast 1.00 vs 0.94, saturation 1.00 vs 0.86. Henry's shadow is ~1 m long, all penumbra, all strokes. |
+| Heavy snow | blizzard, 12:00, same place | Sun and shadow shapes identical to calm, because weather changes only grade and sky. Shadow contrast ~6–10 % lower than calm, plus snowfall. |
+| City street | calm, 12:00, Duval Street block, camera along the street | Buildings 3.6–9 m cast 2.1–5.2 m shadows at 60° sun. Ground shadows break into strokes only within ~8.5 m; beyond that, clean three tones. Facades facing the camera keep strokes to 17–38 m. |
+| Shelter exterior | calm, 12:00, 11 m north of the shelter | The house's ground shadow lies ~9–14 m away, beyond the 8.5 m ground fade, so its edge is a clean toon cut. Strokes show only on the nearest part and on the walls. **Risk to judge:** whether a building shadow at 10 m+ should still show brushwork. |
+| Low sun | calm, 16:30, TPS as normal daylight | Sun altitude 20.6°, azimuth 157.5°: the camera looks into the light, and Henry's 4.8 m shadow (4.6 × noon) runs toward the camera and out of frame. Penumbra stretched 2.8 × along the shadow. Key on flat snow is 18 % of noon (energy 0.67 × sin 20.6°) with the fill unchanged: lit snow L\* ≈ 50 (noon ≈ 88), shadow ΔL\* ≈ 19 (noon ≈ 56). Henry's camera-facing side is in shadow, edged by the rim. **Expected to look dim:** a palette issue, not the shadow method. |
+
 ## Henry's shadow in the shelter: measured
 
 Same night, same view, with and without Henry, firebox glow on and off. With

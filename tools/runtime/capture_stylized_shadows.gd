@@ -1,12 +1,19 @@
 extends SceneTree
 
 ## Production regression for the stylized-shadow contract: matched physical/stylized
-## Key West frames. `-- brush` compares spray masks; `-- shimmer` shifts the camera.
+## Key West frames. `-- brush` compares spray masks; `-- shimmer` shifts the camera;
+## `-- review` takes the author's review angles.
 
 const MAIN_SCENE: String = "res://scenes/world/key_west/key_west.tscn"
 const OUT_DIR: String = "res://docs/runtime_previews/stylized_shadows"
 const BRUSH_OUT_DIR: String = "res://docs/runtime_previews/shadow_brush"
 const SHIMMER_OUT_DIR: String = "res://docs/runtime_previews/shadow_shimmer"
+const REVIEW_OUT_DIR: String = "res://docs/runtime_previews/shadow_review"
+## Densest Duval Street block in the city snapshot: seven buildings within 25 m.
+const DUVAL := Vector2(-3072.7, 1374.3)
+const DUVAL_HEADING_DEG: float = 34.1
+## Extra queue steps while a far placement streams its city chunks in.
+const STREAM_WAIT_STEPS: int = 6
 ## About half a pixel on the ground 4-5 m ahead of the TPS camera.
 const SHIMMER_SHIFT_M: float = 0.003
 const BRUSH_MASKS: Dictionary[String, String] = {
@@ -26,6 +33,7 @@ var _terrain: IslandTerrain
 var _stove: HeatSource
 var _grade: ColorGradeController
 var _day_night: DayNightManager
+var _weather: WeatherController
 var _inside_camera: Camera3D
 var _frame: int = 0
 var _next_frame: int = FIRST_ACTION_FRAME
@@ -38,10 +46,13 @@ func _initialize() -> void:
 	OS.set_environment("HFN_WORLD", "key_west_test")
 	var brush: bool = OS.get_cmdline_user_args().has("brush")
 	var shimmer: bool = OS.get_cmdline_user_args().has("shimmer")
+	var review: bool = OS.get_cmdline_user_args().has("review")
 	if brush:
 		_out_dir = BRUSH_OUT_DIR
 	elif shimmer:
 		_out_dir = SHIMMER_OUT_DIR
+	elif review:
+		_out_dir = REVIEW_OUT_DIR
 	DirAccess.make_dir_recursive_absolute(ProjectSettings.globalize_path(_out_dir))
 	RenderingServer.global_shader_parameter_set(&"stylized_shadow_strength", 1.0)
 	_scene = (load(MAIN_SCENE) as PackedScene).instantiate() as Node3D
@@ -59,6 +70,16 @@ func _initialize() -> void:
 		return
 	if shimmer:
 		_queue = [_set_hour.bind(12.0), _place_outside, _freeze_motion, _shimmer_set]
+		return
+	if review:
+		_queue = [
+			_freeze_clock,
+			_review.bind("05_normal_daylight", &"calm", 12.0, _place_outside),
+			_review.bind("06_heavy_snow", &"blizzard", 12.0, _place_outside),
+			_review.bind("07_city_street", &"calm", 12.0, _place_street),
+			_review.bind("08_shelter_exterior", &"calm", 12.0, _place_outside.bind(11.0)),
+			_review.bind("09_low_sun_1630", &"calm", 16.5, _place_outside),
+		]
 		return
 	_queue = [
 		_set_hour.bind(12.0),
@@ -113,6 +134,8 @@ func _bind() -> void:
 		_grade = node as ColorGradeController
 	for node: Node in _scene.find_children("*", "DayNightManager", true, false):
 		_day_night = node as DayNightManager
+	for node: Node in _scene.find_children("*", "WeatherController", true, false):
+		_weather = node as WeatherController
 	var splash := _scene.get_node_or_null(^"StartupTitleCard")
 	if splash != null:
 		splash.queue_free()
@@ -195,8 +218,8 @@ func _set_hour(hour: float) -> void:
 		_day_night.total_game_time_hours = floorf(_day_night.total_game_time_hours / 24.0) * 24.0 + hour
 
 
-func _place_outside() -> void:
-	var at: Vector2 = SHELTER + (BUNKER - SHELTER).normalized() * 26.0
+func _place_outside(distance: float = 26.0) -> void:
+	var at: Vector2 = SHELTER + (BUNKER - SHELTER).normalized() * distance
 	var y: float = maxf(_terrain.get_height(at.x, at.y), 0.0) + 1.0
 	_player.global_position = Vector3(at.x, y, at.y)
 	var direction := (SHELTER - at).normalized()
@@ -207,6 +230,39 @@ func _place_outside() -> void:
 	var streaming := _find_streaming()
 	if streaming != null:
 		streaming.scan(_player.global_position)
+
+
+## Henry walks up Duval Street, the camera looking along it.
+func _place_street() -> void:
+	var y: float = maxf(_terrain.get_height(DUVAL.x, DUVAL.y), 0.0) + 1.0
+	_player.global_position = Vector3(DUVAL.x, y, DUVAL.y)
+	var yaw: float = deg_to_rad(DUVAL_HEADING_DEG) + PI
+	_player.global_rotation.y = yaw
+	if _camera != null:
+		_camera.set_look(yaw, _camera.start_pitch_deg)
+	var streaming := _find_streaming()
+	if streaming != null:
+		streaming.scan(_player.global_position)
+
+
+## Weather, hour and place for one review angle, then a physical/stylized pair once the
+## city has streamed in. The clock is frozen, so both frames share one sun.
+func _review(name: String, weather: StringName, hour: float, place: Callable) -> void:
+	if _weather != null:
+		_weather.set_weather(weather, true)
+	_set_hour(hour)
+	if _day_night != null:
+		_day_night.force_update_lighting()
+	place.call()
+	_queue.push_front(_pair.bind(name))
+	for i: int in STREAM_WAIT_STEPS:
+		_queue.push_front(func() -> void: pass)
+
+
+func _freeze_clock() -> void:
+	if _day_night != null:
+		_day_night.set_process(false)
+	_player.process_mode = Node.PROCESS_MODE_DISABLED
 
 
 ## Henry stands at the stove door (stove local +X); a fixed camera across the room
