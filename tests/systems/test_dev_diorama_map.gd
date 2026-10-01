@@ -49,6 +49,7 @@ func _test_enabled_world_toggles_and_follows() -> void:
 	_check(is_equal_approx(map.get_height_m(), 30.0), "map height is not fixed at 30 m")
 	_check(map.get_focus_world().distance_to(player.global_position) < 0.01, "map did not center on Henry")
 	_check((main_camera.cull_mask & DevDioramaMap.MAP_LABEL_MASK) == 0, "TPS camera still sees map-only labels")
+	_check_marker_tracks_ground_position(map, player)
 
 	map.set_process(false)
 	player.global_position += Vector3(20.0, 0.0, -10.0)
@@ -62,6 +63,40 @@ func _test_enabled_world_toggles_and_follows() -> void:
 	_dispose(map)
 
 
+func _check_marker_tracks_ground_position(map: DevDioramaMap, player: Node3D) -> void:
+	var fallback_point: Vector3 = map._marker_world_point()
+	_check(
+		Vector2(fallback_point.x, fallback_point.z).distance_to(Vector2(player.global_position.x, player.global_position.z)) < 0.001,
+		"marker X/Z does not match Henry"
+	)
+	_check(is_equal_approx(fallback_point.y, player.global_position.y - 1.0), "marker fallback is not at capsule ground")
+
+	var terrain := IslandTerrain.new()
+	terrain.heightmap = _constant_heightmap(0.75)
+	map._terrain = terrain
+
+	for offset: Vector3 in [Vector3(14.0, 0.0, 0.0), Vector3(0.0, 0.0, -11.0)]:
+		player.global_position += offset
+		var point: Vector3 = map._marker_world_point()
+		_check(
+			Vector2(point.x, point.z).distance_to(Vector2(player.global_position.x, player.global_position.z)) < 0.001,
+			"marker stopped matching Henry X/Z after movement"
+		)
+		_check(is_equal_approx(point.y, 0.75), "marker is not projected onto terrain height")
+
+
+func _constant_heightmap(height_m: float) -> IslandHeightmap:
+	var map := IslandHeightmap.new()
+	map.origin = Vector2(-1000.0, -1000.0)
+	map.metres_per_px = 2000.0
+	map.width = 2
+	map.height = 2
+	map.height_min = height_m
+	map.height_span = 0.0
+	map._data = PackedByteArray([0, 0, 0, 0, 0, 0, 0, 0])
+	return map
+
+
 func _make_fixture(enabled: bool) -> Dictionary:
 	var packed := load("res://scenes/ui/debug/dev_diorama_map.tscn") as PackedScene
 	var map := packed.instantiate() as DevDioramaMap
@@ -72,10 +107,17 @@ func _make_fixture(enabled: bool) -> Dictionary:
 	world.name = "World"
 	world.enable_runtime_dev_map = enabled
 	root.add_child(world)
-	var player := Node3D.new()
+	var player := CharacterBody3D.new()
 	player.name = "Player"
 	player.global_position = Vector3(12.0, 2.0, -8.0)
 	world.add_child(player)
+	var collision := CollisionShape3D.new()
+	collision.name = "Main_Collision"
+	var capsule := CapsuleShape3D.new()
+	capsule.radius = 0.5
+	capsule.height = 2.0
+	collision.shape = capsule
+	player.add_child(collision)
 	var main_camera := Camera3D.new()
 	world.add_child(main_camera)
 
