@@ -4,10 +4,14 @@ extends Control
 ## Hoarbound-specific authoring layer over ADT's Item Fitter.
 ##
 ## Runtime Henry builds his AnimationTree and hand sockets from GDScript, so the
-## editor deliberately does NOT run HenryUALAnimation as a @tool script. Instead
-## this dock mirrors the imported AnimationPlayer into an unowned editor-only
-## player, mounts the same UAL2 library, and scrubs the real editor skeleton.
+## editor deliberately does NOT run HenryUALAnimation as a @tool script. Godot's
+## edited scene exposes the imported GLB instance root without the runtime
+## AnimationPlayer, so this dock instantiates a complete unowned copy of Henry's
+## GLB for authoring, mounts the same UAL2 library, and scrubs that real skeleton.
 ## The item preview itself still uses the real HeldPropFactory + HeldFit contract.
+const DEFAULT_HENRY_MODEL_SCENE: PackedScene = preload(
+	"res://assets/characters/henry/henry_outfit.glb"
+)
 const DEFAULT_LEFT_BONE: StringName = &"hand_l"
 const DEFAULT_RIGHT_BONE: StringName = &"hand_r"
 const DEFAULT_SECONDARY_LIBRARY_NAME: StringName = &"UAL2"
@@ -22,8 +26,8 @@ var _preview_socket: BoneAttachment3D
 
 var _authoring_root: Node
 var _henry_visual: Node
+var _authoring_model: Node3D
 var _skeleton: Skeleton3D
-var _source_animation_player: AnimationPlayer
 var _animation_player: AnimationPlayer
 var _selected_animation: StringName = &""
 var _preview_playing: bool = false
@@ -108,16 +112,17 @@ func _clear_item_preview() -> void:
 func _clear_authoring_context() -> void:
 	_set_preview_playing(false)
 	_selected_animation = &""
-	if is_instance_valid(_skeleton):
-		_skeleton.reset_bone_poses()
 	if is_instance_valid(_animation_player):
 		_animation_player.stop()
-		if _animation_player.get_parent() != null:
-			_animation_player.get_parent().remove_child(_animation_player)
-		_animation_player.queue_free()
+	if is_instance_valid(_skeleton):
+		_skeleton.reset_bone_poses()
 	_animation_player = null
-	_source_animation_player = null
 	_skeleton = null
+	if is_instance_valid(_authoring_model):
+		if _authoring_model.get_parent() != null:
+			_authoring_model.get_parent().remove_child(_authoring_model)
+		_authoring_model.queue_free()
+	_authoring_model = null
 	_henry_visual = null
 	_authoring_root = null
 	_animation_button.clear()
@@ -166,7 +171,7 @@ func _rebuild_preview() -> void:
 	EditorInterface.get_selection().add_node(_preview)
 	_refresh_animations()
 	_set_status(
-		"Henry preview is editor-only. Pick/scrub a pose, move ItemFitPreview with the 3D gizmo, then Save to item."
+		"Henry authoring copy is live. Pick/scrub a pose, move ItemFitPreview with the 3D gizmo, then Save to item."
 	)
 
 
@@ -178,7 +183,7 @@ func _ensure_authoring_context() -> bool:
 	if root == null:
 		_set_status("Open HenryUALVisual.tscn or the Player scene first.")
 		return false
-	if is_instance_valid(_animation_player) and root == _authoring_root:
+	if is_instance_valid(_animation_player) and is_instance_valid(_authoring_model) and root == _authoring_root:
 		return true
 
 	_clear_authoring_context()
@@ -188,31 +193,29 @@ func _ensure_authoring_context() -> bool:
 		_set_status("No HenryUALAnimation visual found in the edited scene.")
 		return false
 
-	var model: Node = _henry_visual.get_node_or_null(^"Model")
-	if model == null:
-		model = _henry_visual
-	_skeleton = _find_skeleton(model)
-	_source_animation_player = _find_animation_player(model)
+	## Imported sub-scenes are intentionally opaque while editing their parent:
+	## the Model node is visible to EditorInterface, but its imported
+	## AnimationPlayer is not. Instantiate the exact same GLB as an unowned
+	## authoring copy so its full runtime node tree exists in the editor.
+	_authoring_model = DEFAULT_HENRY_MODEL_SCENE.instantiate() as Node3D
+	if _authoring_model == null:
+		_set_status("Could not instantiate Henry's authoring model.")
+		return false
+	_authoring_model.name = "ItemFitHenryPreview"
+	var scene_model := _henry_visual.get_node_or_null(^"Model") as Node3D
+	if scene_model != null:
+		_authoring_model.transform = scene_model.transform
+	_henry_visual.add_child(_authoring_model)
+	_authoring_model.owner = null
+
+	_skeleton = _find_skeleton(_authoring_model)
+	_animation_player = _find_animation_player(_authoring_model)
 	if _skeleton == null:
-		_set_status("Henry model has no Skeleton3D.")
+		_set_status("Henry authoring copy has no Skeleton3D.")
 		return false
-	if _source_animation_player == null or _source_animation_player.get_parent() == null:
-		_set_status("Henry model has no usable imported AnimationPlayer.")
+	if _animation_player == null:
+		_set_status("Henry authoring copy has no AnimationPlayer.")
 		return false
-
-	_animation_player = AnimationPlayer.new()
-	_animation_player.name = "ItemFitAnimationPreview"
-	_animation_player.root_node = _source_animation_player.root_node
-	_source_animation_player.get_parent().add_child(_animation_player)
-	_animation_player.owner = null
-
-	for library_name: StringName in _source_animation_player.get_animation_library_list():
-		var source_library: AnimationLibrary = _source_animation_player.get_animation_library(library_name)
-		if source_library == null:
-			continue
-		var library := source_library.duplicate(true) as AnimationLibrary
-		if library != null:
-			_animation_player.add_animation_library(library_name, library)
 
 	_add_secondary_library()
 	return true
