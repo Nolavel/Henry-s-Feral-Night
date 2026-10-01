@@ -3,7 +3,7 @@
 [ext_resource type="Script" path="res://addons/item_fitter/item_fitter_dock.gd" id="1_dock"]
 
 [node name="ItemFitter" type="Control"]
-custom_minimum_size = Vector2(0, 285)
+custom_minimum_size = Vector2(360, 760)
 layout_mode = 3
 anchors_preset = 15
 anchor_right = 1.0
@@ -69,6 +69,158 @@ size_flags_horizontal = 3
 text = "0.00 / 0.00 s"
 horizontal_alignment = 2
 
+[node name="PreviewFrame" type="SubViewportContainer" parent="Layout"]
+custom_minimum_size = Vector2(340, 360)
+layout_mode = 2
+size_flags_vertical = 3
+stretch = true
+mouse_filter = 0
+
+[node name="Preview" type="SubViewport" parent="Layout/PreviewFrame"]
+size = Vector2i(512, 512)
+own_world_3d = true
+render_target_update_mode = 4
+
+[node name="WorldRoot" type="Node3D" parent="Layout/PreviewFrame/Preview"]
+
+[node name="Camera3D" type="Camera3D" parent="Layout/PreviewFrame/Preview/WorldRoot"]
+current = true
+near = 0.05
+far = 30.0
+
+[node name="KeyLight" type="DirectionalLight3D" parent="Layout/PreviewFrame/Preview/WorldRoot"]
+rotation_degrees = Vector3(-48, -32, 0)
+light_energy = 1.35
+shadow_enabled = true
+
+[node name="FillLight" type="DirectionalLight3D" parent="Layout/PreviewFrame/Preview/WorldRoot"]
+rotation_degrees = Vector3(-25, 145, 0)
+light_energy = 0.55
+shadow_enabled = false
+
+[node name="ViewRow" type="HBoxContainer" parent="Layout"]
+layout_mode = 2
+
+[node name="ViewHint" type="Label" parent="Layout/ViewRow"]
+layout_mode = 2
+size_flags_horizontal = 3
+text = "LMB drag: orbit   Wheel: zoom"
+
+[node name="ResetViewButton" type="Button" parent="Layout/ViewRow"]
+layout_mode = 2
+text = "Reset view"
+
+[node name="TransformTitle" type="Label" parent="Layout"]
+layout_mode = 2
+text = "HeldFit transform"
+
+[node name="TransformGrid" type="GridContainer" parent="Layout"]
+layout_mode = 2
+columns = 4
+
+[node name="Header" type="Label" parent="Layout/TransformGrid"]
+layout_mode = 2
+text = ""
+
+[node name="HeaderX" type="Label" parent="Layout/TransformGrid"]
+layout_mode = 2
+text = "X"
+horizontal_alignment = 1
+
+[node name="HeaderY" type="Label" parent="Layout/TransformGrid"]
+layout_mode = 2
+text = "Y"
+horizontal_alignment = 1
+
+[node name="HeaderZ" type="Label" parent="Layout/TransformGrid"]
+layout_mode = 2
+text = "Z"
+horizontal_alignment = 1
+
+[node name="PosLabel" type="Label" parent="Layout/TransformGrid"]
+layout_mode = 2
+text = "Pos"
+
+[node name="PosX" type="SpinBox" parent="Layout/TransformGrid"]
+layout_mode = 2
+min_value = -2.0
+max_value = 2.0
+step = 0.005
+allow_greater = true
+allow_lesser = true
+
+[node name="PosY" type="SpinBox" parent="Layout/TransformGrid"]
+layout_mode = 2
+min_value = -2.0
+max_value = 2.0
+step = 0.005
+allow_greater = true
+allow_lesser = true
+
+[node name="PosZ" type="SpinBox" parent="Layout/TransformGrid"]
+layout_mode = 2
+min_value = -2.0
+max_value = 2.0
+step = 0.005
+allow_greater = true
+allow_lesser = true
+
+[node name="RotLabel" type="Label" parent="Layout/TransformGrid"]
+layout_mode = 2
+text = "Rot°"
+
+[node name="RotX" type="SpinBox" parent="Layout/TransformGrid"]
+layout_mode = 2
+min_value = -360.0
+max_value = 360.0
+step = 1.0
+allow_greater = true
+allow_lesser = true
+
+[node name="RotY" type="SpinBox" parent="Layout/TransformGrid"]
+layout_mode = 2
+min_value = -360.0
+max_value = 360.0
+step = 1.0
+allow_greater = true
+allow_lesser = true
+
+[node name="RotZ" type="SpinBox" parent="Layout/TransformGrid"]
+layout_mode = 2
+min_value = -360.0
+max_value = 360.0
+step = 1.0
+allow_greater = true
+allow_lesser = true
+
+[node name="ScaleLabel" type="Label" parent="Layout/TransformGrid"]
+layout_mode = 2
+text = "Scale"
+
+[node name="ScaleX" type="SpinBox" parent="Layout/TransformGrid"]
+layout_mode = 2
+min_value = 0.01
+max_value = 10.0
+step = 0.01
+value = 1.0
+allow_greater = true
+
+[node name="ScaleY" type="SpinBox" parent="Layout/TransformGrid"]
+layout_mode = 2
+min_value = 0.01
+max_value = 10.0
+step = 0.01
+value = 1.0
+allow_greater = true
+
+[node name="ScaleZ" type="SpinBox" parent="Layout/TransformGrid"]
+layout_mode = 2
+min_value = 0.01
+max_value = 10.0
+step = 0.01
+value = 1.0
+allow_greater = true
+
 [node name="Buttons" type="HBoxContainer" parent="Layout"]
 layout_mode = 2
 
@@ -83,6 +235,5 @@ text = "Revert"
 
 [node name="Status" type="Label" parent="Layout"]
 layout_mode = 2
-size_flags_vertical = 3
 autowrap_mode = 3
 text = "..."

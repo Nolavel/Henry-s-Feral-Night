@@ -1,127 +1,72 @@
 # Item Fitter — Hoarbound
 
-Hoarbound-specific authoring layer over ADT's `addons/item_fitter/` workflow.
+The Item Fitter is an editor-only dock for authoring how a one-hand item sits
+in Henry's hand.
 
-The production Henry animation graph is intentionally runtime-built in
-`HenryUALAnimation.gd`. The editor tool does **not** turn that controller into
-an `@tool` script and does not run the production `AnimationTree` in the
-editor. Instead it creates a temporary, unowned `AnimationPlayer` beside the
-imported player, copies Henry's UAL1 library, mounts the same UAL2 library used
-at runtime, and scrubs the real editor skeleton.
+## Safety architecture
 
-The hand socket and item preview are also temporary unowned nodes. Pressing
-Ctrl+S cannot serialize them into the character scene.
+The preview is completely isolated from the scene currently open in the Godot
+editor.
+
+The dock owns a private `SubViewport`, and inside it it instantiates:
+
+- `assets/characters/henry/henry_outfit.glb`;
+- the model's real `Skeleton3D` and `AnimationPlayer`;
+- the production UAL2 animation library;
+- a private `BoneAttachment3D`;
+- the real held prop created by `HeldPropFactory`.
+
+The tool never adds temporary nodes to
+`EditorInterface.get_edited_scene_root()` and never frees nodes from the
+user's edited scene. This is intentional: Godot warns that freeing nodes from
+tool scripts can crash the editor when those nodes are being used by the
+editor.
 
 ## Enable
 
 Project → Project Settings → Plugins → **Item Fitter** → Enable.
 
-The plugin remains editor-only and is intentionally not forced on in
-`project.godot`.
+The addon is not force-enabled in `project.godot`.
 
-## Recommended setup
+## Use
 
-1. Open `scenes/actors/player/HenryUALVisual.tscn`.
-   `scenes/actors/player/player.tscn` also works, but the visual-only scene is
-   cleaner for fitting.
-2. Enable **Item Fitter** if it is not already enabled.
-3. Open the **Item Fit** dock (right/bottom dock area).
-4. In **Item**, choose the real `ItemResource` from `data/items/`.
-5. Choose the hand:
-   - **Left / primary** → Henry's `hand_l` socket.
-   - **Right / offhand** → Henry's `hand_r` socket.
-6. In **Pose**, choose the animation you want to judge the grip against.
-   The list contains the imported UAL1 clips plus the same **UAL2/** library
-   mounted in production.
-7. Use **Play** to watch the clip, then pause and drag the time slider to the
+1. Open the **ItemFitter** dock. No particular character scene needs to be open.
+2. **Item** → choose an `ItemResource`, for example
+   `data/items/road_flare.tres`.
+3. **Hand**:
+   - `Left / primary` = `hand_l`;
+   - `Right / offhand` = `hand_r`.
+4. **Pose** → choose any imported UAL1 or `UAL2/...` animation.
+5. **Play** watches the animation. Pause it and use the time slider to hold the
    exact pose you want to inspect.
-8. The tool selects `ItemFitPreview` automatically. Use Godot's normal 3D
-   translate / rotate / scale gizmo to seat the object in the palm.
-9. Click **Save to item**.
+6. In the embedded 3D preview:
+   - left mouse drag = orbit;
+   - mouse wheel = zoom;
+   - **Reset view** restores the default camera.
+7. Adjust the item's local transform under **HeldFit transform**:
+   - `Pos X/Y/Z` in metres;
+   - `Rot X/Y/Z` in degrees;
+   - `Scale X/Y/Z`.
+   Changes are shown immediately in the preview.
+8. Press **Save to item**.
 
-That writes only `ItemResource.held_fit`:
+The save writes only `ItemResource.held_fit`:
+hand, local offset, local rotation and local scale.
 
-- hand;
-- local offset;
-- local rotation;
-- local scale.
+## Recommended fitting order
 
-Runtime `HeldItemComponent`, the hammer path and the road-flare path all use
-the same `HeldPropFactory + HeldFit` contract, so the transform you save here
-is the transform production applies after the item is attached to the chosen
-hand.
+For a flare/light, start with `Idle_Torch`. For a work tool, inspect its main
+held pose and then scrub a work animation such as `Fixing_Kneeling`. The fit
+should describe the object's grip in the palm; do not move the prop far away to
+compensate for a bad animation.
 
-## Which pose should I fit against?
+Exact pickup/draw timing is deliberately out of scope. `HeldFit` answers only
+**how the item sits in the hand**.
 
-The saved fit is one stable local transform. The hand bone moves; the item
-follows it. Therefore choose the pose where the grip is easiest to judge:
+## Runtime contract
 
-- held light / flare: usually `Idle_Torch`;
-- hammer or another work tool: inspect both the ordinary held pose and
-  `Fixing_Kneeling`;
-- food, flask or another pocket item: use the pose in which it spends most of
-  its visible held time, then quickly scrub the related action clip to make sure
-  it does not intersect the hand badly.
-
-Do **not** compensate for a bad animation by moving the item far away from the
-palm. Fit the object's grip/origin to the hand once, then use the animation to
-move the hand.
-
-## What the authoring layer deliberately does not do
-
-This pass is about **how the item sits in the hand**, not the exact frame at
-which a pickup/draw action transfers an object into the hand.
-
-The dock does not write attach/detach timing cues. Current gameplay components
-still decide when an item becomes held. If exact draw/pickup timing is authored
-later, it should be a separate cue/event contract; it should not be mixed into
-`HeldFit`.
-
-## Runtime / editor safety
-
-- The editor preview uses an unowned temporary `AnimationPlayer`; it does not
-  mutate or serialize Henry's imported AnimationPlayer.
-- UAL2 is duplicated into that temporary player only.
-- The temporary `BoneAttachment3D` and `ItemFitPreview` are also unowned.
-- Switching edited scenes clears the preview/context.
-- `HenryUALAnimation.gd` stays runtime-only; no editor execution of backpack,
-  equipment, head-look, weather or gameplay code is introduced.
-
-## Adding another item
-
-If `HeldPropFactory.make(item.id, item)` can create a visual for the item,
-Item Fitter can fit it without item-specific editor code.
-
-Generic survival items already go through `SurvivalItemVisual`. Specialized
-props such as the hammer and road flare are registered in `HeldPropFactory`.
-A future specialized prop only needs to be added to that factory; its hand
-transform still belongs in `ItemResource.held_fit`.
-
-## Troubleshooting
-
-**No item appears**
-
-- Make sure `HenryUALVisual.tscn` or a Player scene containing it is the
-  currently edited scene.
-- Make sure the selected `ItemResource` has a visual that
-  `HeldPropFactory` can create.
-- Read the status line at the bottom of the dock; it reports missing Henry,
-  skeleton, hand bone or prop separately.
-
-**Animation list is empty**
-
-The edited scene does not contain Henry's visual, or the imported model has no
-`AnimationPlayer`. Re-open `HenryUALVisual.tscn`, then reselect the item.
-
-**The animation moves but the item does not follow the hand**
-
-The selected hand bone is missing or the preview socket was invalidated by a
-scene switch. Reselect the item; the dock rebuilds the temporary socket.
-
-**The item is the wrong size**
-
-Do not use scale to compensate for an incorrectly imported asset. `HeldFit`
-scale is for deliberate per-item fitting only; fix an import-scale problem at
-the asset/import level.
+Generic one-hand items, the hammer and road flare all use
+`HeldPropFactory + HeldFit`. The same transform saved in this dock is applied
+by runtime after the prop is attached to the selected hand.
 
 Source concept: `Nolavel/ADT/addons/item_fitter/`.
