@@ -6,13 +6,16 @@ class_name DayNightSettings
 @export var night_duration: float = 720.0
 
 @export_group("Light Settings")
-@export var day_light_energy: float = 1.12
+@export var day_light_energy: float = 1.5
 @export var night_light_energy: float = 0.1
+## Sun energy the fog and clouds see; surfaces take day_light_energy. The air stays
+## as bright as before while the key outweighs the sky fill on the snow.
+@export var day_atmosphere_light_energy: float = 1.12
 
 @export_group("Sun")
 @export var sun_max_altitude: float = 60.0
 @export var sun_color_sunrise: Color = Color(1.0, 0.6, 0.4)
-@export var sun_color_noon: Color = Color(1.0, 0.98, 0.95)
+@export var sun_color_noon: Color = Color(1.0, 0.97, 0.92)
 @export var sun_color_sunset: Color = Color(1.0, 0.5, 0.3)
 
 @export_group("Moon")
@@ -20,9 +23,9 @@ class_name DayNightSettings
 @export var moon_color: Color = Color(0.7, 0.75, 0.85)
 
 @export_group("Ambient")
-@export var day_ambient_color: Color = Color(0.58, 0.64, 0.70)
+@export var day_ambient_color: Color = Color(0.46, 0.58, 0.86)
 @export var night_ambient_color: Color = Color(0.055, 0.065, 0.09)
-@export var day_sky_energy: float = 0.92
+@export var day_sky_energy: float = 0.55
 @export var night_sky_energy: float = 0.18
 @export var day_ground_color: Color = Color(0.22, 0.21, 0.20)
 @export var night_ground_color: Color = Color(0.018, 0.021, 0.028)

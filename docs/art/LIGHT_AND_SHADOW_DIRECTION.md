@@ -49,7 +49,7 @@ darkness", with every element designed for the isometric camera
 
 | Principle (source) | Hoarbound today | Gap |
 |---|---|---|
-| **Shadows take the colour of what fills them**: on a sunny day cast shadows are blue because they only see the sky ([Gurney, *Color and Light*][gurney]); in stylized shading shadows are a hue, not just darker ([Gooch/TF2][tf2]). | Day key (1.0, 0.98, 0.95) and fill (0.58, 0.64, 0.70) are nearly the same hue; the fill is almost as strong as the key. Shadows read grey. | **Palette [decision]**: warm key, sky-blue fill, key:fill near 4:1 (image below). No shader work. |
+| **Shadows take the colour of what fills them**: on a sunny day cast shadows are blue because they only see the sky ([Gurney, *Color and Light*][gurney]); in stylized shading shadows are a hue, not just darker ([Gooch/TF2][tf2]). | Done: day key 1.5 (1.0, 0.97, 0.92) against a sky-blue fill 0.55 (0.46, 0.58, 0.86). Before, key 1.12 and fill 0.92 were almost the same hue, and shadows read grey. | A warm key also warms the volumetric fog, so the key stays near neutral and the blue comes from the fill (see "Palette" below). |
 | **Edge hierarchy**: cast shadows are sharpest where the caster touches and soften with distance; form shadows are softer than cast shadows; the sharpest edges sit at the focal point ([lost and found edges][edges], [Proko][proko]). | Cast shadows torn with one blur width everywhere; form shadow (N·L) physical and smooth. | Form shadow already matches the painters (keeps the author's "shadows only" decision). Missing: contact hardening and focal-point emphasis. |
 | **Massing**: edit detail into big shapes; vary edge quality with the brush to steer the eye ([Disney, *Painterly CG concepts* / *Bolt*][disney]). | Shadow core is one flat value; islands only in the penumbra. | Textures keep full contrast inside shadow (painters simplify there). Future. |
 | **Brushwork unifies everything** (Disco Elysium, The Long Dark, Disney "raypainting"; [Brushed Shading][brushed] bends normals through a painted stroke map). | Shadow islands come from procedural value noise. | When painterly textures arrive, the shadow breakup must use the same strokes, or it will read as a second, foreign texture. |
@@ -60,10 +60,27 @@ darkness", with every element designed for the isometric camera
 
 ![Shadow colour: key/fill ratio and hue](stylized_shadows/02_shadow_colour_key_fill.jpg)
 
-Same scene and same shadow contract. Left: today's day key and fill (lit
+Same scene and same shadow contract. Left: the old day key and fill (lit
 snow 234/242/240, shadow 132/149/160 sRGB). Right: warm key 1.7 against a
 sky-blue fill at 0.5 (lit 252/247/240, shadow 78/101/149). The shadow stops
 being grey once the key dominates and the fill carries the sky's hue.
+
+### Palette (shipped 2026-10-01)
+
+![Key West at noon, palette before and after](stylized_shadows/03_palette_noon_key_west.jpg)
+
+Tried in Key West at noon. A warm key (1.0, 0.93, 0.82) turned the volumetric
+fog and the sky beige, which breaks the cold mood. Shipped instead:
+
+- a near-neutral key, 1.5 (1.0, 0.97, 0.92);
+- a sky-blue fill, 0.55 (0.46, 0.58, 0.86);
+- `DayNightSettings.day_atmosphere_light_energy` = 1.12, the energy the fog
+  (`light_volumetric_fog_energy`) and the cloud lighting see.
+
+The air reads exactly as before (fog/sky 138→139 sRGB). The shadow core under
+Henry went from grey-green 88/93/91 to blue 70/78/89, and lit snow from
+206/213/223 to 216/220/234. To revert, restore key 1.12 (1.0, 0.98, 0.95)
+and fill 0.92 (0.58, 0.64, 0.70). Night is unchanged.
 
 ## A 2.5D look through a third-person camera
 
@@ -93,10 +110,10 @@ largest, closest surface on screen is Henry himself:
 |---|---|---|---|
 | P0 | Check the frame cost of Soft High and the stove's cube shadow on a real GPU | an editor session | author's machine |
 | P1 | ~~Character shader on the shadow contract, with rim light~~ Done 2026-10-01: body, garments, Kenny, pack, carried logs and boards | — | rim strength is a look call |
-| P1 | Day/dusk/night palette: warm key, sky-blue fill, key:fill near 4:1 | data only (`DayNightSettings`), then capture | **[decision]** on palette |
+| P1 | ~~Day palette: key over a sky-blue fill~~ Done 2026-10-01; dusk and night unchanged | — | look check in the editor |
 | P2 | Brush-stroke texture drives the spray and the lookup offset (world-space biplanar, like the reference's noise texture) | half a day, plus one tileable painted mask | first painterly textures |
 | P2 | Three-tone halo for the stove: the stove publishes its position, range and decay, and `light()` divides its falloff out of `ATTENUATION` | half a day | **[decision]**: couples one light to the material |
-| P2 | Grounding: subtle SSAO trial, measured on the snow and shelter captures | hours | look check |
+| P2 | Grounding: SSAO. A trial at noon (radius 0.8, intensity 1.5, ambient only) was inconclusive. On open snow it changed a mean 1 level per pixel, inside the frame-to-frame noise of falling snow and idle animation. It needs a static, contact-rich view (shelter props, city kerbs) | hours | look check |
 | P3 | Sharper edges near Henry (focal point), softer far away | hours | P1 first |
 | P3 | Flatter texture contrast inside shadow (massing) | needs custom ambient handling | painterly textures |
 | P3 | Cloud-shadow masses | hours | **[decision]** |

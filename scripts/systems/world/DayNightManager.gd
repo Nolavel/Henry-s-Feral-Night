@@ -293,12 +293,14 @@ func _update_environment_visuals(game_hour: float) -> void:
 	var solar_altitude: float = _calculate_solar_altitude(game_hour)
 	var solar_direction: Vector3 = _direction_from_altitude_azimuth(solar_altitude, azimuth)
 	var light_color: Color = _calculate_light_color(game_hour)
-	var light_energy: float = _calculate_light_energy(game_hour)
+	var light_energy: float = _calculate_light_energy(game_hour, settings.day_light_energy)
+	var atmosphere_energy: float = _calculate_light_energy(game_hour, settings.day_atmosphere_light_energy)
 	var critical_factor: float = _calculate_critical_night_factor(game_hour)
 
 	directional_light.rotation_degrees = Vector3(-altitude, azimuth, 0.0)
 	directional_light.light_color = light_color
 	directional_light.light_energy = light_energy * lerpf(1.0, 0.22, critical_factor)
+	directional_light.light_volumetric_fog_energy = atmosphere_energy / maxf(light_energy, 0.0001)
 
 	var environment: Environment = world_environment_node.environment
 	var ambient_color: Color = settings.night_ambient_color.lerp(
@@ -342,7 +344,7 @@ func _update_environment_visuals(game_hour: float) -> void:
 	sky_material.set_shader_parameter("manual_sun_direction", solar_direction)
 	sky_material.set_shader_parameter("cloud_color", cloud_color)
 	sky_material.set_shader_parameter("cloud_sun_color", light_color)
-	sky_material.set_shader_parameter("cloud_sun_energy", maxf(light_energy, 0.05))
+	sky_material.set_shader_parameter("cloud_sun_energy", maxf(atmosphere_energy, 0.05))
 	sky_material.set_shader_parameter(
 		"ground_color",
 		Vector3(ground_color.r, ground_color.g, ground_color.b)
@@ -414,7 +416,7 @@ func _calculate_light_color(game_hour: float) -> Color:
 	return settings.moon_color
 
 
-func _calculate_light_energy(game_hour: float) -> float:
+func _calculate_light_energy(game_hour: float, day_energy: float) -> float:
 	if not _is_day(game_hour):
 		return settings.night_light_energy
 
@@ -422,7 +424,7 @@ func _calculate_light_energy(game_hour: float) -> float:
 	var arc: float = 1.0 - pow((day_progress - 0.5) * 2.0, 2.0)
 	return lerpf(
 		settings.night_light_energy,
-		settings.day_light_energy,
+		day_energy,
 		smoothstep(0.0, 1.0, clampf(arc, 0.0, 1.0))
 	)
 

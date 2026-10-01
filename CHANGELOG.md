@@ -5,6 +5,19 @@ Maintained per branch; entries are added by whoever makes the change.
 
 ## [Unreleased] — `codex`
 
+### 2026-10-01 - Day palette: key over a sky-blue fill, air unchanged (claudeflow)
+
+- Day key 1.12 → 1.5, colour (1.0, 0.98, 0.95) → (1.0, 0.97, 0.92). Fill
+  0.92 → 0.55, colour (0.58, 0.64, 0.70) → (0.46, 0.58, 0.86). Shadows on snow
+  read blue instead of grey. Before, the fill was nearly as strong as the sun
+  and the same hue.
+- New `DayNightSettings.day_atmosphere_light_energy` (1.12): the sun energy the
+  volumetric fog and the cloud lighting see. Without it the stronger key
+  brightened the air; with a warm key it turned the fog beige. Measured: fog/sky
+  unchanged, shadow core under Henry 88/93/91 → 70/78/89 sRGB.
+- Night values are unchanged. Values and comparison:
+  `docs/art/LIGHT_AND_SHADOW_DIRECTION.md`.
+
 ### 2026-10-01 - Henry on the stylized shadow contract, with a rim (claudeflow)
 
 - Henry's body, garments, Kenny and his strap, the pack, and the carried logs and
