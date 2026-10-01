@@ -87,8 +87,11 @@ func passes(collider: Object, shape_index: int) -> bool:
 	if body == null:
 		return false
 	var owner_id: int = body.shape_find_owner(shape_index)
-	var key: int = body.get_instance_id() * 64 + owner_id
+	var key: String = "%d:%d" % [body.get_instance_id(), owner_id]
 	if not _thin_by_owner.has(key):
+		## Streamed chunks come and go; a bounded cache never holds stale bodies for long.
+		if _thin_by_owner.size() > 4096:
+			_thin_by_owner.clear()
 		_thin_by_owner[key] = _is_thin(body, owner_id)
 	return _thin_by_owner[key]
 
