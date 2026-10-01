@@ -133,6 +133,7 @@ uniform float cloud_parallax_mid_scale : hint_range(1.0, 4.0, 0.05) = 1.65;
 uniform float cloud_parallax_high_scale : hint_range(1.0, 6.0, 0.05) = 2.55;
 uniform float cloud_shape_contrast : hint_range(0.0, 1.0, 0.01) = 0.52;
 uniform float cloud_shadow_strength : hint_range(0.0, 1.0, 0.01) = 0.34;
+// Legacy name: this value is the cloud-mask threshold. Lower = more visible cloud.
 uniform float cloud_coverage : hint_range(0.0, 0.95, 0.01) = 0.34;
 uniform float cloud_opacity : hint_range(0.0, 1.0, 0.01) = 0.92;
 uniform vec4 cloud_sun_color : source_color = vec4(1.0);

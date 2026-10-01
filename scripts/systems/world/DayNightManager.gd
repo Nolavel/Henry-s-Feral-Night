@@ -48,6 +48,11 @@ const SUNSET_HOUR: float = 18.0
 const LIGHT_START_HOUR: float = 2.0
 const MORNING_PEAK_HOUR: float = 10.0
 const DUSK_END_HOUR: float = 22.0
+## The production sky keeps the historical `cloud_coverage` uniform name, but
+## that value is a mask threshold: lower reveals more cloud. Weather may lower
+## it by at most this amount so storms thicken the deck without flattening the
+## whole sky into a solid sheet.
+const WEATHER_CLOUD_THRESHOLD_DROP_MAX: float = 0.10
 
 @export var perfomance_visible_display: bool = true
 @export var sky_shader: Shader = DEFAULT_SKY_SHADER
@@ -563,10 +568,15 @@ func apply_weather_visual_profile(profile: WeatherProfile) -> void:
 	sky_material.set_shader_parameter("cloud_wind_speed", direction * drift)
 
 	var snow: float = clampf(profile.snowfall_density, 0.0, 1.0)
-	sky_material.set_shader_parameter(
-		"cloud_coverage",
-		clampf(settings.cloud_coverage + snow * 0.28, 0.22, 0.68)
+	## `cloud_coverage` is legacy-named in the shader: it is the lower edge of
+	## smoothstep(), so raising it removes cloud. Keep calm weather exactly at
+	## the authored baseline and lower the threshold gradually as snow thickens.
+	var cloud_threshold: float = clampf(
+		settings.cloud_coverage - snow * WEATHER_CLOUD_THRESHOLD_DROP_MAX,
+		0.20,
+		0.68
 	)
+	sky_material.set_shader_parameter("cloud_coverage", cloud_threshold)
 	sky_material.set_shader_parameter(
 		"cloud_density",
 		settings.cloud_density * lerpf(0.88, 1.18, snow)
