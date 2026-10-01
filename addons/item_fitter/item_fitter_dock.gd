@@ -3,7 +3,7 @@ extends Control
 
 ## Hoarbound port of ADT's Item Fitter. Unlike ADT, Henry's hand sockets are
 ## runtime-created, so this dock creates an unowned temporary BoneAttachment3D
-## on the real editor skeleton and puts the real SurvivalItemVisual under it.
+## on the real editor skeleton and puts the real HeldPropFactory prop under it.
 const DEFAULT_LEFT_BONE: StringName = &"hand_l"
 const DEFAULT_RIGHT_BONE: StringName = &"hand_r"
 const HENRY_SCRIPT_SUFFIX: String = "HenryUALAnimation.gd"
@@ -71,7 +71,11 @@ func _rebuild_preview() -> void:
 	skeleton.add_child(_preview_socket)
 	_preview_socket.owner = null
 
-	_preview = SurvivalItemVisual.make(_item.id, _item)
+	_preview = HeldPropFactory.make(_item.id, _item)
+	if _preview == null:
+		_set_status("No held prop visual exists for '%s'." % _item.id)
+		clear_preview()
+		return
 	_preview.name = "ItemFitPreview"
 	_preview_socket.add_child(_preview)
 	_preview.owner = null

@@ -75,7 +75,7 @@ func put_away() -> bool:
 	var prop: Node3D = _hammer
 	_hammer = null
 	if animation != null:
-		animation.release_hand()
+		_release_prop(animation, prop)
 	if is_instance_valid(prop):
 		prop.queue_free()
 	_restore_item()
@@ -100,39 +100,38 @@ func swing() -> void:
 
 func _draw() -> bool:
 	var animation: HenryUALAnimation = _animation()
-	if animation == null or animation.get_hand_socket() == null:
+	var item: ItemResource = ItemCatalog.get_item(hammer_item_id)
+	if animation == null or item == null or item.held_fit == null:
+		push_error("HammerComponent: hammer requires an authored HeldFit.")
 		return false
-	_hammer = _make_prop()
-	animation.hold_in_hand(_hammer)
+	_hammer = HeldPropFactory.make(hammer_item_id, item)
+	if _hammer == null or not _attach_fitted(animation, _hammer, item.held_fit):
+		if is_instance_valid(_hammer):
+			_hammer.queue_free()
+		_hammer = null
+		return false
 	hammer_drawn.emit()
 	return true
 
 
-func _make_prop() -> Node3D:
-	var root := Node3D.new()
-	root.name = "HeldHammer"
-	var wood := StandardMaterial3D.new()
-	wood.albedo_color = Color(0.26, 0.16, 0.08)
-	wood.roughness = 0.9
-	var metal := StandardMaterial3D.new()
-	metal.albedo_color = Color(0.22, 0.24, 0.25)
-	metal.metallic = 0.75
-	metal.roughness = 0.38
-	var handle := MeshInstance3D.new()
-	var handle_mesh := BoxMesh.new()
-	handle_mesh.size = Vector3(0.035, 0.30, 0.035)
-	handle_mesh.material = wood
-	handle.mesh = handle_mesh
-	handle.position.y = 0.12
-	root.add_child(handle)
-	var head := MeshInstance3D.new()
-	var head_mesh := BoxMesh.new()
-	head_mesh.size = Vector3(0.18, 0.065, 0.065)
-	head_mesh.material = metal
-	head.mesh = head_mesh
-	head.position = Vector3(0.0, 0.29, 0.0)
-	root.add_child(head)
-	return root
+func _attach_fitted(animation: HenryUALAnimation, prop: Node3D, fit: HeldFit) -> bool:
+	if fit.hand == HeldFit.Hand.RIGHT:
+		if animation.get_offhand_socket() == null or animation.get_offhand_prop() != null:
+			return false
+		animation.hold_in_offhand(prop)
+	else:
+		if animation.get_hand_socket() == null or animation.get_held_prop() != null:
+			return false
+		animation.hold_in_hand(prop)
+	fit.apply_to(prop)
+	return true
+
+
+func _release_prop(animation: HenryUALAnimation, prop: Node3D) -> void:
+	if animation.get_held_prop() == prop:
+		animation.release_hand()
+	elif animation.get_offhand_prop() == prop:
+		animation.release_offhand()
 
 
 func _other_hands_clear() -> bool:

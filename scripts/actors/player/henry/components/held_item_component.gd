@@ -117,7 +117,9 @@ func _draw() -> void:
 	var item: ItemResource = ItemCatalog.get_item(_item_id)
 	if item == null:
 		return
-	_prop = SurvivalItemVisual.make(_item_id, item)
+	_prop = HeldPropFactory.make(_item_id, item)
+	if _prop == null:
+		return
 	_prop.name = "Held_%s" % _item_id
 	var visual: HenryUALAnimation = _animation()
 	if item.held_fit != null and item.held_fit.hand == HeldFit.Hand.RIGHT:

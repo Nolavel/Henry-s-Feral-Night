@@ -26,8 +26,10 @@ project's render-preview CI path.
 6. Move/rotate/scale `ItemFitPreview` with Godot's normal 3D gizmo.
 7. **Save to item**.
 
-The dock uses `SurvivalItemVisual.make()`, the same prop factory used by
-runtime. It writes only `ItemResource.held_fit`.
+The dock uses `HeldPropFactory.make()`, exactly the same prop factory used by
+runtime. Generic supplies still come from `SurvivalItemVisual`; hammer uses its
+real hammer model and road flare instantiates the real `HeldFlare` scene. The
+dock writes only `ItemResource.held_fit`.
 
 ## Runtime contract
 
@@ -37,3 +39,17 @@ so adding this tool does not move existing production props until they are
 explicitly authored.
 
 Source port: `Nolavel/ADT/addons/item_fitter/`.
+
+
+## Specialized held items
+
+`hammer.tres` and `road_flare.tres` now carry authored `HeldFit` resources.
+Their gameplay components no longer contain pose corrections. In particular:
+
+- `HammerComponent` no longer owns a private `_make_prop()`; the hammer comes
+  from `HeldPropFactory`.
+- `HeldLightComponent` no longer applies the old manual 90° flare turn.
+- both components require and apply the item's `HeldFit`, including the
+  selected hand.
+- changing the fit in the dock is therefore the only source of truth for where
+  these two props sit in Henry's hands.
