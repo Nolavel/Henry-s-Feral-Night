@@ -52,6 +52,7 @@ const WORLD_3D_ENTITY_SCENES: Array[PackedScene] = []
 
 ## Screen-space UI scenes — instantiate(), parented to a shared CanvasLayer.
 const WORLD_UI_SCENES: Array[PackedScene] = [
+	preload("res://tools/StatsDisplay/StatsDisplay.tscn"),
 	preload("res://scenes/ui/debug/dev_diorama_map.tscn"),
 	preload("res://scenes/ui/hud/input_hints/key_hints_panel.tscn"),
 	preload("res://scenes/ui/hud/sleep_prompt.tscn"),
@@ -79,6 +80,10 @@ const SPAWN_CLEARANCE: float = 1.0
 ## chunks are not streamed on top of it.
 @export var streaming_enabled: bool = true
 @export_group("Developer tools")
+## Shows the runtime performance panel. Enabled by default for development builds/scenes.
+@export var enable_runtime_debug_panel: bool = true
+## Mirrors the visible runtime performance snapshot to stdout when enabled.
+@export var print_runtime_debug_stats: bool = false
 ## Allows M to show/hide the debug diorama map in runtime debug builds.
 @export var enable_runtime_dev_map: bool = false
 

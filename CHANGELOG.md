@@ -5,6 +5,13 @@ Maintained per branch; entries are added by whoever makes the change.
 
 ## [Unreleased] — `codex`
 
+### 2026-10-01 - Runtime performance panel moved into World developer tools (codex)
+
+- `StatsDisplay` now shows FPS, frame time, process time, physics-process time and engine-session uptime directly in the panel.
+- `World` owns the panel through its existing UI composition path with `enable_runtime_debug_panel = true` by default.
+- Added `print_runtime_debug_stats = false`; when enabled, the same visible snapshot is mirrored to stdout.
+- Removed manual StatsDisplay instances from World-based scenes so the panel has one lifecycle owner.
+
 ### 2026-10-01 - Color-grade import-gate parser fix (codex)
 
 - Declared the existing `WorldEnvironment.environment` reference in the color-grade harness; current `main` used an undeclared local `environment`, which the clean import gate correctly rejected.

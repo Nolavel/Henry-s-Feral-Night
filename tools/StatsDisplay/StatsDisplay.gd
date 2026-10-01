@@ -2,10 +2,15 @@ extends Control
 
 @export_range(0.1, 2.0, 0.05) var update_interval: float = 0.25
 
+const CONSOLE_INTERVAL: float = 1.0
+
 var _panel: PanelContainer
 var _label: Label
 var _elapsed: float = 0.0
 var _frames: int = 0
+var _console_elapsed: float = 0.0
+var _show_panel: bool = true
+var _print_to_console: bool = false
 
 
 func _ready() -> void:
@@ -20,7 +25,7 @@ func _ready() -> void:
 	_panel.offset_left = -154.0
 	_panel.offset_top = 10.0
 	_panel.offset_right = -10.0
-	_panel.offset_bottom = 62.0
+	_panel.offset_bottom = 116.0
 	add_child(_panel)
 
 	var panel_style := StyleBoxFlat.new()
@@ -46,12 +51,22 @@ func _ready() -> void:
 	_label.vertical_alignment = VERTICAL_ALIGNMENT_CENTER
 	_label.add_theme_font_size_override("font_size", 13)
 	_label.add_theme_color_override("font_color", Color(0.90, 0.92, 0.94, 0.96))
-	_label.text = "FPS  --\nFRAME  -- ms"
+	_label.text = "FPS      --\nFRAME    -- ms\nPROCESS  -- ms\nPHYSICS  -- ms\nSESSION  00:00:00"
 	_panel.add_child(_label)
+
+
+func on_world_ready(context: WorldContext) -> void:
+	if context == null or context.world == null:
+		return
+	_show_panel = bool(context.world.get("enable_runtime_debug_panel"))
+	_print_to_console = bool(context.world.get("print_runtime_debug_stats"))
+	visible = _show_panel
+	set_process(_show_panel or _print_to_console)
 
 
 func _process(delta: float) -> void:
 	_elapsed += delta
+	_console_elapsed += delta
 	_frames += 1
 
 	if _elapsed < update_interval:
@@ -61,9 +76,27 @@ func _process(delta: float) -> void:
 	var frame_ms: float = (_elapsed / maxf(float(_frames), 1.0)) * 1000.0
 	var process_ms: float = Performance.get_monitor(Performance.TIME_PROCESS) * 1000.0
 	var physics_ms: float = Performance.get_monitor(Performance.TIME_PHYSICS_PROCESS) * 1000.0
+	var snapshot := (
+		"FPS      %3d\n"
+		+ "FRAME   %5.2f ms\n"
+		+ "PROCESS %5.2f ms\n"
+		+ "PHYSICS %5.2f ms\n"
+		+ "SESSION %s"
+	) % [int(round(fps)), frame_ms, process_ms, physics_ms, _format_session_uptime()]
 
-	_label.text = "FPS  %3d\nFRAME %5.2f ms" % [int(round(fps)), frame_ms]
-	_label.tooltip_text = "Process %.2f ms  |  Physics %.2f ms" % [process_ms, physics_ms]
+	if _show_panel:
+		_label.text = snapshot
+	if _print_to_console and _console_elapsed >= CONSOLE_INTERVAL:
+		print("[RuntimeStats]\n%s" % snapshot)
+		_console_elapsed = 0.0
 
 	_elapsed = 0.0
 	_frames = 0
+
+
+func _format_session_uptime() -> String:
+	var total_seconds: int = int(Time.get_ticks_msec() / 1000)
+	var hours: int = floori(float(total_seconds) / 3600.0)
+	var minutes: int = floori(float(total_seconds % 3600) / 60.0)
+	var seconds: int = total_seconds % 60
+	return "%02d:%02d:%02d" % [hours, minutes, seconds]
