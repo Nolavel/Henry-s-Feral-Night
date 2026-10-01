@@ -5,6 +5,13 @@ Maintained per branch; entries are added by whoever makes the change.
 
 ## [Unreleased] — `codex`
 
+### 2026-10-01 - Dev map marker uses Henry's geographic ground position (codex)
+
+- Fixed Henry's map marker projecting a point above his body, which became a false positional offset on the oblique perspective map.
+- Marker projection now uses Henry's exact X/Z and the live IslandTerrain height; worlds without terrain fall back to the bottom of Henry's collision capsule.
+- Existing dev-map regression coverage now checks ground projection and X/Z tracking after movement.
+- Dev-map capture now records a second full frame after Henry moves so positional alignment can be visually reviewed.
+
 ### 2026-10-01 - Runtime performance panel moved into World developer tools (codex)
 
 - `StatsDisplay` now shows FPS, frame time, process time, physics-process time and engine-session uptime directly in the panel.
