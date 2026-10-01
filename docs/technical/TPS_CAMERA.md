@@ -148,6 +148,20 @@ Before (`a604f60`) → after (#170), TestScene at 144 fps:
 | Scripted walk 60° off the view | — | the view follows all 60° |
 | Strafing with D, no mouse | — | the view stays (0°) |
 
+Key West, the real shelter (1.5 m door), same harness with `scene=` and the
+`shelter` scenario:
+
+| Measure | Before | After |
+|---|---|---|
+| Scripted walk from the porch through the open door into the room | clean (closest 1.14 m) | clean (closest 1.18 m) |
+| Doorway sweeps at pitch −10/−40/+30: frames with Henry cut out | 63 / 51 / 87 | 0 / 0 / 0 (dithered, at most 0.87) |
+| Doorway sweeps: near-plane clips | 12 / 0 / 15 | 0 / 0 / 0 |
+| Doorway sweeps: pops over 0.3 m | 4 / 2 / 0 | 1 / 1 / 0 |
+| Doorway sweeps: closest to the eyes | 0.49 / 0.50 / 0.46 m | 0.31 / 0.33 / 0.62 m |
+
+The camera now comes closer in the doorway. The old assist swung it away even
+while the player aimed; the new one leaves the aim alone and dithers Henry.
+
 ## Known limits
 
 - **There is physically no room for the camera beside Henry in a 1.2 m doorway**

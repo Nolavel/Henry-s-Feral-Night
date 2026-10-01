@@ -4,6 +4,7 @@ extends SceneTree
 ## wall/doorway conflicts, crouch, thin occluders, teleport and sway.
 ## Run: godot --headless --path . --fixed-fps 144 --script res://tools/runtime/trace_tps_camera.gd -- <label> [scenario...]
 
+## Override with a "scene=res://..." argument; the "shelter" scenario needs Key West.
 const SCENE: String = "res://tests/scenes/TestScene.tscn"
 const OUT_ROOT: String = "user://traces/tps_camera"
 const WARMUP_FRAMES: int = 90
@@ -47,6 +48,8 @@ class FrameProbe extends Node:
 
 
 var _label: String = "run"
+var _scene_path: String = SCENE
+var _spawn_origin: Vector3 = Vector3.ZERO
 var _selected: PackedStringArray = []
 var _scene: Node
 var _player: Player
@@ -72,13 +75,15 @@ func _initialize() -> void:
 	for i: int in range(1, args.size()):
 		if args[i] == "shots":
 			_shots = true
+		elif args[i].begins_with("scene="):
+			_scene_path = args[i].trim_prefix("scene=")
 		else:
 			_selected.append(args[i])
 	if _selected.is_empty():
 		_selected = SCENARIOS
 	## Headless windows are 100 px; unscaled, a traced pixel is a screen pixel.
 	root.content_scale_mode = Window.CONTENT_SCALE_MODE_DISABLED
-	_scene = (load(SCENE) as PackedScene).instantiate()
+	_scene = (load(_scene_path) as PackedScene).instantiate()
 	root.add_child(_scene)
 	_player = _scene.find_child("Player", true, false) as Player
 	_cam = _scene.find_child("PlayerCamera", true, false) as TpsCamera
@@ -93,6 +98,7 @@ func _initialize() -> void:
 
 func _run() -> void:
 	await _frames(WARMUP_FRAMES)
+	_spawn_origin = _player.global_position
 	var previous: Variant = JSON.parse_string(_read_text(_out_dir().path_join("summary.json")))
 	if previous is Dictionary:
 		_summary = previous
@@ -118,6 +124,7 @@ func _run() -> void:
 			"sway": await _scenario_sway()
 			"assist": await _scenario_assist()
 			"recenter": await _scenario_recenter()
+			"shelter": await _scenario_shelter()
 			_: push_error("trace: unknown scenario %s" % scenario)
 	_write_json("summary.json", _summary)
 	print(JSON.stringify(_summary, "  "))
@@ -424,6 +431,65 @@ func _scenario_recenter() -> void:
 	result["walk_view_turn_deg"] = walked_turn
 	result["strafe_view_turn_deg"] = rad_to_deg(angle_difference(before_strafe, _cam.get_yaw()))
 	_summary["recenter"] = result
+
+
+## Key West: from the porch through the real shelter door into the room on a
+## scripted walk with the mouse at rest, then view sweeps in the door and inside.
+func _scenario_shelter() -> void:
+	var zone := _scene.find_child("ShelterZone", true, false) as Node3D
+	var breach: Node3D = zone.find_child("Door", true, false) as Node3D if zone != null else null
+	if breach == null:
+		push_warning("trace: no ShelterZone/Door in %s" % _scene_path)
+		return
+	var door: Node = _nearest_door(breach.global_position)
+	if door != null:
+		door.call(&"load_door_save_data", {"latched": false, "angle_deg": float(door.get("open_angle_deg"))})
+	var doorway: Vector3 = _floor_point(breach.global_position)
+	var inside: Vector3 = _floor_point(zone.global_position)
+	var to_door: Vector3 = doorway - _spawn_origin
+	await _place(_spawn_origin, atan2(-to_door.x, -to_door.z), -10.0)
+	_begin()
+	for leg: Array in [["shelter_to_door", doorway], ["shelter_in", inside]]:
+		_player.move_to_position(leg[1])
+		for i: int in range(1440):
+			await _sample(leg[0])
+			if not _player.is_walking_to_target():
+				break
+	var result: Dictionary = _end("shelter_walk_in")
+	result["reached_inside_m"] = Vector2(_player.global_position.x - inside.x, _player.global_position.z - inside.z).length()
+	result["door_found"] = door != null
+	_summary["shelter_walk_in"] = result
+	var sweeps: Dictionary = {}
+	for point: Array in [["shelter_doorway", doorway], ["shelter_inside", inside]]:
+		for pitch: float in ORBIT_PITCHES:
+			var key: String = "%s_%d" % [point[0], int(pitch)]
+			await _place(point[1], 0.0, pitch)
+			_begin()
+			var px: float = (TAU / 432.0) / (MOUSE_SENSITIVITY * _cam.look_sensitivity_x)
+			for i: int in range(432):
+				_mouse(px, 0.0)
+				await _sample(key)
+			sweeps[key] = _end(key)
+	_summary["shelter_orbit"] = sweeps
+
+
+func _nearest_door(at: Vector3) -> Node:
+	var best: Node = null
+	var best_distance: float = 4.0
+	for node: Node in get_nodes_in_group(&"hinged_doors"):
+		var door := node as Node3D
+		if door != null and door.global_position.distance_to(at) < best_distance:
+			best = door
+			best_distance = door.global_position.distance_to(at)
+	return best
+
+
+## Henry's origin standing on the floor under `at`.
+func _floor_point(at: Vector3) -> Vector3:
+	var query := PhysicsRayQueryParameters3D.create(at + Vector3.UP * 1.5, at + Vector3.DOWN * 6.0)
+	query.exclude = [_player.get_rid()]
+	var hit: Dictionary = _space().intersect_ray(query)
+	return (hit["position"] as Vector3) + Vector3.UP * 1.0 if not hit.is_empty() else at
 
 
 func _release_actions() -> void:

@@ -6,11 +6,13 @@ extends SceneTree
 
 const SCENE: String = "res://tests/scenes/TestScene.tscn"
 const OUT_ROOT: String = "user://shots/tps_camera"
-const SETTLE_FRAMES: int = 75
+## Long enough for a rested mouse to pass the 0.9 s auto-look cooldown and turn.
+const SETTLE_FRAMES: int = 150
 ## Name, Henry origin, yaw (degrees), pitch, crouch, keep the mouse moving.
 const STILLS: Array = [
 	["open", Vector3(8.0, 1.0, 6.0), 0.0, -10.0, false, true],
 	["door_side", Vector3(3.0, 1.0, 14.0), 0.0, -10.0, false, true],
+	["door_side_rested", Vector3(3.0, 1.0, 14.0), 0.0, -10.0, false, false],
 	["door_exit", Vector3(5.1, 1.0, 14.0), -90.0, -10.0, false, true],
 	["corner_aiming", Vector3(-2.3, 1.0, 16.3), 0.0, -10.0, false, true],
 	["corner_rested", Vector3(-2.3, 1.0, 16.3), 0.0, -10.0, false, false],
