@@ -39,6 +39,7 @@ func _process(_delta: float) -> bool:
 		_phase = 1
 		return false
 
+	## Full frame is required here: HenryMarker is 2D UI over the SubViewport texture.
 	_capture_full("03_follow_after_move")
 	_capture_map("04_map_labels_followed")
 	print("dev diorama map capture: complete; labels=", _map.get_visible_label_count())
