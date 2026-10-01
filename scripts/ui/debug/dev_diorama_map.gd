@@ -248,7 +248,7 @@ func _update_camera() -> void:
 func _update_marker() -> void:
 	if _marker == null or _camera == null or _player == null or _map_area == null:
 		return
-	var world_point: Vector3 = _player.global_position + Vector3.UP * 1.2
+	var world_point: Vector3 = _marker_world_point()
 	if _camera.is_position_behind(world_point) or _map_area.size.x <= 1.0 or _map_area.size.y <= 1.0:
 		_marker.visible = false
 		return
@@ -264,6 +264,26 @@ func _update_marker() -> void:
 		and _marker.position.x < _map_area.size.x
 		and _marker.position.y < _map_area.size.y
 	)
+
+
+## Geographic marker position: Henry's X/Z projected onto the world surface.
+## Never use body/chest height here — this is an oblique perspective map, so a
+## vertical offset becomes a false horizontal offset on screen.
+func _marker_world_point() -> Vector3:
+	var point: Vector3 = _player.global_position if _player != null else Vector3.ZERO
+	if _terrain != null and is_instance_valid(_terrain) and _terrain.heightmap != null:
+		point.y = _terrain.get_height(point.x, point.z)
+		return point
+
+	## Fallback for fixtures/worlds without IslandTerrain: use the bottom of
+	## Henry's collision capsule rather than the CharacterBody origin.
+	if _player != null:
+		var collision := _player.find_child("Main_Collision", true, false) as CollisionShape3D
+		if collision != null:
+			var capsule := collision.shape as CapsuleShape3D
+			if capsule != null:
+				point.y = collision.global_position.y - capsule.height * 0.5 * collision.global_basis.y.length()
+	return point
 
 
 func _refresh_labels() -> void:
