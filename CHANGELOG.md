@@ -5,6 +5,11 @@ Maintained per branch; entries are added by whoever makes the change.
 
 ## [Unreleased] — `codex`
 
+### 2026-10-01 - Color-grade import-gate parser fix (codex)
+
+- Declared the existing `WorldEnvironment.environment` reference in the color-grade harness; current `main` used an undeclared local `environment`, which the clean import gate correctly rejected.
+- Gameplay/runtime behavior is unchanged.
+
 ### 2026-10-01 - Project identity renamed to Hoarbound (codex)
 
 - Renamed the Godot/.NET project identity, solution and project files to `Hoarbound`.
