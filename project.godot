@@ -38,7 +38,7 @@ window/vsync/vsync_mode=1.0
 
 [dotnet]
 
-project/assembly_name="Henry`s Feral Night"
+project/assembly_name="Hoarbound"
 project/assembly_reload_attempts=3.0
 
 [editor]

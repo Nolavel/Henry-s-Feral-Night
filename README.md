@@ -1,125 +1,49 @@
+<p align="center">
+  <img src="icon.svg" width="160" alt="Hoarbound">
+</p>
+
 # Hoarbound
 
-**Public / commercial / Steam title:** **Hoarbound**  
-**Internal project codename:** **Henry's Feral Night**
+**Third-person systemic survival / Системный сурвайвал от третьего лица**
 
-Third-person survival in the endless cold. A tropical island has frozen over;
-Henry has to get from the bunker he woke in to a house he can hold through the
-night: find fuel, board the windows, keep the stove burning, and stay dry.
+## EN
 
-Solo project, in active development. A prototype, not a shipping game.
+**Hoarbound** is a survival game set in a frozen **Key West**.  
+Henry leaves a bunker with limited supplies and must turn an abandoned house into a place that can survive the night.
 
-**Engine:** Godot **4.8-dev6 .NET** · Forward+ (Vulkan) · GDScript
-**Status:** vertical slice in progress — *First Exit*, the first route from
-the bunker to the shelter on Graciosa.
+Cold, wind, wet clothing, carried weight, fuel and time are connected systems. The goal is not simply to make mechanics work — it is to make them **change the player's decisions**.
 
-> Сурвайвал от третьего лица в замёрзшем мире. Соло-проект в активной
-> разработке, прототип. Движок Godot 4.8-dev6 .NET.
+**Current milestone — First Exit**
+- bunker → route choice → supplies → worsening weather;
+- shelter repair → stove → recovery;
+- sleep/save → coherent reload;
+- one continuous 10–15 minute human playtest without debug workarounds.
 
-## What is in
+## RU
 
-- **World:** Graciosa as a heightmap-built island (`IslandTerrain`, LOD chunks,
-  collision near the player) with the First Exit blockout: roads, lots,
-  houses, the shelter, bunkers, frozen palms, wrecks. Routes and distances in
-  `docs/world/FIRST_EXIT.md`.
-- **Survival:** thermal model (body heat, wetness, wind, shelter zones, heat
-  sources), hunger/thirst/energy and sleep with time skip. Thin-ice and
-  cold-water systems exist in code but are intentionally not instantiated in
-  First Exit A; coastal ice content belongs to the later Coast / Thin Ice slice.
-- **Shelter loop:** pick up boards, firewood and the lighter; board breaches; light
-  and feed the stove; sleep; save.
-- **Henry:** UAL animation set on a runtime AnimationTree (locomotion, crouch,
-  jump, carry, work actions), clothes built in Blender as skinned meshes,
-  inventory and equipment, the backpack and Kenny.
-- **Tech:** world composition root, streaming, SoundSystem autoload, weather,
-  snow cover and footprints, atomic save slots, 29 headless test suites.
+**Hoarbound** — сурвайвал на замёрзшем **Key West**.  
+Генри выходит из бункера с ограниченными запасами и должен превратить заброшенный дом в убежище, способное пережить ночь.
 
-WeatherBeat, persistent consumed-pickup records, the held road flare, Player Hub
-and inspection, field bedroll, physical Quick Access, finite water/tins and
-shelter work are implemented. The remaining First Exit proof is the continuous
-stranger playtest and its captures; optional route audio and coastal thin-ice
-content are later work. The main world starts at the Whitehead bunker; shelter
-supplies and bonus stacks remain as requested by the author.
+Холод, ветер, мокрая одежда, вес груза, топливо и время связаны между собой. Наша цель — не просто заставить механики работать, а сделать так, чтобы они **меняли решения игрока**.
 
-## Run
+**Текущая цель — First Exit**
+- бункер → выбор маршрута → ресурсы → ухудшение погоды;
+- ремонт убежища → печь → восстановление;
+- сон/save → согласованная загрузка;
+- один непрерывный 10–15-минутный плейтест без debug-костылей.
 
-Main scene: **`scenes/world/key_west/key_west.tscn`** (F5 / `run/main_scene`).
-It pins the Key West profile and starts at Whitehead Spit in the existing
-blizzard, using the committed NOAA terrain and frozen OSM/Overture city snapshot.
-No environment variable or offline bake is required for a fresh checkout.
+## Tech / Технологии
 
-Graciosa is preserved in **`archive/graciosa/`**. Open its archived scene and
-press F6 to run it explicitly; shared First Exit gameplay assets remain reusable.
-Systems test scene: `tests/scenes/TestScene.tscn`.
+**Godot 4.8-dev6 .NET · Forward+ / Vulkan · PC**
 
-```bash
-tools/ci/setup_env.sh              # Godot 4.8-dev6 mono into ~/.local
-godot --headless --import --quit   # first import
-tools/ci/run_tests.sh              # all headless suites
-tools/ci/render.sh res://tests/scenes/TestScene.tscn   # one frame, CPU (lavapipe)
-```
+Real-world NOAA/OSM data underpins the Key West terrain and city. Production work currently focuses on systemic survival, streamed winter environments, deformable snow and stylized rendering.
 
-## Controls
+Main scene: `res://scenes/world/key_west/key_west.tscn`
 
-`project.godot` is the source of truth; CI rejects two actions on one key
-unless `tools/ci/input_overlap_allowlist.txt` says why that is safe.
+See `PRD.md`, `docs/game_design/VERTICAL_SLICE.md`, `AGENTS.md` and `CHANGELOG.md`.
 
-| Key | Action |
-|---|---|
-| `W A S D` | move (camera-relative) |
-| `Shift` / `Space` / `C` | sprint / jump / crouch |
-| `F` | interact: pick up, board up, feed the stove, open |
-| `Q` / `E` | lean left / right |
-| `Z` | switch camera shoulder |
-| `,` / `.` | orbit the camera |
-| `Esc` | pause |
-| `F` on a bed or mattress | sleep: wheel or `←` `→` hours, `F`/`Enter` sleep, `Esc` cancel |
-| wheel / wheel click / `1`–`4` | select a pocket / draw its item; LMB or another wheel-click uses the held item |
-| `LMB` | use the physically held item; place a window board preview |
-| `G` | put a carried log/board armful on clear ground |
-| `Tab` | Player Hub: the pack opens on Henry's back; move items between the pack and pockets, Use (bedroll: preview, `F` lays it). `Tab`/`Esc` closes |
-| hold `F` | on a pickup: open the pack and drag the item into a pocket with LMB |
+## Status / Статус
 
-Full key list and the context rules for F and Esc: [`docs/technical/CONTROLS.md`](docs/technical/CONTROLS.md).
+**Active development — vertical slice. / Активная разработка — vertical slice.**
 
-## Layout
-
-| Path | Purpose |
-|---|---|
-| `core/` | Autoloads and shared types: player state, input, audio, items, equipment |
-| `scripts/` | Gameplay: actors, systems (survival, ice, weather, camera), environment, UI |
-| `scenes/` | Player, UI and the generated First Exit blockout |
-| `world/` | World composition root, streaming, terrain source and runtime |
-| `data/` | Items, catalog, layouts (`data/world/first_exit_layout.json`) |
-| `assets/` | Models, animations (UAL), textures, fonts, the Henry outfit GLB |
-| `shaders/` | Terrain, snow, sky, VFX |
-| `tools/` | CI scripts, Blender pipelines, world builders, capture tools |
-| `tests/` | Headless suites (`tests/systems/`) and the systems test scene |
-| `docs/` | Technical specs, world docs, art renders, third-party notices |
-
-## Documentation
-
-- `docs/technical/` — world architecture, thermal model, ice, snow cover, save
-  system, audio, what was ported from ADT.
-- `docs/world/` — First Exit route and metrics, terrain heightmap pipeline.
-- `CHANGELOG.md` — every change, newest first.
-
-## For collaborators
-
-This codebase is developed by the author with two LLM coding agents: Claude
-Code (technical direction, CI, systems — branch `claudeflow`) and Codex
-(implementation passes — branch `codex`). `AGENTS.md` is the shared rulebook
-for branches and conduct; `CLAUDE.md` is Claude's working brief. Agents merge
-`main` into their own branch freely; nothing reaches `main` without the
-author. Coordination happens in GitHub issues (#1 for handoffs).
-
-Code comments are English, `##` doc style. Some older files still carry
-Russian comments; they are translated when those files are next touched.
-
-## Licence and credits
-
-Copyright © 2025–2026 Nolavel. All rights reserved — **not open source**; see
-[`LICENSE`](LICENSE) for what you may and may not do. Third-party components
-(Godot, fonts, animation library, sounds) are credited with their own licences
-in [`docs/THIRD_PARTY_NOTICES.md`](docs/THIRD_PARTY_NOTICES.md); keep that file
-current in the same commit that adds an asset.
+Copyright © 2025–2026 Nolavel. All rights reserved. See `LICENSE`.

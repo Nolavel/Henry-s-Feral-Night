@@ -1,6 +1,6 @@
 shader_type sky;
 
-// Adapted for Henry's Feral Night from "Simple Overcast" by tentabrobpy.
+// Adapted for Hoarbound from "Simple Overcast" by tentabrobpy.
 // Original shader: https://godotshaders.com/shader/simple-overcast/
 // Source code is published under CC0.
 

@@ -1,4 +1,4 @@
-# Vision Document — Henry's Feral Night
+# Vision Document — Hoarbound
 
 > **Статус документа / Scope lock для Act I**
 >
@@ -24,14 +24,14 @@
 ## 1. Название и жанр
 
 **RU:**
-- **Название:** Henry's Feral Night
+- **Название:** Hoarbound
 - **Жанр:** Сурвайвал-экшн, атмосферный adventure
 - **Платформа:** PC
 - **Камера:** От третьего лица с кинематографическими эффектами
 - **Дополнительно:** Реалистичная графика, акцент на атмосферу и погружение
 
 **EN:**
-- **Title:** Henry's Feral Night
+- **Title:** Hoarbound
 - **Genre:** Survival-action, atmospheric adventure
 - **Platform:** PC
 - **Camera:** Third-person with cinematic effects

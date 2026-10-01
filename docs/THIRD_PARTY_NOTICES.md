@@ -2,7 +2,7 @@
 
 ## Licensing of this project itself
 
-`/LICENSE` holds Henry's Feral Night's own terms: copyright reserved, not open
+`/LICENSE` holds Hoarbound's own terms: copyright reserved, not open
 source. Until 2026-09-23 that path held an unrelated third party's MIT licence
 (`Copyright (c) 2023 mohsenph69`, author of the Godot-MTerrain addon), which
 arrived in commit `5496269` with terrain experiments and was never replaced —
@@ -57,7 +57,7 @@ recorded in [`technical/PORTED_FROM_ADT.md`](technical/PORTED_FROM_ADT.md).
 - Author: dairycultist
 - Published: August 29, 2026
 - License: CC0
-- HFN changes: color/alpha control, numerical guards, reusable BoxMesh scene.
+- Hoarbound changes: color/alpha control, numerical guards, reusable BoxMesh scene.
 
 ## Stylized shadows, not a post processing
 
@@ -65,17 +65,17 @@ recorded in [`technical/PORTED_FROM_ADT.md`](technical/PORTED_FROM_ADT.md).
 - Author: ShaderError
 - Published: May 22, 2023
 - License: CC0
-- HFN changes: reimplemented for stock Godot without the source shader's custom
-  `sample_directional_shadow()` engine modification. The shadow lookup is moved
-  through `LIGHT_VERTEX`, and the directional `ATTENUATION` is cut into three
-  tones inside `light()`.
+- Hoarbound changes: reimplemented for stock Godot without the source shader's
+  custom `sample_directional_shadow()` engine modification. The shadow lookup is
+  moved through `LIGHT_VERTEX`, and the directional `ATTENUATION` is cut into
+  three tones inside `light()`.
 
 ## Simple Overcast cloud layer
 
 - Source: https://godotshaders.com/shader/simple-overcast/
 - Author: tentabrobpy
 - License: CC0
-- HFN changes: multi-layer angular parallax, depth sampling, wind, cloud-shape
+- Hoarbound changes: multi-layer angular parallax, depth sampling, wind, cloud-shape
   contrast and integration into the combined Freeman atmosphere shader.
 
 ## Freeman's Sky Shader
@@ -86,7 +86,7 @@ recorded in [`technical/PORTED_FROM_ADT.md`](technical/PORTED_FROM_ADT.md).
 - Author: Niwl Games.
 - Published: June 16, 2026.
 - License: CC0-1.0.
-- HFN integration: official full-resolution and quarter-resolution variants are
+- Hoarbound integration: official full-resolution and quarter-resolution variants are
   retained for reference. Production uses
   shaders/environment/freemans_parallax_clouds.gdshader, which combines the
   Freeman atmosphere with HFN's CC0 Simple Overcast-derived parallax cloud layer.
@@ -99,7 +99,7 @@ recorded in [`technical/PORTED_FROM_ADT.md`](technical/PORTED_FROM_ADT.md).
 - Author: ProfesorShader
 - Published: July 12, 2026
 - License: CC0
-- HFN production adaptation: procedural snowflake geometry, WeatherController-
+- Hoarbound production adaptation: procedural snowflake geometry, WeatherController-
   driven wind/gusts, live steering of airborne flakes, Terrain3D HeightField
   collision, rare foreground flakes and render-only high-wind velocity stretch.
   The source shader's autonomous wind range/change and vortex are not used.
