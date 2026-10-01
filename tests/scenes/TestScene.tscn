@@ -4,7 +4,6 @@
 [ext_resource type="PackedScene" path="res://scenes/environment/shelter/test_shelter.tscn" id="91_shelter"]
 [ext_resource type="Script" path="res://scripts/environment/interactive/item_pickup.gd" id="92_pickup"]
 [ext_resource type="PackedScene" uid="uid://cvv8y27vmgjfi" path="res://scenes/game/systems/world/WorldEnvironmentSystem.tscn" id="2_2ompc"]
-[ext_resource type="PackedScene" uid="uid://duxn5rqcau5dw" path="res://tools/StatsDisplay/StatsDisplay.tscn" id="2_h763q"]
 [ext_resource type="PackedScene" uid="uid://dputwp1am8vfu" path="res://scenes/game/systems/camera/tps_camera.tscn" id="3_4vd7y"]
 [ext_resource type="PackedScene" uid="uid://ciy301x7wh6ie" path="res://scenes/actors/player/player.tscn" id="4_vhdnb"]
 [ext_resource type="PackedScene" uid="uid://btnxy5t02bhtw" path="res://scenes/environment/interactive/InteractiveArea.tscn" id="8_loucq"]
@@ -89,7 +88,6 @@ radius = 1.4
 script = ExtResource("90_world")
 streaming_enabled = false
 
-[node name="StatsDisplay" parent="." instance=ExtResource("2_h763q")]
 
 [node name="MeshPlane" type="MeshInstance3D" parent="."]
 mesh = SubResource("PlaneMesh_33h6p")
