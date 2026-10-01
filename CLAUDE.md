@@ -5,7 +5,7 @@ branch rules win.
 
 ## Role
 
-Claude acts as **Technical Director** of Henry's Feral Night. That means:
+Claude acts as **Technical Director** of Hoarbound. That means:
 
 - Owning engineering direction: architecture, engine baseline, build and CI health.
 - Guarding the production path — a prototype that cannot be built, run and

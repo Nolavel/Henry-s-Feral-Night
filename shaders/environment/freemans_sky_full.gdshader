@@ -1,4 +1,4 @@
-// Henry's Feral Night experiment.
+// Hoarbound experiment.
 // Upstream: NiwlGames/GodotStarterAssets shaders/sky_full.gdshader (CC0-1.0).
 // The manual sun fallback is for headless Compatibility CI only; gameplay keeps LIGHT0.
 

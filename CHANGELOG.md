@@ -1,9 +1,21 @@
 # Changelog
 
-All notable changes to Henry's Feral Night. Newest first.
+All notable changes to Hoarbound. Newest first.
 Maintained per branch; entries are added by whoever makes the change.
 
 ## [Unreleased] — `codex`
+
+### 2026-10-01 - Color-grade import-gate parser fix (codex)
+
+- Declared the existing `WorldEnvironment.environment` reference in the color-grade harness; current `main` used an undeclared local `environment`, which the clean import gate correctly rejected.
+- Gameplay/runtime behavior is unchanged.
+
+### 2026-10-01 - Project identity renamed to Hoarbound (codex)
+
+- Renamed the Godot/.NET project identity, solution and project files to `Hoarbound`.
+- Replaced the former project title in current product, licence, UI and technical documentation.
+- Replaced the long README with a compact bilingual EN/RU overview focused on genre, setting and the First Exit goal.
+- Stable internal `HFN_*` / `hfn/*` technical identifiers are intentionally unchanged in this pass to avoid resource/API churn.
 
 ### 2026-10-01 - Engineering contract raised to production quality bar (codex)
 
@@ -1066,7 +1078,7 @@ Removed
 Changed
 - The engine boot is now a plain `#101010` field instead of the old illustrated
   splash.
-- The playable island opens under a centered `Henry's Feral Night` / `ALPHA 0.1`
+- The playable island opens under a centered `Hoarbound` / `ALPHA 0.1`
   title card in soft white, then reveals the scene with a short fade. Capture
   tools that instantiate the island directly skip the card.
 

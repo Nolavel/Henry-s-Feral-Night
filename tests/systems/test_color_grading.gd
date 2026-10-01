@@ -75,6 +75,7 @@ func _check_switching(day: ColorGradeProfile, dusk: ColorGradeProfile, night: Co
 		return
 	var world_environment := WorldEnvironment.new()
 	world_environment.environment = Environment.new()
+	var environment: Environment = world_environment.environment
 	var controller := ColorGradeController.new()
 	controller.world_environment = world_environment
 	controller.day_profile = day

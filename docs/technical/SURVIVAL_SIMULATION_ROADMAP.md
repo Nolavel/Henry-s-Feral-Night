@@ -1,6 +1,6 @@
 # Systemic Survival Foundation — technical roadmap
 
-Status: architecture plan for [#131](https://github.com/Nolavel/Henry-s-Feral-Night/issues/131).  
+Status: architecture plan for [#131](https://github.com/Nolavel/Hoarbound/issues/131).  
 Public product name: **Hoarbound**.  
 Implementation branch for Codex: **`codex` only**.
 
