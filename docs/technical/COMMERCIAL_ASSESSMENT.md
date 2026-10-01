@@ -1,4 +1,4 @@
-# Commercial readiness assessment — Henry's Feral Night
+# Commercial readiness assessment — Hoarbound
 
 Reviewer: Claude (technical director)
 Date: 2026-09-22
@@ -13,7 +13,7 @@ Engine used for verification: Godot 4.8-dev6 mono, Forward+/Vulkan on lavapipe
 `main` was fast-forwarded to Codex HEAD after the first pass. Several §3 findings
 are **resolved** and are kept below only for the record:
 
-- Duplicate solutions gone — one `Henry's Feral Night.sln` / `.csproj` remains,
+- Duplicate solutions gone — one `Hoarbound.sln` / `.csproj` remains,
   `Сrimson Flow.*` deleted (§3.2).
 - `ProjectSettings` dump/load tooling and the `ScanFolderFiles` debug UI removed;
   `project.godot` is no longer a settings dump (§3.2).

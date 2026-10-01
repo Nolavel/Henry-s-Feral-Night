@@ -1,6 +1,6 @@
 # Quaternius Universal Animation Library
 
-Henry's Feral Night uses the **non-root-motion UAL1 humanoid rig** as the active
+Hoarbound uses the **non-root-motion UAL1 humanoid rig** as the active
 player visual/locomotion animation source. CharacterBody3D movement remains
 authoritative; the animation layer only reads the player's resulting velocity.
 
