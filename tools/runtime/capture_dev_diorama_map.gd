@@ -39,7 +39,8 @@ func _process(_delta: float) -> bool:
 		_phase = 1
 		return false
 
-	_capture_map("03_map_labels_followed")
+	_capture_full("03_follow_after_move")
+	_capture_map("04_map_labels_followed")
 	print("dev diorama map capture: complete; labels=", _map.get_visible_label_count())
 	quit()
 	return true
