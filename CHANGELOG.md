@@ -5,6 +5,39 @@ Maintained per branch; entries are added by whoever makes the change.
 
 ## [Unreleased] — `codex`
 
+### 2026-10-01 - Henry's measured body, doorway traversal (claudeflow, #170)
+
+- `HenryMetrics` (`data/characters/henry_metrics.tres`) holds Henry measured
+  from the model the game loads. `tools/runtime/measure_henry_metrics.gd`
+  CPU-skins the dressed `henry_outfit.glb` through the live skeleton and
+  averages 16 idle and crouch-idle poses. Standing: crown 1.79 m, eyes 1.62,
+  shoulder joints 1.40, coat over the shoulders 1.52, width 0.60, chest depth
+  0.36, pack +0.32 behind the coat. Crouched: eyes 0.90, shoulders 0.86.
+  Capsule: radius 0.5, height 2.0 / 1.3.
+- `TpsCamera` drops ADT's `EYE_RATIO`, `SHOULDER_RATIO` and `body_height`. The
+  pivot sits on the shoulder joints, fades read the eyes, and the stance blend
+  follows the capsule between its measured heights. ADT's crouch scaling had
+  put the eyes 0.20 m too high. The pivot on the coat (0.10 m under the eyes)
+  hid Henry with his back to a wall; `test_tps_camera_orbit` caught it.
+- Framing heights are added after the follow lag, so a crouch or a doorway is
+  smoothed once, by its own exponential damp.
+- `PassageTraversalComponent` on Henry: a short doorway is found from facing
+  jamb rays (a corridor is not a doorway). While a key pushes along it, Henry
+  is steered onto its centre line and through; S brings him back out. There is
+  no teleport, and walking and animation stay as they are.
+- Doorway framing in `TpsCamera`:
+  - boom down to 1.4 m, shoulder to 25 %, +0.15 m rise, +6° FOV;
+  - the view stays within ±35° of the passage axis, and the mouse cannot push
+    past it;
+  - the frame closes at rate 12 and opens back out at rate 3.
+  - The body fade stays only as a fallback.
+- `test_passage_traversal`: a 1.2 m door taken 35° off, the frame closing fast
+  and reopening softly, backing out with S, and a 1.4 × 8 m corridor that is no
+  doorway.
+- `tools/runtime/capture_tps_doorway.gd` grabs the shelter door at entry, middle
+  and exit. Its floor ray now starts inside the opening; from above, it landed
+  on the lintel.
+
 ### 2026-10-01 - TPS camera review fixes: control yaw, prop chains, sway-free aim (claudeflow, #170)
 
 - Review of `ae305d8` found that automatic turns rewrote `_yaw`, which

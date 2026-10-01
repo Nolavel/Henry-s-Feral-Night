@@ -75,7 +75,7 @@ func _add_box(center: Vector3, size: Vector3) -> void:
 
 
 func _eye() -> Vector3:
-	return _player.global_position + Vector3.UP * _capsule.shape.height * 0.9 * TpsCamera.EYE_RATIO
+	return _camera.get_eye_position()
 
 
 func _enter_open_field() -> void:

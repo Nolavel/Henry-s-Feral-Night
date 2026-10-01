@@ -20,10 +20,10 @@ Unreal Fest sample.
   the camera eases back out.
 - **Thin things never move the camera.** Posts, planks, trunks, people and loose
   props let the boom pass; when they cross the view they turn see-through.
-- **When there is no room at all, Henry's near parts dither out.** In a 1.2 m
-  doorway with a 0.5 m capsule there is nowhere else for the camera to go. His
-  head, shoulder and pack fade while his legs stay; he is never cut out in one
-  frame.
+- **A narrow doorway is a short traversal.** Holding a key along it carries
+  Henry through its centre, and the frame closes round him from behind. Only
+  where geometry leaves no room at all do his near parts dither out (head,
+  shoulder, pack; the legs stay); he is never cut out in one frame.
 - **The mouse owns where Henry walks.** WASD turns by the control yaw, and only
   the mouse (or `set_look`) changes it.
 - **The camera turns by itself only after the mouse has rested for 0.9 s**, and
@@ -46,8 +46,9 @@ the camera recentres behind a walking Henry; mouse response is P0.
    `snap_to_target()` does the same on demand.
 2. `InputSystems.consume_look_delta()` returns all mouse travel since the last
    frame. It reads `screen_relative`, so the stretch mode cannot rescale look.
-3. The stance is read from Henry's capsule: its height ratio sets the framing
-   heights, and the feet stay on the ground.
+3. The stance is read from Henry's capsule. Where its height sits between the
+   measured standing and crouch heights picks the framing heights from
+   `HenryMetrics`, and the feet stay on the ground.
 4. The rods judge how open the space is, every frame, which sets the boom
    length. They cover the camera's half of the circle (straight back weighs
    most) and the ceiling over Henry, so a wall in front of him does not count.
@@ -77,7 +78,8 @@ only the view.
 Henry (interpolated) ── feet (from the capsule)
   └─ safe point: on the capsule axis, under its top by the probe radius   [Lyra]
        └─ leg 1, sphere sweep, nothing passes ─▶ shoulder point            [Cinemachine "hand"]
-            (pivot = shoulder height + lead, lagged; + shoulder/lean offset)
+            (pivot = feet + lead, lagged; + Henry's shoulder joints and the doorway rise;
+             + shoulder/lean offset)
             └─ leg 2 ─▶ camera
                  centre: sphere sweep, thin things pass        → hard limit, snaps in
                  feelers: ±16°, ±32° yaw, +20°/−20° pitch rays  → soft limit, eases in
@@ -98,6 +100,97 @@ Henry (interpolated) ── feet (from the capsule)
   centre sweep would have to snap.
 - **Follow lag trails only the orbit centre**: 16 across the ground, 10 in
   height. The orbit itself answers the mouse with no lag.
+- **One smoothing per quantity.** The lag follows Henry's feet. The framing
+  heights (stance, doorway rise) are added after it, each eased by its own
+  exponential damp `1 − exp(−rate·Δt)`, ADT's `damp_factor`. A crouch or a
+  doorway is never smoothed twice.
+
+## Henry's body (`HenryMetrics`)
+
+The framing heights come from Henry as the game loads him, not from another
+character's body ratios (ADT's 0.94 / 0.82 of 1.8 m were dropped; author's
+comment on #170).
+
+`tools/runtime/measure_henry_metrics.gd` loads `player.tscn` →
+`HenryUALVisual` → `henry_outfit.glb` and skins every visible vertex of the
+dressed body on the CPU through the live `Skeleton3D`. It averages 16 poses of
+the idle and crouch-idle cycles (one pose varies by 1–2 cm), and writes
+`data/characters/henry_metrics.tres`. Re-run it whenever the model, outfit,
+scale or capsule changes. `TpsCamera` warns when the capsule no longer matches.
+
+| Metres above the capsule bottom | Standing | Crouched |
+|---|---|---|
+| Crown of the hat | 1.79 | 1.08 |
+| Eyes (midway chin–crown of the head) | 1.62 | 0.90 |
+| Shoulder joints (`upperarm`) — **orbit pivot** | 1.40 | 0.86 |
+| Coat over the shoulders | 1.52 | 0.97 |
+
+| Silhouette, metres | |
+|---|---|
+| Between the shoulder joints | 0.38 |
+| Widest at shoulder height, arms in, dressed | 0.60 (crouched 0.74) |
+| Chest front to back | 0.36 |
+| Pack and bear behind the coat (visual clearance only) | +0.32, 0.54 behind the capsule axis |
+| Physics capsule | radius 0.50, height 2.00 / crouched 1.30 |
+
+- **The pivot is at the shoulder joints**, 0.22 m under the eyes. With the
+  pivot on the coat (0.10 m under the eyes), a camera pressed against a wall
+  behind Henry sat 0.20 m from his eyes and hid him; `test_tps_camera_orbit`
+  caught that.
+- **The eyes** are used for line of sight and the body fade.
+- **Between stances** the heights follow the capsule's own height (2.0 ↔ 1.3)
+  with one damp. A crouch drops Henry's eyes by 0.72 m; scaling 1.8 m by the
+  capsule ratio would have put them 0.20 m too high.
+
+## Doorways (`PassageTraversalComponent`)
+
+Author's direction (#170): in a narrow doorway, keep Henry in frame through
+composition and a short traversal, not free orbit and not a fade.
+
+**Henry (physics, `PassageTraversalComponent` on the player):**
+- **Detection.** Every physics frame, at 1.3 m over the feet, opposite rays
+  look for two solid faces turned toward each other (normals within ~45° of
+  opposite), less than 1.9 m apart. Walking at a wall, the wall is scanned for
+  a floor-level gap 0.7–1.9 m wide, which is then measured from inside. Thin
+  props do not count, by the same rule as the boom.
+- **Short or corridor.** A gap is a doorway only if it opens up within 0.9 m
+  along its axis on at least one side. A corridor is narrow at both ends and
+  never starts a traversal.
+- **Steering.** While a movement key pushes along the axis (at least 25 % of
+  the input), the direction is bent toward the axis and onto the centre line.
+  The bend is full within 0.4 m of the door plane and gone 1.1 m past it. W
+  carries Henry through; S carries him back out. Animation, speed and
+  collision are unchanged, and nothing is teleported.
+
+**Camera (`TpsCamera`):** a blend rises as Henry nears the door plane (full
+inside 0.35 m) and falls by 1.1 m past it. It drives:
+
+| | Free | In the door |
+|---|---|---|
+| Boom | open-space length | at most 1.4 m |
+| Shoulder offset | 0.85 m | 25 % (0.21 m) |
+| Pivot | shoulder joints | +0.15 m |
+| FOV | base | +6° |
+| View yaw | free | within ±35° of the passage axis; the mouse cannot push past |
+| Automatic turns | as usual | off |
+
+- **The frame closes fast and opens softly:** the blend damps at rate 12 on
+  the way in and at 3 on the way out. Each quantity reads that one blend, and
+  pivot heights are added after the follow lag, so nothing is smoothed twice.
+- **The body fade stays as a fallback** for geometry that leaves no room. It
+  is no longer the plan for a door.
+
+**Fit, from the measured body** (shelter door 1.46 m clear with the leaf open,
+2.25 m high):
+
+| Room per side, walking the centre line | 1.46 m door | 1.2 m stress case |
+|---|---|---|
+| Capsule Ø 1.00 | 0.23 m | 0.10 m |
+| Visual body 0.60 | 0.43 m | 0.30 m |
+| Camera on the axis (sphere 0.2 + margin 0.1): largest shoulder offset | 0.43 m | 0.30 m |
+
+The doorway shoulder (0.21 m) fits both. Under the lintel, the camera passes
+behind Henry at about 2.0 m with the default pitch, against a 2.25 m opening.
 
 ## What stops the boom
 
@@ -155,6 +248,11 @@ move only the view offset, never the control yaw.
   Output: CSV and `summary.json` under `user://traces/tps_camera/<label>/`.
 - `tools/runtime/capture_tps_camera.gd` takes the same stills for any camera
   build (lavapipe): `user://shots/tps_camera/<label>/`.
+- `tools/runtime/capture_tps_doorway.gd` grabs the Key West shelter door at
+  entry, middle and exit (straight, 35° off, and stopped with the mouse turned
+  aside): `user://shots/tps_doorway/<label>/`. No frames were rendered for
+  the doorway pass; the author reviews it locally.
+- `tools/runtime/measure_henry_metrics.gd` rebuilds `HenryMetrics`.
 
 Before (`a604f60`) → after (#170, with the review fixes), TestScene at 144 fps:
 
@@ -204,8 +302,15 @@ and dithers Henry until the mouse rests.
 ## Known limits
 
 - **There is physically no room for the camera beside Henry in a 1.2 m doorway**
-  (capsule radius 0.5 m). The camera comes within about 0.3 m of the eyes and he
-  dithers. Wider doors or a slimmer capsule are design or level calls.
+  (capsule radius 0.5 m). The traversal frames him from behind along the axis;
+  orbiting the mouse sideways in a doorway is limited to ±35°.
+- **The capsule (Ø 1.0 m) is much wider than Henry (0.60 m).** His coat stops
+  0.2 m short of a wall, while the pack (0.54 m behind his axis) reaches 4 cm
+  past the capsule. The capsule size and the doorway standard are design and
+  level calls; 1.5 m with the leaf open (1.46 clear) by 2.25 m is the working
+  hypothesis, and 1.2 m is the stress case.
+- **Releasing the keys inside a doorway stops Henry there.** The traversal
+  only acts while a key pushes along the passage.
 - **A wall between camera and Henry still snaps the boom**, by decision: up to
   about 1 m in one frame on a sideways door pass, and 0.3–0.45 m when the
   camera behind Henry grazes the jamb on the way out.

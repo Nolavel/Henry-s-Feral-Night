@@ -58,7 +58,7 @@ func _build() -> void:
 
 
 func _sample() -> void:
-	var eye: Vector3 = _player.global_position + Vector3.UP * _camera.body_height * TpsCamera.EYE_RATIO
+	var eye: Vector3 = _player.global_position + Vector3.UP * _camera.metrics.standing_eye
 	var at: Vector3 = _camera.global_position
 	var yaw: int = _step * STEP_DEG
 	_check(at.z < WALL_FACE_Z, "yaw %d: camera inside or behind the wall at z=%.2f" % [yaw, at.z])

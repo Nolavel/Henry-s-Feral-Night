@@ -4,9 +4,8 @@ extends Camera3D
 ## Third-person over-the-shoulder camera (ADT on-foot camera, rebuilt in #170).
 ## The mouse owns the control yaw (WASD); automatic turns only offset the view.
 
-## ADT BodyMetrics ratios of body height.
-const EYE_RATIO: float = 0.94
-const SHOULDER_RATIO: float = 0.82
+## Henry as measured from his loaded model by tools/runtime/measure_henry_metrics.gd.
+const DEFAULT_METRICS: HenryMetrics = preload("res://data/characters/henry_metrics.tres")
 ## Lyra's soft feelers around the boom: yaw and pitch offsets (degrees), weight.
 const FEELERS: Array = [[16.0, 0.0, 0.75], [-16.0, 0.0, 0.75], [32.0, 0.0, 0.5], [-32.0, 0.0, 0.5],
 	[0.0, 20.0, 1.0], [0.0, -20.0, 0.5]]
@@ -29,8 +28,8 @@ const ROOM_SEARCH_INTERVAL: float = 0.25
 @export_range(0.1, 1.0, 0.05) var pitch_sensitivity_ratio: float = 0.7
 
 @export_group("Body")
-## Standing height; framing heights are ADT's body ratios of it, scaled by stance.
-@export var body_height: float = 1.8
+## Framing heights: the pivot sits at the shoulder joints, fades read the eyes.
+@export var metrics: HenryMetrics = DEFAULT_METRICS
 ## Used only when Henry has no capsule to read the feet from.
 @export var origin_above_feet: float = 1.0
 ## How fast the framing follows a crouch, as Lyra's crouch blend.
@@ -104,6 +103,19 @@ const ROOM_SEARCH_INTERVAL: float = 0.25
 @export_range(0.0, 120.0, 5.0) var assist_max_yaw_deg: float = 90.0
 @export_range(0.0, 60.0, 5.0) var assist_max_pitch_deg: float = 30.0
 
+@export_group("Passage")
+## In a narrow doorway the frame closes round Henry: a shorter boom, a smaller
+## shoulder share and a small lift; the author's call on #170.
+@export var passage_boom: float = 1.4
+@export_range(0.0, 1.0, 0.05) var passage_shoulder_fraction: float = 0.25
+@export var passage_rise: float = 0.15
+@export var passage_fov_deg: float = 6.0
+## The view keeps within this many degrees of the passage axis; the mouse cannot push past it.
+@export_range(5.0, 90.0, 5.0) var passage_yaw_limit_deg: float = 35.0
+## The frame closes round Henry fast as he enters and opens back out softer.
+@export_range(0.5, 30.0, 0.5) var passage_compress_rate: float = 12.0
+@export_range(0.5, 20.0, 0.5) var passage_release_rate: float = 3.0
+
 @export_group("Fade")
 ## Render layers of Henry's body; his parts near the camera dither out when it is inside his reach.
 @export_flags_3d_render var body_layers: int = 16
@@ -132,7 +144,8 @@ var _lead: Vector3 = Vector3.ZERO
 var _pullback: float = 0.0
 var _openness: float = 1.0
 var _boom: float = 3.0
-var _stance: float = 1.0
+## Crouch share of the framing: 0 standing, 1 crouched.
+var _crouch: float = 0.0
 ## Shares of each boom leg left after walls, Lyra's DistBlockedPct.
 var _shoulder_pct: float = 1.0
 var _dist_pct: float = 1.0
@@ -151,8 +164,15 @@ var _probe := TpsBoomProbe.new()
 var _auto := TpsAutoLook.new()
 var _fader := TpsCameraFader.new()
 var _capsule: CollisionShape3D
-var _standing_capsule_height: float = 0.0
 var _input_systems: Node
+## Henry's doorway traversal, read for the frame; looked up once after his _ready.
+var _passage: PassageTraversalComponent
+var _passage_looked_up: bool = false
+var _passage_blend: float = 0.0
+## Which way along the passage axis the view faces; kept until it clearly turns.
+var _passage_sign: float = 0.0
+## FOV this camera added for a doorway; others may set the base FOV meanwhile.
+var _fov_offset: float = 0.0
 
 
 func _ready() -> void:
@@ -163,6 +183,8 @@ func _ready() -> void:
 	_shoulder.left_offset = -shoulder_offset
 	_pitch_deg = start_pitch_deg
 	_boom = far_distance
+	if metrics == null:
+		metrics = DEFAULT_METRICS
 	_input_systems = get_node_or_null(^"/root/InputSystems")
 	if is_instance_valid(player):
 		_yaw = player.global_rotation.y
@@ -187,6 +209,7 @@ func _process(delta: float) -> void:
 		snap_to_target()
 	_target = target
 	_update_stance(delta)
+	_update_passage(delta)
 	_auto.note_look(_apply_look_input(), delta)
 	_apply_lean_and_shoulder_input(delta)
 	_probe.begin(get_world_3d().direct_space_state, [player.get_rid()])
@@ -267,6 +290,11 @@ func is_body_hidden() -> bool:
 	return _fader.get_body_fade() >= 0.99
 
 
+## Henry's eyes as the camera frames them: measured height, eased between stances.
+func get_eye_position() -> Vector3:
+	return _feet_position() + Vector3.UP * _eye_height()
+
+
 ## Seconds since the mouse last moved; automatic turns wait for the cooldown.
 func get_look_idle_time() -> float:
 	return _auto.get_idle_time()
@@ -296,16 +324,21 @@ func _update_rig(delta: float) -> void:
 	var planar := Vector3(player.velocity.x, 0.0, player.velocity.z)
 	var move_dir: Vector3 = planar.normalized() if planar.length() > 0.05 else Vector3.ZERO
 	_lead = _lead.lerp(move_dir * speed_ratio * lead_distance, _damp(lead_smoothing, delta))
-	var height: float = body_height * _stance
-	var pivot: Vector3 = _follow_pivot(delta, _feet_position() + Vector3.UP * height * SHOULDER_RATIO + _lead)
+	## Framing heights ride on the followed feet, so each is smoothed once.
+	var pivot: Vector3 = _follow_pivot(delta, _feet_position() + _lead)
+	pivot += Vector3.UP * (_pivot_height() + passage_rise * _passage_blend)
 	var safe: Vector3 = _safe_origin()
 	_update_auto_look(delta, safe, speed_ratio)
 
-	var view_yaw: float = get_view_yaw()
+	var view_yaw: float = _passage_yaw(get_view_yaw())
 	var pitch_deg: float = get_view_pitch_deg()
 	var want: float = (_boom + _pullback) * _look_up_scale(pitch_deg)
+	want = lerpf(want, minf(want, passage_boom), _passage_blend)
 	var roominess: float = clampf(inverse_lerp(near_distance, far_distance, _boom), 0.0, 1.0)
 	var side: float = _shoulder.update(delta) * lerpf(tight_shoulder_fraction, 1.0, roominess) + _lean * lean_camera_offset
+	side *= lerpf(1.0, passage_shoulder_fraction, _passage_blend)
+	fov += passage_fov_deg * _passage_blend - _fov_offset
+	_fov_offset = passage_fov_deg * _passage_blend
 	var right := Vector3(cos(view_yaw), 0.0, -sin(view_yaw))
 	var shoulder: Vector3 = _sweep_shoulder(delta, safe, pivot + right * side)
 	var back: Vector3 = _back(view_yaw, pitch_deg)
@@ -370,7 +403,7 @@ func _sweep_shoulder(delta: float, safe: Vector3, goal: Vector3) -> Vector3:
 ## Turns the player did not make, once the mouse rests: room search while Henry
 ## stands cramped, recentring and whiskers while he moves. They only offset the view.
 func _update_auto_look(delta: float, safe: Vector3, speed_ratio: float) -> void:
-	if not _auto.is_active():
+	if not _auto.is_active() or _passage_blend > 0.01:
 		return
 	var want: float = _boom + _pullback
 	var goal := Vector2(_auto_yaw, _auto_pitch_deg)
@@ -397,6 +430,40 @@ func _update_auto_look(delta: float, safe: Vector3, speed_ratio: float) -> void:
 	var step: float = deg_to_rad(rate_deg) * delta
 	_auto_yaw = wrapf(_auto_yaw + clampf(angle_difference(_auto_yaw, goal.x), -step, step), -PI, PI)
 	_auto_pitch_deg = move_toward(_auto_pitch_deg, goal.y, rate_deg * delta)
+
+
+## Narrow doorways recompose the frame round Henry: the blend rises as he nears
+## the door plane and falls after it, from his PassageTraversalComponent.
+func _update_passage(delta: float) -> void:
+	if not _passage_looked_up:
+		_passage_looked_up = true
+		_passage = player.get_node_or_null(^"PassageTraversalComponent") as PassageTraversalComponent
+	var goal: float = _passage.get_blend(_target.origin) if _passage != null else 0.0
+	var rate: float = passage_compress_rate if goal > _passage_blend else passage_release_rate
+	_passage_blend = goal if not _has_position else lerpf(_passage_blend, goal, _damp(rate, delta))
+	if _passage_blend <= 0.001:
+		_passage_sign = 0.0
+
+
+## Yaw of the passage axis on the side the view faces, with hysteresis.
+func _passage_axis_yaw(view_yaw: float) -> float:
+	var axis: Vector3 = _passage.get_axis()
+	var along: float = Vector3(-sin(view_yaw), 0.0, -cos(view_yaw)).dot(axis)
+	if _passage_sign == 0.0 or absf(along) > 0.2:
+		_passage_sign = 1.0 if along >= 0.0 else -1.0
+	var dir: Vector3 = axis * _passage_sign
+	return atan2(-dir.x, -dir.z)
+
+
+## In a doorway the view keeps near the passage axis, so the boom runs along the
+## opening instead of into a jamb; blended out as Henry leaves the door.
+func _passage_yaw(view_yaw: float) -> float:
+	if _passage == null or _passage_blend <= 0.001:
+		return view_yaw
+	var axis_yaw: float = _passage_axis_yaw(view_yaw)
+	var limit: float = deg_to_rad(passage_yaw_limit_deg)
+	var clamped: float = axis_yaw + clampf(angle_difference(axis_yaw, view_yaw), -limit, limit)
+	return lerp_angle(view_yaw, clamped, _passage_blend)
 
 
 func _clear_auto_look() -> void:
@@ -445,7 +512,7 @@ func _update_fades(delta: float, camera: Vector3) -> void:
 		_fader.update_body(0.0, delta)
 		_fader.update_occluders([], delta)
 		return
-	var eye: Vector3 = _feet_position() + Vector3.UP * body_height * _stance * EYE_RATIO
+	var eye: Vector3 = get_eye_position()
 	var fade: float = clampf(inverse_lerp(body_fade_start, body_fade_end, camera.distance_to(eye)), 0.0, 1.0)
 	_fader.update_body(fade, delta)
 	_probe.passed.clear()
@@ -466,7 +533,15 @@ func _apply_look_input() -> Vector2:
 		_clear_auto_look()
 	var x_sign: float = -1.0 if invert_look_x else 1.0
 	var y_sign: float = -1.0 if invert_look_y else 1.0
-	_yaw = wrapf(_yaw - look.x * look_sensitivity_x * x_sign, -PI, PI)
+	var yaw: float = wrapf(_yaw - look.x * look_sensitivity_x * x_sign, -PI, PI)
+	## Inside a doorway the mouse cannot push the look further aside than the limit.
+	if _passage != null and _passage_blend > 0.5:
+		var axis_yaw: float = _passage_axis_yaw(get_view_yaw())
+		var limit: float = deg_to_rad(passage_yaw_limit_deg)
+		var after: float = absf(angle_difference(axis_yaw, yaw))
+		if after > limit and after > absf(angle_difference(axis_yaw, _yaw)):
+			yaw = _yaw
+	_yaw = yaw
 	_pitch_deg -= rad_to_deg(look.y) * look_sensitivity_y * pitch_sensitivity_ratio * y_sign
 	_pitch_deg = clampf(_pitch_deg, pitch_min_deg, pitch_max_deg)
 	return look
@@ -496,11 +571,11 @@ func _feet_position() -> Vector3:
 ## so a cast from it never starts inside a wall or a low ceiling.
 func _safe_origin() -> Vector3:
 	var feet: Vector3 = _feet_position()
-	var top: float = body_height * _stance
+	var top: float = lerpf(metrics.capsule_height, metrics.crouch_capsule_height, _crouch)
 	if _capsule != null:
 		top = (_capsule.shape as CapsuleShape3D).height
 	var low: float = collision_radius + 0.05
-	var height: float = clampf(body_height * _stance * SHOULDER_RATIO, low, maxf(low, top - collision_radius - 0.05))
+	var height: float = clampf(_pivot_height(), low, maxf(low, top - collision_radius - 0.05))
 	return feet + Vector3.UP * height
 
 
@@ -515,12 +590,23 @@ func _follow_pivot(delta: float, pivot: Vector3) -> Vector3:
 	return _pivot_smooth
 
 
-## Stance follows the capsule height: 1 standing, the crouch ratio when crouched.
+## Crouch share from the capsule's height between its measured standing and crouch heights.
 func _update_stance(delta: float) -> void:
-	var ratio: float = 1.0
-	if _capsule != null and _standing_capsule_height > 0.0:
-		ratio = (_capsule.shape as CapsuleShape3D).height / _standing_capsule_height
-	_stance = ratio if not _has_position else lerpf(_stance, ratio, _damp(stance_rate, delta))
+	var goal: float = 0.0
+	var span: float = metrics.capsule_height - metrics.crouch_capsule_height
+	if _capsule != null and span > 0.0:
+		goal = clampf((metrics.capsule_height - (_capsule.shape as CapsuleShape3D).height) / span, 0.0, 1.0)
+	_crouch = goal if not _has_position else lerpf(_crouch, goal, _damp(stance_rate, delta))
+
+
+## Height of the orbit pivot above the feet: Henry's shoulder joints, far enough
+## under the eyes that a camera pressed to the shoulder stays out of the head.
+func _pivot_height() -> float:
+	return lerpf(metrics.standing_shoulder, metrics.crouch_shoulder, _crouch)
+
+
+func _eye_height() -> float:
+	return lerpf(metrics.standing_eye, metrics.crouch_eye, _crouch)
 
 
 func _find_capsule() -> void:
@@ -528,7 +614,9 @@ func _find_capsule() -> void:
 		var shape := child as CollisionShape3D
 		if shape != null and shape.shape is CapsuleShape3D:
 			_capsule = shape
-			_standing_capsule_height = (shape.shape as CapsuleShape3D).height
+			var height: float = (shape.shape as CapsuleShape3D).height
+			if not is_equal_approx(height, metrics.capsule_height):
+				push_warning("TpsCamera: Henry's capsule is %.2f m, HenryMetrics says %.2f m; re-run measure_henry_metrics.gd" % [height, metrics.capsule_height])
 			return
 
 

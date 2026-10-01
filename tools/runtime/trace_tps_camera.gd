@@ -657,6 +657,8 @@ func _render_origin() -> Vector3:
 func _head() -> Vector3:
 	if _skeleton != null and _head_bone >= 0:
 		return _skeleton.global_transform * _skeleton.get_bone_global_pose(_head_bone).origin
+	if _cam.has_method(&"get_eye_position"):
+		return _cam.call(&"get_eye_position")
 	return _player.global_position + Vector3.UP * 0.69
 
 

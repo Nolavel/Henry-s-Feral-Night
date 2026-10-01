@@ -69,7 +69,7 @@ func _run() -> void:
 			await _frames(1)
 		var image: Image = root.get_texture().get_image()
 		image.save_png(dir.path_join("%s.png" % still[0]))
-		var eye: Vector3 = _player.global_position + Vector3.UP * 0.69
+		var eye: Vector3 = _eye()
 		print("[capture] %s camera %.2f m from the eyes" % [still[0], _cam.global_position.distance_to(eye)])
 		Input.action_release(&"crouch")
 	quit(0)
@@ -135,3 +135,10 @@ func _frames(count: int) -> void:
 	for i: int in range(count):
 		await _probe.frame_done
 		_frame += 1
+
+
+## The camera's eye point; ADT's 0.69 m over the capsule centre on builds without it.
+func _eye() -> Vector3:
+	if _cam.has_method(&"get_eye_position"):
+		return _cam.call(&"get_eye_position")
+	return _player.global_position + Vector3.UP * 0.69

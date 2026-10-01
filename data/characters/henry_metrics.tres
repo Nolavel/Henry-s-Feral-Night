@@ -1,0 +1,23 @@
+[gd_resource type="Resource" script_class="HenryMetrics" format=3]
+
+[ext_resource type="Script" path="res://scripts/actors/player/henry/henry_metrics.gd" id="1_rat6d"]
+
+[resource]
+script = ExtResource("1_rat6d")
+source = "player.tscn / HenryUALVisual / henry_outfit.glb, idle and crouch idle, 2026-10-01"
+standing_top = 1.7920735999941826
+standing_eye = 1.6176206953823566
+standing_shoulder = 1.3982803001999855
+standing_shoulder_top = 1.5166863
+crouch_top = 1.0761629417538643
+crouch_eye = 0.8985834401100874
+crouch_shoulder = 0.8608014173805714
+crouch_shoulder_top = 0.9751194417476654
+shoulder_joint_width = 0.38270833902060986
+body_width = 0.5969712920486927
+body_depth = 0.36113329511135817
+pack_behind = 0.3179580057039857
+pack_top = 1.59780702739954
+capsule_radius = 0.5
+capsule_height = 2.0
+crouch_capsule_height = 1.3
