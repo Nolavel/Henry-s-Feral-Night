@@ -4,6 +4,10 @@ extends RefCounted
 ## Casts for the camera boom. Wide static geometry stops it; thin props, moving
 ## bodies and characters let it through and are listed for fading instead.
 
+## Pass-through colliders one cast may skip; past this the next one counts as a wall,
+## so a long chain of props can never hide a wall behind it.
+const MAX_PASSES: int = 16
+
 ## A collider whose second-largest extent is under this is thin: posts, planks, trunks.
 var thin_extent: float = 0.6
 var collision_mask: int = 0xFFFFFFFF
@@ -32,7 +36,7 @@ func sweep(from: Vector3, motion: Vector3, pass_thin: bool = true) -> float:
 	if _space == null or length < 0.001:
 		return length
 	var exclude: Array[RID] = _exclude.duplicate()
-	for attempt: int in range(4):
+	for attempt: int in range(MAX_PASSES + 1):
 		_prepare(from, motion, exclude)
 		var result: PackedFloat32Array = _space.cast_motion(_query)
 		if result.is_empty() or result[0] >= 1.0:
@@ -44,7 +48,7 @@ func sweep(from: Vector3, motion: Vector3, pass_thin: bool = true) -> float:
 		if info.is_empty():
 			return length * result[0]
 		var collider: Object = instance_from_id(info["collider_id"])
-		if not passes(collider, int(info["shape"])):
+		if attempt == MAX_PASSES or not passes(collider, int(info["shape"])):
 			return length * result[0]
 		passed[info["collider_id"]] = collider
 		exclude.append(info["rid"])
@@ -57,24 +61,31 @@ func ray(from: Vector3, motion: Vector3) -> float:
 	if _space == null or length < 0.001:
 		return length
 	var exclude: Array[RID] = _exclude.duplicate()
-	for attempt: int in range(4):
+	for attempt: int in range(MAX_PASSES + 1):
 		var query := PhysicsRayQueryParameters3D.create(from, from + motion, collision_mask, exclude)
 		var hit: Dictionary = _space.intersect_ray(query)
 		if hit.is_empty():
 			return length
-		if not passes(hit["collider"], int(hit["shape"])):
+		if attempt == MAX_PASSES or not passes(hit["collider"], int(hit["shape"])):
 			return from.distance_to(hit["position"])
 		passed[hit["collider_id"]] = hit["collider"]
 		exclude.append(hit["rid"])
 	return length
 
 
-## True if the sphere at `point` overlaps any collider, thin ones included.
+## True if the sphere at `point` overlaps a collider that stops the boom; thin
+## ones it overlaps are only recorded, so they fade and never move the camera.
 func overlaps(point: Vector3) -> bool:
 	if _space == null:
 		return false
 	_prepare(point, Vector3.ZERO, _exclude)
-	return not _space.intersect_shape(_query, 1).is_empty()
+	var blocked: bool = false
+	for hit: Dictionary in _space.intersect_shape(_query, MAX_PASSES):
+		if passes(hit["collider"], int(hit["shape"])):
+			passed[hit["collider_id"]] = hit["collider"]
+		else:
+			blocked = true
+	return blocked
 
 
 ## Characters, moving bodies and thin colliders do not hold the boom back.

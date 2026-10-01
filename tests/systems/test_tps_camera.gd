@@ -1,7 +1,7 @@
 extends SceneTree
 
-## Boom length by space, walls, a real shoulder offset, crouch, a low ceiling and
-## a thin pole, and no automatic turn while the mouse moves.
+## Boom by space, walls, real shoulder, crouch, low ceiling, thin props and their
+## chains; automatic turns never move the control yaw; gameplay rays skip the sway.
 ## Run: godot --headless --script tests/systems/test_tps_camera.gd
 
 const SETTLE_FRAMES: int = 240
@@ -30,8 +30,9 @@ func _physics_process(_delta: float) -> bool:
 			[_check_doorway, _enter_wall_behind], [_check_wall_behind, _enter_open_field],
 			[_record_standing, _enter_crouch],
 			[_check_crouch, _enter_low_ceiling], [_check_low_ceiling, _enter_thin_pole],
-			[_check_thin_pole, _enter_mouse_busy], [_check_mouse_busy, _enter_mouse_rest],
-			[_check_mouse_rest, _finish],
+			[_check_thin_pole, _enter_thin_chain.bind(5)], [_check_thin_chain, _enter_thin_chain.bind(20)],
+			[_check_thin_chain, _enter_breathing], [_check_breathing, _enter_mouse_busy],
+			[_check_mouse_busy, _enter_mouse_rest], [_check_mouse_rest, _finish],
 		]
 	elif _frame % SETTLE_FRAMES == 0 and not _boundaries.is_empty():
 		var boundary: Array = _boundaries.pop_front()
@@ -181,6 +182,45 @@ func _check_thin_pole() -> void:
 	_check(distance > 2.0, "a thin pole pulled the boom in to %.2f m" % distance)
 
 
+## Poles in a row on the boom line, then a beam the rising boom crosses above the
+## space rods: only collision can stop the camera there, also past the pass limit.
+func _enter_thin_chain(count: int) -> void:
+	_clear_walls()
+	_add_box(Vector3(0.0, 2.0, 2.0), Vector3(6.0, 0.8, 0.2))
+	for i: int in range(count):
+		var pole := StaticBody3D.new()
+		var shape := CollisionShape3D.new()
+		var cylinder := CylinderShape3D.new()
+		cylinder.radius = 0.03
+		cylinder.height = 3.0
+		shape.shape = cylinder
+		pole.add_child(shape)
+		pole.position = Vector3(0.85, 1.5, lerpf(0.4, 1.7, float(i) / float(maxi(count - 1, 1))))
+		_walls.add_child(pole)
+
+
+func _check_thin_chain() -> void:
+	var z: float = _camera.global_position.z
+	_check(_camera.get_boom_length() > 2.5, "the beam shortened the boom through the space rods")
+	_check(z < 1.9 - 0.05, "a row of %d poles let the camera into the beam: z=%.2f" % [_walls.get_child_count() - 1, z])
+
+
+## A strong breathing sway: the gameplay ray must still follow the view, not the sway.
+func _enter_breathing() -> void:
+	_clear_walls()
+	_camera.breathing_amplitude_deg = 8.0
+	_camera.tension = 1.0
+
+
+func _check_breathing() -> void:
+	var aim: Vector3 = TpsCamera.aim_direction(_camera)
+	var aim_pitch: float = rad_to_deg(asin(clampf(aim.y, -1.0, 1.0)))
+	_check(absf(aim_pitch - _camera.get_view_pitch_deg()) < 0.01,
+		"the gameplay ray sways: aim pitch %.2f, view pitch %.2f" % [aim_pitch, _camera.get_view_pitch_deg()])
+	_camera.breathing_amplitude_deg = 0.4
+	_camera.tension = 0.0
+
+
 ## Back to a wall with the view aimed into it while the mouse keeps moving.
 func _enter_mouse_busy() -> void:
 	_clear_walls()
@@ -191,8 +231,8 @@ func _enter_mouse_busy() -> void:
 
 
 func _check_mouse_busy() -> void:
-	var drift: float = absf(rad_to_deg(angle_difference(_aimed_yaw, _camera.get_yaw())))
-	_check(drift < 1.0, "the camera turned by itself %.1f deg while the mouse moved" % drift)
+	var drift: float = absf(rad_to_deg(angle_difference(_aimed_yaw, _camera.get_view_yaw())))
+	_check(drift < 1.0, "the view turned by itself %.1f deg while the mouse moved" % drift)
 	_aimed_yaw = _camera.get_yaw()
 
 
@@ -200,8 +240,11 @@ func _enter_mouse_rest() -> void:
 	_mouse_busy = false
 
 
+## At rest the view may turn to find room, but the control yaw (WASD) stays put.
 func _check_mouse_rest() -> void:
-	var turned: float = absf(rad_to_deg(angle_difference(_aimed_yaw, _camera.get_yaw())))
+	var control: float = absf(rad_to_deg(angle_difference(_aimed_yaw, _camera.get_yaw())))
+	_check(control < 0.001, "an automatic turn moved the control yaw (WASD) by %.2f deg" % control)
+	var turned: float = absf(rad_to_deg(angle_difference(_aimed_yaw, _camera.get_view_yaw())))
 	var distance: float = _camera.global_position.distance_to(_eye())
 	_check(turned > 5.0 or distance > 0.55, "after the mouse rested the camera found no room: %.2f m" % distance)
 

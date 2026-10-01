@@ -11,6 +11,8 @@ var occluder_transparency: float = 0.7
 var max_visual_extent: float = 1.5
 var fade_in_time: float = 0.12
 var fade_out_time: float = 0.35
+## Meshes without the stylized shader blend as a whole, so they never go further.
+var body_fallback_max: float = 0.7
 
 ## Faded occluder visuals by instance id: [GeometryInstance3D, amount, own transparency].
 var _faded: Dictionary = {}
@@ -92,7 +94,7 @@ func _apply_body(geo: GeometryInstance3D, amount: float) -> void:
 	if _is_stylized(geo):
 		geo.set_instance_shader_parameter(&"camera_fade", amount)
 	else:
-		geo.transparency = amount
+		geo.transparency = minf(amount, body_fallback_max)
 
 
 static func _is_stylized(geo: GeometryInstance3D) -> bool:

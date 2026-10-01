@@ -1,19 +1,17 @@
 class_name TpsAutoLook
 extends RefCounted
 
-## Camera turns the player did not make: recentring behind a walking Henry and
-## steering away from walls. All wait for the mouse to rest; none undo themselves.
+## Camera turns the player did not make, as targets for the view offset over the
+## control yaw: WASD never follows them. All wait for the mouse to rest.
 
 ## Seconds the mouse must rest before any automatic turn starts.
 var cooldown: float = 0.9
 var recenter_enabled: bool = true
-## Recentring speed at full sprint, degrees per second; walking scales it down.
-var recenter_rate_deg: float = 90.0
 ## Heading offsets beyond this are left alone: Henry walks at the camera.
 var recenter_max_angle_deg: float = 110.0
-## Fastest steer away from an obstacle at the boom's side, degrees per second.
-var whisker_rate_deg: float = 45.0
-## Fastest turn toward an angle with room for the boom, degrees per second.
+## Largest view swing away from a wall at the boom's side, degrees.
+var whisker_max_deg: float = 30.0
+## How fast the view glides to an angle with room, degrees per second.
 var room_rate_deg: float = 120.0
 
 var _idle: float = 0.0
@@ -35,36 +33,20 @@ func get_idle_time() -> float:
 	return _idle
 
 
-## Yaw step toward Henry's heading. Strafing or backing up keeps the camera:
-## those keys say the player is placing the view on purpose.
-func recenter_step(view_yaw: float, heading_yaw: float, speed_ratio: float, move_axis: Vector2, delta: float) -> float:
-	if not recenter_enabled or not is_active() or speed_ratio < 0.05:
+## View offset that puts the camera behind a walk Henry is not steered through
+## (an F approach). Any movement key means the player steers: no offset then.
+func recenter_offset(control_to_heading: float, move_axis: Vector2) -> float:
+	if not recenter_enabled or move_axis.length_squared() > 0.01:
 		return 0.0
-	if absf(move_axis.x) > 0.1 or move_axis.y < -0.1:
+	if absf(control_to_heading) > deg_to_rad(recenter_max_angle_deg):
 		return 0.0
-	var diff: float = angle_difference(view_yaw, heading_yaw)
-	var limit: float = deg_to_rad(recenter_max_angle_deg)
-	if absf(diff) > limit:
-		return 0.0
-	var weight: float = 1.0 - smoothstep(limit * 0.6, limit, absf(diff))
-	var step: float = deg_to_rad(recenter_rate_deg) * speed_ratio * weight * delta
-	return signf(diff) * minf(absf(diff), step)
+	return control_to_heading
 
 
-## Yaw step toward the side whose whiskers see more room; rooms are 0..1 for
+## View offset toward the side whose whiskers see more room; rooms are 0..1 for
 ## booms swung to lower and to higher yaw.
-func whisker_step(lower_room: float, higher_room: float, speed_ratio: float, delta: float) -> float:
-	if not is_active() or speed_ratio < 0.05:
-		return 0.0
+func whisker_offset(lower_room: float, higher_room: float) -> float:
 	var push: float = higher_room - lower_room
 	if absf(push) < 0.15:
 		return 0.0
-	return signf(push) * deg_to_rad(whisker_rate_deg) * minf(absf(push), 1.0) * delta
-
-
-## Step of an angle toward `target` at the room-finding rate.
-func room_step(offset: float, delta: float) -> float:
-	if not is_active():
-		return 0.0
-	var step: float = deg_to_rad(room_rate_deg) * delta
-	return signf(offset) * minf(absf(offset), step)
+	return signf(push) * deg_to_rad(whisker_max_deg) * minf(absf(push), 1.0)

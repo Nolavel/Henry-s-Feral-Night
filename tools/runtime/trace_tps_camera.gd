@@ -365,7 +365,7 @@ func _scenario_sway() -> void:
 
 
 ## Back to the wall, view aimed into it: the mouse keeps moving (no automatic
-## turn may happen), then rests (a turn may start after the cooldown), then W.
+## turn may happen), then rests (the view may turn), then W with no mouse at all.
 func _scenario_assist() -> void:
 	_release_actions()
 	_player.global_position = Vector3(0.0, 1.0, 11.72)
@@ -379,33 +379,35 @@ func _scenario_assist() -> void:
 	for i: int in range(288):
 		_mouse(1.0 if i % 2 == 0 else -1.0, 0.0)
 		await _sample("assist_busy")
-		busy_drift = maxf(busy_drift, absf(rad_to_deg(angle_difference(aimed, _cam.get_yaw()))))
-	var held: float = _cam.get_yaw()
+		busy_drift = maxf(busy_drift, absf(rad_to_deg(angle_difference(aimed, _view_yaw()))))
+	var mouse_yaw: float = _cam.get_yaw()
 	var first_turn: int = -1
 	for i: int in range(360):
 		await _sample("assist_rest")
-		if first_turn < 0 and absf(rad_to_deg(angle_difference(held, _cam.get_yaw()))) > 0.5:
+		if first_turn < 0 and absf(rad_to_deg(angle_difference(mouse_yaw, _view_yaw()))) > 0.5:
 			first_turn = i
-	var rest_turn: float = rad_to_deg(angle_difference(held, _cam.get_yaw()))
+	var rest_turn: float = rad_to_deg(angle_difference(mouse_yaw, _view_yaw()))
+	var control_drift: float = rad_to_deg(angle_difference(mouse_yaw, _cam.get_yaw()))
 	Input.action_press(&"move_forward")
 	var errors: Array[float] = []
 	for i: int in range(144):
 		await _sample("assist_walk")
 		var v := Vector3(_player.velocity.x, 0.0, _player.velocity.z)
 		if v.length() > 0.5:
-			errors.append(absf(rad_to_deg(angle_difference(_cam.get_yaw(), atan2(-v.x, -v.z)))))
+			errors.append(absf(rad_to_deg(angle_difference(mouse_yaw, atan2(-v.x, -v.z)))))
 	Input.action_release(&"move_forward")
 	var result: Dictionary = _end("assist")
-	result["auto_turn_while_mouse_moves_deg"] = busy_drift
-	result["first_auto_turn_after_rest_ms"] = -1.0 if first_turn < 0 else float(first_turn + 1) * 1000.0 / _fps()
-	result["auto_turn_after_rest_deg"] = rest_turn
-	result["walk_heading_vs_view_deg_mean"] = _mean(errors)
-	result["walk_heading_vs_view_deg_max"] = _max(errors)
+	result["view_turn_while_mouse_moves_deg"] = busy_drift
+	result["first_view_turn_after_rest_ms"] = -1.0 if first_turn < 0 else float(first_turn + 1) * 1000.0 / _fps()
+	result["view_turn_after_rest_deg"] = rest_turn
+	result["control_yaw_moved_by_auto_look_deg"] = control_drift
+	result["walk_heading_vs_mouse_yaw_deg_mean"] = _mean(errors)
+	result["walk_heading_vs_mouse_yaw_deg_max"] = _max(errors)
 	_summary["assist"] = result
 
 
 ## Henry walks off 60 degrees right on his own (scripted walk), then strafes on
-## D: the view should follow the walk after the cooldown and stay for the strafe.
+## D: the view follows the walk, the control yaw never moves, D keeps its direction.
 func _scenario_recenter() -> void:
 	await _place(OPEN_SPOT, 0.0, -10.0)
 	_begin()
@@ -414,23 +416,33 @@ func _scenario_recenter() -> void:
 	var first_turn: int = -1
 	for i: int in range(576):
 		await _sample("recenter_walk")
-		if first_turn < 0 and absf(rad_to_deg(angle_difference(start, _cam.get_yaw()))) > 0.5:
+		if first_turn < 0 and absf(rad_to_deg(angle_difference(start, _view_yaw()))) > 0.5:
 			first_turn = i
 		if not _player.is_walking_to_target():
 			break
-	var walked_turn: float = rad_to_deg(angle_difference(start, _cam.get_yaw()))
+	var walked_turn: float = rad_to_deg(angle_difference(start, _view_yaw()))
 	_player.stop_moving()
 	await _frames(30)
-	var before_strafe: float = _cam.get_yaw()
 	Input.action_press(&"move_right")
+	var strafe_errors: Array[float] = []
 	for i: int in range(432):
 		await _sample("recenter_strafe")
+		var v := Vector3(_player.velocity.x, 0.0, _player.velocity.z)
+		if v.length() > 0.5:
+			strafe_errors.append(absf(rad_to_deg(angle_difference(start - PI * 0.5, atan2(-v.x, -v.z)))))
 	Input.action_release(&"move_right")
 	var result: Dictionary = _end("recenter")
-	result["walk_first_turn_ms"] = -1.0 if first_turn < 0 else float(first_turn + 1) * 1000.0 / _fps()
+	result["walk_first_view_turn_ms"] = -1.0 if first_turn < 0 else float(first_turn + 1) * 1000.0 / _fps()
 	result["walk_view_turn_deg"] = walked_turn
-	result["strafe_view_turn_deg"] = rad_to_deg(angle_difference(before_strafe, _cam.get_yaw()))
+	result["control_yaw_moved_deg"] = rad_to_deg(angle_difference(start, _cam.get_yaw()))
+	result["strafe_heading_vs_mouse_right_deg_mean"] = _mean(strafe_errors)
+	result["view_offset_after_strafe_deg"] = rad_to_deg(angle_difference(_cam.get_yaw(), _view_yaw()))
 	_summary["recenter"] = result
+
+
+## View yaw where the camera has one; older builds turned the control yaw itself.
+func _view_yaw() -> float:
+	return float(_cam.call(&"get_view_yaw")) if _cam.has_method(&"get_view_yaw") else _cam.get_yaw()
 
 
 ## Key West: from the porch through the real shelter door into the room on a

@@ -5,6 +5,39 @@ Maintained per branch; entries are added by whoever makes the change.
 
 ## [Unreleased] — `codex`
 
+### 2026-10-01 - TPS camera review fixes: control yaw, prop chains, sway-free aim (claudeflow, #170)
+
+- Review of `ae305d8` found that automatic turns rewrote `_yaw`, which
+  `get_yaw()` hands to WASD. The test only passed because I had switched its
+  check from "heading against the mouse yaw" to "heading against the view".
+  Now control and view are split, Unreal's ControlRotation versus camera
+  modifiers. `_yaw` changes only with the mouse; room search, recentring and
+  whiskers move a view offset. Mouse travel folds that offset into the control
+  look, so the view never jumps; steering keys glide it back out.
+  Measured: control yaw moved by automatic turns 0°; W heading against the
+  mouse yaw 0° (was 74° before #170).
+- `TpsBoomProbe` passed at most 4 thin colliders, then returned "path free",
+  which a fifth prop before a wall would breach. It now passes up to 16 and
+  counts the next as a wall (fail-safe). `overlaps()` reports only blocking
+  bodies; thin ones the camera sits inside fade instead of snapping it.
+- Breathing sway is presentation only: `TpsCamera.aim_origin()` and
+  `aim_direction()` turn the last sway back out of the camera's real
+  transform. A camera posed by hand, as in `test_shelter_workflow`, still aims
+  where it points. `InteractComponent`,
+  `BedrollComponent`, `BreachBoardUp` and `MouseCursorUI` use them for their
+  centre rays.
+- The space rods run every frame and cover only the camera's half of the
+  circle, plus the ceiling. A wall in front of Henry no longer shortens the
+  boom, and the 10 Hz steps are gone.
+- The body fade weighs each fragment by its distance to the camera: head,
+  shoulder and pack dither, and the legs a metre out stay. Non-stylized meshes
+  are capped at 70 %.
+- `test_tps_camera`:
+  - adds "control yaw unchanged after an automatic turn", 5 and 20 poles before
+    a beam, and "gameplay ray ignores an 8° sway";
+  - each check fails on a mutation of the bug it guards.
+- `trace_tps_camera.gd` measures heading against the mouse yaw again.
+
 ### 2026-10-01 - TPS camera rig: safe origin, feelers, player priority, fades (claudeflow, #170 T3–T9)
 
 - Rig rebuilt after Lyra and Cinemachine: a safe point inside Henry's capsule →

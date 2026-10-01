@@ -584,9 +584,8 @@ func _ray_hits_target() -> bool:
 	var camera: Camera3D = get_viewport().get_camera_3d()
 	if camera == null or player == null:
 		return false
-	var center: Vector2 = get_viewport_rect().size * 0.5
-	var from: Vector3 = camera.project_ray_origin(center)
-	var to: Vector3 = from + camera.project_ray_normal(center) * target_ray_length
+	var from: Vector3 = TpsCamera.aim_origin(camera)
+	var to: Vector3 = from + TpsCamera.aim_direction(camera) * target_ray_length
 	var params := PhysicsRayQueryParameters3D.create(from, to)
 	params.collide_with_areas = true
 	params.collide_with_bodies = true

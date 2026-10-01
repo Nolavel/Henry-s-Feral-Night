@@ -21,7 +21,10 @@ uniform float shadow_offset_scale : hint_range(0.0, 1.0) = 1.0;
 uniform bool shadow_noise_in_model_space = false;
 
 // Screen-door fade the TPS camera drives on Henry when it is inside his reach.
+// Only his parts near the camera go (head, shoulder, pack); a metre out stays whole.
 instance uniform float camera_fade : hint_range(0.0, 1.0) = 0.0;
+const float HFN_CAMERA_FADE_NEAR = 0.35;
+const float HFN_CAMERA_FADE_FAR = 1.1;
 const float HFN_BAYER4[16] = float[](0.0, 8.0, 2.0, 10.0, 12.0, 4.0, 14.0, 6.0,
 	3.0, 11.0, 1.0, 9.0, 15.0, 7.0, 13.0, 5.0);
 
@@ -33,8 +36,9 @@ void vertex() {
 
 void fragment() {
 	if (camera_fade > 0.0) {
+		float near_part = 1.0 - smoothstep(HFN_CAMERA_FADE_NEAR, HFN_CAMERA_FADE_FAR, length(VERTEX));
 		ivec2 cell = ivec2(FRAGCOORD.xy) & ivec2(3);
-		if (camera_fade * 16.0 > HFN_BAYER4[cell.y * 4 + cell.x] + 0.5) {
+		if (camera_fade * near_part * 16.0 > HFN_BAYER4[cell.y * 4 + cell.x] + 0.5) {
 			discard;
 		}
 	}

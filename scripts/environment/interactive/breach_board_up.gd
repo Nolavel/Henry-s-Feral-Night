@@ -197,9 +197,8 @@ func _update_preview() -> void:
 		_preview_y = 0.0
 		_preview.position = Vector3(0.0, _preview_y, 0.12)
 		return
-	var center: Vector2 = viewport.get_visible_rect().size * 0.5
-	var from: Vector3 = camera.project_ray_origin(center)
-	var direction: Vector3 = camera.project_ray_normal(center).normalized()
+	var from: Vector3 = TpsCamera.aim_origin(camera)
+	var direction: Vector3 = TpsCamera.aim_direction(camera)
 	var normal: Vector3 = breach.get_facing()
 	var denom: float = normal.dot(direction)
 	if absf(denom) < 0.001:
