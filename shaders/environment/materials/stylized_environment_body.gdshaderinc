@@ -20,6 +20,11 @@ uniform float rim_power : hint_range(1.0, 8.0) = 3.5;
 uniform float shadow_offset_scale : hint_range(0.0, 1.0) = 1.0;
 uniform bool shadow_noise_in_model_space = false;
 
+// Screen-door fade the TPS camera drives on Henry when it is inside his reach.
+instance uniform float camera_fade : hint_range(0.0, 1.0) = 0.0;
+const float HFN_BAYER4[16] = float[](0.0, 8.0, 2.0, 10.0, 12.0, 4.0, 14.0, 6.0,
+	3.0, 11.0, 1.0, 9.0, 15.0, 7.0, 13.0, 5.0);
+
 varying vec3 stylized_noise_pos;
 
 void vertex() {
@@ -27,6 +32,12 @@ void vertex() {
 }
 
 void fragment() {
+	if (camera_fade > 0.0) {
+		ivec2 cell = ivec2(FRAGCOORD.xy) & ivec2(3);
+		if (camera_fade * 16.0 > HFN_BAYER4[cell.y * 4 + cell.x] + 0.5) {
+			discard;
+		}
+	}
 	HFN_SHADOW_FRAGMENT_SCALED(stylized_noise_pos, shadow_offset_scale);
 	vec2 uv = UV * uv_scale + uv_offset;
 	vec4 base = albedo_color;

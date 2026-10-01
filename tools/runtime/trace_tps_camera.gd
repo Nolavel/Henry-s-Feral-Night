@@ -16,7 +16,7 @@ const NEAR_PROBE_RADIUS: float = 0.08
 const POP_THRESHOLD: float = 0.3
 const OPEN_SPOT: Vector3 = Vector3(8.0, 1.0, 6.0)
 const SCENARIOS: PackedStringArray = [
-	"look", "walk", "orbit", "door_pass", "crouch", "pole", "teleport", "sway", "assist",
+	"look", "walk", "orbit", "door_pass", "crouch", "pole", "teleport", "sway", "assist", "recenter",
 ]
 ## Probe points around TestShelter (origin z = 14): name, Henry origin.
 const ORBIT_POINTS: Array = [
@@ -117,6 +117,7 @@ func _run() -> void:
 			"teleport": await _scenario_teleport()
 			"sway": await _scenario_sway()
 			"assist": await _scenario_assist()
+			"recenter": await _scenario_recenter()
 			_: push_error("trace: unknown scenario %s" % scenario)
 	_write_json("summary.json", _summary)
 	print(JSON.stringify(_summary, "  "))
@@ -356,26 +357,78 @@ func _scenario_sway() -> void:
 	_summary["sway"] = result
 
 
-## Back to the wall, mouse aimed into it, then W with no mouse at all.
+## Back to the wall, view aimed into it: the mouse keeps moving (no automatic
+## turn may happen), then rests (a turn may start after the cooldown), then W.
 func _scenario_assist() -> void:
-	await _place(Vector3(0.0, 1.0, 11.72), PI, -10.0)
-	var mouse_yaw: float = float(_cam.get("_yaw"))
-	var assist_deg: float = rad_to_deg(angle_difference(mouse_yaw, _cam.get_yaw()))
+	_release_actions()
+	_player.global_position = Vector3(0.0, 1.0, 11.72)
+	_player.velocity = Vector3.ZERO
+	_player.rotation.y = PI
+	_cam.set_look(PI, -10.0)
+	_snap_camera()
 	_begin()
+	var aimed: float = _cam.get_yaw()
+	var busy_drift: float = 0.0
+	for i: int in range(288):
+		_mouse(1.0 if i % 2 == 0 else -1.0, 0.0)
+		await _sample("assist_busy")
+		busy_drift = maxf(busy_drift, absf(rad_to_deg(angle_difference(aimed, _cam.get_yaw()))))
+	var held: float = _cam.get_yaw()
+	var first_turn: int = -1
+	for i: int in range(360):
+		await _sample("assist_rest")
+		if first_turn < 0 and absf(rad_to_deg(angle_difference(held, _cam.get_yaw()))) > 0.5:
+			first_turn = i
+	var rest_turn: float = rad_to_deg(angle_difference(held, _cam.get_yaw()))
 	Input.action_press(&"move_forward")
 	var errors: Array[float] = []
 	for i: int in range(144):
 		await _sample("assist_walk")
 		var v := Vector3(_player.velocity.x, 0.0, _player.velocity.z)
 		if v.length() > 0.5:
-			var heading: float = atan2(-v.x, -v.z)
-			errors.append(absf(rad_to_deg(angle_difference(mouse_yaw, heading))))
+			errors.append(absf(rad_to_deg(angle_difference(_cam.get_yaw(), atan2(-v.x, -v.z)))))
 	Input.action_release(&"move_forward")
 	var result: Dictionary = _end("assist")
-	result["assist_yaw_deg_before_walk"] = assist_deg
-	result["walk_heading_error_vs_mouse_deg_max"] = _max(errors)
-	result["walk_heading_error_vs_mouse_deg_mean"] = _mean(errors)
+	result["auto_turn_while_mouse_moves_deg"] = busy_drift
+	result["first_auto_turn_after_rest_ms"] = -1.0 if first_turn < 0 else float(first_turn + 1) * 1000.0 / _fps()
+	result["auto_turn_after_rest_deg"] = rest_turn
+	result["walk_heading_vs_view_deg_mean"] = _mean(errors)
+	result["walk_heading_vs_view_deg_max"] = _max(errors)
 	_summary["assist"] = result
+
+
+## Henry walks off 60 degrees right on his own (scripted walk), then strafes on
+## D: the view should follow the walk after the cooldown and stay for the strafe.
+func _scenario_recenter() -> void:
+	await _place(OPEN_SPOT, 0.0, -10.0)
+	_begin()
+	var start: float = _cam.get_yaw()
+	_player.move_to_position(OPEN_SPOT + Vector3(sin(deg_to_rad(60.0)), 0.0, -cos(deg_to_rad(60.0))) * 8.0)
+	var first_turn: int = -1
+	for i: int in range(576):
+		await _sample("recenter_walk")
+		if first_turn < 0 and absf(rad_to_deg(angle_difference(start, _cam.get_yaw()))) > 0.5:
+			first_turn = i
+		if not _player.is_walking_to_target():
+			break
+	var walked_turn: float = rad_to_deg(angle_difference(start, _cam.get_yaw()))
+	_player.stop_moving()
+	await _frames(30)
+	var before_strafe: float = _cam.get_yaw()
+	Input.action_press(&"move_right")
+	for i: int in range(432):
+		await _sample("recenter_strafe")
+	Input.action_release(&"move_right")
+	var result: Dictionary = _end("recenter")
+	result["walk_first_turn_ms"] = -1.0 if first_turn < 0 else float(first_turn + 1) * 1000.0 / _fps()
+	result["walk_view_turn_deg"] = walked_turn
+	result["strafe_view_turn_deg"] = rad_to_deg(angle_difference(before_strafe, _cam.get_yaw()))
+	_summary["recenter"] = result
+
+
+func _release_actions() -> void:
+	for action: StringName in [&"move_forward", &"move_backward", &"move_left", &"move_right", &"sprint", &"crouch"]:
+		Input.action_release(action)
 
 
 ## Holds an action until the condition holds or the timeout passes.
@@ -390,8 +443,7 @@ func _hold_until(action: StringName, tag: String, done: Callable, timeout: float
 
 
 func _place(at: Vector3, yaw: float, pitch: float) -> void:
-	for action: StringName in [&"move_forward", &"move_backward", &"move_left", &"move_right", &"sprint", &"crouch"]:
-		Input.action_release(action)
+	_release_actions()
 	_player.global_position = at
 	_player.velocity = Vector3.ZERO
 	_player.rotation.y = yaw
@@ -457,6 +509,7 @@ func _sample(tag: String) -> void:
 		"node_near_clip": _near_clipped(_cam.global_position),
 		"head_occluded": _segment_blocked(render, head),
 		"body_hidden": _cam.is_body_hidden(),
+		"body_fade": float(_cam.call(&"get_body_fade")) if _cam.has_method(&"get_body_fade") else float(_cam.is_body_hidden()),
 	})
 	_last_render = render
 	if _shots:
@@ -489,6 +542,8 @@ func _end(name: String) -> Dictionary:
 	var counts: Dictionary = {"render_inside": 0, "node_inside": 0, "near_clip": 0, "node_near_clip": 0,
 		"head_occluded": 0, "body_hidden": 0}
 	var min_distance: float = INF
+	var faded: int = 0
+	var max_fade: float = 0.0
 	var max_drop: float = 0.0
 	var pops: int = 0
 	for row: Dictionary in _rows:
@@ -496,12 +551,16 @@ func _end(name: String) -> Dictionary:
 			if row[key]:
 				counts[key] += 1
 		min_distance = minf(min_distance, row["head_distance"])
+		if row["body_fade"] > 0.0:
+			faded += 1
+		max_fade = maxf(max_fade, row["body_fade"])
 		max_drop = maxf(max_drop, -float(row["head_distance_jump"]))
 		if absf(row["head_distance_jump"]) > POP_THRESHOLD:
 			pops += 1
 	_write_csv(name + ".csv")
 	var result: Dictionary = {"frames": frames, "min_head_distance_m": min_distance,
-		"max_single_frame_pull_in_m": max_drop, "pops_over_%.1fm" % POP_THRESHOLD: pops}
+		"max_single_frame_pull_in_m": max_drop, "pops_over_%.1fm" % POP_THRESHOLD: pops,
+		"frames_body_faded": faded, "max_body_fade": max_fade}
 	for key: String in counts.keys():
 		result["frames_" + key] = counts[key]
 	return result

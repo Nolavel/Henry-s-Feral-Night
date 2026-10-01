@@ -5,6 +5,35 @@ Maintained per branch; entries are added by whoever makes the change.
 
 ## [Unreleased] — `codex`
 
+### 2026-10-01 - TPS camera rig: safe origin, feelers, player priority, fades (claudeflow, #170 T3–T9)
+
+- Rig rebuilt after Lyra and Cinemachine: a safe point inside Henry's capsule →
+  a swept shoulder → a swept camera. The centre sweep snaps the boom in at
+  walls, six feelers (±16°, ±32° yaw, ±20° pitch) ease it in, and every
+  release eases it out. The shoulder is a real offset; `h_offset` is gone.
+- Stance comes from Henry's capsule: crouching lowers the camera by 0.50 m (it
+  stayed put), and under a 1.5 m slab the camera stays below it.
+- Author decisions: walls snap; thin colliders (middle extent < 0.6 m),
+  characters and unfrozen rigid bodies let the boom pass and fade to 70 %
+  transparency on the camera-to-eyes line.
+- `TpsAutoLook`: automatic turns wait 0.9 s after the mouse rests. Room search
+  works standing; recentring follows W or a scripted walk, not strafing or
+  backing up; Daedalic whiskers steer away from walls while moving. `get_yaw()`
+  is the view, so WASD always matches the screen.
+- Henry dithers out (`camera_fade`, Bayer 4×4 in
+  `stylized_environment_body.gdshaderinc`) from 0.8 m to 0.25 m, instead of a
+  hard cull at 0.3 m.
+- Rods weight the camera's side and ignore thin props; looking up shortens the
+  boom to 60 % before the ground does.
+- Measured in TestScene: over 360° sweeps at 8 poses (doorway, corner, walls,
+  window, open), frames with Henry cut out went from 1865 to 0; he dithers
+  instead. Near-plane clips on the door jamb 36 → 0. Thin-pole pops 3 → 0.
+  Head hidden under a slab 31 % → 0. A sideways door pass no longer cuts Henry
+  out for 246 frames. Model and numbers: `docs/technical/TPS_CAMERA.md`.
+- Tests: `test_tps_camera` adds crouch, low ceiling, thin pole and
+  mouse-priority checks. `test_tps_camera_orbit` now asks for fading instead of
+  an instant swing. New `tools/runtime/capture_tps_camera.gd` for stills.
+
 ### 2026-10-01 - TPS camera follows the mouse every frame (claudeflow, #170 T2)
 
 - Measured first with `tools/runtime/trace_tps_camera.gd` (TestScene, real

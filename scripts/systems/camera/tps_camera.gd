@@ -1,12 +1,19 @@
 class_name TpsCamera
 extends Camera3D
 
-## Third-person mouse-look camera ported from ADT's on-foot camera, minus its
-## view toggle, lock-on and aim. Distance adapts to the space around Henry.
+## Third-person over-the-shoulder camera (ADT on-foot camera, rebuilt in #170).
+## Rig per frame: safe point inside Henry's capsule → shoulder → camera, all swept.
 
 ## ADT BodyMetrics ratios of body height.
 const EYE_RATIO: float = 0.94
 const SHOULDER_RATIO: float = 0.82
+## Lyra's soft feelers around the boom: yaw and pitch offsets (degrees), weight.
+const FEELERS: Array = [[16.0, 0.0, 0.75], [-16.0, 0.0, 0.75], [32.0, 0.0, 0.5], [-32.0, 0.0, 0.5],
+	[0.0, 20.0, 1.0], [0.0, -20.0, 0.5]]
+## Daedalic's whiskers: booms swung this far either way judge where the room is.
+const WHISKERS_DEG: Array = [20.0, 40.0]
+## Seconds between searches for an angle with room while the boom stays cramped.
+const ROOM_SEARCH_INTERVAL: float = 0.25
 
 @export var player: CharacterBody3D
 
@@ -22,16 +29,15 @@ const SHOULDER_RATIO: float = 0.82
 @export_range(0.1, 1.0, 0.05) var pitch_sensitivity_ratio: float = 0.7
 
 @export_group("Body")
-## Character height; pivot and probe heights are ADT's body ratios of it.
+## Standing height; framing heights are ADT's body ratios of it, scaled by stance.
 @export var body_height: float = 1.8
-## How far the player origin sits above the feet (capsule centre).
+## Used only when Henry has no capsule to read the feet from.
 @export var origin_above_feet: float = 1.0
+## How fast the framing follows a crouch, as Lyra's crouch blend.
+@export_range(0.5, 20.0, 0.5) var stance_rate: float = 5.0
 
 @export_group("Shoulder")
 @export var shoulder_offset: float = 0.85
-## Share of the shoulder offset done as a lens shift; the rest moves the camera.
-@export_range(0.0, 1.0, 0.05) var shoulder_frustum_ratio: float = 0.6
-@export_range(1.0, 30.0, 0.5) var lens_offset_smoothing: float = 8.0
 ## Share of the shoulder offset kept in the tightest space; eased by the boom.
 @export_range(0.0, 1.0, 0.05) var tight_shoulder_fraction: float = 0.2
 
@@ -45,56 +51,67 @@ const SHOULDER_RATIO: float = 0.82
 @export var breathing_speed: float = 0.6
 
 @export_group("Follow")
-## Lag of the point the camera orbits, horizontally and vertically; mouse look has none.
+## Lag of the point the camera orbits, across the ground and in height; mouse look has none.
 @export_range(1.0, 40.0, 0.5) var follow_speed: float = 16.0
 @export_range(1.0, 40.0, 0.5) var follow_speed_vertical: float = 10.0
-## A target jump longer than this in one frame is a teleport: the camera snaps.
-@export var teleport_distance: float = 1.5
 @export var lead_distance: float = 0.6
 @export_range(0.5, 20.0, 0.5) var lead_smoothing: float = 2.5
 @export var sprint_pullback: float = 0.4
 @export_range(0.5, 20.0, 0.5) var pullback_smoothing: float = 3.0
+## A target jump longer than this in one frame is a teleport: the camera snaps.
+@export var teleport_distance: float = 1.5
 
 @export_group("Adaptive distance")
 ## Boom length in the tightest space and in the open.
 @export var near_distance: float = 0.95
 @export var far_distance: float = 3.0
-## Rods cast around Henry's head to judge how open the space is.
+## Rods cast around Henry to judge how open the space is.
 @export_range(4, 16) var probe_count: int = 8
 @export var probe_length: float = 4.0
-## A ceiling closer than this above the eyes pulls the camera in.
+## Rods pointing away from the camera count this much against rods behind Henry.
+@export_range(0.0, 1.0, 0.05) var front_probe_weight: float = 0.3
+## A ceiling closer than this above the shoulders pulls the camera in.
 @export var ceiling_clearance: float = 3.0
 ## Above 1 favours closing in: half-open space sits nearer the near distance.
 @export_range(0.5, 4.0, 0.1) var openness_exponent: float = 2.0
 @export_range(1.0, 60.0, 1.0) var probe_rate_hz: float = 10.0
 @export_range(0.1, 20.0, 0.1) var close_in_rate: float = 2.5
 @export_range(0.1, 20.0, 0.1) var open_out_rate: float = 1.2
+## Looking fully up shortens the boom to this share before the ground cuts it.
+@export_range(0.3, 1.0, 0.05) var look_up_distance_scale: float = 0.6
 
 @export_group("Collision")
-@export var collision_radius: float = 0.3
-## Closest the camera gets to the eyes; a wall always wins over framing.
-@export var collision_min_distance: float = 0.08
-@export var collision_surface_margin: float = 0.25
-@export_range(0.1, 20.0, 0.1) var collision_restore_rate: float = 5.0
+@export var collision_radius: float = 0.2
+## Closest the camera gets to the shoulder; a wall always wins over framing.
+@export var collision_min_distance: float = 0.05
+@export var collision_surface_margin: float = 0.1
+## Seconds to ease toward a feeler's limit, and to ease back out after any wall.
+@export_range(0.01, 1.0, 0.01) var blend_in_time: float = 0.1
+@export_range(0.01, 2.0, 0.01) var blend_out_time: float = 0.2
 @export_flags_3d_physics var collision_mask: int = 0xFFFFFFFF
+## Colliders narrower than this in their middle axis never stop the boom: they fade.
+@export var thin_extent: float = 0.6
 
-@export_group("Wall assist")
-## Below this free distance behind Henry the camera looks for a better angle, metres.
-@export var assist_comfort_distance: float = 0.9
-## The camera never settles closer than this when an angle with more room exists.
-@export var assist_min_distance: float = 0.6
-## Furthest the camera swings along a wall, degrees either side.
+@export_group("Auto look")
+## Seconds the mouse must rest before the camera turns by itself.
+@export var auto_look_cooldown: float = 0.9
+@export var auto_recenter: bool = true
+## Recentring speed behind a sprinting Henry, degrees per second.
+@export var recenter_rate_deg: float = 90.0
+## Standing still, a boom with less free length than this looks for room.
+@export var room_comfort_distance: float = 0.7
+## Furthest the room search swings along a wall and rises over Henry, degrees.
 @export_range(0.0, 120.0, 5.0) var assist_max_yaw_deg: float = 90.0
-## Furthest the camera rises to look down over Henry, degrees.
 @export_range(0.0, 60.0, 5.0) var assist_max_pitch_deg: float = 30.0
-## How fast the camera glides to the found angle and back.
-@export_range(0.5, 20.0, 0.5) var assist_rate: float = 4.0
 
-@export_group("Body hide")
-## Render layers of Henry's body; this camera stops drawing them up close.
+@export_group("Fade")
+## Render layers of Henry's body; it dithers out when the camera is inside his reach.
 @export_flags_3d_render var body_layers: int = 16
-## Closer than this to the eyes, the camera would look into his head, metres.
-@export var body_hide_distance: float = 0.3
+## Henry starts to fade closer than this to his eyes, and is gone at the second.
+@export var body_fade_start: float = 0.8
+@export var body_fade_end: float = 0.25
+## How see-through a thin occluder between camera and Henry becomes.
+@export_range(0.0, 1.0, 0.05) var occluder_transparency: float = 0.7
 
 ## 0..1 unease that widens the breathing sway; free for survival state to drive.
 var tension: float = 0.0
@@ -108,21 +125,27 @@ var _lead: Vector3 = Vector3.ZERO
 var _pullback: float = 0.0
 var _openness: float = 1.0
 var _boom: float = 3.0
-var _collision_distance: float = -1.0
-var _side_limit: float = -1.0
-## Offsets the wall assist adds on top of mouse look, and where they are heading.
-var _assist_yaw: float = 0.0
-var _assist_pitch_deg: float = 0.0
-var _assist_target_yaw: float = 0.0
-var _assist_target_pitch_deg: float = 0.0
+var _stance: float = 1.0
+## Shares of each boom leg left after walls, Lyra's DistBlockedPct.
+var _shoulder_pct: float = 1.0
+var _dist_pct: float = 1.0
+## Free length behind the shoulder this frame, before the margin.
+var _boom_room: float = INF
+## Turn still owed to the room search: yaw radians, pitch degrees.
+var _room_turn: Vector2 = Vector2.ZERO
+var _room_search_timer: float = 0.0
 var _probe_timer: float = 0.0
 var _has_position: bool = false
 var _lean: float = 0.0
 var _noise := FastNoiseLite.new()
 var _noise_time: float = 0.0
 var _shoulder := TpsShoulderState.new()
-var _collision_shape := SphereShape3D.new()
-var _collision_query := PhysicsShapeQueryParameters3D.new()
+var _probe := TpsBoomProbe.new()
+var _auto := TpsAutoLook.new()
+var _fader := TpsCameraFader.new()
+var _capsule: CollisionShape3D
+var _standing_capsule_height: float = 0.0
+var _input_systems: Node
 
 
 func _ready() -> void:
@@ -133,8 +156,11 @@ func _ready() -> void:
 	_shoulder.left_offset = -shoulder_offset
 	_pitch_deg = start_pitch_deg
 	_boom = far_distance
+	_input_systems = get_node_or_null(^"/root/InputSystems")
 	if is_instance_valid(player):
 		_yaw = player.global_rotation.y
+		_find_capsule()
+		_fader.set_body(player, body_layers)
 	_set_look_capture(true)
 	make_current()
 
@@ -148,16 +174,19 @@ func _exit_tree() -> void:
 func _process(delta: float) -> void:
 	if not is_instance_valid(player):
 		return
+	_sync_helpers()
 	var target: Transform3D = player.get_global_transform_interpolated()
 	if _has_position and target.origin.distance_to(_target.origin) > teleport_distance:
 		snap_to_target()
 	_target = target
+	_update_stance(delta)
+	_auto.note_look(_apply_look_input(), delta)
+	_apply_lean_and_shoulder_input(delta)
+	_probe.begin(get_world_3d().direct_space_state, [player.get_rid()])
 	if not _has_position:
 		_openness = measure_openness()
 		_boom = get_target_distance()
 		_probe_timer = 1.0 / probe_rate_hz
-	_apply_look_input()
-	_apply_lean_and_shoulder_input(delta)
 	_probe_timer -= delta
 	if _probe_timer <= 0.0:
 		_probe_timer = 1.0 / probe_rate_hz
@@ -165,27 +194,29 @@ func _process(delta: float) -> void:
 	var wanted: float = get_target_distance()
 	var rate: float = close_in_rate if wanted < _boom else open_out_rate
 	_boom = lerpf(_boom, wanted, _damp(rate, delta))
-	_update_transform(delta)
+	_update_rig(delta)
 
 
-## Camera yaw in radians; movement input is turned by it.
+## Camera yaw in radians; movement input is turned by it, so WASD follows the view.
 func get_yaw() -> float:
-	return _yaw + _assist_yaw
+	return _yaw
 
 
 ## Aims the camera directly, for spawn and tests.
 func set_look(yaw: float, pitch_deg: float) -> void:
 	_yaw = yaw
 	_pitch_deg = clampf(pitch_deg, pitch_min_deg, pitch_max_deg)
+	_room_turn = Vector2.ZERO
 
 
 ## Drops all follow and collision memory; the next frame starts on the goal.
 func snap_to_target() -> void:
 	_has_position = false
-	_collision_distance = -1.0
-	_side_limit = -1.0
+	_shoulder_pct = 1.0
+	_dist_pct = 1.0
 	_lead = Vector3.ZERO
 	_pullback = 0.0
+	_room_turn = Vector2.ZERO
 
 
 ## 0 in a tight doorway, 1 in the open; last value from the rods.
@@ -193,99 +224,239 @@ func get_openness() -> float:
 	return _openness
 
 
-## Boom length the rods ask for, before wall collision.
+## Boom length the rods ask for, before walls.
 func get_target_distance() -> float:
 	return lerpf(near_distance, far_distance, pow(_openness, openness_exponent))
 
 
-## Current smoothed boom length, before wall collision.
+## Current smoothed boom length, before walls.
 func get_boom_length() -> float:
 	return _boom
 
 
-## Casts the rods now and returns 0..1; horizontal free space times ceiling room.
+## 0 shows Henry, 1 means the camera is inside him and he is dithered out.
+func get_body_fade() -> float:
+	return _fader.get_body_fade()
+
+
+func is_body_hidden() -> bool:
+	return _fader.get_body_fade() >= 0.99
+
+
+## Seconds since the mouse last moved; automatic turns wait for the cooldown.
+func get_look_idle_time() -> float:
+	return _auto.get_idle_time()
+
+
+## Casts the rods now and returns 0..1: free room around Henry, weighted toward
+## the camera's side, times room above him. Thin props do not count as walls.
 func measure_openness() -> float:
-	var space := get_world_3d().direct_space_state
-	if space == null:
-		return 1.0
-	var origin: Vector3 = _eye_position()
-	var exclude: Array[RID] = [player.get_rid()]
+	var origin: Vector3 = _safe_origin()
+	var back := Vector3(sin(_yaw), 0.0, cos(_yaw))
 	var free_sum: float = 0.0
+	var weight_sum: float = 0.0
 	for i: int in range(probe_count):
 		var angle: float = TAU * float(i) / float(probe_count)
 		var dir := Vector3(sin(angle), 0.0, cos(angle))
-		free_sum += _free_length(space, origin, dir * probe_length, exclude)
-	var horizontal: float = free_sum / (probe_length * float(probe_count))
-	var ceiling: float = _free_length(space, origin, Vector3.UP * ceiling_clearance, exclude)
-	return clampf(horizontal * (ceiling / ceiling_clearance), 0.0, 1.0)
+		var weight: float = lerpf(front_probe_weight, 1.0, dir.dot(back) * 0.5 + 0.5)
+		free_sum += weight * _probe.ray(origin, dir * probe_length)
+		weight_sum += weight * probe_length
+	var ceiling: float = _probe.ray(origin, Vector3.UP * ceiling_clearance)
+	return clampf(free_sum / weight_sum * (ceiling / ceiling_clearance), 0.0, 1.0)
 
 
-func _free_length(space: PhysicsDirectSpaceState3D, from: Vector3, motion: Vector3, exclude: Array[RID]) -> float:
-	var query := PhysicsRayQueryParameters3D.create(from, from + motion, collision_mask, exclude)
-	var hit: Dictionary = space.intersect_ray(query)
-	if hit.is_empty():
-		return motion.length()
-	return from.distance_to(hit["position"])
-
-
-func _apply_look_input() -> void:
-	var input_systems: Node = get_node_or_null(^"/root/InputSystems")
-	if input_systems == null:
-		return
-	var look: Vector2 = input_systems.call(&"consume_look_delta")
-	var x_sign: float = -1.0 if invert_look_x else 1.0
-	var y_sign: float = -1.0 if invert_look_y else 1.0
-	_yaw = wrapf(_yaw - look.x * look_sensitivity_x * x_sign, -PI, PI)
-	_pitch_deg -= rad_to_deg(look.y) * look_sensitivity_y * pitch_sensitivity_ratio * y_sign
-	_pitch_deg = clampf(_pitch_deg, pitch_min_deg, pitch_max_deg)
-
-
-func _update_transform(delta: float) -> void:
+func _update_rig(delta: float) -> void:
 	var speed_ratio: float = _player_speed_ratio()
 	_pullback = lerpf(_pullback, speed_ratio * sprint_pullback, _damp(pullback_smoothing, delta))
 	var planar := Vector3(player.velocity.x, 0.0, player.velocity.z)
 	var move_dir: Vector3 = planar.normalized() if planar.length() > 0.05 else Vector3.ZERO
 	_lead = _lead.lerp(move_dir * speed_ratio * lead_distance, _damp(lead_smoothing, delta))
+	var height: float = body_height * _stance
+	var pivot: Vector3 = _follow_pivot(delta, _feet_position() + Vector3.UP * height * SHOULDER_RATIO + _lead)
+	var safe: Vector3 = _safe_origin()
+	_update_auto_look(delta, safe, speed_ratio)
+
+	var pitch_deg: float = clampf(_pitch_deg, pitch_min_deg, pitch_max_deg)
+	var want: float = (_boom + _pullback) * _look_up_scale(pitch_deg)
+	var roominess: float = clampf(inverse_lerp(near_distance, far_distance, _boom), 0.0, 1.0)
+	var side: float = _shoulder.update(delta) * lerpf(tight_shoulder_fraction, 1.0, roominess) + _lean * lean_camera_offset
+	var right := Vector3(cos(_yaw), 0.0, -sin(_yaw))
+	var shoulder: Vector3 = _sweep_shoulder(delta, safe, pivot + right * side)
+	var back: Vector3 = _back(_yaw, pitch_deg)
+	var camera: Vector3 = shoulder + back * want * _blend_boom(delta, shoulder, back, want)
+	if _probe.overlaps(camera):
+		var hard: float = _probe.sweep(shoulder, back * want, false) - collision_surface_margin
+		camera = shoulder + back * clampf(hard, collision_min_distance, want)
+	_has_position = true
 
 	_noise_time += delta
 	var sway: float = _noise.get_noise_1d(_noise_time * 20.0) * breathing_amplitude_deg * (0.4 + tension)
-	var distance: float = _boom + _pullback
-	var roominess: float = clampf(inverse_lerp(near_distance, far_distance, _boom), 0.0, 1.0)
-	var shoulder: float = _shoulder.update(delta) * lerpf(tight_shoulder_fraction, 1.0, roominess)
-	var pivot: Vector3 = _follow_pivot(delta, _feet_position() + Vector3.UP * body_height * SHOULDER_RATIO + _lead)
-	var side_amount: float = shoulder * (1.0 - shoulder_frustum_ratio) + _lean * lean_camera_offset
-	_update_wall_assist(delta, pivot, distance, side_amount)
-	var view_yaw: float = _yaw + _assist_yaw
-	var view_pitch_deg: float = clampf(_pitch_deg + _assist_pitch_deg, pitch_min_deg, pitch_max_deg)
-	var right := Vector3(cos(view_yaw), 0.0, -sin(view_yaw))
-	var side_now: float = _clamp_side(delta, pivot, right, side_amount)
-	var target_pos: Vector3 = _goal(pivot, view_yaw, view_pitch_deg, distance, side_now)
+	h_offset = 0.0
+	global_position = camera
+	global_rotation = Vector3(deg_to_rad(pitch_deg + sway), _yaw, 0.0)
+	_update_fades(delta, camera)
 
-	h_offset = lerpf(h_offset, shoulder * shoulder_frustum_ratio, _damp(lens_offset_smoothing, delta))
 
-	## Walls retract the boom at once and release it slowly; no filter on top.
-	target_pos = _clamp_to_walls(delta, _clear_point(target_pos))
-	_has_position = true
-	global_position = target_pos
-	global_rotation = Vector3(deg_to_rad(view_pitch_deg + sway), view_yaw, 0.0)
-	_update_body_fade()
+## Lyra's penetration blend: the centre sweep snaps the boom in, the feelers ease
+## it in, and any release eases it back out. Returns the share of `want` kept.
+func _blend_boom(delta: float, shoulder: Vector3, back: Vector3, want: float) -> float:
+	var min_pct: float = clampf(collision_min_distance / maxf(want, 0.001), 0.0, 1.0)
+	_boom_room = _probe.sweep(shoulder, back * want)
+	var hard_pct: float = clampf((_boom_room - collision_surface_margin) / want, min_pct, 1.0)
+	var soft_pct: float = 1.0
+	var right: Vector3 = back.cross(Vector3.UP).normalized()
+	for feeler: Array in FEELERS:
+		var dir: Vector3 = back.rotated(Vector3.UP, deg_to_rad(feeler[0]))
+		if right.length_squared() > 0.0:
+			dir = dir.rotated(right, deg_to_rad(feeler[1]))
+		var hit: float = _probe.ray(shoulder, dir * want) / want
+		soft_pct = minf(soft_pct, hit + (1.0 - hit) * (1.0 - float(feeler[2])))
+	soft_pct = maxf(soft_pct, min_pct)
+	var this_frame: float = minf(hard_pct, soft_pct)
+	if not _has_position:
+		_dist_pct = this_frame
+	elif _dist_pct < this_frame:
+		_dist_pct = lerpf(_dist_pct, this_frame, _damp(1.0 / blend_out_time, delta))
+	elif _dist_pct > hard_pct:
+		_dist_pct = hard_pct
+	elif _dist_pct > soft_pct:
+		_dist_pct = lerpf(_dist_pct, soft_pct, _damp(1.0 / blend_in_time, delta))
+	return _dist_pct
+
+
+## First leg of the rig: from inside Henry to the shoulder point. Thin props do
+## not pass here; the shoulder snaps in and eases back out.
+func _sweep_shoulder(delta: float, safe: Vector3, goal: Vector3) -> Vector3:
+	var leg: Vector3 = goal - safe
+	var length: float = leg.length()
+	if length < 0.001:
+		return goal
+	var free: float = _probe.sweep(safe, leg, false)
+	var pct: float = clampf((free - 0.05) / length, 0.0, 1.0)
+	if not _has_position or pct < _shoulder_pct:
+		_shoulder_pct = pct
+	else:
+		_shoulder_pct = lerpf(_shoulder_pct, pct, _damp(1.0 / blend_out_time, delta))
+	return safe + leg * _shoulder_pct
+
+
+## Turns the player did not make, after the mouse rests: room finding while Henry
+## stands cramped, else recentring and whiskers; casts start inside him at `safe`.
+func _update_auto_look(delta: float, safe: Vector3, speed_ratio: float) -> void:
+	if not _auto.is_active():
+		_room_turn = Vector2.ZERO
+		return
+	_room_search_timer -= delta
+	var want: float = _boom + _pullback
+	if speed_ratio < 0.05 and _boom_room < minf(room_comfort_distance, want) and _room_turn == Vector2.ZERO \
+			and _room_search_timer <= 0.0:
+		_room_search_timer = ROOM_SEARCH_INTERVAL
+		_room_turn = _find_room(safe, want)
+	if speed_ratio >= 0.05:
+		_room_turn = Vector2.ZERO
+	if _room_turn != Vector2.ZERO:
+		var yaw_step: float = _auto.room_step(_room_turn.x, delta)
+		var pitch_step: float = rad_to_deg(_auto.room_step(deg_to_rad(_room_turn.y), delta))
+		_yaw = wrapf(_yaw + yaw_step, -PI, PI)
+		_pitch_deg = clampf(_pitch_deg + pitch_step, pitch_min_deg, pitch_max_deg)
+		_room_turn -= Vector2(yaw_step, pitch_step)
+		if absf(_room_turn.x) < 0.001 and absf(_room_turn.y) < 0.05:
+			_room_turn = Vector2.ZERO
+		return
+	if speed_ratio < 0.05:
+		return
+	var move_axis: Vector2 = _input_systems.call(&"get_move_axis") if _input_systems != null else Vector2.ZERO
+	var heading: float = atan2(-player.velocity.x, -player.velocity.z)
+	_yaw += _auto.recenter_step(_yaw, heading, speed_ratio, move_axis, delta)
+	var lower: float = _whisker_room(safe, want, -1.0)
+	var higher: float = _whisker_room(safe, want, 1.0)
+	_yaw = wrapf(_yaw + _auto.whisker_step(lower, higher, speed_ratio, delta), -PI, PI)
+
+
+## Mean free share of booms swung to one side of the view, 0..1.
+func _whisker_room(safe: Vector3, want: float, side: float) -> float:
+	var room: float = 0.0
+	for angle: float in WHISKERS_DEG:
+		var back: Vector3 = _back(_yaw + deg_to_rad(angle) * side, _pitch_deg)
+		room += _probe.ray(safe, back * want) / want
+	return room / float(WHISKERS_DEG.size())
+
+
+## Smallest turn (yaw radians, pitch degrees) that gives the boom room, rising
+## over Henry before swinging along a wall; zero if nothing is better.
+func _find_room(safe: Vector3, want: float) -> Vector2:
+	var need: float = minf(room_comfort_distance, want)
+	var best_cost: float = INF
+	var pick := Vector2.ZERO
+	var current: float = _boom_room
+	for yaw_step: int in range(0, int(assist_max_yaw_deg) + 1, 15):
+		for side: float in [1.0, -1.0]:
+			if yaw_step == 0 and side < 0.0:
+				continue
+			for pitch_step: int in range(0, int(assist_max_pitch_deg) + 1, 15):
+				if yaw_step == 0 and pitch_step == 0:
+					continue
+				var yaw: float = _yaw + deg_to_rad(float(yaw_step)) * side
+				var pitch: float = clampf(_pitch_deg - float(pitch_step), pitch_min_deg, pitch_max_deg)
+				var room: float = _probe.sweep(safe, _back(yaw, pitch) * want)
+				var cost: float = float(yaw_step) + 0.8 * float(pitch_step)
+				if room >= need and room > current + 0.1 and cost < best_cost:
+					best_cost = cost
+					pick = Vector2(deg_to_rad(float(yaw_step)) * side, -float(pitch_step))
+	return pick
+
+
+func _update_fades(delta: float, camera: Vector3) -> void:
+	var eye: Vector3 = _feet_position() + Vector3.UP * body_height * _stance * EYE_RATIO
+	var fade: float = clampf(inverse_lerp(body_fade_start, body_fade_end, camera.distance_to(eye)), 0.0, 1.0)
+	_fader.update_body(fade, delta)
+	_probe.passed.clear()
+	_probe.ray(camera, eye - camera)
+	_fader.update_occluders(_probe.passed.values(), delta)
+
+
+func _apply_look_input() -> Vector2:
+	if _input_systems == null:
+		return Vector2.ZERO
+	var look: Vector2 = _input_systems.call(&"consume_look_delta")
+	var x_sign: float = -1.0 if invert_look_x else 1.0
+	var y_sign: float = -1.0 if invert_look_y else 1.0
+	_yaw = wrapf(_yaw - look.x * look_sensitivity_x * x_sign, -PI, PI)
+	_pitch_deg -= rad_to_deg(look.y) * look_sensitivity_y * pitch_sensitivity_ratio * y_sign
+	_pitch_deg = clampf(_pitch_deg, pitch_min_deg, pitch_max_deg)
+	return look
 
 
 func _apply_lean_and_shoulder_input(delta: float) -> void:
-	var input_systems: Node = get_node_or_null(^"/root/InputSystems")
-	if input_systems == null:
+	if _input_systems == null:
 		return
-	if input_systems.call(&"consume_switch_shoulder"):
+	if _input_systems.call(&"consume_switch_shoulder"):
 		_shoulder.toggle()
-	var axis: float = input_systems.call(&"get_lean_axis")
+	var axis: float = _input_systems.call(&"get_lean_axis")
 	if axis != 0.0:
 		_lean = clampf(_lean + axis * lean_rate * delta, -1.0, 1.0)
 	else:
 		_lean = lerpf(_lean, 0.0, _damp(lean_return_rate, delta))
 
 
+## Henry's feet from his capsule, so crouching keeps them on the ground.
 func _feet_position() -> Vector3:
-	return _target.origin - Vector3.UP * origin_above_feet
+	if _capsule == null:
+		return _target.origin - Vector3.UP * origin_above_feet
+	var capsule := _capsule.shape as CapsuleShape3D
+	return _target.origin + Vector3.UP * (_capsule.position.y - capsule.height * 0.5)
+
+
+## Lyra's safe point: on the capsule axis, below its top by the probe radius,
+## so a cast from it never starts inside a wall or a low ceiling.
+func _safe_origin() -> Vector3:
+	var feet: Vector3 = _feet_position()
+	var top: float = body_height * _stance
+	if _capsule != null:
+		top = (_capsule.shape as CapsuleShape3D).height
+	var low: float = collision_radius + 0.05
+	var height: float = clampf(body_height * _stance * SHOULDER_RATIO, low, maxf(low, top - collision_radius - 0.05))
+	return feet + Vector3.UP * height
 
 
 ## The orbit centre trails Henry: lag across the ground, softer lag in height.
@@ -299,157 +470,44 @@ func _follow_pivot(delta: float, pivot: Vector3) -> Vector3:
 	return _pivot_smooth
 
 
-func _eye_position() -> Vector3:
-	return _feet_position() + Vector3.UP * body_height * EYE_RATIO
+## Stance follows the capsule height: 1 standing, the crouch ratio when crouched.
+func _update_stance(delta: float) -> void:
+	var ratio: float = 1.0
+	if _capsule != null and _standing_capsule_height > 0.0:
+		ratio = (_capsule.shape as CapsuleShape3D).height / _standing_capsule_height
+	_stance = ratio if not _has_position else lerpf(_stance, ratio, _damp(stance_rate, delta))
 
 
-## When the boom behind Henry is blocked, finds the nearest angle along the wall
-## (and a little above) with room, and glides there; glides back when clear.
-func _update_wall_assist(delta: float, pivot: Vector3, want: float, side_amount: float) -> void:
-	var need: float = minf(want, assist_comfort_distance)
-	if _room_at(pivot, _yaw, _pitch_deg, want, side_amount) >= need:
-		_assist_target_yaw = 0.0
-		_assist_target_pitch_deg = 0.0
-	elif _room_at(pivot, _yaw + _assist_target_yaw, _pitch_deg + _assist_target_pitch_deg, want, side_amount) < need:
-		_pick_assist_angle(pivot, want, need, side_amount)
-	var rate: float = _damp(assist_rate, delta)
-	_assist_yaw = lerp_angle(_assist_yaw, _assist_target_yaw, rate)
-	_assist_pitch_deg = lerpf(_assist_pitch_deg, _assist_target_pitch_deg, rate)
+func _find_capsule() -> void:
+	for child: Node in player.get_children():
+		var shape := child as CollisionShape3D
+		if shape != null and shape.shape is CapsuleShape3D:
+			_capsule = shape
+			_standing_capsule_height = (shape.shape as CapsuleShape3D).height
+			return
 
 
-## Smallest swing that gives the camera `need` metres, keeping the side it already
-## leans to so it does not flip; failing that, the angle with the most room.
-func _pick_assist_angle(pivot: Vector3, want: float, need: float, side_amount: float) -> void:
-	var best_cost: float = INF
-	var most_room: float = -1.0
-	var pick := Vector2.ZERO
-	var roomy := Vector2.ZERO
-	var side_bias: float = signf(_assist_target_yaw)
-	for yaw_step: int in range(0, int(assist_max_yaw_deg) + 1, 15):
-		for side: float in [1.0, -1.0]:
-			if yaw_step == 0 and side < 0.0:
-				continue
-			for pitch_step: int in range(0, int(assist_max_pitch_deg) + 1, 15):
-				var offset := Vector2(deg_to_rad(float(yaw_step)) * side, -float(pitch_step))
-				var room: float = _room_at(pivot, _yaw + offset.x, _pitch_deg + offset.y, want, side_amount)
-				var cost: float = float(yaw_step) + 1.5 * float(pitch_step)
-				if side_bias != 0.0 and side != side_bias and yaw_step > 0:
-					cost += 20.0
-				if room >= need and cost < best_cost:
-					best_cost = cost
-					pick = offset
-				if room > most_room:
-					most_room = room
-					roomy = offset
-	if best_cost == INF and most_room >= assist_min_distance:
-		pick = roomy
-	elif best_cost == INF:
-		return
-	_assist_target_yaw = pick.x
-	_assist_target_pitch_deg = pick.y
+## Unit vector from the shoulder to the camera for a view yaw and pitch.
+static func _back(yaw: float, pitch_deg: float) -> Vector3:
+	var pitch: float = deg_to_rad(pitch_deg)
+	return Vector3(sin(yaw) * cos(pitch), -sin(pitch), cos(yaw) * cos(pitch))
 
 
-## How far from the eyes the camera would really sit at this view angle,
-## shoulder shift and wall clearance included.
-func _room_at(pivot: Vector3, yaw: float, pitch_deg: float, want: float, side_amount: float) -> float:
-	var right := Vector3(cos(yaw), 0.0, -sin(yaw))
-	var side: float = signf(side_amount) * minf(absf(side_amount), _side_room(pivot, right * signf(side_amount), absf(side_amount)))
-	var goal: Vector3 = _goal(pivot, yaw, clampf(pitch_deg, pitch_min_deg, pitch_max_deg), want, side)
-	return _eye_position().distance_to(_clear_point(goal))
+func _look_up_scale(pitch_deg: float) -> float:
+	if pitch_deg <= 0.0:
+		return 1.0
+	return lerpf(1.0, look_up_distance_scale, smoothstep(0.0, pitch_max_deg, pitch_deg))
 
 
-func _goal(pivot: Vector3, yaw: float, pitch_deg: float, distance: float, side: float) -> Vector3:
-	var pitch_rad: float = deg_to_rad(pitch_deg)
-	var back := Vector3(sin(yaw), 0.0, cos(yaw))
-	var right := Vector3(cos(yaw), 0.0, -sin(yaw))
-	return pivot + back * distance * cos(pitch_rad) + Vector3.UP * (-distance * sin(pitch_rad)) + right * side
-
-
-## Keeps the shoulder and lean shift out of a wall beside Henry; eases back out.
-func _clamp_side(delta: float, pivot: Vector3, right: Vector3, amount: float) -> float:
-	var reach: float = absf(amount)
-	if reach < 0.01:
-		_side_limit = -1.0
-		return amount
-	var safe: float = _side_room(pivot, right * signf(amount), reach)
-	if _side_limit < 0.0 or safe < _side_limit:
-		_side_limit = safe
-	else:
-		_side_limit = lerpf(_side_limit, safe, _damp(collision_restore_rate, delta))
-	return signf(amount) * minf(reach, _side_limit)
-
-
-## Free sideways room from the pivot, up to `reach`; no memory.
-func _side_room(pivot: Vector3, direction: Vector3, reach: float) -> float:
-	var space := get_world_3d().direct_space_state
-	if space == null or reach < 0.01:
-		return reach
-	_collision_shape.radius = collision_radius
-	_collision_query.shape = _collision_shape
-	_collision_query.transform = Transform3D(Basis.IDENTITY, pivot)
-	_collision_query.motion = direction * reach
-	_collision_query.collision_mask = collision_mask
-	_collision_query.collide_with_areas = false
-	_collision_query.exclude = [player.get_rid()]
-	var result: PackedFloat32Array = space.cast_motion(_collision_query)
-	if result.is_empty() or result[0] >= 1.0:
-		return reach
-	return maxf(reach * result[0] - 0.05, 0.0)
-
-
-## A point pulled toward the eyes until the sphere fits; no memory, no easing.
-func _clear_point(point: Vector3) -> Vector3:
-	var eye: Vector3 = _eye_position()
-	var to_point: Vector3 = point - eye
-	var desired: float = to_point.length()
-	if desired < 0.001:
-		return point
-	var direction: Vector3 = to_point / desired
-	return eye + direction * _probe_camera_distance(eye, direction, desired)
-
-
-## Sphere-casts from the eyes to the camera; retracts at once, returns slowly.
-func _clamp_to_walls(delta: float, position: Vector3) -> Vector3:
-	var probe_pivot: Vector3 = _eye_position()
-	var to_camera: Vector3 = position - probe_pivot
-	var desired: float = to_camera.length()
-	if desired < 0.001:
-		return position
-	var direction: Vector3 = to_camera / desired
-	var safe: float = _probe_camera_distance(probe_pivot, direction, desired)
-	if _collision_distance < 0.0 or safe < _collision_distance:
-		_collision_distance = safe
-	else:
-		_collision_distance = lerpf(_collision_distance, safe, _damp(collision_restore_rate, delta))
-	return probe_pivot + direction * minf(desired, _collision_distance)
-
-
-func _probe_camera_distance(pivot: Vector3, direction: Vector3, desired: float) -> float:
-	var space := get_world_3d().direct_space_state
-	if space == null:
-		return desired
-	_collision_shape.radius = collision_radius
-	_collision_query.shape = _collision_shape
-	_collision_query.transform = Transform3D(Basis.IDENTITY, pivot)
-	_collision_query.motion = direction * desired
-	_collision_query.collision_mask = collision_mask
-	_collision_query.collide_with_areas = false
-	_collision_query.exclude = [player.get_rid()]
-	var result: PackedFloat32Array = space.cast_motion(_collision_query)
-	if result.is_empty() or result[0] >= 1.0:
-		return desired
-	return clampf(desired * result[0] - collision_surface_margin, collision_min_distance, desired)
-
-
-## Last resort only: hides Henry from this camera (not the HUD portrait) if a
-## corner leaves no angle with room and the camera ends up inside his head.
-func _update_body_fade() -> void:
-	var hidden: bool = global_position.distance_to(_eye_position()) < body_hide_distance
-	cull_mask = (cull_mask & ~body_layers) if hidden else (cull_mask | body_layers)
-
-
-func is_body_hidden() -> bool:
-	return (cull_mask & body_layers) == 0
+## Copies tunables into the helpers, so inspector edits apply while running.
+func _sync_helpers() -> void:
+	_probe.radius = collision_radius
+	_probe.collision_mask = collision_mask
+	_probe.thin_extent = thin_extent
+	_auto.cooldown = auto_look_cooldown
+	_auto.recenter_enabled = auto_recenter
+	_auto.recenter_rate_deg = recenter_rate_deg
+	_fader.occluder_transparency = occluder_transparency
 
 
 func _player_speed_ratio() -> float:
