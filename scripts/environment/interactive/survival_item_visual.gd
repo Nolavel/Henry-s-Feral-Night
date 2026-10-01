@@ -1,8 +1,9 @@
+@tool
 class_name SurvivalItemVisual
 extends RefCounted
 
 ## Shared readable props for world pickups and the meal table; no inventory state.
-static func make(item_id: StringName) -> Node3D:
+static func make(item_id: StringName, item_override: ItemResource = null) -> Node3D:
 	var holder := Node3D.new()
 	if String(item_id).begins_with("water_flask"):
 		var body := BoxMesh.new()
@@ -16,7 +17,7 @@ static func make(item_id: StringName) -> Node3D:
 		var stripe := BoxMesh.new()
 		stripe.size = Vector3(0.065, 0.035, 0.074)
 		_part(holder, stripe, Vector3(0, 0.14, 0), Color(0.84, 0.87, 0.78))
-		var item: ItemResource = ItemCatalog.get_item(item_id)
+		var item: ItemResource = item_override if item_override != null else ItemCatalog.get_item(item_id)
 		var mark := Label3D.new()
 		mark.name = "VolumeMark"
 		mark.text = TranslationServer.translate(&"FLASK_HELD_MARK") % item.water_remaining_ml

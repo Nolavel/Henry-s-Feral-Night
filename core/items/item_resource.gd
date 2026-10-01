@@ -6,7 +6,8 @@
 # you cannot eat. A tin of food carries no empty garment fields.
 #
 # Ported from ADT, trimmed of what this game does not have: the ranged-weapon
-# group, the held mesh and its fit, throwing, and the Readability axis.
+# group, held-mesh ownership, throwing, and the Readability axis. HeldFit was
+# restored from ADT so each Hoarbound item can own its hand pose.
 # =============================================================================
 class_name ItemResource
 extends Resource
@@ -40,6 +41,9 @@ extends Resource
 @export var carried_in_hands: bool = false
 ## Maximum units that can be held as one visible two-hand load.
 @export_range(1, 8, 1) var hand_carry_limit: int = 3
+## Per-item transform for the ordinary one-hand prop. Null preserves the
+## legacy socket fit until this item is authored in the Item Fitter dock.
+@export var held_fit: HeldFit = null
 
 @export_group("Survival")
 ## Edible facet. Null means this item cannot be consumed.
