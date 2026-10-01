@@ -49,7 +49,7 @@ func _ready() -> void:
 func build() -> void:
 	if _top != null:
 		return
-	var material: StandardMaterial3D = _material(color)
+	var material: ShaderMaterial = _material(color)
 	var outer_z: float = -size.z * 0.5
 	var tray_depth: float = size.z - FLAP_THICKNESS
 	_box("Tray", Vector3(size.x, size.y, tray_depth), Vector3(0.0, 0.0, FLAP_THICKNESS * 0.5), material, self)
@@ -141,7 +141,7 @@ func _build_field(z: float) -> Node3D:
 	add_child(field)
 	var inset: Vector2 = Vector2(size.x - 0.03, size.y - 0.03)
 	_box("Board", Vector3(inset.x, inset.y, 0.004), Vector3(0.0, 0.0, z), _material(field_color), field)
-	var loop_material: StandardMaterial3D = _material(color.darkened(0.3))
+	var loop_material: ShaderMaterial = _material(color.darkened(0.3))
 	for row: int in range(4):
 		for column: int in range(3):
 			var at := Vector3((column - 1) * inset.x * 0.3, (1.5 - row) * inset.y * 0.22, z - 0.004)
@@ -170,8 +170,5 @@ func _box(box_name: String, box_size: Vector3, at: Vector3, material: Material, 
 	return instance
 
 
-func _material(albedo: Color) -> StandardMaterial3D:
-	var material := StandardMaterial3D.new()
-	material.albedo_color = albedo
-	material.roughness = 0.9
-	return material
+func _material(albedo: Color) -> ShaderMaterial:
+	return StylizedEnvironmentMaterial.make_character(albedo, 0.9)

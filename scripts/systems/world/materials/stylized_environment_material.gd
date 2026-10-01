@@ -11,6 +11,11 @@ const OPAQUE_SHADER: Shader = preload(
 const DOUBLE_SIDED_SHADER: Shader = preload(
 	"res://shaders/environment/materials/stylized_environment_double_sided.gdshader"
 )
+## Characters: restrained rim, a third of the shadow-lookup offset (thin limbs),
+## shadow noise in model space so the breakup rides with the body.
+const CHARACTER_RIM_STRENGTH: float = 0.6
+const CHARACTER_RIM_POWER: float = 3.5
+const CHARACTER_SHADOW_OFFSET_SCALE: float = 0.35
 
 
 static func make(
@@ -26,6 +31,16 @@ static func make(
 	material.set_shader_parameter("roughness", roughness)
 	material.set_shader_parameter("metallic", metallic)
 	material.set_shader_parameter("use_vertex_color", vertex_color)
+	return material
+
+
+## Opaque material for anything that moves with Henry: his body, clothes, pack.
+static func make_character(color: Color, roughness: float, double_sided: bool = false) -> ShaderMaterial:
+	var material := make(color, roughness, false, double_sided)
+	material.set_shader_parameter("rim_strength", CHARACTER_RIM_STRENGTH)
+	material.set_shader_parameter("rim_power", CHARACTER_RIM_POWER)
+	material.set_shader_parameter("shadow_offset_scale", CHARACTER_SHADOW_OFFSET_SCALE)
+	material.set_shader_parameter("shadow_noise_in_model_space", true)
 	return material
 
 

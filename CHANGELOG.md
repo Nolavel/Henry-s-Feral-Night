@@ -5,6 +5,20 @@ Maintained per branch; entries are added by whoever makes the change.
 
 ## [Unreleased] — `codex`
 
+### 2026-10-01 - Henry on the stylized shadow contract, with a rim (claudeflow)
+
+- Henry's body, garments, Kenny and his strap, the pack, and the carried logs and
+  boards use `StylizedEnvironmentMaterial.make_character()` instead of
+  `StandardMaterial3D`. Shadows falling on him now break up like the world's.
+  Wetness still darkens the garments, now through the shader's `albedo_color`.
+- The shared opaque material gains character settings, all off by default: a
+  rim on the lit silhouette edge (0.6), a third of the shadow-lookup offset for
+  thin limbs, and shadow noise in model space so the breakup rides with the body.
+- The camera stays third person; `LIGHT_AND_SHADOW_DIRECTION.md` now describes
+  "2.5D" as a look, not a camera, and drops the isometric-camera items.
+- `capture_stylized_shadows.gd` adds close frames of Henry: outside at noon,
+  and backlit by the stove.
+
 ### 2026-10-01 - Light and shadow direction: research and roadmap (claudeflow)
 
 - `docs/art/LIGHT_AND_SHADOW_DIRECTION.md`: what Disco Elysium, The Long Dark

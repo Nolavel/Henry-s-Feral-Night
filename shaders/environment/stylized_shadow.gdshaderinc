@@ -61,20 +61,22 @@ vec3 hfn_shadow_fbm3(vec3 world_pos, float freq, float pixel_m) {
 
 
 // View-space LIGHT_VERTEX offset in the surface plane; also returns the spray.
-vec4 hfn_shadow_prepare(vec3 world_pos, vec3 view_normal, mat4 inv_view, mat4 view) {
+// noise_pos is metric and fixed to the surface: world for static meshes, model for movers.
+vec4 hfn_shadow_prepare(vec3 noise_pos, vec3 view_normal, mat4 inv_view, mat4 view, float offset_scale) {
 	float strength = clamp(stylized_shadow_strength, 0.0, 1.0);
-	float pixel_m = max(length(fwidth(world_pos)), 1e-5);
+	float pixel_m = max(length(fwidth(noise_pos)), 1e-5);
 	vec3 n = normalize((inv_view * vec4(view_normal, 0.0)).xyz);
-	vec3 noise = hfn_shadow_fbm3(world_pos, HFN_SHADOW_OFFSET_FREQ, pixel_m);
+	vec3 noise = hfn_shadow_fbm3(noise_pos, HFN_SHADOW_OFFSET_FREQ, pixel_m);
 	vec3 tangent = noise - n * dot(noise, n);
-	vec3 offset = (view * vec4(tangent * HFN_SHADOW_OFFSET_M * strength, 0.0)).xyz;
-	float spray = hfn_shadow_fbm3(world_pos + vec3(41.3, -7.9, 23.1), HFN_SHADOW_SPRAY_FREQ, pixel_m).x;
+	vec3 offset = (view * vec4(tangent * HFN_SHADOW_OFFSET_M * offset_scale * strength, 0.0)).xyz;
+	float spray = hfn_shadow_fbm3(noise_pos + vec3(41.3, -7.9, 23.1), HFN_SHADOW_SPRAY_FREQ, pixel_m).x;
 	spray = clamp(spray * HFN_SHADOW_SPRAY_CONTRAST, -1.0, 1.0);
 	return vec4(offset, spray);
 }
 
 
-#define HFN_SHADOW_FRAGMENT(world_pos) vec4 hfn_prep = hfn_shadow_prepare(world_pos, NORMAL, INV_VIEW_MATRIX, VIEW_MATRIX); LIGHT_VERTEX = VERTEX + hfn_prep.xyz; hfn_shadow_spray = hfn_prep.w
+#define HFN_SHADOW_FRAGMENT_SCALED(noise_pos, offset_scale) vec4 hfn_prep = hfn_shadow_prepare(noise_pos, NORMAL, INV_VIEW_MATRIX, VIEW_MATRIX, offset_scale); LIGHT_VERTEX = VERTEX + hfn_prep.xyz; hfn_shadow_spray = hfn_prep.w
+#define HFN_SHADOW_FRAGMENT(world_pos) HFN_SHADOW_FRAGMENT_SCALED(world_pos, 1.0)
 
 
 // Directional ATTENUATION is the shadow alone; local lights also carry distance

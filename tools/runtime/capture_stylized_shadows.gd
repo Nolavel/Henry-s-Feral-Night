@@ -35,11 +35,16 @@ func _initialize() -> void:
 		_set_hour.bind(12.0),
 		_place_outside,
 		_pair.bind("01_outside_noon"),
+		_frame_close.bind(Vector3(1.4, 0.5, 1.2)),
+		_pair.bind("01b_outside_noon_close"),
 		_place_inside,
 		_pair.bind("02_inside_noon"),
 		_set_hour.bind(23.0),
 		_light_stove,
 		_pair.bind("03_inside_stove_night"),
+		_frame_close_stove,
+		_pair.bind("03b_inside_stove_close"),
+		_place_inside,
 	]
 	for grade: StringName in GRADES:
 		_queue.append(_use_grade.bind(grade))
@@ -118,15 +123,36 @@ func _place_outside() -> void:
 func _place_inside() -> void:
 	_player.global_position = _stove.to_global(Vector3(1.1, 1.0, 0.35))
 	_player.global_rotation.y = _stove.global_rotation.y + PI * 0.5
+	_capture_camera()
+	_inside_camera.global_position = _stove.to_global(Vector3(4.6, 1.7, 4.5))
+	_inside_camera.look_at(_stove.to_global(Vector3(1.6, 0.2, 0.2)), Vector3.UP)
+	_inside_camera.make_current()
+
+
+## Close camera on Henry's torso from an offset in his own frame (x right, z behind).
+func _frame_close(offset: Vector3) -> void:
+	var camera := _capture_camera()
+	camera.global_position = _player.global_transform * offset
+	camera.look_at(_player.global_position + Vector3(0.0, 0.25, 0.0), Vector3.UP)
+	camera.make_current()
+
+
+## Henry between the camera and the stove: the stove light rims his silhouette.
+func _frame_close_stove() -> void:
+	var camera := _capture_camera()
+	camera.global_position = _stove.to_global(Vector3(2.7, 1.45, 0.75))
+	camera.look_at(_player.global_position + Vector3(0.0, 0.2, 0.0), Vector3.UP)
+	camera.make_current()
+
+
+func _capture_camera() -> Camera3D:
 	if _inside_camera == null:
 		_inside_camera = Camera3D.new()
 		_inside_camera.fov = 62.0
 		if _camera != null:
 			_inside_camera.cull_mask = _camera.cull_mask
 		_scene.add_child(_inside_camera)
-	_inside_camera.global_position = _stove.to_global(Vector3(4.6, 1.7, 4.5))
-	_inside_camera.look_at(_stove.to_global(Vector3(1.6, 0.2, 0.2)), Vector3.UP)
-	_inside_camera.make_current()
+	return _inside_camera
 
 
 func _light_stove() -> void:
