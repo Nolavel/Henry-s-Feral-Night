@@ -5,7 +5,7 @@ extends SceneTree
 const MAIN_SCENE: String = "res://scenes/world/key_west/key_west.tscn"
 const OUT_DIR: String = "res://docs/runtime_previews/dev_diorama_map"
 const BIND_FRAME: int = 35
-const FIRST_CAPTURE_FRAME: int = 240
+const FIRST_CAPTURE_FRAME: int = 60
 
 var _scene: Node3D
 var _player: Player
@@ -26,7 +26,7 @@ func _initialize() -> void:
 
 func _process(_delta: float) -> bool:
 	_frame += 1
-	if _frame == BIND_FRAME:
+	if _frame >= BIND_FRAME and (_map == null or _player == null):
 		_bind()
 	if _frame < _next_capture or _map == null or _player == null:
 		return false
@@ -35,11 +35,13 @@ func _process(_delta: float) -> bool:
 		_capture_full("01_follow_with_labels")
 		_capture_map("02_map_labels_close")
 		_player.global_position += Vector3(24.0, 0.0, -18.0)
-		_next_capture = _frame + 90
+		_next_capture = _frame + 20
 		_phase = 1
 		return false
 
-	_capture_map("03_map_labels_followed")
+	## Full frame is required here: HenryMarker is 2D UI over the SubViewport texture.
+	_capture_full("03_follow_after_move")
+	_capture_map("04_map_labels_followed")
 	print("dev diorama map capture: complete; labels=", _map.get_visible_label_count())
 	quit()
 	return true
@@ -57,7 +59,8 @@ func _bind() -> void:
 		push_error("dev diorama map capture: map UI did not initialize")
 		quit(1)
 		return
-	_map._on_toggle_requested()
+	if _player != null and _map != null and not _map.is_map_open():
+		_map._on_toggle_requested()
 
 
 func _capture_full(name: String) -> void:
