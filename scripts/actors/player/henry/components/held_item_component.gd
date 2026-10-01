@@ -43,7 +43,10 @@ func equip_from_zone(item_id: StringName, zone_path: StringName) -> bool:
 		return _item_id == item_id and _source_zone == zone_path
 	var visual: HenryUALAnimation = _animation()
 	var carry := get_parent().get_node_or_null(^"CarryComponent") as CarryComponent
-	if visual == null or visual.get_hand_socket() == null or visual.get_held_prop() != null \
+	var item: ItemResource = ItemCatalog.get_item(item_id)
+	var use_offhand: bool = item != null and item.held_fit != null and item.held_fit.hand == HeldFit.Hand.RIGHT
+	var socket: BoneAttachment3D = visual.get_offhand_socket() if visual != null and use_offhand else (visual.get_hand_socket() if visual != null else null)
+	if visual == null or socket == null or visual.get_held_prop() != null or visual.get_offhand_prop() != null \
 		or (carry != null and carry.is_carrying()) or visual.is_action_locking():
 		return false
 	_item_id = item_id
@@ -111,17 +114,23 @@ func put_away() -> bool:
 
 func _draw() -> void:
 	_clear_prop()
-	_prop = SurvivalItemVisual.make(_item_id)
+	var item: ItemResource = ItemCatalog.get_item(_item_id)
+	if item == null:
+		return
+	_prop = HeldPropFactory.make(_item_id, item)
+	if _prop == null:
+		return
 	_prop.name = "Held_%s" % _item_id
-	_animation().hold_in_hand(_prop)
-	## The shared socket was fitted to legacy tools; upright containers need a reversed local Y.
-	_prop.rotate_object_local(Vector3.BACK, PI)
-	_prop.rotate_object_local(Vector3.RIGHT, deg_to_rad(33.0))
-	if _item_id == &"knife":
-		_prop.rotate_object_local(Vector3.RIGHT, PI * 0.5)
+	var visual: HenryUALAnimation = _animation()
+	if item.held_fit != null and item.held_fit.hand == HeldFit.Hand.RIGHT:
+		visual.hold_in_offhand(_prop)
 	else:
-		var grip_height: float = 0.08 if String(_item_id).begins_with("water_flask") or _item_id == &"axe" else 0.04
-		_prop.position -= _prop.basis.y * grip_height
+		visual.hold_in_hand(_prop)
+	if item.held_fit != null:
+		item.held_fit.apply_to(_prop)
+	else:
+		## Preserve the production pose until an item receives an authored fit.
+		HeldFit.apply_legacy_adjustment(_prop, _item_id)
 	_show_hint()
 
 
@@ -129,8 +138,11 @@ func _clear_prop() -> void:
 	if not is_instance_valid(_prop):
 		return
 	var visual: HenryUALAnimation = _animation()
-	if visual != null and visual.get_held_prop() == _prop:
-		visual.release_hand()
+	if visual != null:
+		if visual.get_held_prop() == _prop:
+			visual.release_hand()
+		elif visual.get_offhand_prop() == _prop:
+			visual.release_offhand()
 	_prop.queue_free()
 	_prop = null
 
@@ -145,7 +157,8 @@ func _sync_owned() -> void:
 		return
 	var visual: HenryUALAnimation = _animation()
 	var owns: bool = _zone_item() == _item_id if _source_zone != &"" else inventory != null and inventory.has_item(_item_id)
-	if not owns or visual == null or visual.get_held_prop() != _prop:
+	var attached: bool = visual != null and (visual.get_held_prop() == _prop or visual.get_offhand_prop() == _prop)
+	if not owns or not attached:
 		put_away()
 
 

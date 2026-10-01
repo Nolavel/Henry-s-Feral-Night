@@ -1,3 +1,4 @@
+@tool
 class_name HeldFlare
 extends Node3D
 
@@ -71,6 +72,15 @@ var _smoke_energy: float = 0.75
 
 
 func _ready() -> void:
+	if Engine.is_editor_hint():
+		## Item Fitter needs the actual flare body in the editor, but never the
+		## live burn simulation or hundreds of preview particles.
+		_runtime_visuals_enabled = false
+		_build_flare()
+		_burning = false
+		_apply_burning_state()
+		set_process(false)
+		return
 	_runtime_visuals_enabled = DisplayServer.get_name() != "headless"
 	if flare_seed == 0:
 		_rng.randomize()

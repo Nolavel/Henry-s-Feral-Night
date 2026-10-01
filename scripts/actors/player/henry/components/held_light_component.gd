@@ -9,7 +9,6 @@ signal flare_drawn(flare: HeldFlare)
 signal flare_lit(flare: HeldFlare)
 signal flare_dropped(flare: HeldFlare)
 
-const FLARE_SCENE: PackedScene = preload("res://scenes/actors/player/held/HeldFlare.tscn")
 const SPENT_LINGER_S: float = 3.0
 
 @export var inventory: InventoryComponent
@@ -51,7 +50,7 @@ func equip_from_zone(item_id: StringName, zone_path: StringName) -> bool:
 	var animation: HenryUALAnimation = _animation()
 	var equipment: EquipmentComponent = _equipment()
 	var parts: PackedStringArray = String(zone_path).split(EquipmentComponent.POCKET_SEPARATOR)
-	if animation == null or animation.get_hand_socket() == null or equipment == null or parts.size() != 2:
+	if animation == null or equipment == null or parts.size() != 2:
 		return false
 	var body_slot := StringName(parts[0])
 	var pocket := StringName(parts[1])
@@ -87,7 +86,7 @@ func put_away_unlit() -> bool:
 	var flare: HeldFlare = _flare
 	_flare = null
 	if animation != null:
-		animation.release_hand()
+		_release_prop(animation, flare)
 	if is_instance_valid(flare):
 		flare.queue_free()
 	_restore_unlit_item()
@@ -160,7 +159,7 @@ func drop() -> void:
 	_flare = null
 	_source_zone = &""
 	var hand_xf: Transform3D = flare.global_transform
-	animation.release_hand()
+	_release_prop(animation, flare)
 	var world: Node = get_tree().current_scene if get_tree().current_scene != null else get_tree().root
 	var dropped := RigidBody3D.new()
 	dropped.name = "DroppedFlare"
@@ -191,15 +190,39 @@ func drop() -> void:
 func _make_held_flare(animation: HenryUALAnimation) -> HeldFlare:
 	if animation == null:
 		return null
-	var flare := FLARE_SCENE.instantiate() as HeldFlare
-	flare.auto_ignite = false
-	animation.hold_in_hand(flare)
-	## The socket pose is shared with tools; only the flare needs this quarter turn.
-	flare.rotate_object_local(Vector3.BACK, PI * 0.5)
+	var item: ItemResource = ItemCatalog.get_item(flare_item_id)
+	if item == null or item.held_fit == null:
+		push_error("HeldLightComponent: road flare requires an authored HeldFit.")
+		return null
+	var flare := HeldPropFactory.make(flare_item_id, item) as HeldFlare
+	if flare == null or not _attach_fitted(animation, flare, item.held_fit):
+		if is_instance_valid(flare):
+			flare.queue_free()
+		return null
 	if _context != null:
 		flare.on_world_ready(_context)
 	flare.spent.connect(_on_spent.bind(flare))
 	return flare
+
+
+func _attach_fitted(animation: HenryUALAnimation, prop: Node3D, fit: HeldFit) -> bool:
+	if fit.hand == HeldFit.Hand.RIGHT:
+		if animation.get_offhand_socket() == null or animation.get_offhand_prop() != null:
+			return false
+		animation.hold_in_offhand(prop)
+	else:
+		if animation.get_hand_socket() == null or animation.get_held_prop() != null:
+			return false
+		animation.hold_in_hand(prop)
+	fit.apply_to(prop)
+	return true
+
+
+func _release_prop(animation: HenryUALAnimation, prop: Node3D) -> void:
+	if animation.get_held_prop() == prop:
+		animation.release_hand()
+	elif animation.get_offhand_prop() == prop:
+		animation.release_offhand()
 
 
 func _restore_unlit_item() -> void:
@@ -224,7 +247,7 @@ func _on_spent(flare: HeldFlare) -> void:
 		_source_zone = &""
 		var animation: HenryUALAnimation = _animation()
 		if animation != null:
-			animation.release_hand()
+			_release_prop(animation, flare)
 	if not is_instance_valid(flare):
 		return
 	if flare.get_parent() == null:
