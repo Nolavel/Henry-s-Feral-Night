@@ -146,9 +146,8 @@ func _raycast_placement() -> Dictionary:
 	var camera: Camera3D = viewport.get_camera_3d() if viewport != null else null
 	if body == null or not body.is_inside_tree() or camera == null:
 		return {"transform": _front_transform(), "valid": true}
-	var center: Vector2 = viewport.get_visible_rect().size * 0.5
-	var from: Vector3 = camera.project_ray_origin(center)
-	var to: Vector3 = from + camera.project_ray_normal(center).normalized() * RAY_LENGTH
+	var from: Vector3 = TpsCamera.aim_origin(camera)
+	var to: Vector3 = from + TpsCamera.aim_direction(camera) * RAY_LENGTH
 	var ray := PhysicsRayQueryParameters3D.create(from, to)
 	ray.collide_with_areas = false
 	ray.collide_with_bodies = true

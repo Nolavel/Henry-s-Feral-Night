@@ -33,6 +33,9 @@ var cam_jump_hold_active: bool = false
 var cam_jump_release_fired: bool = false
 var cam_landed_this_frame: bool = false
 
+## Steers Henry through narrow doorways; built in _ready.
+var _passage: PassageTraversalComponent
+
 ## Point a scripted walk heads for, e.g. InteractComponent's approach.
 var _walk_target: Vector3 = Vector3.ZERO
 var _walking_to_target: bool = false
@@ -64,6 +67,13 @@ func _ready() -> void:
 		door_push.body = self
 		door_push.visual = animation_component
 		add_child(door_push)
+	## Narrow doorways: Henry is steered through their centre while pushed along them.
+	_passage = get_node_or_null(^"PassageTraversalComponent") as PassageTraversalComponent
+	if _passage == null:
+		_passage = PassageTraversalComponent.new()
+		_passage.name = "PassageTraversalComponent"
+		_passage.body = self
+		add_child(_passage)
 	## Snow that packs onto the boots in deep snow, sheds and melts.
 	if get_node_or_null(^"BootSnowComponent") == null:
 		var boot_snow := BootSnowComponent.new()
@@ -125,6 +135,8 @@ func _physics_process(delta: float) -> void:
 		jump_is_pressed = false
 		jump_just_released = false
 		sprint_is_pressed = false
+	if _passage != null:
+		world_dir = _passage.steer(world_dir)
 	_face_towards(world_dir, delta)
 	input_dir = global_transform.basis.orthonormalized().inverse() * world_dir
 

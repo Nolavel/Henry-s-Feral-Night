@@ -45,6 +45,7 @@ func sit(spot: Node3D) -> bool:
 	body.global_position = Vector3(spot.global_position.x, body.global_position.y, spot.global_position.z)
 	if facing.length() > 0.01:
 		body.rotation.y = atan2(-facing.x, -facing.z)
+	body.reset_physics_interpolation()
 	if visual != null:
 		visual.set_sitting(true)
 		visual.set_pack_down(spot.global_transform * Transform3D(Basis(Vector3.UP, 0.4), PACK_SPOT),

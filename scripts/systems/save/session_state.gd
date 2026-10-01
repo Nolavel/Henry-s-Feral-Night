@@ -50,6 +50,7 @@ func load_save_data(data: Dictionary) -> void:
 		if at.size() == 3:
 			_player.global_position = Vector3(float(at[0]), float(at[1]), float(at[2]))
 		_player.global_rotation.y = float(data.get("player_yaw", _player.global_rotation.y))
+		_player.reset_physics_interpolation()
 		## A CharacterBody carries velocity; landing with the old one would slide.
 		var body := _player as CharacterBody3D
 		if body != null:

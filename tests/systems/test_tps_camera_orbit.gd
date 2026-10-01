@@ -1,7 +1,7 @@
 extends SceneTree
 
-## Henry stands with his back to a wall while the mouse sweeps 360 degrees:
-## the camera never enters the wall and never collapses into his head.
+## Henry stands with his back to a wall while the view sweeps 360 degrees:
+## the camera never enters the wall or his head, and fades him when it is close.
 ## Run: godot --headless --script tests/systems/test_tps_camera_orbit.gd
 
 const STEP_DEG: int = 10
@@ -14,8 +14,6 @@ var _frame: int = 0
 var _step: int = 0
 var _camera: TpsCamera
 var _player: CharacterBody3D
-## Closest the camera may settle to the eyes while a wall is behind him.
-const MIN_SETTLED_DISTANCE: float = 0.55
 
 
 ## Stages step on physics frames, where the camera settles.
@@ -60,7 +58,7 @@ func _build() -> void:
 
 
 func _sample() -> void:
-	var eye: Vector3 = _player.global_position + Vector3.UP * _camera.body_height * TpsCamera.EYE_RATIO
+	var eye: Vector3 = _player.global_position + Vector3.UP * _camera.metrics.standing_eye
 	var at: Vector3 = _camera.global_position
 	var yaw: int = _step * STEP_DEG
 	_check(at.z < WALL_FACE_Z, "yaw %d: camera inside or behind the wall at z=%.2f" % [yaw, at.z])
@@ -68,8 +66,11 @@ func _sample() -> void:
 	query.exclude = [_player.get_rid()]
 	var hit: Dictionary = root.get_world_3d().direct_space_state.intersect_ray(query)
 	_check(hit.is_empty(), "yaw %d: the wall stands between Henry's eyes and the camera" % yaw)
-	_check(eye.distance_to(at) >= MIN_SETTLED_DISTANCE,
-		"yaw %d: camera collapsed to %.2f m from the eyes" % [yaw, eye.distance_to(at)])
+	var distance: float = eye.distance_to(at)
+	_check(distance >= _camera.body_fade_end,
+		"yaw %d: camera collapsed to %.2f m from the eyes" % [yaw, distance])
+	_check(distance >= _camera.body_fade_start or _camera.get_body_fade() > 0.0,
+		"yaw %d: camera %.2f m from the eyes with Henry drawn in full" % [yaw, distance])
 	_check(not _camera.is_body_hidden(), "yaw %d: Henry was hidden; it went first-person" % yaw)
 
 

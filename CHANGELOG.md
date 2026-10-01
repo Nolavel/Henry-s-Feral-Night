@@ -5,6 +5,124 @@ Maintained per branch; entries are added by whoever makes the change.
 
 ## [Unreleased] — `codex`
 
+### 2026-10-01 - Henry's measured body, doorway traversal (claudeflow, #170)
+
+- `HenryMetrics` (`data/characters/henry_metrics.tres`) holds Henry measured
+  from the model the game loads. `tools/runtime/measure_henry_metrics.gd`
+  CPU-skins the dressed `henry_outfit.glb` through the live skeleton and
+  averages 16 idle and crouch-idle poses. Standing: crown 1.79 m, eyes 1.62,
+  shoulder joints 1.40, coat over the shoulders 1.52, width 0.60, chest depth
+  0.36, pack +0.32 behind the coat. Crouched: eyes 0.90, shoulders 0.86.
+  Capsule: radius 0.5, height 2.0 / 1.3.
+- `TpsCamera` drops ADT's `EYE_RATIO`, `SHOULDER_RATIO` and `body_height`. The
+  pivot sits on the shoulder joints, fades read the eyes, and the stance blend
+  follows the capsule between its measured heights. ADT's crouch scaling had
+  put the eyes 0.20 m too high. The pivot on the coat (0.10 m under the eyes)
+  hid Henry with his back to a wall; `test_tps_camera_orbit` caught it.
+- Framing heights are added after the follow lag, so a crouch or a doorway is
+  smoothed once, by its own exponential damp.
+- `PassageTraversalComponent` on Henry: a short doorway is found from facing
+  jamb rays (a corridor is not a doorway). While a key pushes along it, Henry
+  is steered onto its centre line and through; S brings him back out. There is
+  no teleport, and walking and animation stay as they are.
+- Doorway framing in `TpsCamera`:
+  - boom down to 1.4 m, shoulder to 25 %, +0.15 m rise, +6° FOV;
+  - the view stays within ±35° of the passage axis, and the mouse cannot push
+    past it;
+  - the frame closes at rate 12 and opens back out at rate 3.
+  - The body fade stays only as a fallback.
+- `test_passage_traversal`: a 1.2 m door taken 35° off, the frame closing fast
+  and reopening softly, backing out with S, and a 1.4 × 8 m corridor that is no
+  doorway.
+- `tools/runtime/capture_tps_doorway.gd` grabs the shelter door at entry, middle
+  and exit. Its floor ray now starts inside the opening; from above, it landed
+  on the lintel.
+
+### 2026-10-01 - TPS camera review fixes: control yaw, prop chains, sway-free aim (claudeflow, #170)
+
+- Review of `ae305d8` found that automatic turns rewrote `_yaw`, which
+  `get_yaw()` hands to WASD. The test only passed because I had switched its
+  check from "heading against the mouse yaw" to "heading against the view".
+  Now control and view are split, Unreal's ControlRotation versus camera
+  modifiers. `_yaw` changes only with the mouse; room search, recentring and
+  whiskers move a view offset. Mouse travel folds that offset into the control
+  look, so the view never jumps; steering keys glide it back out.
+  Measured: control yaw moved by automatic turns 0°; W heading against the
+  mouse yaw 0° (was 74° before #170).
+- `TpsBoomProbe` passed at most 4 thin colliders, then returned "path free",
+  which a fifth prop before a wall would breach. It now passes up to 16 and
+  counts the next as a wall (fail-safe). `overlaps()` reports only blocking
+  bodies; thin ones the camera sits inside fade instead of snapping it.
+- Breathing sway is presentation only: `TpsCamera.aim_origin()` and
+  `aim_direction()` turn the last sway back out of the camera's real
+  transform. A camera posed by hand, as in `test_shelter_workflow`, still aims
+  where it points. `InteractComponent`,
+  `BedrollComponent`, `BreachBoardUp` and `MouseCursorUI` use them for their
+  centre rays.
+- The space rods run every frame and cover only the camera's half of the
+  circle, plus the ceiling. A wall in front of Henry no longer shortens the
+  boom, and the 10 Hz steps are gone.
+- The body fade weighs each fragment by its distance to the camera: head,
+  shoulder and pack dither, and the legs a metre out stay. Non-stylized meshes
+  are capped at 70 %.
+- `test_tps_camera`:
+  - adds "control yaw unchanged after an automatic turn", 5 and 20 poles before
+    a beam, and "gameplay ray ignores an 8° sway";
+  - each check fails on a mutation of the bug it guards.
+- `trace_tps_camera.gd` measures heading against the mouse yaw again.
+
+### 2026-10-01 - TPS camera rig: safe origin, feelers, player priority, fades (claudeflow, #170 T3–T9)
+
+- Rig rebuilt after Lyra and Cinemachine: a safe point inside Henry's capsule →
+  a swept shoulder → a swept camera. The centre sweep snaps the boom in at
+  walls, six feelers (±16°, ±32° yaw, ±20° pitch) ease it in, and every
+  release eases it out. The shoulder is a real offset; `h_offset` is gone.
+- Stance comes from Henry's capsule: crouching lowers the camera by 0.50 m (it
+  stayed put), and under a 1.5 m slab the camera stays below it.
+- Author decisions: walls snap; thin colliders (middle extent < 0.6 m),
+  characters and unfrozen rigid bodies let the boom pass and fade to 70 %
+  transparency on the camera-to-eyes line.
+- `TpsAutoLook`: automatic turns wait 0.9 s after the mouse rests. Room search
+  works standing; recentring follows W or a scripted walk, not strafing or
+  backing up; Daedalic whiskers steer away from walls while moving. `get_yaw()`
+  is the view, so WASD always matches the screen.
+- Henry dithers out (`camera_fade`, Bayer 4×4 in
+  `stylized_environment_body.gdshaderinc`) from 0.8 m to 0.25 m, instead of a
+  hard cull at 0.3 m.
+- Rods weight the camera's side and ignore thin props; looking up shortens the
+  boom to 60 % before the ground does.
+- Measured in TestScene: over 360° sweeps at 8 poses (doorway, corner, walls,
+  window, open), frames with Henry cut out went from 1865 to 0; he dithers
+  instead. Near-plane clips on the door jamb 36 → 0. Thin-pole pops 3 → 0.
+  Head hidden under a slab 31 % → 0. A sideways door pass no longer cuts Henry
+  out for 246 frames. Model and numbers: `docs/technical/TPS_CAMERA.md`.
+- Tests: `test_tps_camera` adds crouch, low ceiling, thin pole and
+  mouse-priority checks. `test_tps_camera_orbit` now asks for fading instead of
+  an instant swing. New `tools/runtime/capture_tps_camera.gd` for stills.
+
+### 2026-10-01 - TPS camera follows the mouse every frame (claudeflow, #170 T2)
+
+- Measured first with `tools/runtime/trace_tps_camera.gd` (TestScene, real
+  Henry, 144 fps against 60 Hz physics): the camera turned on 42 % of frames,
+  trailed the mouse by 30 ms and needed 76 ms for 90 % of a 13° flick; walking,
+  camera and body stood still on 84 of 144 frames.
+- Cause: look and pose lived in `_physics_process`, physics interpolation was
+  off, and `look_smoothing` filtered the mouse on top.
+- `physics/common/physics_interpolation` is on. `TpsCamera` runs in `_process`
+  on Henry's interpolated transform; mouse look is applied as it arrives with
+  no filter. Follow lag now trails only the orbit centre (16 across the ground,
+  10 in height), so the orbit answers the mouse at once.
+- `InputSystems.consume_look_delta()` replaces `get_look_delta()` and reads
+  `screen_relative`: the viewport stretch no longer rescales mouse look (0.75×
+  on a 2560×1440 screen, 19× in headless).
+- `TpsCamera.snap_to_target()`; a target jump over 1.5 m in one frame snaps
+  the camera too. Spawn, sitting down and save load reset Henry's
+  interpolation. Snowfall emitters, moved per frame, opt out of it.
+- After: 100 % of frames turn, lag 0, a flick lands on the next frame (7 ms),
+  walking camera step cv 1.18 → 0.008, a teleport no longer flies for 1.3 s.
+  `test_dev_diorama_map`, `test_door_draft` and `test_shelter_workflow` fail
+  identically on the base commit; all other suites pass.
+
 ### 2026-10-01 - Review angles for #156 rendered against predictions (claudeflow)
 
 - `capture_stylized_shadows.gd -- review` renders physical/dry pairs for normal

@@ -945,6 +945,10 @@ locale/translations=PackedStringArray("res://localization/strings.en.translation
 3d_render/layer_20="dev_map_label"
 3d_physics/layer_1="ground"
 
+[physics]
+
+common/physics_interpolation=true
+
 [rendering]
 
 textures/vram_compression/import_s3tc_bptc=true

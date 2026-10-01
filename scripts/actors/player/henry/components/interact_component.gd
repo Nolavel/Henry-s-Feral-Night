@@ -148,9 +148,8 @@ func _find_crosshair_target() -> InteractiveArea:
 	var camera: Camera3D = viewport.get_camera_3d() if viewport != null else null
 	if camera == null or _player == null:
 		return null
-	var center: Vector2 = viewport.get_visible_rect().size * 0.5
-	var from: Vector3 = camera.project_ray_origin(center)
-	var direction: Vector3 = camera.project_ray_normal(center).normalized()
+	var from: Vector3 = TpsCamera.aim_origin(camera)
+	var direction: Vector3 = TpsCamera.aim_direction(camera)
 	var to: Vector3 = from + direction * focus_length
 
 	# The interaction volume owns selection. Query Areas first so a door leaf,
@@ -310,7 +309,7 @@ func _is_focus_aligned(from: Vector3, direction: Vector3, area: InteractiveArea)
 func _has_focus_line(camera: Camera3D, area: InteractiveArea) -> bool:
 	if not is_instance_valid(camera) or not is_instance_valid(area):
 		return false
-	var from: Vector3 = camera.project_ray_origin(get_viewport().get_visible_rect().size * 0.5)
+	var from: Vector3 = TpsCamera.aim_origin(camera)
 	var to := _focus_point(area)
 	var ray := PhysicsRayQueryParameters3D.create(from, to)
 	ray.collide_with_areas = false
