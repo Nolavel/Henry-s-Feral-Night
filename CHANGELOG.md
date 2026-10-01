@@ -14,6 +14,12 @@ Maintained per branch; entries are added by whoever makes the change.
 - `capture_stylized_shadows.gd` restores the project's spray after a brush run,
   and `-- shimmer` renders each spray from the TPS pose and shifted half a pixel
   sideways, with clock, snowfall and Henry frozen.
+- Shimmer measured in Key West. The far band matches physical for every spray.
+  Near the camera, dry flips 1.18 % of pixels beyond physical (noise 0.45 %).
+  Every flip is on a world-locked stroke edge (0.49 per edge pixel against 0.67
+  for geometry edges), with no isolated popping: crawl along unantialiased
+  edges, not shimmer. The capture tool no longer errors if its output folder
+  disappears before the report is written.
 
 ### 2026-10-01 - Brush-stroke masks for the shadow spray, off by default (claudeflow)
 

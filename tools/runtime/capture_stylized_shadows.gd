@@ -293,5 +293,8 @@ func _write_report() -> void:
 		"contract": "torn shadow lookup for all lights + three-tone directional shadow",
 	}
 	var file := FileAccess.open("%s/report.json" % _out_dir, FileAccess.WRITE)
+	if file == null:
+		push_error("stylized shadow capture: cannot write report (%s)" % FileAccess.get_open_error())
+		return
 	file.store_string(JSON.stringify(report, "\t"))
 	file.close()

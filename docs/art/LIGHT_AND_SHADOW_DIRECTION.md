@@ -352,7 +352,11 @@ Not recommended, with reasons:
 - Local lights (the stove, flares) tear their shadow, but have no tone cut until
   the P2 item above lands.
 - A sun sliver narrower than the penumbra is all penumbra, so the spray breaks
-  it into pieces: the shelter floor sliver keeps 49 % of its length.
+  it into pieces. The shelter floor sliver keeps 49 % of its length with noise
+  and 66 % with dry.
+- Dry strokes add hard edges, so a moving camera flips more edge pixels: 1.18 %
+  of the near band against 0.45 % for noise. The edges move with the world;
+  there is no popping (`STYLIZED_SHADOWS.md`, Verification).
 
 ## Research notes
 

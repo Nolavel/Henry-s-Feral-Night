@@ -104,7 +104,8 @@ fully lit snow once cut into tones.
 `tools/runtime/capture_stylized_shadows.gd` writes matched physical/stylized
 frames of Key West: outside at noon, inside the shelter at noon, by stove light
 at night, and the stove frame under the Day, Dusk and Night LUTs.
-With `-- brush` it renders physical, noise twice, dry and flat masks instead.
+With `-- brush` it renders physical, noise twice, dry and flat masks instead;
+`-- shimmer` renders each spray from the TPS pose and again 3 mm to the side.
 
 On lavapipe, outside and in the shelter: no new boot-log errors, and the
 stylized shelter frame at noon is brighter than physical by more than 10 L\* on
@@ -116,6 +117,23 @@ than 32 levels were 0.026 % for both physical and stylized, so the world-space
 noise adds no shimmer at distance. Near the camera, hard tone-cut edges flip
 0.37 % of pixels against 0.15 % physical: shading is not antialiased.
 
-Not yet verified: frame cost on a real GPU.
-Characters keep their own materials: Henry's cast shadow is stylized where it
-lands, but shadows falling on Henry are physical.
+Sub-pixel camera shift in Key West (`-- shimmer`, noon, TPS pose, about half
+a pixel on the ground 4–5 m ahead; clock, snowfall and Henry frozen). Pixels
+changing by more than 4 L\*:
+
+| Spray | Far band (> 8.5 m) | Near band (< 5.7 m) | Near, not flipping physically | Per hard-edge pixel | Away from any edge |
+|---|---|---|---|---|---|
+| physical | 0.64 % | 0.88 % | — | 0.67 | 10 px |
+| noise | 0.64 % | 1.30 % | 0.45 % | 0.26 | 19 px |
+| dry (default) | 0.64 % | 2.02 % | 1.18 % | 0.49 | 12 px |
+| flat | 0.64 % | 1.52 % | 0.69 % | 0.35 | 12 px |
+
+Dry flips the most pixels because it has the most hard edges (16 404 edge
+pixels in the near band against 11 979 for noise). Each flip sits on a stroke
+edge that moves with the world. Per edge pixel they are fewer than on geometry
+edges, and isolated popping is at the level of physical shadows. The far band
+matches physical. That is crawl along unantialiased edges, not shimmer.
+
+Not yet verified: frame cost on a real GPU, and how TAA/FXAA treats the stroke
+edges there. Henry's materials are on the contract (`make_character()`), so
+shadows falling on him are stylized too, with the spray in model space.
