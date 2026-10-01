@@ -10,7 +10,7 @@ var _elapsed: float = 0.0
 var _frames: int = 0
 var _console_elapsed: float = 0.0
 var _show_panel: bool = true
-var _print_to_console: bool = true
+var _print_runtime_debug_stats: bool = false
 
 
 func _ready() -> void:
@@ -59,9 +59,10 @@ func on_world_ready(context: WorldContext) -> void:
 	if context == null or context.world == null:
 		return
 	_show_panel = bool(context.world.get("enable_runtime_debug_panel"))
-	_print_to_console = bool(context.world.get("print_runtime_debug_stats"))
+	_print_runtime_debug_stats = bool(context.world.get("print_runtime_debug_stats"))  # имя своей переменной подставьте
+
 	visible = _show_panel
-	set_process(_show_panel or _print_to_console)
+	set_process(_show_panel or _print_runtime_debug_stats)
 
 
 func _process(delta: float) -> void:
@@ -86,8 +87,8 @@ func _process(delta: float) -> void:
 
 	if _show_panel:
 		_label.text = snapshot
-	if _print_to_console and _console_elapsed >= CONSOLE_INTERVAL:
-		print("[RuntimeStats]\n%s" % snapshot)
+	if _print_runtime_debug_stats and _console_elapsed >= CONSOLE_INTERVAL:
+		print("[Stats]\n%s" % snapshot)
 		_console_elapsed = 0.0
 
 	_elapsed = 0.0
