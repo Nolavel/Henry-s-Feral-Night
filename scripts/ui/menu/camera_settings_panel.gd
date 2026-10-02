@@ -32,6 +32,7 @@ const INK_DISSOLVE_DURATION: float = 0.34
 var _saved_sensitivity: float = STORE.DEFAULT_MOUSE_SENSITIVITY
 var _saved_invert_y: bool = STORE.DEFAULT_INVERT_Y
 
+var _frame_root: Control
 var _blot_material: ShaderMaterial
 var _title_label: Label
 var _settings_body: VBoxContainer
@@ -49,6 +50,8 @@ func _ready() -> void:
 	set_anchors_preset(Control.PRESET_FULL_RECT)
 	mouse_filter = Control.MOUSE_FILTER_STOP
 	_build()
+	resized.connect(_layout_frame)
+	_layout_frame()
 	visible = false
 
 
@@ -103,23 +106,17 @@ func _unhandled_input(event: InputEvent) -> void:
 func _build() -> void:
 	var shade := ColorRect.new()
 	shade.name = "SettingsShade"
-	shade.color = Color(0.0, 0.0, 0.0, 0.60)
+	shade.color = Color(0.0, 0.0, 0.0, 0.48)
 	shade.set_anchors_preset(Control.PRESET_FULL_RECT)
 	shade.mouse_filter = Control.MOUSE_FILTER_STOP
 	add_child(shade)
 
-	var frame_root := Control.new()
-	frame_root.name = "InkSettingsFrame"
-	frame_root.anchor_left = 0.5
-	frame_root.anchor_top = 0.5
-	frame_root.anchor_right = 0.5
-	frame_root.anchor_bottom = 0.5
-	frame_root.offset_left = -FRAME_SIZE.x * 0.5
-	frame_root.offset_top = -FRAME_SIZE.y * 0.5
-	frame_root.offset_right = FRAME_SIZE.x * 0.5
-	frame_root.offset_bottom = FRAME_SIZE.y * 0.5
-	frame_root.mouse_filter = Control.MOUSE_FILTER_IGNORE
-	add_child(frame_root)
+	_frame_root = Control.new()
+	_frame_root.name = "InkSettingsFrame"
+	_frame_root.size = FRAME_SIZE
+	_frame_root.mouse_filter = Control.MOUSE_FILTER_IGNORE
+	add_child(_frame_root)
+	_layout_frame()
 
 	var blot := ColorRect.new()
 	blot.name = "SettingsInkBlot"
@@ -140,7 +137,7 @@ func _build() -> void:
 	_blot_material.set_shader_parameter("idle_drift", 0.0)
 	_blot_material.set_shader_parameter("canvas_padding", 0.08)
 	blot.material = _blot_material
-	frame_root.add_child(blot)
+	_frame_root.add_child(blot)
 
 	var content := VBoxContainer.new()
 	content.name = "SettingsContent"
@@ -148,7 +145,7 @@ func _build() -> void:
 	content.size = FRAME_SIZE - Vector2(72.0, 54.0)
 	content.add_theme_constant_override("separation", 18)
 	content.mouse_filter = Control.MOUSE_FILTER_PASS
-	frame_root.add_child(content)
+	_frame_root.add_child(content)
 
 	_title_label = Label.new()
 	_title_label.name = "SettingsTitle"
@@ -232,6 +229,14 @@ func _build() -> void:
 
 	_refresh_value_label()
 	_refresh_dirty_state()
+
+
+func _layout_frame() -> void:
+	if _frame_root == null:
+		return
+	var viewport_size: Vector2 = get_viewport_rect().size
+	_frame_root.position = (viewport_size - FRAME_SIZE) * 0.5
+	_frame_root.size = FRAME_SIZE
 
 
 func _begin_appear() -> void:

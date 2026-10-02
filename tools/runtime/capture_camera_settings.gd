@@ -20,23 +20,19 @@ func _run() -> void:
 	seed(170)
 
 	_stage = Control.new()
-	_stage.set_anchors_preset(Control.PRESET_FULL_RECT)
+	_stage.position = Vector2.ZERO
+	_stage.size = root.get_visible_rect().size
 	root.add_child(_stage)
 
 	var background := ColorRect.new()
-	background.set_anchors_preset(Control.PRESET_FULL_RECT)
-	background.color = Color(0.075, 0.082, 0.095, 1.0)
+	background.position = Vector2.ZERO
+	background.size = _stage.size
+	background.color = Color(0.16, 0.18, 0.22, 1.0)
 	_stage.add_child(background)
 
-	var cold_field := ColorRect.new()
-	cold_field.anchor_left = 0.18
-	cold_field.anchor_top = 0.16
-	cold_field.anchor_right = 0.82
-	cold_field.anchor_bottom = 0.84
-	cold_field.color = Color(0.11, 0.13, 0.16, 0.32)
-	_stage.add_child(cold_field)
-
 	_panel = SETTINGS_PANEL.new() as CameraSettingsPanel
+	_panel.position = Vector2.ZERO
+	_panel.size = _stage.size
 	_stage.add_child(_panel)
 	await process_frame
 	_panel.open()
