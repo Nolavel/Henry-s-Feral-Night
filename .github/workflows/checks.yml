@@ -21,6 +21,9 @@ on:
       - "tools/runtime/capture_sky_weather.gd"
       - "shaders/environment/freemans_parallax_clouds.gdshader"
       - "scripts/ui/debug/**"
+      - "scripts/ui/menu/camera_settings_panel.gd"
+      - "scripts/settings/**"
+      - "tools/runtime/capture_camera_settings.gd"
       - "scenes/ui/debug/**"
       - "tools/runtime/capture_dev_diorama_map.gd"
       - "tests/systems/test_dev_diorama_map.gd"
@@ -90,7 +93,7 @@ jobs:
         run: tools/ci/check_filenames.sh
 
   color-grade-preview:
-    if: github.event_name == 'push' && !contains(github.event.head_commit.message, '[key-west-preview]') && !contains(github.event.head_commit.message, '[key-west-tps]') && !contains(github.event.head_commit.message, '[key-west-first-exit]') && !contains(github.event.head_commit.message, '[dev-map-preview]') && !contains(github.event.head_commit.message, '[stylized-shadows]') && !contains(github.event.head_commit.message, '[sky-weather-preview]')
+    if: github.event_name == 'push' && !contains(github.event.head_commit.message, '[key-west-preview]') && !contains(github.event.head_commit.message, '[key-west-tps]') && !contains(github.event.head_commit.message, '[key-west-first-exit]') && !contains(github.event.head_commit.message, '[dev-map-preview]') && !contains(github.event.head_commit.message, '[stylized-shadows]') && !contains(github.event.head_commit.message, '[sky-weather-preview]') && !contains(github.event.head_commit.message, '[settings-preview]')
     runs-on: ubuntu-latest
     timeout-minutes: 12
     steps:
@@ -126,6 +129,50 @@ jobs:
         with:
           name: hoarbound-color-grades
           path: docs/runtime_previews/color_grading/*.png
+          if-no-files-found: error
+          retention-days: 3
+
+
+  settings-preview:
+    if: github.event_name == 'push' && contains(github.event.head_commit.message, '[settings-preview]')
+    runs-on: ubuntu-latest
+    timeout-minutes: 12
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Cache Godot
+        uses: actions/cache@v4
+        with:
+          path: |
+            ~/.local/opt/godot-mono
+          key: godot-4.8-dev6-v2
+
+      - name: Provision Godot + CPU Vulkan
+        run: tools/ci/setup_env.sh
+
+      - name: Import gate
+        run: tools/ci/import_gate.sh
+
+      - name: Capture camera settings states
+        run: |
+          export VK_DRIVER_FILES=/usr/share/vulkan/icd.d/lvp_icd.json
+          export XDG_RUNTIME_DIR=/tmp/xdg
+          mkdir -p "$XDG_RUNTIME_DIR"
+          xvfb-run -a "$HOME/.local/bin/godot" \
+            --path . \
+            --resolution 1600x1000 \
+            --rendering-driver vulkan \
+            --rendering-method forward_plus \
+            --audio-driver Dummy \
+            --script tools/runtime/capture_camera_settings.gd
+
+      - name: Upload camera settings previews
+        uses: actions/upload-artifact@v4
+        with:
+          name: hoarbound-camera-settings
+          path: |
+            docs/runtime_previews/camera_settings/*.png
+            docs/runtime_previews/camera_settings/report.json
           if-no-files-found: error
           retention-days: 3
 
