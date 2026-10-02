@@ -13,6 +13,7 @@ const FEELERS: Array = [[16.0, 0.0, 0.75], [-16.0, 0.0, 0.75], [32.0, 0.0, 0.5],
 const WHISKERS_DEG: Array = [20.0, 40.0]
 ## Seconds between searches for an angle with room while the boom stays cramped.
 const ROOM_SEARCH_INTERVAL: float = 0.25
+const CAMERA_USER_SETTINGS: GDScript = preload("res://scripts/settings/camera_user_settings.gd")
 
 @export var player: CharacterBody3D
 
@@ -186,6 +187,8 @@ var _auto := TpsAutoLook.new()
 var _fader := TpsCameraFader.new()
 var _capsule: CollisionShape3D
 var _input_systems: Node
+var _user_mouse_sensitivity_multiplier: float = 1.0
+var _user_invert_y: bool = false
 ## Henry's doorway traversal, read for the frame; looked up once after his _ready.
 var _passage: PassageTraversalComponent
 var _passage_looked_up: bool = false
@@ -212,6 +215,8 @@ func _ready() -> void:
 	if metrics == null:
 		metrics = DEFAULT_METRICS
 	_input_systems = get_node_or_null(^"/root/InputSystems")
+	add_to_group(&"tps_camera_user_settings")
+	reload_user_settings()
 	if is_instance_valid(player):
 		_yaw = player.global_rotation.y
 		_find_capsule()
@@ -222,6 +227,12 @@ func _ready() -> void:
 
 func _exit_tree() -> void:
 	_set_look_capture(false)
+
+
+func reload_user_settings() -> void:
+	var values: Dictionary = CAMERA_USER_SETTINGS.load_camera()
+	_user_mouse_sensitivity_multiplier = float(values["mouse_sensitivity_multiplier"])
+	_user_invert_y = bool(values["invert_y"])
 
 
 ## Runs every rendered frame: look is applied as it arrives, Henry is followed
@@ -703,9 +714,16 @@ func _apply_look_input() -> Vector2:
 		_pitch_deg = get_view_pitch_deg()
 		_clear_auto_look()
 	var x_sign: float = -1.0 if invert_look_x else 1.0
-	var y_sign: float = -1.0 if invert_look_y else 1.0
-	var yaw_step: float = -look.x * look_sensitivity_x * x_sign
-	var pitch_step: float = -rad_to_deg(look.y) * look_sensitivity_y * pitch_sensitivity_ratio * y_sign
+	var effective_invert_y: bool = invert_look_y != _user_invert_y
+	var y_sign: float = -1.0 if effective_invert_y else 1.0
+	var yaw_step: float = -look.x * look_sensitivity_x * _user_mouse_sensitivity_multiplier * x_sign
+	var pitch_step: float = (
+		-rad_to_deg(look.y)
+		* look_sensitivity_y
+		* _user_mouse_sensitivity_multiplier
+		* pitch_sensitivity_ratio
+		* y_sign
+	)
 	## In a doorway the mouse eases into a soft stop instead of a wall; back in is always free.
 	var weight: float = _passage_blend if _framing.has_passage() else 0.0
 	if weight > 0.001 and yaw_step != 0.0:

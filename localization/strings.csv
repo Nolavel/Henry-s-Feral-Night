@@ -3,6 +3,12 @@ MENU_TITLE,Hoarbound,Hoarbound
 MENU_NEW_GAME,New game,Новая игра
 MENU_CONTINUE,Continue from last sleep,Продолжить с последнего сна
 MENU_QUIT,Quit,Выход
+MENU_SETTINGS,Settings,Настройки
+SETTINGS_TITLE,Settings,Настройки
+SETTINGS_MOUSE_SENSITIVITY,Mouse sensitivity,Чувствительность мыши
+SETTINGS_INVERT_Y,Invert Y,Инверсия Y
+SETTINGS_BACK,Back,Назад
+SETTINGS_ACCEPT,Accept,Принять
 MENU_NO_SAVE,No sleep saved yet,Сохранённого сна пока нет
 PAUSE_TITLE,Paused,Пауза
 PAUSE_RESUME,Resume,Продолжить

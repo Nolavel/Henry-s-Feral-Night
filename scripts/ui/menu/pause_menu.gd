@@ -6,12 +6,14 @@ extends Control
 
 const PAUSE_ACTION: StringName = &"pause"
 const PLAYER_STATE_PATH: NodePath = ^"/root/PlayerState"
+const SETTINGS_PANEL_SCRIPT: GDScript = preload("res://scripts/ui/menu/camera_settings_panel.gd")
 
 @export_group("Scenes")
 @export_file("*.tscn") var title_scene: String = "res://scenes/ui/menu/title_menu.tscn"
 
 var _is_open: bool = false
 var _panel: Control
+var _settings_panel: CameraSettingsPanel
 
 
 func _ready() -> void:
@@ -28,7 +30,9 @@ func _ready() -> void:
 func _unhandled_input(event: InputEvent) -> void:
 	if not event.is_action_pressed(PAUSE_ACTION):
 		return
-	if _is_open:
+	if _is_open and _settings_panel != null and _settings_panel.is_open():
+		_settings_panel.back()
+	elif _is_open:
 		resume()
 	elif not _is_other_menu_open():
 		open()
@@ -55,6 +59,18 @@ func resume() -> void:
 	_is_open = false
 	_panel.visible = false
 	_player_state_call(&"close_menu")
+
+
+func open_settings() -> void:
+	if not _is_open or _settings_panel == null:
+		return
+	_panel.visible = false
+	_settings_panel.open()
+
+
+func _on_settings_closed(_saved: bool) -> void:
+	if _is_open:
+		_panel.visible = true
 
 
 func quit_to_title() -> void:
@@ -100,6 +116,7 @@ func _build() -> void:
 	title.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
 	column.add_child(title)
 	column.add_child(_button("PAUSE_RESUME", resume))
+	column.add_child(_button("MENU_SETTINGS", open_settings))
 	column.add_child(_button("PAUSE_TO_TITLE", quit_to_title))
 
 	var hint := Label.new()
@@ -108,6 +125,10 @@ func _build() -> void:
 	hint.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
 	column.add_child(hint)
 	column.position -= column.get_combined_minimum_size() * 0.5
+
+	_settings_panel = SETTINGS_PANEL_SCRIPT.new() as CameraSettingsPanel
+	_settings_panel.closed.connect(_on_settings_closed)
+	add_child(_settings_panel)
 
 
 func _button(key: String, action: Callable) -> Button:
