@@ -10,8 +10,15 @@ const STORE: GDScript = preload("res://scripts/settings/camera_user_settings.gd"
 const BLOT_SHADER: Shader = preload("res://shaders/ui/key_hints_blot.gdshader")
 const CAMERA_GROUP: StringName = &"tps_camera_user_settings"
 
-const FRAME_SIZE := Vector2(560.0, 310.0)
-const BLOT_SIZE := Vector2(690.0, 410.0)
+const FRAME_SIZE := Vector2(620.0, 360.0)
+const CONTENT_SIZE := Vector2(440.0, 288.0)
+## The source blot was authored to hang down-right. These values centre the
+## visual mass, not merely its ColorRect, and leave enough carrier around the
+## largest radii that their ragged edges are never clipped.
+const BLOT_SIZE := Vector2(1000.0, 600.0)
+const BLOT_VISUAL_CENTER_UV := Vector2(0.625, 0.57)
+const BLOT_CANVAS_PADDING: float = 0.22
+const BLOT_FINAL_SCALE: float = 1.15
 const ACCENT := Color(1.0, 0.823529, 0.0, 1.0)
 const ACCENT_HOVER := Color(1.0, 0.88, 0.22, 1.0)
 const ACCENT_PRESSED := Color(0.86, 0.66, 0.0, 1.0)
@@ -120,7 +127,7 @@ func _build() -> void:
 
 	var blot := ColorRect.new()
 	blot.name = "SettingsInkBlot"
-	blot.position = (FRAME_SIZE - BLOT_SIZE) * 0.5
+	blot.position = FRAME_SIZE * 0.5 - BLOT_SIZE * BLOT_VISUAL_CENTER_UV
 	blot.size = BLOT_SIZE
 	blot.color = Color.WHITE
 	blot.mouse_filter = Control.MOUSE_FILTER_IGNORE
@@ -135,41 +142,51 @@ func _build() -> void:
 	_blot_material.set_shader_parameter("warp_scale", 4.5)
 	_blot_material.set_shader_parameter("rect_size", BLOT_SIZE)
 	_blot_material.set_shader_parameter("idle_drift", 0.0)
-	_blot_material.set_shader_parameter("canvas_padding", 0.08)
+	_blot_material.set_shader_parameter("canvas_padding", BLOT_CANVAS_PADDING)
 	blot.material = _blot_material
 	_frame_root.add_child(blot)
 
 	var content := VBoxContainer.new()
 	content.name = "SettingsContent"
-	content.position = Vector2(36.0, 27.0)
-	content.size = FRAME_SIZE - Vector2(72.0, 54.0)
-	content.add_theme_constant_override("separation", 18)
+	content.position = (FRAME_SIZE - CONTENT_SIZE) * 0.5
+	content.size = CONTENT_SIZE
+	content.add_theme_constant_override("separation", 20)
 	content.mouse_filter = Control.MOUSE_FILTER_PASS
 	_frame_root.add_child(content)
 
 	_title_label = Label.new()
 	_title_label.name = "SettingsTitle"
 	_title_label.text = tr("SETTINGS_TITLE")
-	_title_label.add_theme_font_size_override("font_size", 30)
+	_title_label.add_theme_font_size_override("font_size", 32)
 	_title_label.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
 	_title_label.modulate.a = 0.0
 	content.add_child(_title_label)
 
 	_settings_body = VBoxContainer.new()
 	_settings_body.name = "SettingsBody"
-	_settings_body.add_theme_constant_override("separation", 18)
+	_settings_body.add_theme_constant_override("separation", 8)
 	_settings_body.modulate.a = 0.0
 	content.add_child(_settings_body)
 
-	var sensitivity_row := HBoxContainer.new()
-	sensitivity_row.name = "SensitivityRow"
-	sensitivity_row.add_theme_constant_override("separation", 14)
-	_settings_body.add_child(sensitivity_row)
+	## Keep label, value and slider in one visual group. The previous horizontal
+	## row made the eye jump from copy on the far left to a control on the right.
+	var sensitivity_header := HBoxContainer.new()
+	sensitivity_header.name = "SensitivityHeader"
+	sensitivity_header.add_theme_constant_override("separation", 10)
+	_settings_body.add_child(sensitivity_header)
 
 	var sensitivity_label := Label.new()
 	sensitivity_label.text = tr("SETTINGS_MOUSE_SENSITIVITY")
-	sensitivity_label.custom_minimum_size.x = 190.0
-	sensitivity_row.add_child(sensitivity_label)
+	sensitivity_label.size_flags_horizontal = Control.SIZE_EXPAND_FILL
+	sensitivity_label.add_theme_color_override("font_color", Color(0.92, 0.92, 0.90, 1.0))
+	sensitivity_header.add_child(sensitivity_label)
+
+	_sensitivity_value = Label.new()
+	_sensitivity_value.name = "SensitivityValue"
+	_sensitivity_value.custom_minimum_size.x = 64.0
+	_sensitivity_value.horizontal_alignment = HORIZONTAL_ALIGNMENT_RIGHT
+	_sensitivity_value.add_theme_color_override("font_color", Color(1.0, 0.86, 0.42, 0.95))
+	sensitivity_header.add_child(_sensitivity_value)
 
 	_sensitivity_slider = HSlider.new()
 	_sensitivity_slider.name = "MouseSensitivitySlider"
@@ -177,16 +194,14 @@ func _build() -> void:
 	_sensitivity_slider.max_value = STORE.MAX_MOUSE_SENSITIVITY * 100.0
 	_sensitivity_slider.step = 5.0
 	_sensitivity_slider.value = STORE.DEFAULT_MOUSE_SENSITIVITY * 100.0
-	_sensitivity_slider.custom_minimum_size = Vector2(250.0, 34.0)
+	_sensitivity_slider.custom_minimum_size = Vector2(CONTENT_SIZE.x, 36.0)
 	_sensitivity_slider.size_flags_horizontal = Control.SIZE_EXPAND_FILL
 	_sensitivity_slider.value_changed.connect(_on_value_changed)
-	sensitivity_row.add_child(_sensitivity_slider)
+	_settings_body.add_child(_sensitivity_slider)
 
-	_sensitivity_value = Label.new()
-	_sensitivity_value.name = "SensitivityValue"
-	_sensitivity_value.custom_minimum_size.x = 62.0
-	_sensitivity_value.horizontal_alignment = HORIZONTAL_ALIGNMENT_RIGHT
-	sensitivity_row.add_child(_sensitivity_value)
+	var option_gap := Control.new()
+	option_gap.custom_minimum_size.y = 8.0
+	_settings_body.add_child(option_gap)
 
 	_invert_y = CheckBox.new()
 	_invert_y.name = "InvertY"
@@ -200,8 +215,8 @@ func _build() -> void:
 
 	_buttons_row = HBoxContainer.new()
 	_buttons_row.name = "SettingsButtons"
-	_buttons_row.alignment = BoxContainer.ALIGNMENT_END
-	_buttons_row.add_theme_constant_override("separation", 12)
+	_buttons_row.alignment = BoxContainer.ALIGNMENT_CENTER
+	_buttons_row.add_theme_constant_override("separation", 14)
 	_buttons_row.modulate.a = 0.0
 	content.add_child(_buttons_row)
 
@@ -253,7 +268,7 @@ func _begin_appear() -> void:
 	_transition = create_tween().set_pause_mode(Tween.TWEEN_PAUSE_PROCESS).set_parallel(true)
 	_transition.tween_method(_set_blot_progress, 0.0, 1.0, INK_APPEAR_DURATION) \
 		.set_ease(Tween.EASE_OUT).set_trans(Tween.TRANS_CUBIC)
-	_transition.tween_method(_set_blot_radius_scale, 0.0, 1.0, INK_SETTLE_DURATION) \
+	_transition.tween_method(_set_blot_radius_scale, 0.0, BLOT_FINAL_SCALE, INK_SETTLE_DURATION) \
 		.set_ease(Tween.EASE_OUT).set_trans(Tween.TRANS_SINE)
 	_transition.tween_property(_title_label, "modulate:a", 1.0, TITLE_REVEAL_DURATION) \
 		.set_delay(TITLE_REVEAL_DELAY).set_ease(Tween.EASE_OUT).set_trans(Tween.TRANS_CUBIC)
