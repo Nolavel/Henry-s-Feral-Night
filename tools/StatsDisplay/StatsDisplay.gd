@@ -11,11 +11,16 @@ var _label: Label
 var _elapsed: float = 0.0
 var _frames: int = 0
 var _console_elapsed: float = 0.0
+var _console_simulation_elapsed: float = 0.0
 var _console_frames: int = 0
 var _console_frame_sum_ms: float = 0.0
 var _console_frame_min_ms: float = INF
 var _console_frame_max_ms: float = 0.0
+var _console_sim_delta_sum_ms: float = 0.0
+var _console_sim_delta_min_ms: float = INF
+var _console_sim_delta_max_ms: float = 0.0
 var _viewport_refresh_elapsed: float = VIEWPORT_REFRESH_INTERVAL
+var _last_wall_usec: int = 0
 var _show_panel: bool = true
 var _print_runtime_debug_stats: bool = false
 var _measured_viewports: Array[Viewport] = []
@@ -23,6 +28,7 @@ var _measured_viewports: Array[Viewport] = []
 
 func _ready() -> void:
 	process_mode = Node.PROCESS_MODE_ALWAYS
+	_last_wall_usec = Time.get_ticks_usec()
 	mouse_filter = Control.MOUSE_FILTER_IGNORE
 	set_anchors_and_offsets_preset(Control.PRESET_FULL_RECT)
 
@@ -79,15 +85,26 @@ func on_world_ready(context: WorldContext) -> void:
 
 
 func _process(delta: float) -> void:
-	var frame_ms: float = maxf(delta, 0.0) * 1000.0
-	_elapsed += delta
+	var now_usec: int = Time.get_ticks_usec()
+	if _last_wall_usec <= 0:
+		_last_wall_usec = now_usec
+	var wall_delta_s: float = maxf(float(now_usec - _last_wall_usec) / 1000000.0, 0.0)
+	_last_wall_usec = now_usec
+
+	var frame_ms: float = wall_delta_s * 1000.0
+	var simulation_delta_ms: float = maxf(delta, 0.0) * 1000.0
+	_elapsed += wall_delta_s
 	_frames += 1
-	_console_elapsed += delta
+	_console_elapsed += wall_delta_s
+	_console_simulation_elapsed += maxf(delta, 0.0)
 	_console_frames += 1
 	_console_frame_sum_ms += frame_ms
 	_console_frame_min_ms = minf(_console_frame_min_ms, frame_ms)
 	_console_frame_max_ms = maxf(_console_frame_max_ms, frame_ms)
-	_viewport_refresh_elapsed += delta
+	_console_sim_delta_sum_ms += simulation_delta_ms
+	_console_sim_delta_min_ms = minf(_console_sim_delta_min_ms, simulation_delta_ms)
+	_console_sim_delta_max_ms = maxf(_console_sim_delta_max_ms, simulation_delta_ms)
+	_viewport_refresh_elapsed += wall_delta_s
 
 	if _elapsed >= update_interval:
 		_update_visible_snapshot()
@@ -123,7 +140,7 @@ func _start_console_diagnostics() -> void:
 func _print_console_meta() -> void:
 	var viewport_size: Vector2 = get_viewport().get_visible_rect().size
 	var meta := {
-		"schema": "hoarbound_perf_v2",
+		"schema": "hoarbound_perf_v3",
 		"engine": Engine.get_version_info().get("string", "unknown"),
 		"display_server": DisplayServer.get_name(),
 		"rendering_method": RenderingServer.get_current_rendering_method(),
@@ -136,6 +153,8 @@ func _print_console_meta() -> void:
 		"vsync_mode": int(DisplayServer.window_get_vsync_mode()),
 		"engine_max_fps": Engine.max_fps,
 		"physics_ticks_per_second": Engine.physics_ticks_per_second,
+		"max_physics_steps_per_frame": int(ProjectSettings.get_setting("physics/common/max_physics_steps_per_frame", 8)),
+		"time_scale": Engine.time_scale,
 		"snow_quality": str(ProjectSettings.get_setting("hfn/snow/quality", "high")),
 		"measured_viewports": _measured_viewports.size(),
 	}
@@ -168,11 +187,14 @@ func _print_console_snapshot() -> void:
 		viewport_samples.append(sample)
 
 	var frame_avg_ms: float = _console_frame_sum_ms / maxf(float(_console_frames), 1.0)
+	var simulation_delta_avg_ms: float = _console_sim_delta_sum_ms / maxf(float(_console_frames), 1.0)
 	var local_fps: float = float(_console_frames) / maxf(_console_elapsed, 0.0001)
 	var data := {
-		"schema": "hoarbound_perf_v2",
+		"schema": "hoarbound_perf_v3",
 		"ticks_msec": Time.get_ticks_msec(),
 		"sample_s": _rounded(_console_elapsed, 4),
+		"wall_sample_s": _rounded(_console_elapsed, 4),
+		"simulation_sample_s": _rounded(_console_simulation_elapsed, 4),
 		"frames": _console_frames,
 		"fps_local": _rounded(local_fps, 3),
 		"fps_engine": Engine.get_frames_per_second(),
@@ -180,6 +202,9 @@ func _print_console_snapshot() -> void:
 		"frame_ms_avg": _rounded(frame_avg_ms, 3),
 		"frame_ms_min": _rounded(_console_frame_min_ms if _console_frames > 0 else 0.0, 3),
 		"frame_ms_max": _rounded(_console_frame_max_ms, 3),
+		"simulation_delta_avg_ms": _rounded(simulation_delta_avg_ms, 3),
+		"simulation_delta_min_ms": _rounded(_console_sim_delta_min_ms if _console_frames > 0 else 0.0, 3),
+		"simulation_delta_max_ms": _rounded(_console_sim_delta_max_ms, 3),
 		"process_ms": _rounded(Performance.get_monitor(Performance.TIME_PROCESS) * 1000.0, 3),
 		"physics_ms": _rounded(Performance.get_monitor(Performance.TIME_PHYSICS_PROCESS) * 1000.0, 3),
 		"render_setup_cpu_ms": _rounded(RenderingServer.get_frame_setup_time_cpu(), 3),
@@ -222,10 +247,14 @@ func _collect_viewports(node: Node) -> void:
 
 func _reset_console_window() -> void:
 	_console_elapsed = 0.0
+	_console_simulation_elapsed = 0.0
 	_console_frames = 0
 	_console_frame_sum_ms = 0.0
 	_console_frame_min_ms = INF
 	_console_frame_max_ms = 0.0
+	_console_sim_delta_sum_ms = 0.0
+	_console_sim_delta_min_ms = INF
+	_console_sim_delta_max_ms = 0.0
 
 
 func _mib(bytes: float) -> float:
