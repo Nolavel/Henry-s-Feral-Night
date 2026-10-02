@@ -7,6 +7,7 @@
 [ext_resource type="Script" uid="uid://chuytq0w1nhq8" path="res://scripts/systems/world/terrain/island_terrain.gd" id="5_terrain"]
 [ext_resource type="PackedScene" uid="uid://cvv8y27vmgjfi" path="res://scenes/game/systems/world/WorldEnvironmentSystem.tscn" id="6_environment"]
 [ext_resource type="PackedScene" uid="uid://dx7ctf36hw7md" path="res://scenes/splash/splash_scene.tscn" id="7_startup"]
+[ext_resource type="Script" path="res://tools/performance/performance_ab_test_controller.gd" id="8_perf_ab"]
 
 [node name="World" type="Node3D" unique_id=1272884890 node_paths=PackedStringArray("stream_container", "player", "camera")]
 script = ExtResource("1_world")
@@ -16,6 +17,9 @@ player = NodePath("Player")
 camera = NodePath("PlayerCamera")
 spawn_at_shelter = true
 enable_runtime_dev_map = true
+
+[node name="PerformanceABTestController" type="Node" parent="."]
+script = ExtResource("8_perf_ab")
 
 [node name="StartupTitleCard" parent="." unique_id=1741706405 instance=ExtResource("7_startup")]
 
