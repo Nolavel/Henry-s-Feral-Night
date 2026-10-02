@@ -3,14 +3,22 @@ extends Control
 @export_range(0.1, 2.0, 0.05) var update_interval: float = 0.25
 
 const CONSOLE_INTERVAL: float = 1.0
+const VIEWPORT_REFRESH_INTERVAL: float = 5.0
+const BYTES_PER_MIB: float = 1024.0 * 1024.0
 
 var _panel: PanelContainer
 var _label: Label
 var _elapsed: float = 0.0
 var _frames: int = 0
 var _console_elapsed: float = 0.0
+var _console_frames: int = 0
+var _console_frame_sum_ms: float = 0.0
+var _console_frame_min_ms: float = INF
+var _console_frame_max_ms: float = 0.0
+var _viewport_refresh_elapsed: float = VIEWPORT_REFRESH_INTERVAL
 var _show_panel: bool = true
 var _print_runtime_debug_stats: bool = false
+var _measured_viewports: Array[Viewport] = []
 
 
 func _ready() -> void:
@@ -59,20 +67,36 @@ func on_world_ready(context: WorldContext) -> void:
 	if context == null or context.world == null:
 		return
 	_show_panel = bool(context.world.get("enable_runtime_debug_panel"))
-	_print_runtime_debug_stats = bool(context.world.get("print_runtime_debug_stats"))  # имя своей переменной подставьте
+	_print_runtime_debug_stats = bool(context.world.get("print_runtime_debug_stats"))
 
 	visible = _show_panel
 	set_process(_show_panel or _print_runtime_debug_stats)
+	if _print_runtime_debug_stats:
+		## UI siblings (notably the dev-map SubViewport) are created after this
+		## StatsDisplay entry. Defer one frame so the first measurement sweep sees
+		## the complete runtime viewport set.
+		call_deferred("_start_console_diagnostics")
 
 
 func _process(delta: float) -> void:
+	var frame_ms: float = maxf(delta, 0.0) * 1000.0
 	_elapsed += delta
-	_console_elapsed += delta
 	_frames += 1
+	_console_elapsed += delta
+	_console_frames += 1
+	_console_frame_sum_ms += frame_ms
+	_console_frame_min_ms = minf(_console_frame_min_ms, frame_ms)
+	_console_frame_max_ms = maxf(_console_frame_max_ms, frame_ms)
+	_viewport_refresh_elapsed += delta
 
-	if _elapsed < update_interval:
-		return
+	if _elapsed >= update_interval:
+		_update_visible_snapshot()
 
+	if _print_runtime_debug_stats and _console_elapsed >= CONSOLE_INTERVAL:
+		_print_console_snapshot()
+
+
+func _update_visible_snapshot() -> void:
 	var fps: float = float(_frames) / maxf(_elapsed, 0.0001)
 	var frame_ms: float = (_elapsed / maxf(float(_frames), 1.0)) * 1000.0
 	var process_ms: float = Performance.get_monitor(Performance.TIME_PROCESS) * 1000.0
@@ -87,12 +111,130 @@ func _process(delta: float) -> void:
 
 	if _show_panel:
 		_label.text = snapshot
-	if _print_runtime_debug_stats and _console_elapsed >= CONSOLE_INTERVAL:
-		print("[Stats]\n%s" % snapshot)
-		_console_elapsed = 0.0
-
 	_elapsed = 0.0
 	_frames = 0
+
+
+func _start_console_diagnostics() -> void:
+	_refresh_measured_viewports()
+	_print_console_meta()
+
+
+func _print_console_meta() -> void:
+	var viewport_size: Vector2 = get_viewport().get_visible_rect().size
+	var meta := {
+		"schema": "hoarbound_perf_v2",
+		"engine": Engine.get_version_info().get("string", "unknown"),
+		"display_server": DisplayServer.get_name(),
+		"rendering_method": RenderingServer.get_current_rendering_method(),
+		"rendering_driver": RenderingServer.get_current_rendering_driver_name(),
+		"gpu_name": RenderingServer.get_video_adapter_name(),
+		"gpu_vendor": RenderingServer.get_video_adapter_vendor(),
+		"gpu_api": RenderingServer.get_video_adapter_api_version(),
+		"viewport_px": [int(viewport_size.x), int(viewport_size.y)],
+		"refresh_hz": DisplayServer.screen_get_refresh_rate(),
+		"vsync_mode": int(DisplayServer.window_get_vsync_mode()),
+		"engine_max_fps": Engine.max_fps,
+		"physics_ticks_per_second": Engine.physics_ticks_per_second,
+		"snow_quality": str(ProjectSettings.get_setting("hfn/snow/quality", "high")),
+		"measured_viewports": _measured_viewports.size(),
+	}
+	print("[PerfMeta] %s" % JSON.stringify(meta))
+
+
+func _print_console_snapshot() -> void:
+	if _viewport_refresh_elapsed >= VIEWPORT_REFRESH_INTERVAL:
+		_refresh_measured_viewports()
+
+	var render_cpu_total_ms: float = 0.0
+	var render_gpu_total_ms: float = 0.0
+	var viewport_samples: Array[Dictionary] = []
+	for viewport: Viewport in _measured_viewports:
+		if not is_instance_valid(viewport):
+			continue
+		var rid: RID = viewport.get_viewport_rid()
+		var cpu_ms: float = RenderingServer.viewport_get_measured_render_time_cpu(rid)
+		var gpu_ms: float = RenderingServer.viewport_get_measured_render_time_gpu(rid)
+		render_cpu_total_ms += cpu_ms
+		render_gpu_total_ms += gpu_ms
+		var sample := {
+			"path": str(viewport.get_path()),
+			"cpu_ms": _rounded(cpu_ms, 3),
+			"gpu_ms": _rounded(gpu_ms, 3),
+			"size_px": [viewport.size.x, viewport.size.y],
+		}
+		if viewport is SubViewport:
+			sample["update_mode"] = int((viewport as SubViewport).render_target_update_mode)
+		viewport_samples.append(sample)
+
+	var frame_avg_ms: float = _console_frame_sum_ms / maxf(float(_console_frames), 1.0)
+	var local_fps: float = float(_console_frames) / maxf(_console_elapsed, 0.0001)
+	var data := {
+		"schema": "hoarbound_perf_v2",
+		"ticks_msec": Time.get_ticks_msec(),
+		"sample_s": _rounded(_console_elapsed, 4),
+		"frames": _console_frames,
+		"fps_local": _rounded(local_fps, 3),
+		"fps_engine": Engine.get_frames_per_second(),
+		"fps_monitor": _rounded(Performance.get_monitor(Performance.TIME_FPS), 3),
+		"frame_ms_avg": _rounded(frame_avg_ms, 3),
+		"frame_ms_min": _rounded(_console_frame_min_ms if _console_frames > 0 else 0.0, 3),
+		"frame_ms_max": _rounded(_console_frame_max_ms, 3),
+		"process_ms": _rounded(Performance.get_monitor(Performance.TIME_PROCESS) * 1000.0, 3),
+		"physics_ms": _rounded(Performance.get_monitor(Performance.TIME_PHYSICS_PROCESS) * 1000.0, 3),
+		"render_setup_cpu_ms": _rounded(RenderingServer.get_frame_setup_time_cpu(), 3),
+		"render_cpu_all_viewports_ms": _rounded(render_cpu_total_ms, 3),
+		"render_gpu_all_viewports_ms": _rounded(render_gpu_total_ms, 3),
+		"objects": int(Performance.get_monitor(Performance.OBJECT_COUNT)),
+		"resources": int(Performance.get_monitor(Performance.OBJECT_RESOURCE_COUNT)),
+		"nodes": int(Performance.get_monitor(Performance.OBJECT_NODE_COUNT)),
+		"orphan_nodes": int(Performance.get_monitor(Performance.OBJECT_ORPHAN_NODE_COUNT)),
+		"render_objects": int(Performance.get_monitor(Performance.RENDER_TOTAL_OBJECTS_IN_FRAME)),
+		"primitives": int(Performance.get_monitor(Performance.RENDER_TOTAL_PRIMITIVES_IN_FRAME)),
+		"draw_calls": int(Performance.get_monitor(Performance.RENDER_TOTAL_DRAW_CALLS_IN_FRAME)),
+		"video_mem_mib": _mib(Performance.get_monitor(Performance.RENDER_VIDEO_MEM_USED)),
+		"texture_mem_mib": _mib(Performance.get_monitor(Performance.RENDER_TEXTURE_MEM_USED)),
+		"buffer_mem_mib": _mib(Performance.get_monitor(Performance.RENDER_BUFFER_MEM_USED)),
+		"static_mem_mib": _mib(Performance.get_monitor(Performance.MEMORY_STATIC)),
+		"physics_active_objects": int(Performance.get_monitor(Performance.PHYSICS_3D_ACTIVE_OBJECTS)),
+		"physics_collision_pairs": int(Performance.get_monitor(Performance.PHYSICS_3D_COLLISION_PAIRS)),
+		"physics_islands": int(Performance.get_monitor(Performance.PHYSICS_3D_ISLAND_COUNT)),
+		"viewports": viewport_samples,
+	}
+	print("[PerfJSON] %s" % JSON.stringify(data))
+	_reset_console_window()
+
+
+func _refresh_measured_viewports() -> void:
+	_measured_viewports.clear()
+	_collect_viewports(get_tree().root)
+	_viewport_refresh_elapsed = 0.0
+
+
+func _collect_viewports(node: Node) -> void:
+	if node is Viewport:
+		var viewport := node as Viewport
+		RenderingServer.viewport_set_measure_render_time(viewport.get_viewport_rid(), true)
+		_measured_viewports.append(viewport)
+	for child: Node in node.get_children():
+		_collect_viewports(child)
+
+
+func _reset_console_window() -> void:
+	_console_elapsed = 0.0
+	_console_frames = 0
+	_console_frame_sum_ms = 0.0
+	_console_frame_min_ms = INF
+	_console_frame_max_ms = 0.0
+
+
+func _mib(bytes: float) -> float:
+	return _rounded(bytes / BYTES_PER_MIB, 3)
+
+
+func _rounded(value: float, decimals: int) -> float:
+	var scale: float = pow(10.0, float(decimals))
+	return round(value * scale) / scale
 
 
 func _format_session_uptime() -> String:
