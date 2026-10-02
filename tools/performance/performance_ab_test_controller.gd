@@ -61,6 +61,7 @@ var _shape_viewports: Array[SubViewport] = []
 var _snowfall: Node
 var _flat_sky_environment: Environment
 var _elapsed: float = 0.0
+var _last_wall_usec: int = 0
 var _sample_started: bool = false
 var _sample_finished: bool = false
 
@@ -138,6 +139,7 @@ func _apply_tests_deferred() -> void:
 
 func _begin_timing() -> void:
 	_elapsed = 0.0
+	_last_wall_usec = Time.get_ticks_usec()
 	_sample_started = warmup_seconds <= 0.0
 	_sample_finished = false
 	if _sample_started:
@@ -147,7 +149,11 @@ func _begin_timing() -> void:
 	set_process(true)
 
 
-func _process(delta: float) -> void:
+func _process(_delta: float) -> void:
+	var now_usec: int = Time.get_ticks_usec()
+	var wall_delta_s: float = maxf(float(now_usec - _last_wall_usec) / 1000000.0, 0.0)
+	_last_wall_usec = now_usec
+
 	## SnowShell asks its shape viewports for UPDATE_ONCE every frame. This
 	## controller runs later in process priority and cancels those requests.
 	if test_04_snow_shaping_off:
@@ -163,7 +169,7 @@ func _process(delta: float) -> void:
 	if test_08_snowfall_vfx_off:
 		_force_snowfall_vfx_off()
 
-	_elapsed += maxf(delta, 0.0)
+	_elapsed += wall_delta_s
 	if not _sample_started and _elapsed >= warmup_seconds:
 		_sample_started = true
 		_print_event("sample_begin", {"copy_perfjson_from_here": true})
