@@ -23,6 +23,7 @@ var _last_massing_focus := Vector2.ZERO
 var _ring0_roads_retired: bool = false
 var _streaming_policy_applied: bool = false
 var _exact_city_owner: StringName = &""
+var _exact_city_owner_mode: String = "none"
 var _last_city_diag_usec: int = 0
 
 
@@ -53,6 +54,12 @@ func _refresh_bindings() -> void:
 			_player = _camera.player
 	if not is_instance_valid(_player) and _camera != null:
 		_player = _camera.player
+	## Residency must not depend on which Camera3D currently owns the viewport.
+	## Player.tscn has a stable `player` group and StreamingSystem uses that same
+	## gameplay node as its scan focus. This fallback keeps the performance policy
+	## alive during camera hand-offs, editor/debug cameras and early scene startup.
+	if not is_instance_valid(_player):
+		_player = get_tree().get_first_node_in_group(&"player") as Node3D
 
 	var scene := get_tree().current_scene
 	if scene == null:
@@ -64,6 +71,7 @@ func _refresh_bindings() -> void:
 			_ring0_roads_retired = false
 			_streaming_policy_applied = false
 			_exact_city_owner = &""
+			_exact_city_owner_mode = "none"
 			_last_city_diag_usec = 0
 	if not is_instance_valid(_streaming):
 		_streaming = scene.find_child("StreamingSystem", true, false) as StreamingSystem
@@ -125,6 +133,7 @@ func _enforce_exact_city_residency() -> void:
 	var owner: StringName = _owned_city_stream_id(focus)
 	if owner == &"":
 		_exact_city_owner = &""
+		_exact_city_owner_mode = "none"
 		for stream_id_variant: Variant in _city._stream_to_chunk:
 			var stream_id := stream_id_variant as StringName
 			if int(_streaming.get_state(stream_id)) != int(StreamingSystem.CellState.UNLOADED):
@@ -153,6 +162,8 @@ func _enforce_exact_city_residency() -> void:
 
 
 func _owned_city_stream_id(focus: Vector2) -> StringName:
+	var nearest_candidate: StringName = &""
+	var nearest_distance_sq: float = INF
 	for stream_id_variant: Variant in _city._stream_to_chunk:
 		var stream_id := stream_id_variant as StringName
 		var cid: String = String(_city._stream_to_chunk.get(stream_id, ""))
@@ -161,14 +172,30 @@ func _owned_city_stream_id(focus: Vector2) -> StringName:
 		var state := _city._chunks[cid] as Dictionary
 		var chunk := state.get("data", {}) as Dictionary
 		var origin_values: Array = chunk.get("origin", [])
-		if origin_values.size() < 2:
+		if origin_values.size() >= 2:
+			var origin := Vector2(float(origin_values[0]), float(origin_values[1]))
+			var local: Vector2 = focus - origin
+			if local.x >= 0.0 and local.y >= 0.0 \
+					and local.x < _city.chunk_size_m and local.y < _city.chunk_size_m:
+				_exact_city_owner_mode = "square"
+				return stream_id
+
+		## Authored city data can contain shoreline/road gaps where no rectangle
+		## owns the exact player point even though the normal streaming scan has
+		## relevant detail candidates. In that case retain exactly the nearest
+		## candidate already selected by StreamingSystem instead of returning empty
+		## and allowing four overlapping circular bands to become ACTIVE.
+		if int(_streaming.get_state(stream_id)) == int(StreamingSystem.CellState.UNLOADED):
 			continue
-		var origin := Vector2(float(origin_values[0]), float(origin_values[1]))
-		var local: Vector2 = focus - origin
-		if local.x >= 0.0 and local.y >= 0.0 \
-				and local.x < _city.chunk_size_m and local.y < _city.chunk_size_m:
-			return stream_id
-	return &""
+		var center: Vector2 = state.get("center", Vector2.ZERO)
+		var distance_sq: float = center.distance_squared_to(focus)
+		if distance_sq < nearest_distance_sq:
+			nearest_distance_sq = distance_sq
+			nearest_candidate = stream_id
+
+	if nearest_candidate != &"":
+		_exact_city_owner_mode = "nearest_candidate"
+	return nearest_candidate
 
 
 func _update_local_city_massing() -> void:
@@ -249,10 +276,16 @@ func _print_city_stream_diagnostics() -> void:
 	for value: Variant in counts.values():
 		total += int(value)
 
+	var focus_xz: Array = []
+	if is_instance_valid(_player):
+		focus_xz = [_player.global_position.x, _player.global_position.z]
 	print("[CityMultiMeshJSON] %s" % JSON.stringify({
 		"schema": "hoarbound_city_multimesh_v1",
 		"ticks_msec": Time.get_ticks_msec(),
+		"player_bound": is_instance_valid(_player),
+		"focus_xz": focus_xz,
 		"exact_owner": String(_exact_city_owner),
+		"exact_owner_mode": _exact_city_owner_mode,
 		"active_city_chunks": _city.get_stream_active_detail_count(),
 		"detail_buildings": int(counts["detail_buildings"]),
 		"massing": int(counts["massing"]),
