@@ -71,10 +71,12 @@ func _apply_recursive(node: Node) -> void:
 
 func _on_node_added(node: Node) -> void:
 	if node is Node3D and node.name == DETAIL_NODE_NAME:
-		_install_for_detail(node as Node3D)
+		call_deferred(&"_install_for_detail", node as Node3D)
 
 
 func _install_for_detail(detail: Node3D) -> void:
+	if not is_instance_valid(detail) or not detail.is_inside_tree():
+		return
 	if detail.get_node_or_null("BuildingOccluder") != null:
 		return
 	var chunk := detail.get_parent()
