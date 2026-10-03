@@ -494,7 +494,13 @@ static func barrier_style(kind: String, tags: Dictionary) -> String:
 	return "chain_link"
 
 
-static func build_supplemental_node(terrain: IslandTerrain, enrichment: Dictionary, materials: Dictionary) -> Node3D:
+static func build_supplemental_node(
+	terrain: IslandTerrain,
+	enrichment: Dictionary,
+	materials: Dictionary,
+	bounds: Rect2 = Rect2(),
+	register_collision: bool = true
+) -> Node3D:
 	var holder := Node3D.new()
 	holder.name = "OpenDataStreetAndCoast"
 	var features: Array = enrichment.get("supplemental", [])
@@ -526,6 +532,8 @@ static func build_supplemental_node(terrain: IslandTerrain, enrichment: Dictiona
 			if p_values.size() < 2:
 				continue
 			var p := Vector2(float(p_values[0]), float(p_values[1]))
+			if bounds.has_area() and not bounds.has_point(p):
+				continue
 			if kind == "street_lamp" or kind == "power:pole":
 				continue  # Modelled by KeyWestStreetProps.
 			tower_points.append(p)
@@ -540,6 +548,12 @@ static func build_supplemental_node(terrain: IslandTerrain, enrichment: Dictiona
 				continue
 			var a := Vector2(float(av[0]), float(av[1]))
 			var b := Vector2(float(bv[0]), float(bv[1]))
+			if bounds.has_area():
+				var clipped: PackedVector2Array = _clip_segment(a, b, bounds)
+				if clipped.size() != 2:
+					continue
+				a = clipped[0]
+				b = clipped[1]
 			if kind == "sidewalk":
 				_append_ribbon(sidewalk_v, sidewalk_n, sidewalk_i, a, b, 0.7, 0.17, terrain)
 			elif kind == "coastline":
@@ -567,16 +581,45 @@ static func build_supplemental_node(terrain: IslandTerrain, enrichment: Dictiona
 		if mesh_node != null:
 			faces.append_array(mesh_node.mesh.get_faces())
 	## Fence and wall collision streams with the city chunks.
-	KeyWestStreetProps.register_faces(faces)
+	if register_collision:
+		KeyWestStreetProps.register_faces(faces)
 	_add_poles(holder, "Towers", tower_points, 13.0, 0.16, terrain, materials["pole"])
 	return holder
+
+
+## Clips a line to one streamed cell so adjacent helper meshes do not overlap.
+static func _clip_segment(a: Vector2, b: Vector2, rect: Rect2) -> PackedVector2Array:
+	var delta: Vector2 = b - a
+	var t_min: float = 0.0
+	var t_max: float = 1.0
+	for edge: Array in [
+		[-delta.x, a.x - rect.position.x],
+		[delta.x, rect.end.x - a.x],
+		[-delta.y, a.y - rect.position.y],
+		[delta.y, rect.end.y - a.y],
+	]:
+		var p: float = float(edge[0])
+		var q: float = float(edge[1])
+		if is_zero_approx(p):
+			if q < 0.0:
+				return PackedVector2Array()
+			continue
+		var t: float = q / p
+		if p < 0.0:
+			t_min = maxf(t_min, t)
+		else:
+			t_max = minf(t_max, t)
+		if t_min > t_max:
+			return PackedVector2Array()
+	return PackedVector2Array([a + delta * t_min, a + delta * t_max])
 
 
 static func add_airport_markings(
 	parent: Node3D,
 	airport_features: Array,
 	terrain: IslandTerrain,
-	materials: Dictionary
+	materials: Dictionary,
+	bounds: Rect2 = Rect2()
 ) -> void:
 	var white_v := PackedVector3Array()
 	var white_n := PackedVector3Array()
@@ -598,33 +641,46 @@ static func add_airport_markings(
 				var b_values := points[i + 1] as Array
 				var a := Vector2(float(a_values[0]), float(a_values[1]))
 				var b := Vector2(float(b_values[0]), float(b_values[1]))
-				_append_marking(white_v, white_n, white_i, a, b, 0.0, true, terrain, 3.0, 7.0, 0.16)
+				var clipped: PackedVector2Array = _clip_segment(a, b, bounds) if bounds.has_area() else PackedVector2Array([a, b])
+				if clipped.size() != 2:
+					continue
+				_append_marking(white_v, white_n, white_i, clipped[0], clipped[1], 0.0, true, terrain, 3.0, 7.0, 0.16)
 				var direction := (b - a).normalized()
 				var side := Vector2(-direction.y, direction.x)
-				_append_marking(white_v, white_n, white_i, a + side * (width * 0.5 - 0.9), b + side * (width * 0.5 - 0.9), 0.0, false, terrain, 10000.0, 0.0, 0.13)
-				_append_marking(white_v, white_n, white_i, a - side * (width * 0.5 - 0.9), b - side * (width * 0.5 - 0.9), 0.0, false, terrain, 10000.0, 0.0, 0.13)
-			_append_threshold(white_v, white_n, white_i, points[0], points[1], width, terrain)
-			_append_threshold(white_v, white_n, white_i, points[points.size() - 1], points[points.size() - 2], width, terrain)
+				for side_sign: float in [-1.0, 1.0]:
+					var edge: PackedVector2Array = _clip_segment(
+						a + side * (width * 0.5 - 0.9) * side_sign,
+						b + side * (width * 0.5 - 0.9) * side_sign,
+						bounds
+					) if bounds.has_area() else PackedVector2Array([
+						a + side * (width * 0.5 - 0.9) * side_sign,
+						b + side * (width * 0.5 - 0.9) * side_sign,
+					])
+					if edge.size() == 2:
+						_append_marking(white_v, white_n, white_i, edge[0], edge[1], 0.0, false, terrain, 10000.0, 0.0, 0.13)
+				if not bounds.has_area() or bounds.has_point(Vector2(float((points[0] as Array)[0]), float((points[0] as Array)[1]))):
+					_append_threshold(white_v, white_n, white_i, points[0], points[1], width, terrain)
+				var end_values: Array = points[points.size() - 1]
+				if not bounds.has_area() or bounds.has_point(Vector2(float(end_values[0]), float(end_values[1]))):
+					_append_threshold(white_v, white_n, white_i, points[points.size() - 1], points[points.size() - 2], width, terrain)
 		elif kind in ["taxiway", "taxilane"]:
 			for i: int in range(points.size() - 1):
 				var a_values := points[i] as Array
 				var b_values := points[i + 1] as Array
-				_append_marking(
-					yellow_v, yellow_n, yellow_i,
-					Vector2(float(a_values[0]), float(a_values[1])),
-					Vector2(float(b_values[0]), float(b_values[1])),
-					0.0, false, terrain, 10000.0, 0.0, 0.12
-				)
+				var a := Vector2(float(a_values[0]), float(a_values[1]))
+				var b := Vector2(float(b_values[0]), float(b_values[1]))
+				var clipped: PackedVector2Array = _clip_segment(a, b, bounds) if bounds.has_area() else PackedVector2Array([a, b])
+				if clipped.size() == 2:
+					_append_marking(yellow_v, yellow_n, yellow_i, clipped[0], clipped[1], 0.0, false, terrain, 10000.0, 0.0, 0.12)
 		elif bool(feature.get("is_area", false)) and kind == "apron":
 			for i: int in range(points.size()):
 				var a_values := points[i] as Array
 				var b_values := points[(i + 1) % points.size()] as Array
-				_append_marking(
-					yellow_v, yellow_n, yellow_i,
-					Vector2(float(a_values[0]), float(a_values[1])),
-					Vector2(float(b_values[0]), float(b_values[1])),
-					0.0, false, terrain, 10000.0, 0.0, 0.09
-				)
+				var a := Vector2(float(a_values[0]), float(a_values[1]))
+				var b := Vector2(float(b_values[0]), float(b_values[1]))
+				var clipped: PackedVector2Array = _clip_segment(a, b, bounds) if bounds.has_area() else PackedVector2Array([a, b])
+				if clipped.size() == 2:
+					_append_marking(yellow_v, yellow_n, yellow_i, clipped[0], clipped[1], 0.0, false, terrain, 10000.0, 0.0, 0.09)
 
 	_add_mesh_child(parent, "AirportWhiteMarkings", white_v, white_n, PackedColorArray(), white_i, materials["white_line"])
 	_add_mesh_child(parent, "AirportYellowMarkings", yellow_v, yellow_n, PackedColorArray(), yellow_i, materials["yellow_line"])

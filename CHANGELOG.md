@@ -3,6 +3,162 @@
 All notable changes to Hoarbound. Newest first.
 Maintained per branch; entries are added by whoever makes the change.
 
+## [Unreleased] — `main`
+
+### 2026-10-03 - Retire performance audit tooling before commit preparation
+
+- Removed the A/B controller and its production scene binding, temporary
+  capture scripts, C# benchmark and opt-in CPU scopes after the author's audit.
+- Removed console PerfJSON/city diagnostics and their mesh-surface readbacks.
+  StatsDisplay retains the lightweight wall-clock FPS panel; city streaming,
+  snow, sky and wind production changes remain in place.
+- Preserved the measurement report and local evidence. Retired tooling and
+  pre-cleanup source copies are archived under ignored
+  `shots/issue173_audit/retired_diagnostics/` and are not part of the commit set.
+
+### 2026-10-03 - HD 620 runtime diagnosis and bounded C# comparison (#173)
+
+- Added opt-in CPU scopes, render configuration metadata, per-frame diagnostic
+  captures and an isolated C# baked-depth prototype. Two graphical runs exposed
+  blocking city-stat mesh reads, expensive local snow rendering, and synchronous
+  multi-second snow-topology builds. Production render features stay enabled.
+- Recorded the A/B matrix, raw-evidence locations, C# output equivalence and
+  limits in `docs/technical/PERFORMANCE_AUDIT_2026_10_03.md`. Quiet stationary
+  control measured 5.63–5.76 FPS; diagnostics-on measured 3.37–3.68 FPS.
+- Moving snow transitions remain unaccepted: the audit's low spawn placement
+  did not establish floor contact, so its attempted street walk is invalid.
+
+### 2026-10-03 - Stream city massing, far sectors, helpers, and snow sampling follow-up
+
+- The author's new frame showed dark patches and an intermittent square at
+  Henry's snow window. Restored the SnowShell shadow-caster exclusion from
+  `decee6a`, which a later uncommitted snow edit had accidentally removed.
+  The far-cover window mask now switches after the replacement local texture
+  and mesh are prepared. Packed tint, roughness, rim, normal and glint now fade
+  with the near mesh's existing edge blend instead of retaining a local-snow
+  material across the handoff; the thin-cover cut matches the far shader at
+  the exact edge. The separate near/far coverage and height seam
+  is still subject to the author's visual check; these source fixes are not
+  proof that every square edge is gone.
+- The 30 s baseline in the new log contained only 6.43 s between sample events
+  because a startup stall overshot warmup and the A/B timer counted that
+  overshoot as sample time. The harness now starts a full sample interval at
+  `sample_begin`. This run is diagnostic, not an accepted paired #173 result.
+- Removed all-city massing creation from `build_stream_ring0()` and chunk
+  activation. RuntimePerformancePolicy now creates ring-0 massing only for the
+  nearby city neighbourhood and releases sectors outside that range.
+- Added 117 baked ultra-low OBJ sectors covering all 12,354 city proxies plus
+  chunked low-detail road and airport strips. Existing StreamingSystem owns their
+  residency; GeometryInstance3D ranges overlap local massing and use hysteresis.
+- Moved supplemental sidewalks, coast, piers, barriers, towers, airport areas,
+  and runway markings into per-chunk visual nodes. Long line features and airport
+  areas are clipped to their owning chunk; street props remain indexed by chunk.
+- Removed the island-wide Ring-0 road mesh; local streets stream with their chunk,
+  while the far OBJ sectors carry the simplified road network.
+- A previous status note said streamed exact-building and street-prop collision
+  bodies had been tagged and excluded from SnowShell classification. Source
+  review found no such group/tag in the current implementation; that earlier
+  fix claim was inaccurate.
+- The author's latest run still showed the snow defect and square cuts by walls.
+  Removed my raster-footprint hard cut, terrain-only sampler, and calculated
+  shell bounds; restored Claude's physical wall/deck/roof classifier and culling
+  setup. The later velocity-lead increase did not fix the reported morph and
+  has been returned to Claude's 0.9 s / 4 m settings.
+- History review found the local 6 m snow-window handoff deliberately changes
+  static detail from the chunk base to SnowField geometry; only the boundary is
+  guaranteed to match. Key West now derives visible near and far settled
+  geometry from the same terrain, baked city wind field and world position.
+  Packed tracks remain local; current gusts no longer rotate settled ridges
+  when the window moves. Settled cover can rebuild while Henry stands still.
+  The city's exact OSM polygons classify house walls before detail colliders
+  load. Streamed CityCollision bodies are ignored by settled-snow rays.
+  Far-cover triangles are now clipped against those same contours rather than
+  removed as 2 m square cells, including buildings inside one cell. The authored
+  First Exit shelter registers its outline in the same snow index after its OSM
+  replacements are excluded.
+- Key West now instantiates the existing WindGusts effect directly. The First
+  Exit template that previously held it is freed after transplant, so its
+  wind streaks and ground drift were absent despite the blizzard profile.
+- These snow and wind changes are source-only. Near/far terrain tessellation and
+  the wall handoff still need the author's runtime visual review; no claim of
+  a fully invisible transition or FPS gain is made without that evidence.
+- The supplied performance log reports about +1 FPS, but it is marked `baseline`
+  with no mutations, so it cannot isolate this pass. It reports 52 resident far
+  city sectors, 4 detail chunks, 7 nearby massing chunks, and about 2,452 detail
+  buildings; no additional gain is claimed from the log.
+- Python syntax and baked sector counts were checked. Godot was not launched;
+  HLOD transitions and the moving snow surface still require the author's
+  runtime walk and silhouette review.
+
+### 2026-10-03 - Restore the parallax sky shader path
+
+- The author's log pinpointed an unsupported early `return` in `sky()` as the
+  shader compilation error; the null shader-version report followed it.
+- Replaced the early exit with explicit branch control flow so the half-resolution
+  sky result composites and the cubemap/background paths both assign `COLOR`.
+- The runtime shader was not launched here; the author will confirm compilation
+  and cloud visibility in the next run.
+
+### 2026-10-03 - Bind diagnostics to city streaming
+
+- The supplied 30-second Fort Street sample averaged about 3.3 FPS, 214.8 ms
+  total GPU and 194.8 ms in `/root`; it showed four active city detail chunks
+  while the policy's `exact_owner` stayed empty.
+- `World.gd` constructs systems with `Script.new()` as direct children, so
+  `StreamingSystem` lookup by `Node.name` was not reliable. The existing policy
+  now binds the direct child by its script type and reports `streaming_bound`.
+- The one-owner pruning pass dropped exact neighboring buildings and collisions
+  at a chunk edge, replacing them with non-colliding massing boxes. That pass has
+  been removed; StreamingSystem now retains overlapping detail chunks with at
+  least its authored 140 m load margin and 120 m unload hysteresis.
+- Diagnostics report the active city stream IDs. This correction is source-only
+  until the author's next runtime check; no game or benchmark was run.
+
+### 2026-10-03 - Issue #173 performance candidates
+
+- Kept the existing SnowShell shadow-caster exclusion, two-split directional
+  shadow policy, city caster policy, and realtime sky setup.
+- Reduced directional shadow filtering to Soft Low, blur to 1.1, and map size
+  to 2048. These remain visual/performance candidates pending matching HD 620
+  captures.
+- Tightened SnowShell's culling bounds from current field samples and its
+  displacement limits. Kept the 3 cm near-foot grid and increased spacing only
+  beyond the 3.5 m near region.
+- Added a cheaper atmosphere-only cubemap path with reduced integration samples;
+  the visible Freeman/parallax background remains unchanged.
+- Disabled 3D MSAA and enabled FSR 1.0 at 0.77 render scale while retaining
+  screen-space AA. This global project default needs author visual review.
+- The supplied PerfJSON is a baseline without a matching before/after camera
+  pair. No runtime, capture, or benchmark validation was run in this pass.
+- `detail_radius_m` is consumed only by the currently unreferenced `set_focus()`
+  path; active detail residency is owned by StreamingSystem, so the city ring
+  was not altered based on an inactive setting.
+
+### 2026-10-03 - SnowShell outer grid contour
+
+- The author reported a visible rectangular edge around Henry. Source review
+  found the outer grid spacing was growing 8% per step, making the already
+  rectangular 25.6 m SnowShell's outer triangles much coarser. Restored the
+  previous 2.5% growth while retaining the 3 cm near-foot spacing and the 25 cm
+  far-spacing cap.
+- This is a source-based corrective candidate; visual confirmation still needs
+  the author's next close-up capture. No Godot run was performed.
+
+### 2026-10-03 - Stable snow response at streamed city walls
+
+- History review traced the movement-dependent result to the incremental ground
+  cache introduced in `5558446`: only newly exposed strips are sampled, and
+  those samples used to classify whichever streamed city colliders happened to
+  be loaded at that moment. The baked city wind map already owns static city
+  shelter and lee response.
+- Source review found the earlier status report about tagging streamed city
+  collision bodies was not reflected in code; SnowShell still raycasted the
+  live physics world. The later raster-mask/terrain-only attempt introduced
+  square cuts at walls and has been reverted to Claude's classifier. The author
+  still needs to review the resulting runtime behavior.
+- Static review only. The author requested no game launch and will confirm the
+  street walk in the next runtime capture.
+
 ## [Unreleased] — `codex`
 
 ### 2026-10-01 - Doorway camera: compose before the jamb, never fade (claudeflow, after #170)
@@ -14,19 +170,19 @@ Maintained per branch; entries are added by whoever makes the change.
   in frame. Outside doorways both are the same, as before.
 - Passage data is authored, not guessed:
   - `PassageInfo` describes it: plane, axis, clear width and height, wall depth,
-    shoulder side, and optional yaw limit, distance and FOV.
+	shoulder side, and optional yaw limit, distance and FOV.
   - It comes from a new `NarrowPassage` marker or from an open `HingedDoor`
-    (new `wall_thickness_m`).
+	(new `wall_thickness_m`).
   - The raycast guess stays as the fallback. It now finds the door plane and wall
-    depth; before, its centre moved with Henry.
+	depth; before, its centre moved with Henry.
 - `PassageTraversalComponent`:
   - Walking at a passage engages it; standing in its frame does too. With no key
-    held, an approach lets go after 0.5 s.
+	held, an approach lets go after 0.5 s.
   - Past the threshold the traversal commits. Released keys carry Henry on until
-    his capsule is 0.3 m clear of the wall, then he stops. S reverses, and
-    sideways input is dropped.
+	his capsule is 0.3 m clear of the wall, then he stops. S reverses, and
+	sideways input is dropped.
   - Without a key at the threshold nothing moves him. Neither the Hub, actions nor
-    scripted walks commit; `Player` passes that in.
+	scripted walks commit; `Player` passes that in.
 - Doorway framing, all derived from the passage:
   - **Pre-compress.** The frame starts closing 1.0 m (plus a speed lead, more on a
 	slanted approach) before Henry's capsule reaches the wall. It stays closed
@@ -39,12 +195,12 @@ Maintained per branch; entries are added by whoever makes the change.
   - **Rise and FOV.** Rise is at most half the room under the lintel. FOV is +5°,
 	capped at 80°.
   - **Cone.** Yaw room comes from the clear width, Henry's offset and the depth to
-    the far wall face; pitch room comes from the lintel and the floor. The cone
-    closes at once as Henry walks in, opens at the release rate, and ramps in over
-    0.5 m as the boom tip nears the wall.
+	the far wall face; pitch room comes from the lintel and the floor. The cone
+	closes at once as Henry walks in, opens at the release rate, and ramps in over
+	0.5 m as the boom tip nears the wall.
   - **Mouse.** Eases into a soft stop over 10°; looking back in is never eased.
-    The fixed ±35° stop and the hard mouse block are gone. Pitch stays free until
-    Henry would leave the frame.
+	The fixed ±35° stop and the hard mouse block are gone. Pitch stays free until
+	Henry would leave the frame.
   - **Automatic turns.** Off in a doorway, and any standing offset glides out.
 - Recompose before fade: closer than 1.1 m to the eyes, the shoulder gives way to
   the centre line, plus +3° FOV, if same-frame casts say that gives the boom room.
@@ -54,12 +210,12 @@ Maintained per branch; entries are added by whoever makes the change.
   (0, default, 1.40 m) and the coat (1, 1.52 m), for the author's pivot study.
 - Tests (not run here, the author runs them):
   - New `test_doorway_camera` drives 12 scenarios through the real Key West
-    shelter door. It checks: no dither, no camera in a wall, no near clip, head
-    never occluded or off screen, no pops, FOV under 45°/s, control yaw only from
-    the mouse, Henry clear of the frame after a traversal, full mouse freedom
-    after the door. `-- <label> [pivot=<share>]` writes per-frame traces.
+	shelter door. It checks: no dither, no camera in a wall, no near clip, head
+	never occluded or off screen, no pops, FOV under 45°/s, control yaw only from
+	the mouse, Henry clear of the frame after a traversal, full mouse freedom
+	after the door. `-- <label> [pivot=<share>]` writes per-frame traces.
   - `test_passage_traversal` adds: a key released in the door, and authored
-    passages at 1.45 × 2.20 and 1.60 × 2.30.
+	passages at 1.45 × 2.20 and 1.60 × 2.30.
 - Baseline before this pass (Key West door, standing in the plane, 360° mouse
   sweep at 144 fps): Henry dithered in 192 of 432 frames (max 0.79), the camera
   came within 0.33 m of his head, and one 0.63 m single-frame pull-in.

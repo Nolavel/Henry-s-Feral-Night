@@ -68,6 +68,7 @@ func on_world_ready(context: WorldContext) -> void:
 	for corner: Vector2 in [Vector2(-4.5, -5.5), Vector2(4.5, -5.5), Vector2(4.5, 10.5), Vector2(-4.5, 10.5)]:
 		house_outline.append(SHELTER_XZ + corner.rotated(-deg_to_rad(SHELTER_YAW_DEG)))
 	_city.exclude_buildings_overlapping(house_outline)
+	_city.register_snow_obstacle(&"first_exit_shelter", house_outline)
 	var streaming := context.get_system(STREAMING_SCRIPT) as StreamingSystem
 	if streaming == null:
 		push_error("KeyWestFirstExit: shared StreamingSystem is missing")

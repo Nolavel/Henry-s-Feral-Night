@@ -93,6 +93,7 @@ float snow_ridge(vec2 xz, vec2 wind) {
 global uniform float snow_settled_depth;
 global uniform float snow_drift_m;
 global uniform vec2 snow_wind;
+global uniform float snow_storm_share;
 
 // Ridges only where the wind runs free: sheltered yards and drift banks lie smooth.
 // SnowField.ridge_openness() mirrors this.

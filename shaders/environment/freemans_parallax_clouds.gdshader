@@ -3,6 +3,7 @@
 // Freeman uses a dedicated solar direction; HFN clouds keep LIGHT0 for sun/moon lighting.
 
 shader_type sky;
+render_mode use_half_res_pass;
 group_uniforms Sun;
 
 /**
@@ -275,7 +276,7 @@ vec3 get_transmittance(vec3 origin, vec3 direction, float dist, int samples) {
 /*
 Returns the final atmospheric radiance along a given path.
 */
-vec3 integrate_radiance(vec3 ray_origin, vec3 ray_direction, float target_distance, int samples, vec3 sun_direction) {
+vec3 integrate_radiance(vec3 ray_origin, vec3 ray_direction, float target_distance, int samples, int sun_sample_count, vec3 sun_direction) {
 	float atmosphere_radius = get_atmosphere_radius();
 	
 	// how similar are the ray and sun directions.
@@ -330,7 +331,7 @@ vec3 integrate_radiance(vec3 ray_origin, vec3 ray_direction, float target_distan
 			
 			// Atmosphere intersection.
 			vec2 atmosphere_hit = ray_sphere_intersection(sample_point, sun_direction, atmosphere_radius);
-			vec3 sun_transmittance = get_transmittance(sample_point, sun_direction, atmosphere_hit.y, sun_samples);
+			vec3 sun_transmittance = get_transmittance(sample_point, sun_direction, atmosphere_hit.y, sun_sample_count);
 			vec3 scattering_coeff = (
 				step_optical_depth.x * get_rayleigh_scattering() * rayleigh_phase +
 				step_optical_depth.y * mie_scattering            * mie_phase
@@ -499,16 +500,21 @@ uniform bool use_manual_sun_direction = false;
 uniform vec3 manual_sun_direction = vec3(0.0, 1.0, 0.0);
 
 void sky() {
-	vec3 final_color = vec3(0.0);
-	vec3 sun_direction = normalize(manual_sun_direction);
-	bool sun_available = use_manual_sun_direction;
-	if (LIGHT0_ENABLED && !use_manual_sun_direction) {
-		sun_direction = LIGHT0_DIRECTION;
-		sun_available = true;
-	}
+	if (!AT_CUBEMAP_PASS && !AT_HALF_RES_PASS) {
+		COLOR = HALF_RES_COLOR.rgb;
+	} else {
+		int view_sample_count = AT_CUBEMAP_PASS ? max(2, view_samples / 4) : view_samples;
+		int sun_sample_count = AT_CUBEMAP_PASS ? max(1, sun_samples / 2) : sun_samples;
+		vec3 final_color = vec3(0.0);
+		vec3 sun_direction = normalize(manual_sun_direction);
+		bool sun_available = use_manual_sun_direction;
+		if (LIGHT0_ENABLED && !use_manual_sun_direction) {
+			sun_direction = LIGHT0_DIRECTION;
+			sun_available = true;
+		}
 	
 	// Preserve upstream behavior in game; CI may provide a manual direction.
-	if (sun_available) {
+		if (sun_available) {
 		
 		float atmosphere_radius = get_atmosphere_radius();
 		
@@ -527,10 +533,10 @@ void sky() {
 		float atmosphere_distance = hits_ground ? ground_hit.x : atmosphere_hit.y;
 		
 		// Use half the samples for view to ground, and the other half from ground back to sky.
-		int samples = hits_ground ? view_samples / 2 : view_samples;
+		int samples = hits_ground ? view_sample_count / 2 : view_sample_count;
 		
 		// atmosphere radiance.
-		vec3 atmosphere_radiance = integrate_radiance(ray_origin, ray_direction, atmosphere_distance, samples, sun_direction);
+		vec3 atmosphere_radiance = integrate_radiance(ray_origin, ray_direction, atmosphere_distance, samples, sun_sample_count, sun_direction);
 		
 		final_color = atmosphere_radiance;
 		
@@ -595,16 +601,22 @@ void sky() {
 			
 			if (direct_light > 0.0){
 				float ground_to_sun_distance = ray_sphere_intersection(ground_point, sun_direction, atmosphere_radius).y;
-				sun_transmittance = get_transmittance(ground_point, sun_direction, ground_to_sun_distance, sun_samples);
+				sun_transmittance = get_transmittance(ground_point, sun_direction, ground_to_sun_distance, sun_sample_count);
 			}
 			
 			//HACK: An ambient level high enough to illuminate the ground will blow the sky. So we make the same unit affect the ground harder.
 			vec3 ground_albedo = ground_color * (direct_light * sun_intensity * sun_transmittance + accumulated_radiance *  75.) * 1.0/PI;
-			vec3 transmittance_to_eye = get_transmittance(ray_origin, ray_direction, atmosphere_distance, view_samples);
+			vec3 transmittance_to_eye = get_transmittance(ray_origin, ray_direction, atmosphere_distance, view_sample_count);
 			
 			final_color += ground_albedo * transmittance_to_eye;
 		}
+		}
+		if (!AT_CUBEMAP_PASS) {
+			final_color = hfn_apply_parallax_clouds(final_color, sun_direction, EYEDIR);
+		}
+		COLOR = final_color * exposure;
+		if (AT_HALF_RES_PASS) {
+			ALPHA = 1.0;
+		}
 	}
-	final_color = hfn_apply_parallax_clouds(final_color, sun_direction, EYEDIR);
-	COLOR = final_color * exposure;
 }

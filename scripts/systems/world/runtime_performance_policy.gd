@@ -7,11 +7,12 @@ extends Node
 ## only reduces redundant work and island-wide residency.
 
 const CAMERA_OPENNESS_PROBE_COUNT: int = 5
-const STREAM_LOAD_MARGIN_M: float = 0.0
-const STREAM_UNLOAD_HYSTERESIS_M: float = 64.0
+## Keep enough overlap for the full authored chunk footprint to have exact
+## streamed geometry and collision before Henry reaches a neighbouring boundary.
+const STREAM_LOAD_MARGIN_M: float = 140.0
+const STREAM_UNLOAD_HYSTERESIS_M: float = 120.0
 const LOCAL_MASSING_RADIUS_CHUNKS: float = 1.55
 const MASSING_RESCAN_CHUNKS: float = 0.25
-const CITY_DIAGNOSTIC_INTERVAL_USEC: int = 1_000_000
 
 var _day_night: DayNightManager
 var _camera: TpsCamera
@@ -22,9 +23,6 @@ var _has_massing_focus: bool = false
 var _last_massing_focus := Vector2.ZERO
 var _ring0_roads_retired: bool = false
 var _streaming_policy_applied: bool = false
-var _exact_city_owner: StringName = &""
-var _exact_city_owner_mode: String = "none"
-var _last_city_diag_usec: int = 0
 
 
 func _ready() -> void:
@@ -40,9 +38,7 @@ func _process(_delta: float) -> void:
 	_apply_sky_policy()
 	_apply_camera_policy()
 	_apply_streaming_policy()
-	_enforce_exact_city_residency()
 	_update_local_city_massing()
-	_print_city_stream_diagnostics()
 
 
 func _refresh_bindings() -> void:
@@ -70,11 +66,14 @@ func _refresh_bindings() -> void:
 			_has_massing_focus = false
 			_ring0_roads_retired = false
 			_streaming_policy_applied = false
-			_exact_city_owner = &""
-			_exact_city_owner_mode = "none"
 			_last_city_diag_usec = 0
 	if not is_instance_valid(_streaming):
-		_streaming = scene.find_child("StreamingSystem", true, false) as StreamingSystem
+		## World.gd creates systems with Script.new() as direct children; their
+		## Node.name is not a stable class identifier.
+		for child: Node in scene.get_children():
+			_streaming = child as StreamingSystem
+			if _streaming != null:
+				break
 
 
 func _apply_sky_policy() -> void:
@@ -104,98 +103,19 @@ func _apply_camera_policy() -> void:
 func _apply_streaming_policy() -> void:
 	if _city == null or _streaming == null or _player == null or _streaming_policy_applied:
 		return
-	## Keep the generic StreamingSystem conservative. Its circular runtime bands
-	## can overlap at a 512 m grid corner, so _enforce_exact_city_residency() below
-	## performs the Hoarbound-specific square ownership hand-off afterwards.
-	_streaming.load_margin_m = minf(_streaming.load_margin_m, STREAM_LOAD_MARGIN_M)
-	_streaming.unload_hysteresis_m = minf(
+	## Runtime city chunks are exact geometry and collision, not merely visual cells.
+	## Keep the full chunk diagonal covered so neighbours can be ready before Henry
+	## reaches a cell boundary; overlap is expected and avoids exposing massing cubes
+	## where the player can walk.
+	_streaming.load_margin_m = maxf(_streaming.load_margin_m, STREAM_LOAD_MARGIN_M)
+	_streaming.unload_hysteresis_m = maxf(
 		_streaming.unload_hysteresis_m,
 		STREAM_UNLOAD_HYSTERESIS_M
 	)
 	_streaming_policy_applied = true
-	## Registration may already have scanned once using the former 140 m margin.
-	## Re-scan immediately, then exact ownership removes the overlapping neighbours.
+	## Registration may already have scanned before the safety margin was applied.
+	## Re-scan now so nearby chunks enter the normal StreamingSystem lifecycle.
 	_streaming.scan(_player.global_position)
-
-
-## Exact Key West detail ownership. A chunk owns the half-open square described
-## by its authored origin and chunk_size_m. During a boundary crossing the old
-## ACTIVE owner stays alive until the new owner becomes ACTIVE, then every sibling
-## is released. That gives one steady-state detail chunk without a one-frame hole.
-func _enforce_exact_city_residency() -> void:
-	if _city == null or _streaming == null or _player == null:
-		return
-	_city._index_stream_chunks()
-	if _city._stream_to_chunk.is_empty():
-		return
-
-	var focus := Vector2(_player.global_position.x, _player.global_position.z)
-	var owner: StringName = _owned_city_stream_id(focus)
-	if owner == &"":
-		_exact_city_owner = &""
-		_exact_city_owner_mode = "none"
-		for stream_id_variant: Variant in _city._stream_to_chunk:
-			var stream_id := stream_id_variant as StringName
-			if int(_streaming.get_state(stream_id)) != int(StreamingSystem.CellState.UNLOADED):
-				_streaming._release(stream_id)
-		return
-
-	_exact_city_owner = owner
-	var owner_state: int = int(_streaming.get_state(owner))
-	if owner_state == int(StreamingSystem.CellState.UNLOADED):
-		_streaming._request(owner)
-		owner_state = int(_streaming.get_state(owner))
-	var owner_active: bool = owner_state == int(StreamingSystem.CellState.ACTIVE)
-
-	for stream_id_variant: Variant in _city._stream_to_chunk:
-		var stream_id := stream_id_variant as StringName
-		if stream_id == owner:
-			continue
-		var state: int = int(_streaming.get_state(stream_id))
-		if state == int(StreamingSystem.CellState.UNLOADED):
-			continue
-		## Pending neighbours produced by the generic radius scan are always safe
-		## to cancel. Keep an old ACTIVE owner only while the new one is not live.
-		if state == int(StreamingSystem.CellState.ACTIVE) and not owner_active:
-			continue
-		_streaming._release(stream_id)
-
-
-func _owned_city_stream_id(focus: Vector2) -> StringName:
-	var nearest_candidate: StringName = &""
-	var nearest_distance_sq: float = INF
-	for stream_id_variant: Variant in _city._stream_to_chunk:
-		var stream_id := stream_id_variant as StringName
-		var cid: String = String(_city._stream_to_chunk.get(stream_id, ""))
-		if cid.is_empty() or not _city._chunks.has(cid):
-			continue
-		var state := _city._chunks[cid] as Dictionary
-		var chunk := state.get("data", {}) as Dictionary
-		var origin_values: Array = chunk.get("origin", [])
-		if origin_values.size() >= 2:
-			var origin := Vector2(float(origin_values[0]), float(origin_values[1]))
-			var local: Vector2 = focus - origin
-			if local.x >= 0.0 and local.y >= 0.0 \
-					and local.x < _city.chunk_size_m and local.y < _city.chunk_size_m:
-				_exact_city_owner_mode = "square"
-				return stream_id
-
-		## Authored city data can contain shoreline/road gaps where no rectangle
-		## owns the exact player point even though the normal streaming scan has
-		## relevant detail candidates. In that case retain exactly the nearest
-		## candidate already selected by StreamingSystem instead of returning empty
-		## and allowing four overlapping circular bands to become ACTIVE.
-		if int(_streaming.get_state(stream_id)) == int(StreamingSystem.CellState.UNLOADED):
-			continue
-		var center: Vector2 = state.get("center", Vector2.ZERO)
-		var distance_sq: float = center.distance_squared_to(focus)
-		if distance_sq < nearest_distance_sq:
-			nearest_distance_sq = distance_sq
-			nearest_candidate = stream_id
-
-	if nearest_candidate != &"":
-		_exact_city_owner_mode = "nearest_candidate"
-	return nearest_candidate
 
 
 func _update_local_city_massing() -> void:
@@ -240,84 +160,3 @@ func _update_local_city_massing() -> void:
 		if is_instance_valid(massing):
 			massing.queue_free()
 		state["massing"] = null
-
-
-## Console-only diagnostics for the next Fort Street pass. This intentionally
-## runs at 1 Hz and does not touch the visible StatsDisplay panel.
-func _print_city_stream_diagnostics() -> void:
-	if _city == null:
-		return
-	var now_usec: int = Time.get_ticks_usec()
-	if _last_city_diag_usec > 0 and now_usec - _last_city_diag_usec < CITY_DIAGNOSTIC_INTERVAL_USEC:
-		return
-	_last_city_diag_usec = now_usec
-
-	var roots: Dictionary = {}
-	for state_variant: Variant in _city._chunks.values():
-		var state := state_variant as Dictionary
-		_register_category_root(roots, state.get("detail"), "detail_buildings")
-		_register_category_root(roots, state.get("massing"), "massing")
-		_register_category_root(roots, state.get("roads"), "roads")
-		_register_category_root(roots, state.get("prop_visuals"), "props")
-		_register_category_root(roots, state.get("props"), "props")
-	if is_instance_valid(_city._global_visuals):
-		var global_props := (_city._global_visuals as Node).find_child("StreetProps", true, false)
-		_register_category_root(roots, global_props, "props")
-
-	var counts := {
-		"detail_buildings": 0,
-		"massing": 0,
-		"roads": 0,
-		"props": 0,
-		"other": 0,
-	}
-	_collect_multimesh_instances(_city, "other", roots, counts)
-	var total: int = 0
-	for value: Variant in counts.values():
-		total += int(value)
-
-	var focus_xz: Array = []
-	if is_instance_valid(_player):
-		focus_xz = [_player.global_position.x, _player.global_position.z]
-	print("[CityMultiMeshJSON] %s" % JSON.stringify({
-		"schema": "hoarbound_city_multimesh_v1",
-		"ticks_msec": Time.get_ticks_msec(),
-		"player_bound": is_instance_valid(_player),
-		"focus_xz": focus_xz,
-		"exact_owner": String(_exact_city_owner),
-		"exact_owner_mode": _exact_city_owner_mode,
-		"active_city_chunks": _city.get_stream_active_detail_count(),
-		"detail_buildings": int(counts["detail_buildings"]),
-		"massing": int(counts["massing"]),
-		"roads": int(counts["roads"]),
-		"props": int(counts["props"]),
-		"other": int(counts["other"]),
-		"visible_multimesh_instances": total,
-	}))
-
-
-func _register_category_root(roots: Dictionary, node_variant: Variant, category: String) -> void:
-	if node_variant == null or not is_instance_valid(node_variant):
-		return
-	var node := node_variant as Node
-	roots[node.get_instance_id()] = category
-
-
-func _collect_multimesh_instances(
-	node: Node,
-	inherited_category: String,
-	roots: Dictionary,
-	counts: Dictionary
-) -> void:
-	var category: String = inherited_category
-	if roots.has(node.get_instance_id()):
-		category = String(roots[node.get_instance_id()])
-	if node is MultiMeshInstance3D:
-		var instance := node as MultiMeshInstance3D
-		if instance.is_visible_in_tree() and instance.multimesh != null:
-			var visible_count: int = instance.multimesh.visible_instance_count
-			if visible_count < 0:
-				visible_count = instance.multimesh.instance_count
-			counts[category] = int(counts.get(category, 0)) + maxi(visible_count, 0)
-	for child: Node in node.get_children():
-		_collect_multimesh_instances(child, category, roots, counts)

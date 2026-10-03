@@ -44,6 +44,11 @@ var wind_texture: Texture2D
 var wind_field_origin: Vector2 = Vector2.ZERO
 var wind_field_cell_m: float = 4.0
 var wind_field_max: float = 2.5
+## Settled ridge orientation is baked, not the current gust direction.
+var settled_wind: Vector2 = Vector2(0, -1)
+## City chunks and Henry's shell use the same settled height from the baked wind
+## field. Local prints still deform it; the window must not create new drifts.
+var use_baked_baseline: bool = false
 ## Share of fresh storm snow over the old prevailing base; set per rebuild.
 var storm_share: float = 0.4
 
@@ -112,6 +117,8 @@ func load_wind_field(png_path: String) -> bool:
 	wind_field_origin = Vector2(float(o[0]), float(o[1]))
 	wind_field_cell_m = float((meta as Dictionary).get("cell_m", 4.0))
 	wind_field_max = float((meta as Dictionary).get("factor_max", 2.5))
+	var from: float = deg_to_rad(float((meta as Dictionary).get("prevailing_from_deg", 0.0)))
+	settled_wind = Vector2(-sin(from), cos(from))
 	return true
 
 
@@ -260,9 +267,10 @@ func step_rebuild(budget_usec: int) -> bool:
 				_next_stage()
 		elif _job_stage == STAGE_OUTPUT:
 			if _job_cursor == 0:
-				var r: int = maxi(1, roundi(0.25 / texel_m()))
-				_job_depth = _blur(_job_depth, res + 2, r)
-				_job_weight = _blur(_job_weight, res + 2, r)
+				if not use_baked_baseline:
+					var r: int = maxi(1, roundi(0.25 / texel_m()))
+					_job_depth = _blur(_job_depth, res + 2, r)
+					_job_weight = _blur(_job_weight, res + 2, r)
 				_job_px.resize(res * res * 4)
 			if _job_cursor < res:
 				_output_row(_job_cursor)
@@ -380,7 +388,9 @@ func _stage_spans(stage: int) -> Array[Vector3i]:
 
 
 func _next_stage() -> void:
-	_job_stage += 1
+	## The baked city factor already contains lee deposition and wind scour.
+	## Rebuilding those from nearby live colliders would make settled snow move.
+	_job_stage = STAGE_DEPTH if use_baked_baseline and _job_stage == STAGE_GROUND else _job_stage + 1
 	_job_cursor = 0
 	if _job_stage <= STAGE_WALL:
 		_job_spans = _stage_spans(_job_stage)
@@ -525,6 +535,11 @@ func _assemble_row(lj: int) -> void:
 			continue
 		var at: Vector2 = _grid_world(i, j)
 		var city: float = lerpf(_prevail[k], _storm[k], _job_storm)
+		if use_baked_baseline:
+			var shore: float = smoothstep(sea_level_m + 0.05, sea_level_m + 0.8, g.x)
+			_job_depth[lj * m + li] = settled * city * shore
+			_job_weight[lj * m + li] = 1.0
+			continue
 		var drift: float = amp * ridge_at(at, _job_wind) * minf(city, 1.5) * ridge_openness(city)
 		var lee: float = _job_cover * lee_m * _lee(i, j, _job_upwind, _job_ahead)
 		## Wind scours the face that rises into it and fills hollows.
@@ -558,7 +573,7 @@ func _output_row(ty: int) -> void:
 		var depth: float = _job_depth[l] / maxf(_job_weight[l], 0.0001)
 		var shore: float = smoothstep(sea_level_m + 0.05, sea_level_m + 0.8, g.x)
 		## Depth is measured from the real ground, so the shader's ground stays true.
-		var top: float = _bed[k] * shore + g.x * (1.0 - shore) + depth
+		var top: float = g.x + depth if use_baked_baseline else _bed[k] * shore + g.x * (1.0 - shore) + depth
 		_job_px[o] = top
 		_job_px[o + 1] = top - g.x
 		## B: 1 where snow is cut away, else softness scaled below 0.5.

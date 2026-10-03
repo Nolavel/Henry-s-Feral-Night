@@ -82,8 +82,6 @@ const SPAWN_CLEARANCE: float = 1.0
 @export_group("Developer tools")
 ## Shows the runtime performance panel. Enabled by default for development builds/scenes.
 @export var enable_runtime_debug_panel: bool = true
-## Mirrors the visible runtime performance snapshot to stdout when enabled.
-@export var print_runtime_debug_stats: bool = false
 ## Allows M to show/hide the debug diorama map in runtime debug builds.
 @export var enable_runtime_dev_map: bool = false
 

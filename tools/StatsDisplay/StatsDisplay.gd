@@ -2,29 +2,12 @@ extends Control
 
 @export_range(0.1, 2.0, 0.05) var update_interval: float = 0.25
 
-const CONSOLE_INTERVAL: float = 1.0
-const VIEWPORT_REFRESH_INTERVAL: float = 5.0
-const BYTES_PER_MIB: float = 1024.0 * 1024.0
-
 var _panel: PanelContainer
 var _label: Label
 var _elapsed: float = 0.0
 var _frames: int = 0
-var _console_elapsed: float = 0.0
-var _console_simulation_elapsed: float = 0.0
-var _console_frames: int = 0
-var _console_frame_sum_ms: float = 0.0
-var _console_frame_min_ms: float = INF
-var _console_frame_max_ms: float = 0.0
-var _console_sim_delta_sum_ms: float = 0.0
-var _console_sim_delta_min_ms: float = INF
-var _console_sim_delta_max_ms: float = 0.0
-var _viewport_refresh_elapsed: float = VIEWPORT_REFRESH_INTERVAL
 var _last_wall_usec: int = 0
 var _show_panel: bool = true
-var _print_runtime_debug_stats: bool = false
-var _measured_viewports: Array[Viewport] = []
-var _city_debug_source: Node
 
 
 func _ready() -> void:
@@ -74,44 +57,23 @@ func on_world_ready(context: WorldContext) -> void:
 	if context == null or context.world == null:
 		return
 	_show_panel = bool(context.world.get("enable_runtime_debug_panel"))
-	_print_runtime_debug_stats = bool(context.world.get("print_runtime_debug_stats"))
 
 	visible = _show_panel
-	set_process(_show_panel or _print_runtime_debug_stats)
-	if _print_runtime_debug_stats:
-		## UI siblings (notably the dev-map SubViewport) are created after this
-		## StatsDisplay entry. Defer one frame so the first measurement sweep sees
-		## the complete runtime viewport set.
-		call_deferred("_start_console_diagnostics")
+	set_process(_show_panel)
 
 
-func _process(delta: float) -> void:
+func _process(_delta: float) -> void:
 	var now_usec: int = Time.get_ticks_usec()
 	if _last_wall_usec <= 0:
 		_last_wall_usec = now_usec
 	var wall_delta_s: float = maxf(float(now_usec - _last_wall_usec) / 1000000.0, 0.0)
 	_last_wall_usec = now_usec
 
-	var frame_ms: float = wall_delta_s * 1000.0
-	var simulation_delta_ms: float = maxf(delta, 0.0) * 1000.0
 	_elapsed += wall_delta_s
 	_frames += 1
-	_console_elapsed += wall_delta_s
-	_console_simulation_elapsed += maxf(delta, 0.0)
-	_console_frames += 1
-	_console_frame_sum_ms += frame_ms
-	_console_frame_min_ms = minf(_console_frame_min_ms, frame_ms)
-	_console_frame_max_ms = maxf(_console_frame_max_ms, frame_ms)
-	_console_sim_delta_sum_ms += simulation_delta_ms
-	_console_sim_delta_min_ms = minf(_console_sim_delta_min_ms, simulation_delta_ms)
-	_console_sim_delta_max_ms = maxf(_console_sim_delta_max_ms, simulation_delta_ms)
-	_viewport_refresh_elapsed += wall_delta_s
 
 	if _elapsed >= update_interval:
 		_update_visible_snapshot()
-
-	if _print_runtime_debug_stats and _console_elapsed >= CONSOLE_INTERVAL:
-		_print_console_snapshot()
 
 
 func _update_visible_snapshot() -> void:
@@ -131,245 +93,6 @@ func _update_visible_snapshot() -> void:
 		_label.text = snapshot
 	_elapsed = 0.0
 	_frames = 0
-
-
-func _start_console_diagnostics() -> void:
-	_refresh_measured_viewports()
-	_refresh_city_debug_source()
-	_print_console_meta()
-
-
-func _print_console_meta() -> void:
-	var viewport_size: Vector2 = get_viewport().get_visible_rect().size
-	var meta := {
-		"schema": "hoarbound_perf_v3",
-		"engine": Engine.get_version_info().get("string", "unknown"),
-		"display_server": DisplayServer.get_name(),
-		"rendering_method": RenderingServer.get_current_rendering_method(),
-		"rendering_driver": RenderingServer.get_current_rendering_driver_name(),
-		"gpu_name": RenderingServer.get_video_adapter_name(),
-		"gpu_vendor": RenderingServer.get_video_adapter_vendor(),
-		"gpu_api": RenderingServer.get_video_adapter_api_version(),
-		"viewport_px": [int(viewport_size.x), int(viewport_size.y)],
-		"refresh_hz": DisplayServer.screen_get_refresh_rate(),
-		"vsync_mode": int(DisplayServer.window_get_vsync_mode()),
-		"engine_max_fps": Engine.max_fps,
-		"physics_ticks_per_second": Engine.physics_ticks_per_second,
-		"max_physics_steps_per_frame": int(ProjectSettings.get_setting("physics/common/max_physics_steps_per_frame", 8)),
-		"time_scale": Engine.time_scale,
-		"snow_quality": str(ProjectSettings.get_setting("hfn/snow/quality", "high")),
-		"measured_viewports": _measured_viewports.size(),
-	}
-	print("[PerfMeta] %s" % JSON.stringify(meta))
-
-
-func _print_console_snapshot() -> void:
-	if _viewport_refresh_elapsed >= VIEWPORT_REFRESH_INTERVAL:
-		_refresh_measured_viewports()
-
-	var render_cpu_total_ms: float = 0.0
-	var render_gpu_total_ms: float = 0.0
-	var viewport_samples: Array[Dictionary] = []
-	for viewport: Viewport in _measured_viewports:
-		if not is_instance_valid(viewport):
-			continue
-		var rid: RID = viewport.get_viewport_rid()
-		var cpu_ms: float = RenderingServer.viewport_get_measured_render_time_cpu(rid)
-		var gpu_ms: float = RenderingServer.viewport_get_measured_render_time_gpu(rid)
-		render_cpu_total_ms += cpu_ms
-		render_gpu_total_ms += gpu_ms
-		var sample := {
-			"path": str(viewport.get_path()),
-			"cpu_ms": _rounded(cpu_ms, 3),
-			"gpu_ms": _rounded(gpu_ms, 3),
-			"size_px": [viewport.size.x, viewport.size.y],
-		}
-		if viewport is SubViewport:
-			sample["update_mode"] = int((viewport as SubViewport).render_target_update_mode)
-		viewport_samples.append(sample)
-
-	var frame_avg_ms: float = _console_frame_sum_ms / maxf(float(_console_frames), 1.0)
-	var simulation_delta_avg_ms: float = _console_sim_delta_sum_ms / maxf(float(_console_frames), 1.0)
-	var local_fps: float = float(_console_frames) / maxf(_console_elapsed, 0.0001)
-	var data := {
-		"schema": "hoarbound_perf_v3",
-		"ticks_msec": Time.get_ticks_msec(),
-		"sample_s": _rounded(_console_elapsed, 4),
-		"wall_sample_s": _rounded(_console_elapsed, 4),
-		"simulation_sample_s": _rounded(_console_simulation_elapsed, 4),
-		"frames": _console_frames,
-		"fps_local": _rounded(local_fps, 3),
-		"fps_engine": Engine.get_frames_per_second(),
-		"fps_monitor": _rounded(Performance.get_monitor(Performance.TIME_FPS), 3),
-		"frame_ms_avg": _rounded(frame_avg_ms, 3),
-		"frame_ms_min": _rounded(_console_frame_min_ms if _console_frames > 0 else 0.0, 3),
-		"frame_ms_max": _rounded(_console_frame_max_ms, 3),
-		"simulation_delta_avg_ms": _rounded(simulation_delta_avg_ms, 3),
-		"simulation_delta_min_ms": _rounded(_console_sim_delta_min_ms if _console_frames > 0 else 0.0, 3),
-		"simulation_delta_max_ms": _rounded(_console_sim_delta_max_ms, 3),
-		"process_ms": _rounded(Performance.get_monitor(Performance.TIME_PROCESS) * 1000.0, 3),
-		"physics_ms": _rounded(Performance.get_monitor(Performance.TIME_PHYSICS_PROCESS) * 1000.0, 3),
-		"render_setup_cpu_ms": _rounded(RenderingServer.get_frame_setup_time_cpu(), 3),
-		"render_cpu_all_viewports_ms": _rounded(render_cpu_total_ms, 3),
-		"render_gpu_all_viewports_ms": _rounded(render_gpu_total_ms, 3),
-		"objects": int(Performance.get_monitor(Performance.OBJECT_COUNT)),
-		"resources": int(Performance.get_monitor(Performance.OBJECT_RESOURCE_COUNT)),
-		"nodes": int(Performance.get_monitor(Performance.OBJECT_NODE_COUNT)),
-		"orphan_nodes": int(Performance.get_monitor(Performance.OBJECT_ORPHAN_NODE_COUNT)),
-		"render_objects": int(Performance.get_monitor(Performance.RENDER_TOTAL_OBJECTS_IN_FRAME)),
-		"primitives": int(Performance.get_monitor(Performance.RENDER_TOTAL_PRIMITIVES_IN_FRAME)),
-		"draw_calls": int(Performance.get_monitor(Performance.RENDER_TOTAL_DRAW_CALLS_IN_FRAME)),
-		"video_mem_mib": _mib(Performance.get_monitor(Performance.RENDER_VIDEO_MEM_USED)),
-		"texture_mem_mib": _mib(Performance.get_monitor(Performance.RENDER_TEXTURE_MEM_USED)),
-		"buffer_mem_mib": _mib(Performance.get_monitor(Performance.RENDER_BUFFER_MEM_USED)),
-		"static_mem_mib": _mib(Performance.get_monitor(Performance.MEMORY_STATIC)),
-		"physics_active_objects": int(Performance.get_monitor(Performance.PHYSICS_3D_ACTIVE_OBJECTS)),
-		"physics_collision_pairs": int(Performance.get_monitor(Performance.PHYSICS_3D_COLLISION_PAIRS)),
-		"physics_islands": int(Performance.get_monitor(Performance.PHYSICS_3D_ISLAND_COUNT)),
-		"viewports": viewport_samples,
-	}
-	print("[PerfJSON] %s" % JSON.stringify(data))
-	_print_city_console_snapshot()
-	_reset_console_window()
-
-
-func _print_city_console_snapshot() -> void:
-	if not is_instance_valid(_city_debug_source):
-		_refresh_city_debug_source()
-	if not is_instance_valid(_city_debug_source):
-		return
-
-	var active_city_chunks: int = 0
-	if _city_debug_source.has_method("get_stream_active_detail_count"):
-		active_city_chunks = int(_city_debug_source.call("get_stream_active_detail_count"))
-
-	var resident_detail_chunks: int = 0
-	var resident_massing_chunks: int = 0
-	var chunks_variant: Variant = _city_debug_source.get("_chunks")
-	if chunks_variant is Dictionary:
-		for state_variant: Variant in (chunks_variant as Dictionary).values():
-			if not state_variant is Dictionary:
-				continue
-			var state := state_variant as Dictionary
-			var detail: Variant = state.get("detail")
-			if detail != null and is_instance_valid(detail):
-				resident_detail_chunks += 1
-			var massing: Variant = state.get("massing")
-			if massing != null and is_instance_valid(massing):
-				resident_massing_chunks += 1
-
-	var render_stats := {
-		"visible_mesh_instance_3d": 0,
-		"visible_multimesh_instances": 0,
-		"occluders": 0,
-		"city_primitives_estimate": 0,
-	}
-	_collect_city_render_stats(_city_debug_source, render_stats)
-
-	var city_data := {
-		"schema": "hoarbound_city_perf_v1",
-		"ticks_msec": Time.get_ticks_msec(),
-		"active_city_chunks": active_city_chunks,
-		"resident_detail_chunks": resident_detail_chunks,
-		"resident_massing_chunks": resident_massing_chunks,
-		"visible_mesh_instance_3d": int(render_stats["visible_mesh_instance_3d"]),
-		"visible_multimesh_instances": int(render_stats["visible_multimesh_instances"]),
-		"occluder_count": int(render_stats["occluders"]),
-		"city_primitives_estimate": int(render_stats["city_primitives_estimate"]),
-	}
-	print("[CityPerfJSON] %s" % JSON.stringify(city_data))
-
-
-func _refresh_city_debug_source() -> void:
-	_city_debug_source = null
-	var scene := get_tree().current_scene
-	if scene != null:
-		_city_debug_source = scene.find_child("KeyWestCity", true, false)
-
-
-func _collect_city_render_stats(node: Node, stats: Dictionary) -> void:
-	if node is MeshInstance3D:
-		var mesh_instance := node as MeshInstance3D
-		if mesh_instance.is_visible_in_tree():
-			stats["visible_mesh_instance_3d"] = int(stats["visible_mesh_instance_3d"]) + 1
-			stats["city_primitives_estimate"] = (
-				int(stats["city_primitives_estimate"])
-				+ _estimate_mesh_triangle_primitives(mesh_instance.mesh)
-			)
-	elif node is MultiMeshInstance3D:
-		var multimesh_instance := node as MultiMeshInstance3D
-		if multimesh_instance.is_visible_in_tree() and multimesh_instance.multimesh != null:
-			var multimesh: MultiMesh = multimesh_instance.multimesh
-			var visible_count: int = multimesh.visible_instance_count
-			if visible_count < 0:
-				visible_count = multimesh.instance_count
-			visible_count = maxi(visible_count, 0)
-			stats["visible_multimesh_instances"] = (
-				int(stats["visible_multimesh_instances"]) + visible_count
-			)
-			stats["city_primitives_estimate"] = (
-				int(stats["city_primitives_estimate"])
-				+ _estimate_mesh_triangle_primitives(multimesh.mesh) * visible_count
-			)
-	elif node is OccluderInstance3D:
-		var occluder := node as OccluderInstance3D
-		if occluder.is_visible_in_tree():
-			stats["occluders"] = int(stats["occluders"]) + 1
-
-	for child: Node in node.get_children():
-		_collect_city_render_stats(child, stats)
-
-
-func _estimate_mesh_triangle_primitives(mesh: Mesh) -> int:
-	if mesh == null:
-		return 0
-	var mesh_rid: RID = mesh.get_rid()
-	var total: int = 0
-	for surface: int in range(RenderingServer.mesh_get_surface_count(mesh_rid)):
-		var surface_data: Dictionary = RenderingServer.mesh_get_surface(mesh_rid, surface)
-		if int(surface_data.get("primitive", -1)) != RenderingServer.PRIMITIVE_TRIANGLES:
-			continue
-		var element_count: int = int(surface_data.get("index_count", 0))
-		if element_count <= 0:
-			element_count = int(surface_data.get("vertex_count", 0))
-		total += int(element_count / 3)
-	return total
-
-
-func _refresh_measured_viewports() -> void:
-	_measured_viewports.clear()
-	_collect_viewports(get_tree().root)
-	_viewport_refresh_elapsed = 0.0
-
-
-func _collect_viewports(node: Node) -> void:
-	if node is Viewport:
-		var viewport := node as Viewport
-		RenderingServer.viewport_set_measure_render_time(viewport.get_viewport_rid(), true)
-		_measured_viewports.append(viewport)
-	for child: Node in node.get_children():
-		_collect_viewports(child)
-
-
-func _reset_console_window() -> void:
-	_console_elapsed = 0.0
-	_console_simulation_elapsed = 0.0
-	_console_frames = 0
-	_console_frame_sum_ms = 0.0
-	_console_frame_min_ms = INF
-	_console_frame_max_ms = 0.0
-	_console_sim_delta_sum_ms = 0.0
-	_console_sim_delta_min_ms = INF
-	_console_sim_delta_max_ms = 0.0
-
-
-func _mib(bytes: float) -> float:
-	return _rounded(bytes / BYTES_PER_MIB, 3)
-
-
-func _rounded(value: float, decimals: int) -> float:
-	var scale: float = pow(10.0, float(decimals))
-	return round(value * scale) / scale
 
 
 func _format_session_uptime() -> String:

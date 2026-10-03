@@ -13,6 +13,12 @@ uniform sampler2D packed_field : filter_linear, repeat_disable;
 uniform vec2 origin = vec2(0.0);
 uniform float window_m = 25.6;
 uniform float packed_texel_m = 0.05;
+uniform bool use_baked_baseline = false;
+uniform float sea_level_m = 0.04;
+uniform sampler2D wind_tex : filter_linear, repeat_disable;
+uniform vec2 wind_origin = vec2(0.0);
+uniform vec2 wind_extent = vec2(0.0);
+uniform float wind_max = 2.5;
 // Matches island_terrain snow_color so the window edge does not read as a patch.
 uniform vec3 fresh_color : source_color = vec3(0.8, 0.83, 0.88);
 uniform vec3 packed_color : source_color = vec3(0.5, 0.56, 0.68);
@@ -33,6 +39,18 @@ varying float v_ground;
 varying float v_city;
 varying float v_crust;
 varying vec2 v_jag;
+
+float baked_city_at(vec2 xz) {
+	if (wind_extent.x <= 0.0) {
+		return 1.0;
+	}
+	vec2 wind_uv = (xz - wind_origin) / wind_extent;
+	if (any(lessThan(wind_uv, vec2(0.0))) || any(greaterThan(wind_uv, vec2(1.0)))) {
+		return 1.0;
+	}
+	vec4 factors = texture(wind_tex, wind_uv);
+	return mix(factors.r, factors.g, snow_storm_share) * wind_max;
+}
 
 float packed_at(vec2 uv) {
 	return texture(packed_field, uv).r;
@@ -101,6 +119,11 @@ float rim_at(vec2 uv, vec2 xz, float here, float crust) {
 float settled_top(vec2 xz) {
 	vec2 uv = (xz - origin) / window_m;
 	vec4 f = texture(field, uv);
+	if (use_baked_baseline) {
+		float ground = f.r - f.g;
+		float shore = smoothstep(sea_level_m + 0.05, sea_level_m + 0.8, ground);
+		return ground + snow_base_depth(xz, baked_city_at(xz) * shore);
+	}
 	vec2 to_edge = min(uv, 1.0 - uv) * window_m;
 	float edge = smoothstep(0.0, 6.0, min(to_edge.x, to_edge.y));
 	return f.r - f.g + mix(snow_base_depth(xz, f.a), f.g, edge);
@@ -123,16 +146,17 @@ void vertex() {
 	v_packed -= snow_noise(world.xz * 16.0) * 0.012 * smoothstep(0.004, 0.03, -v_packed);
 	v_rim = rim_at(uv, world.xz, v_packed, v_crust);
 	v_cut = f.b;
-	v_city = f.a;
+	float ground = f.r - f.g;
+	float shore = smoothstep(sea_level_m + 0.05, sea_level_m + 0.8, ground);
+	v_city = use_baked_baseline ? baked_city_at(world.xz) * shore : f.a;
 	vec2 to_edge = min(uv - v_jag, 1.0 - uv + v_jag) * window_m;
 	// Over the outer 6 m the detail fades out onto the chunk-wide base.
 	v_edge = smoothstep(0.0, 6.0, min(to_edge.x, to_edge.y));
-	float ground = f.r - f.g;
 	v_ground = ground;
 	// Toward the window edge the surface eases onto the chunk-wide snow (snow_chunk_cover).
 	float base = snow_base_geom(f.a);
-	v_depth = mix(snow_base_depth(world.xz, f.a), f.g, v_edge);
-	float top = ground + mix(base, f.g - v_packed + v_rim, v_edge);
+	v_depth = use_baked_baseline ? snow_base_depth(world.xz, v_city) : mix(snow_base_depth(world.xz, f.a), f.g, v_edge);
+	float top = use_baked_baseline ? ground + snow_base_geom(v_city) + (-v_packed + v_rim) * v_edge : ground + mix(base, f.g - v_packed + v_rim, v_edge);
 	VERTEX.y = max(top, ground + 0.004) - MODEL_MATRIX[3].y;
 	v_world = vec3(world.x, top, world.z);
 }
@@ -145,32 +169,36 @@ void fragment() {
 	// Where the ground under the snow jumps (a kerb, a wall foot) the mesh would
 	// hang a curtain between levels: no snow surface is that steep.
 	float ground_slope = fwidth(v_ground) / max(length(fwidth(v_world.xz)), 0.001);
-	if (v_cut > 0.5 || v_depth < 0.012 + grain * 0.02 || ground_slope > 1.5) {
+	float thin_cut = mix(0.012, 0.012 + grain * 0.02, v_edge);
+	if (v_cut > 0.5 || v_depth < thin_cut || ground_slope > 1.5) {
 		discard;
 	}
 	// Pit walls are sharper than the mesh, so they also come in through the normal.
-	vec2 slope = packed_slope(uv + v_jag);
-	float wall = smoothstep(0.35, 1.6, length(slope)) * v_edge;
+	vec2 raw_slope = packed_slope(uv + v_jag);
+	vec2 slope = raw_slope * v_edge;
+	float wall = smoothstep(0.35, 1.6, length(raw_slope)) * v_edge;
+	float packed_height = v_packed * v_edge;
+	float rim_height = v_rim * v_edge;
 	// Settled surface slope over ±0.4 m: the mesh facets at the 20 cm field texel
 	// would band the ridges, so shade from the smoothed field instead.
 	float e = 0.4;
 	float sx = settled_top(v_world.xz + vec2(e, 0.0)) - settled_top(v_world.xz - vec2(e, 0.0));
 	float sz = settled_top(v_world.xz + vec2(0.0, e)) - settled_top(v_world.xz - vec2(0.0, e));
-	vec2 ripple = snow_ripple_slope(v_world.xz, v_city) * (1.0 - smoothstep(0.02, 0.08, v_packed));
+	vec2 ripple = snow_ripple_slope(v_world.xz, v_city) * (1.0 - smoothstep(0.02, 0.08, packed_height));
 	vec3 smooth_n = normalize(vec3(-sx / (2.0 * e) - ripple.x, 1.0, -sz / (2.0 * e) - ripple.y));
 	// Near kerbs and walls the real mesh edge still matters.
 	vec3 geo = normalize(cross(dFdy(v_world), dFdx(v_world)));
 	vec3 n = normalize(mix(smooth_n, geo, smoothstep(0.6, 1.2, ground_slope)) + vec3(slope.x, 0.0, slope.y) * 0.6);
 	// Crust breaks along cracks that run out from a print's lip into the slab.
-	float lip = smoothstep(0.003, 0.02, v_rim) + wall * 0.5 * (1.0 - smoothstep(0.02, 0.06, v_packed));
+	float lip = smoothstep(0.003, 0.02, rim_height) + wall * 0.5 * (1.0 - smoothstep(0.02, 0.06, packed_height));
 	float crack = (1.0 - smoothstep(0.015, 0.05, crack_distance(v_world.xz * 14.0))) * clamp(lip, 0.0, 1.0) * v_crust;
 	n = normalize(n + vec3(snow_noise(v_world.xz * 40.0) - 0.5, 0.0, snow_noise(v_world.xz * 40.0 + 7.0) - 0.5) * crack * 0.6);
 	NORMAL = normalize((VIEW_MATRIX * vec4(n, 0.0)).xyz);
 
-	float packed = smoothstep(0.01, 0.08, v_packed);
-	float crust = smoothstep(0.005, 0.04, v_rim);
+	float packed = smoothstep(0.01, 0.08, packed_height);
+	float crust = smoothstep(0.005, 0.04, rim_height);
 	vec3 color = mix(fresh_color, packed_color, packed);
-	float heap = smoothstep(0.004, 0.03, -v_packed);
+	float heap = smoothstep(0.004, 0.03, -packed_height);
 	color *= 1.0 + crust * 0.06 + heap * 0.04 - snow_breakup(v_world, 5.0) * 0.03;
 	// Deep drifts read a touch brighter on the crest; shallow cover equals the terrain.
 	color *= mix(1.0, 1.03, smoothstep(0.1, 0.4, v_depth));
@@ -182,7 +210,7 @@ void fragment() {
 	ALBEDO = snow_thin_tint(snow_wind_tint(color, v_city), v_depth);
 	ROUGHNESS = mix(0.85, 0.6, packed);
 	// Freshly broken grains at a print's edge sparkle more than the settled top.
-	float glint = step(mix(0.996, 0.985, wall), snow_hash(floor(v_world.xz * 140.0)));
+	float glint = step(mix(0.996, 0.985, wall), snow_hash(floor(v_world.xz * 140.0))) * v_edge;
 	EMISSION = vec3(glint * 0.25 * (1.0 - packed * (1.0 - wall)));
 }
 

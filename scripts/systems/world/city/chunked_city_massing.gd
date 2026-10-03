@@ -18,6 +18,8 @@ const PARAPET_M: float = 0.45
 const SNOW_BUDGET_USEC: int = 4000
 ## Chunks this close to Henry's snow window get their snow the same frame.
 const SNOW_SYNC_MARGIN_M: float = 256.0
+## Source footprints are indexed in smaller world cells than rendered city chunks.
+const SNOW_FOOTPRINT_CELL_M: float = 32.0
 
 var terrain: IslandTerrain
 var data: Dictionary = {}
@@ -29,17 +31,22 @@ var _chunks: Dictionary = {}
 var _buildings: Array = []
 var _roads: Array = []
 var _airport_features: Array = []
-var _airport_node: Node3D
 var _labels_node: Node3D
 var _grid_node: Node3D
-var _global_visuals: Node3D
 var _ring0_roads: Node3D
 var _enrichment: Dictionary = {}
 var _visual_materials: Dictionary = {}
 var _stream_to_chunk: Dictionary = {}
+var _far_stream_to_chunk: Dictionary = {}
+var _far_sector_nodes: Dictionary = {}
 var _stream_active: Dictionary = {}
 var _stream_ring0_ready: bool = false
 var _excluded_building_ids: Dictionary = {}
+var _snow_footprint_cells: Dictionary = {}
+var _snow_footprint_polygons: Array[PackedVector2Array] = []
+var _snow_footprint_bounds: Array[Rect2] = []
+var _snow_authored_obstacles: Dictionary = {}
+var _helper_collision_chunks: Dictionary = {}
 ## Chunk snow built a slice per frame, keyed by chunk id.
 var _snow_jobs: Dictionary = {}
 
@@ -72,8 +79,8 @@ func configure(terrain_node: IslandTerrain, data_path: String, enrichment_path: 
 	_visual_materials = KeyWestCityVisuals.make_materials()
 	_make_materials()
 	_create_chunk_states()
-	_build_airport_layer()
-	_build_global_visuals()
+	_index_snow_footprints()
+	_build_global_visual_index()
 	return true
 
 
@@ -128,6 +135,120 @@ func _filtered_building_ids(ids: Array) -> Array:
 	return filtered
 
 
+## An authored building that replaces OSM geometry can keep far and near snow
+## clear even before its scene or collision body enters the streaming ring.
+func register_snow_obstacle(id: StringName, outline: PackedVector2Array) -> void:
+	if _snow_authored_obstacles.has(id):
+		return
+	var polygon: PackedVector2Array = outline.duplicate()
+	if polygon.size() > 2 and polygon[0].is_equal_approx(polygon[polygon.size() - 1]):
+		polygon.remove_at(polygon.size() - 1)
+	if polygon.size() < 3:
+		return
+	var area: float = KeyWestCityVisuals.signed_area(polygon)
+	if absf(area) < 0.0001:
+		return
+	if area < 0.0:
+		polygon.reverse()
+	var index: int = _snow_footprint_polygons.size()
+	_snow_footprint_polygons.append(PackedVector2Array())
+	_snow_footprint_bounds.append(Rect2())
+	_insert_snow_footprint(index, polygon)
+	_snow_authored_obstacles[id] = index
+
+
+## Exact city walls for snow, independent of streamed detail and collision bodies.
+## The same source polygons build the nearby houses; runtime exclusions still win.
+func has_snow_obstacle_at(point: Vector2) -> bool:
+	var cell := Vector2i(
+		floori(point.x / SNOW_FOOTPRINT_CELL_M),
+		floori(point.y / SNOW_FOOTPRINT_CELL_M)
+	)
+	var ids: Array = _snow_footprint_cells.get(cell, [])
+	for id_variant: Variant in ids:
+		var index: int = int(id_variant)
+		if index < _buildings.size() and _excluded_building_ids.has(index):
+			continue
+		var bounds: Rect2 = _snow_footprint_bounds[index]
+		if point.x < bounds.position.x or point.y < bounds.position.y \
+			or point.x > bounds.end.x or point.y > bounds.end.y:
+			continue
+		if Geometry2D.is_point_in_polygon(point, _snow_footprint_polygons[index]):
+			return true
+	return false
+
+
+## World-XZ source contours intersecting a snow cell; callers may clip them to
+## `bounds`. Each contour has positive signed area and is returned only once.
+func get_snow_obstacles_in_rect(bounds: Rect2) -> Array[PackedVector2Array]:
+	var contours: Array[PackedVector2Array] = []
+	var region: Rect2 = bounds.abs()
+	var lo := Vector2i(
+		floori(region.position.x / SNOW_FOOTPRINT_CELL_M),
+		floori(region.position.y / SNOW_FOOTPRINT_CELL_M)
+	)
+	var hi := Vector2i(
+		floori(region.end.x / SNOW_FOOTPRINT_CELL_M),
+		floori(region.end.y / SNOW_FOOTPRINT_CELL_M)
+	)
+	var seen: Dictionary = {}
+	for z: int in range(lo.y, hi.y + 1):
+		for x: int in range(lo.x, hi.x + 1):
+			var ids: Array = _snow_footprint_cells.get(Vector2i(x, z), [])
+			for id_variant: Variant in ids:
+				var index: int = int(id_variant)
+				if seen.has(index):
+					continue
+				seen[index] = true
+				if index < _buildings.size() and _excluded_building_ids.has(index):
+					continue
+				if not _snow_footprint_bounds[index].intersects(region, true):
+					continue
+				contours.append(_snow_footprint_polygons[index])
+	return contours
+
+
+## Index every polygon into all cells its true bounds cross, once at configuration.
+## Re-normalizing thousands of OSM point arrays on each snow sample is too costly.
+func _index_snow_footprints() -> void:
+	_snow_footprint_cells.clear()
+	_snow_footprint_polygons.clear()
+	_snow_footprint_bounds.clear()
+	_snow_authored_obstacles.clear()
+	_snow_footprint_polygons.resize(_buildings.size())
+	_snow_footprint_bounds.resize(_buildings.size())
+	for index: int in range(_buildings.size()):
+		var building := _buildings[index] as Dictionary
+		var polygon: PackedVector2Array = KeyWestCityVisuals.normalized_footprint(
+			building.get("footprint", [])
+		)
+		if polygon.size() < 3:
+			continue
+		_insert_snow_footprint(index, polygon)
+
+
+func _insert_snow_footprint(index: int, polygon: PackedVector2Array) -> void:
+	var bounds := Rect2(polygon[0], Vector2.ZERO)
+	for vertex: Vector2 in polygon:
+		bounds = bounds.expand(vertex)
+	_snow_footprint_polygons[index] = polygon
+	_snow_footprint_bounds[index] = bounds
+	var lo := Vector2i(
+		floori(bounds.position.x / SNOW_FOOTPRINT_CELL_M),
+		floori(bounds.position.y / SNOW_FOOTPRINT_CELL_M)
+	)
+	var hi := Vector2i(
+		floori(bounds.end.x / SNOW_FOOTPRINT_CELL_M),
+		floori(bounds.end.y / SNOW_FOOTPRINT_CELL_M)
+	)
+	for z: int in range(lo.y, hi.y + 1):
+		for x: int in range(lo.x, hi.x + 1):
+			var cell := Vector2i(x, z)
+			var ids: Array = _snow_footprint_cells.get(cell, [])
+			ids.append(index)
+			_snow_footprint_cells[cell] = ids
+
+
 func get_stream_chunks() -> Array:
 	_index_stream_chunks()
 	var descriptors: Array = []
@@ -142,6 +263,20 @@ func get_stream_chunks() -> Array:
 			"position": Vector3(center.x, 0.0, center.y),
 			"radius": radius,
 		})
+	_far_stream_to_chunk.clear()
+	for cid_variant: Variant in _chunks:
+		var cid: String = String(cid_variant)
+		var far_path: String = _far_sector_path(cid)
+		if not FileAccess.file_exists(far_path):
+			continue
+		var stream_id := StringName("kw_far_%s" % cid.replace(":", "_"))
+		_far_stream_to_chunk[stream_id] = cid
+		var center: Vector2 = (_chunks[cid] as Dictionary)["center"]
+		descriptors.append({
+			"id": stream_id,
+			"position": Vector3(center.x, 0.0, center.y),
+			"radius": massing_radius_m + radius,
+		})
 	return descriptors
 
 
@@ -149,21 +284,8 @@ func build_stream_ring0(_container: Node3D) -> void:
 	if _stream_ring0_ready:
 		return
 	_index_stream_chunks()
-	if _ring0_roads == null:
-		_ring0_roads = KeyWestCityVisuals.build_ring0_road_surface(
-			_roads, terrain, _enrichment, _visual_materials
-		)
-		if _ring0_roads != null and _ring0_roads.get_child_count() > 0:
-			add_child(_ring0_roads)
-		elif _ring0_roads != null:
-			_ring0_roads.free()
-			_ring0_roads = null
 	for state_variant: Variant in _chunks.values():
 		var state := state_variant as Dictionary
-		_ensure_massing(state)
-		var massing := state["massing"] as Node3D
-		if massing != null:
-			massing.visible = true
 		var detail := state["detail"] as Node3D
 		if detail != null:
 			detail.visible = false
@@ -175,11 +297,55 @@ func build_stream_ring0(_container: Node3D) -> void:
 
 func activate_stream_chunk(stream_id: StringName, _container: Node3D) -> Node3D:
 	_index_stream_chunks()
+	if _far_stream_to_chunk.has(stream_id):
+		var far_cid: String = String(_far_stream_to_chunk[stream_id])
+		var mesh: Mesh = ResourceLoader.load(_far_sector_path(far_cid)) as Mesh
+		if mesh == null:
+			push_warning("ChunkedCityMassing: far sector failed to load: %s" % far_cid)
+			return null
+		var far_holder := Node3D.new()
+		far_holder.name = "FarCity_%s" % far_cid.replace(":", "_")
+		var far_center: Vector2 = (_chunks[far_cid] as Dictionary)["center"]
+		far_holder.position = Vector3(far_center.x, 0.0, far_center.y)
+		var far_instance := MeshInstance3D.new()
+		far_instance.name = "BakedUltraLow"
+		far_instance.mesh = mesh
+		far_instance.cast_shadow = GeometryInstance3D.SHADOW_CASTING_SETTING_OFF
+		far_instance.visibility_range_begin = 640.0
+		far_instance.visibility_range_begin_margin = 80.0
+		far_instance.visibility_range_end = massing_radius_m
+		far_instance.visibility_range_end_margin = 120.0
+		far_instance.visibility_range_fade_mode = GeometryInstance3D.VISIBILITY_RANGE_FADE_DISABLED
+		far_holder.add_child(far_instance)
+		add_child(far_holder)
+		_far_sector_nodes[stream_id] = far_holder
+		return far_holder
 	var cid: String = String(_stream_to_chunk.get(stream_id, ""))
 	if cid.is_empty() or not _chunks.has(cid):
 		return null
 	var state := _chunks[cid] as Dictionary
-	_ensure_massing(state)
+	if state.get("global_visuals") == null:
+		var origin_values: Array = (state["data"] as Dictionary).get("origin", [])
+		if origin_values.size() < 2:
+			return null
+		var origin := Vector2(float(origin_values[0]), float(origin_values[1]))
+		var bounds := Rect2(origin, Vector2.ONE * chunk_size_m)
+		var helper := KeyWestCityVisuals.build_supplemental_node(
+			terrain, _enrichment, _visual_materials, bounds,
+			not _helper_collision_chunks.has(cid)
+		)
+		_helper_collision_chunks[cid] = true
+		if helper.get_child_count() > 0:
+			(state["node"] as Node3D).add_child(helper)
+			state["global_visuals"] = helper
+		else:
+			helper.free()
+			state["global_visuals"] = null
+	if state.get("airport") == null:
+		var airport := _build_airport_chunk(state["data"] as Dictionary)
+		if airport != null:
+			(state["node"] as Node3D).add_child(airport)
+		state["airport"] = airport
 	_ensure_detail(state)
 	_ensure_roads(state)
 	if state.get("props") == null:
@@ -240,9 +406,9 @@ func _start_snow(cid: String, state: Dictionary) -> void:
 		_attach_snow(state, SnowChunkCover.cached(origin))
 		return
 	if _near_snow_window(origin):
-		_attach_snow(state, SnowChunkCover.build(terrain, origin, chunk_size_m))
+		_attach_snow(state, SnowChunkCover.build(terrain, origin, chunk_size_m, self))
 		return
-	_snow_jobs[cid] = SnowChunkCover.begin(terrain, origin, chunk_size_m)
+	_snow_jobs[cid] = SnowChunkCover.begin(terrain, origin, chunk_size_m, self)
 
 
 func _attach_snow(state: Dictionary, snow: MeshInstance3D) -> void:
@@ -252,6 +418,12 @@ func _attach_snow(state: Dictionary, snow: MeshInstance3D) -> void:
 
 
 func deactivate_stream_chunk(stream_id: StringName) -> void:
+	if _far_stream_to_chunk.has(stream_id):
+		var far_holder := _far_sector_nodes.get(stream_id) as Node3D
+		if is_instance_valid(far_holder):
+			far_holder.queue_free()
+		_far_sector_nodes.erase(stream_id)
+		return
 	var cid: String = String(_stream_to_chunk.get(stream_id, ""))
 	if cid.is_empty() or not _chunks.has(cid):
 		return
@@ -272,6 +444,14 @@ func deactivate_stream_chunk(stream_id: StringName) -> void:
 	if is_instance_valid(prop_visuals):
 		prop_visuals.queue_free()
 	state["prop_visuals"] = null
+	var helper := state.get("global_visuals") as Node3D
+	if is_instance_valid(helper):
+		helper.queue_free()
+	state["global_visuals"] = null
+	var airport := state.get("airport") as Node3D
+	if is_instance_valid(airport):
+		airport.queue_free()
+	state["airport"] = null
 	_snow_jobs.erase(cid)
 	var snow := state.get("snow") as Node3D
 	if is_instance_valid(snow):
@@ -577,7 +757,13 @@ func _create_chunk_states() -> void:
 			"massing": null,
 			"detail": null,
 			"roads": null,
+			"global_visuals": null,
+			"airport": null,
 		}
+
+
+func _far_sector_path(cid: String) -> String:
+	return "res://data/world/key_west/far_city/%s.obj" % cid.replace(":", "_")
 
 
 func _ensure_massing(state: Dictionary) -> void:
@@ -796,16 +982,30 @@ func _build_road_mesh(segments: Array) -> ArrayMesh:
 	return _mesh_from_arrays(vertices, normals, indices, _road_material)
 
 
-func _build_airport_layer() -> void:
-	_airport_node = Node3D.new()
-	_airport_node.name = "AirportBlock"
-	add_child(_airport_node)
-
+func _build_airport_chunk(chunk: Dictionary) -> Node3D:
+	var feature_ids: Array = chunk.get("airport_feature_ids", [])
+	if feature_ids.is_empty():
+		return null
+	var airport := Node3D.new()
+	airport.name = "AirportChunk_%s" % String(chunk.get("id", "" )).replace(":", "_")
+	var origin_values: Array = chunk.get("origin", [])
+	if origin_values.size() < 2:
+		airport.free()
+		return null
+	var bounds := Rect2(
+		Vector2(float(origin_values[0]), float(origin_values[1])),
+		Vector2.ONE * float(chunk.get("size_m", chunk_size_m))
+	)
 	var runway_segments: Array = []
 	var taxiway_segments: Array = []
 	var areas: Array = []
-	for feature_variant: Variant in _airport_features:
-		var feature := feature_variant as Dictionary
+	var features: Array = []
+	for feature_id_variant: Variant in feature_ids:
+		var feature_id: int = int(feature_id_variant)
+		if feature_id < 0 or feature_id >= _airport_features.size():
+			continue
+		var feature := _airport_features[feature_id] as Dictionary
+		features.append(feature)
 		var kind: String = String(feature.get("kind", ""))
 		if bool(feature.get("is_area", false)):
 			areas.append(feature)
@@ -814,27 +1014,28 @@ func _build_airport_layer() -> void:
 		elif kind in ["taxiway", "taxilane"]:
 			taxiway_segments.append(feature)
 
-	_add_airport_ribbons(runway_segments, _runway_material, 0.22, "Runways")
-	_add_airport_ribbons(taxiway_segments, _taxiway_material, 0.20, "Taxiways")
-	_add_airport_areas(areas)
-	KeyWestCityVisuals.add_airport_markings(_airport_node, _airport_features, terrain, _visual_materials)
+	_add_airport_ribbons(airport, runway_segments, _runway_material, 0.22, "Runways", bounds)
+	_add_airport_ribbons(airport, taxiway_segments, _taxiway_material, 0.20, "Taxiways", bounds)
+	_add_airport_areas(airport, areas, bounds)
+	KeyWestCityVisuals.add_airport_markings(airport, features, terrain, _visual_materials, bounds)
+	return airport
 
 
-func _build_global_visuals() -> void:
-	if _enrichment.is_empty():
-		return
+func _build_global_visual_index() -> void:
 	KeyWestStreetProps.colliders.clear()
 	KeyWestStreetProps.visuals.clear()
-	_global_visuals = KeyWestCityVisuals.build_supplemental_node(terrain, _enrichment, _visual_materials)
-	_global_visuals.add_child(KeyWestStreetProps.build(terrain, _enrichment, _roads))
-	if _global_visuals != null and _global_visuals.get_child_count() > 0:
-		add_child(_global_visuals)
-	elif _global_visuals != null:
-		_global_visuals.free()
-		_global_visuals = null
+	var props_index: Node3D = KeyWestStreetProps.build(terrain, _enrichment, _roads)
+	props_index.free()
 
 
-func _add_airport_ribbons(features: Array, material: Material, lift: float, node_name: String) -> void:
+func _add_airport_ribbons(
+	parent: Node3D,
+	features: Array,
+	material: Material,
+	lift: float,
+	node_name: String,
+	bounds: Rect2
+) -> void:
 	var vertices := PackedVector3Array()
 	var normals := PackedVector3Array()
 	var indices := PackedInt32Array()
@@ -845,10 +1046,14 @@ func _add_airport_ribbons(features: Array, material: Material, lift: float, node
 		for i: int in range(points.size() - 1):
 			var a_values: Array = points[i]
 			var b_values: Array = points[i + 1]
+			var a := Vector2(float(a_values[0]), float(a_values[1]))
+			var b := Vector2(float(b_values[0]), float(b_values[1]))
+			var clipped: PackedVector2Array = KeyWestCityVisuals._clip_segment(a, b, bounds)
+			if clipped.size() != 2:
+				continue
 			_append_ribbon_segment(
 				vertices, normals, indices,
-				Vector2(float(a_values[0]), float(a_values[1])),
-				Vector2(float(b_values[0]), float(b_values[1])),
+				clipped[0], clipped[1],
 				half_width, lift
 			)
 	if vertices.is_empty():
@@ -856,10 +1061,10 @@ func _add_airport_ribbons(features: Array, material: Material, lift: float, node
 	var instance := MeshInstance3D.new()
 	instance.name = node_name
 	instance.mesh = _mesh_from_arrays(vertices, normals, indices, material)
-	_airport_node.add_child(instance)
+	parent.add_child(instance)
 
 
-func _add_airport_areas(features: Array) -> void:
+func _add_airport_areas(parent: Node3D, features: Array, bounds: Rect2) -> void:
 	for feature_variant: Variant in features:
 		var feature := feature_variant as Dictionary
 		var values: Array = feature.get("points", [])
@@ -869,27 +1074,35 @@ func _add_airport_areas(features: Array) -> void:
 		for point_variant: Variant in values:
 			var point := point_variant as Array
 			polygon.append(Vector2(float(point[0]), float(point[1])))
-		var triangles: PackedInt32Array = Geometry2D.triangulate_polygon(polygon)
-		if triangles.is_empty():
-			continue
-		var vertices := PackedVector3Array()
-		var normals := PackedVector3Array()
-		var indices := PackedInt32Array()
-		for p: Vector2 in polygon:
-			vertices.append(Vector3(p.x, maxf(terrain.get_height(p.x, p.y), 0.0) + 0.16, p.y))
-			normals.append(Vector3.UP)
-		for index: int in triangles:
-			indices.append(index)
-		var material: Material = _apron_material
-		var kind: String = String(feature.get("kind", ""))
-		if kind == "runway":
-			material = _runway_material
-		elif kind in ["taxiway", "taxilane"]:
-			material = _taxiway_material
-		var instance := MeshInstance3D.new()
-		instance.name = "AirportArea_%s_%s" % [kind, feature.get("id", 0)]
-		instance.mesh = _mesh_from_arrays(vertices, normals, indices, material)
-		_airport_node.add_child(instance)
+		var clipper := PackedVector2Array([
+			bounds.position,
+			Vector2(bounds.end.x, bounds.position.y),
+			bounds.end,
+			Vector2(bounds.position.x, bounds.end.y),
+		])
+		var pieces: Array[PackedVector2Array] = Geometry2D.clip_polygons(polygon, clipper)
+		for piece: PackedVector2Array in pieces:
+			var triangles: PackedInt32Array = Geometry2D.triangulate_polygon(piece)
+			if triangles.is_empty():
+				continue
+			var vertices := PackedVector3Array()
+			var normals := PackedVector3Array()
+			var indices := PackedInt32Array()
+			for p: Vector2 in piece:
+				vertices.append(Vector3(p.x, maxf(terrain.get_height(p.x, p.y), 0.0) + 0.16, p.y))
+				normals.append(Vector3.UP)
+			for index: int in triangles:
+				indices.append(index)
+			var material: Material = _apron_material
+			var kind: String = String(feature.get("kind", ""))
+			if kind == "runway":
+				material = _runway_material
+			elif kind in ["taxiway", "taxilane"]:
+				material = _taxiway_material
+			var instance := MeshInstance3D.new()
+			instance.name = "AirportArea_%s_%s" % [kind, feature.get("id", 0)]
+			instance.mesh = _mesh_from_arrays(vertices, normals, indices, material)
+			parent.add_child(instance)
 
 
 func _append_ribbon_segment(

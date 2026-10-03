@@ -16,9 +16,6 @@ uniform sampler2D wind_tex : filter_linear, repeat_disable;
 uniform vec2 wind_origin = vec2(0.0);
 uniform vec2 wind_extent = vec2(0.0);
 uniform float wind_max = 2.5;
-// Share of fresh storm snow over the old base, from SnowPresentationSystem.
-global uniform float snow_storm_share;
-
 float city_at(vec2 xz) {
 	if (wind_extent.x <= 0.0) {
 		return 1.0;

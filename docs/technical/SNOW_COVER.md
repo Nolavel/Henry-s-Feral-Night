@@ -179,6 +179,17 @@ snow_ground.gdshader: top − packed + rim          MovementController speed
   to 60 cm behind anything standing on the ground. Windward faces are scoured,
   hollows fill. Snow thins to nothing at `sea_level_m` and never lies below it.
   Gameplay reads the same numbers the shader draws.
+- **Key West settled shape.** The baked city wind map already records static lee
+  deposits, windward scour and sheltered banks. Both the streamed chunk cover
+  and Henry's shell shader derive visible settled height from the same terrain,
+  baked wind texture, shore fade and world coordinates. `SnowField` mirrors the
+  baseline for gameplay and tracks; its CPU grid updates in bounded steps.
+  Henry's moving window adds packed tracks. The local ray-derived lee, scour
+  and blurred bed remain for scenes without the baked map. Baked prevailing wind
+  fixes settled ridge orientation; current gusts drive weather effects instead.
+  Cover changes rebuild the field even while Henry stands still. The near mesh
+  still samples terrain more finely than the 2 m chunk cover, so an edge may
+  retain a small LOD difference pending a representative runtime capture.
 - **Geometry presses the snow.** Anything on render layer 20 (`CONTACT_LAYER`)
   packs the snow where it is lower than the snow top: Henry's whole mesh, and
   resting `ItemPickup`s, tagged by `tag_contact()`. A print is the real boot
@@ -257,12 +268,14 @@ snow_ground.gdshader: top − packed + rim          MovementController speed
   shelters little). A broad, low, open surface (deck, crate) carries snow. A
   surface with a roof above is indoors: no snow and no lee pile. Where the
   ground under the snow jumps, the shell is discarded rather than hanging a
-  curtain between levels. Depth is softened over ~0.5 m, so wind never leaves
-  one-cell spikes.
-- **Snow bed.** Snow settles on the ground box-blurred over ~1 m and never
-  below it, so terrain facets and small hollows fill in. Where the snow thins
-  under ~2 cm the shell is discarded and the ground shows, instead of the two
-  surfaces z-fighting at the shore.
+  curtain between levels. Key West uses exact source building polygons to
+  classify house walls independently of streamed building collision. Depth is
+  softened over ~0.5 m in scenes without the baked city map.
+- **Snow bed.** Without a baked city field, snow settles on the ground
+  box-blurred over ~1 m and never below it, so terrain facets and small hollows
+  fill in. In Key West the near and far heights share the baked baseline.
+  Where the snow thins under ~2 cm the shell is discarded and the ground shows,
+  instead of the two surfaces z-fighting at the shore.
 - **Prints.** Below `wade_depth_m` (30 cm) only planted soles press: a sole of
   two overlapping ovals (heel and forefoot, so it has a boot's waist) is set
   where each foot lands and held until it lifts, so the gliding walk clip
@@ -300,7 +313,21 @@ snow_ground.gdshader: top − packed + rim          MovementController speed
 
 Chunk cover meshes are cached (12 chunks, LRU) and built in 4 ms slices per
 frame; chunks near `SnowShell.live_window` are built at once so Henry never
-stands on a chunk without snow.
+stands on a chunk without snow. Key West uses exact city source polygons and
+authored exclusions for cover holes; the First Exit shelter registers its own
+outline after the overlapping OSM buildings are excluded. Each polygon is
+triangulated once per build; its triangles are indexed into the 2 m cells they
+cross. Only those cells are clipped, so snow reaches the wall without square
+street gaps or triangles crossing the building. A malformed source polygon that
+cannot be triangulated is left uncut and warned about.
+
+The far shader cuts out its cover inside the moving SnowShell square. SnowShell
+prepares the replacement field and mesh before publishing that square to the
+far shader and does not cast its displaced surface into the shadow map. Packed
+material and normal contributions now fade over the same outer 6 m as height;
+the thin-cover cutoff matches the far shader at the border.
+Local cut cells and the different terrain tessellation can still make the
+handoff visible; a representative runtime walk is required to accept it.
 
 ### Storm layer
 
@@ -308,7 +335,8 @@ stands on a chunk without snow.
 city wind field: R is the old prevailing base, G the fresh storm pattern.
 Snow falling in wind drives the share toward `wind / storm_wind_mps`; without
 snowfall it consolidates back to `calm_storm_share` over hours. SnowField keeps
-both factors per cell, so a share change rebuilds depth only.
+both factors per cell, so a share change rebuilds depth only. A settled-cover
+change of at least 0.02 also rebuilds depth, independently of window movement.
 
 ### Persistent tracks
 

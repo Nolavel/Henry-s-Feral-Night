@@ -19,6 +19,8 @@ const PICKUP_SCRIPT: GDScript = preload("res://scripts/environment/interactive/i
 const MEDIUM_CONTACT_RES: int = 512
 ## Change in storm share that is worth rebuilding the window for.
 const STORM_REBUILD_STEP: float = 0.05
+## Rebuild settled depth for weather accumulation even while Henry stands still.
+const COVER_REBUILD_STEP: float = 0.02
 ## Colliders in this group are kept clear of snow, like swept steps.
 const SWEPT_GROUP: StringName = &"snow_swept"
 const SENSOR_SCRIPT: GDScript = preload("res://scripts/actors/player/henry/components/foot_contact_sensor.gd")
@@ -155,11 +157,13 @@ var _base_y: float = 0.0
 var _move_from: Vector2 = Vector2(INF, INF)
 var _move_cover: float = 0.0
 var _move_wind: Vector2 = Vector2(0, -1)
+var _live_cover: float = -1.0
 var _player: Node3D
 var _mover: Node
 var _weather: WeatherController
 var _presentation: Node
 var _terrain: IslandTerrain
+var _city: Node3D
 var _world_root: Node
 var _sensor: FootContactSensor
 ## A sole is two pads, heel and forefoot: their union has the waist of a boot.
@@ -224,7 +228,15 @@ func on_world_ready(context: WorldContext) -> void:
 	## Only the island has a sea; a test floor at y 0 is not water.
 	field.sea_level_m = sea_level_m if _terrain != null else -INF
 	if _terrain != null and not wind_field_path.is_empty():
-		field.load_wind_field(wind_field_path)
+		field.use_baked_baseline = field.load_wind_field(wind_field_path)
+		_surface.set_shader_parameter("use_baked_baseline", field.use_baked_baseline)
+		if field.use_baked_baseline:
+			RenderingServer.global_shader_parameter_set(&"snow_wind", field.settled_wind)
+			_surface.set_shader_parameter("wind_tex", field.wind_texture)
+			_surface.set_shader_parameter("wind_origin", field.wind_field_origin)
+			_surface.set_shader_parameter("wind_extent",
+				Vector2(field.wind_field.get_width(), field.wind_field.get_height()) * field.wind_field_cell_m)
+			_surface.set_shader_parameter("wind_max", field.wind_field_max)
 	if _player != null:
 		_mover = _player.get_node_or_null(^"MovementController")
 		_gait = _player.find_child("Wade", true, false)
@@ -250,6 +262,8 @@ func tag_contact(root: Node, on: bool = true) -> void:
 func _physics_process(_delta: float) -> void:
 	if _player == null:
 		return
+	if _city == null and _world_root != null:
+		_city = _world_root.find_child("KeyWestCity", true, false) as Node3D
 	var at: Vector3 = _player.global_position
 	var travel := Vector2.ZERO
 	if _player is CharacterBody3D:
@@ -525,13 +539,15 @@ func _follow(henry: Vector2, lead: Vector2 = Vector2.ZERO) -> void:
 	var storm: float = _storm_share()
 	## A storm reshaping the drifts rebuilds the window where it stands.
 	var restorm: bool = absf(storm - field.storm_share) >= STORM_REBUILD_STEP
-	if field.origin.x != INF and wanted.is_equal_approx(field.origin) and not restorm:
+	var cover: float = _cover()
+	var reaccumulate: bool = absf(cover - _live_cover) >= COVER_REBUILD_STEP
+	if field.origin.x != INF and wanted.is_equal_approx(field.origin) and not restorm and not reaccumulate:
 		return
 	if field.origin.x == INF or wanted.distance_to(field.origin) > window_m * 0.5:
 		recentre_to(centre)
 		return
 	_move_from = field.origin
-	_move_cover = _cover()
+	_move_cover = cover
 	_move_wind = _wind()
 	field.storm_share = storm
 	field.begin_rebuild(wanted, _move_cover, _move_wind)
@@ -547,16 +563,16 @@ func _snapped_origin(centre: Vector2) -> Vector2:
 ## Puts a freshly rebuilt field on screen: shader, packed-snow shift, globals.
 func _apply_window(old: Vector2, wanted: Vector2, cover: float, wind: Vector2) -> void:
 	var half: float = window_m * 0.5
+	_live_cover = cover
 	_keep_tracks(old, wanted)
 	if old.x != INF:
 		_pending_shift += (wanted - old) / window_m
 	_base_y = _floor_y()
-	## Chunk-wide snow reads the same settled depth and hides inside this window.
+	## Chunk-wide snow reads the same settled depth as the local window.
 	RenderingServer.global_shader_parameter_set(&"snow_settled_depth", field.settled_depth(cover))
 	RenderingServer.global_shader_parameter_set(&"snow_drift_m", field.drift_amplitude(cover))
-	RenderingServer.global_shader_parameter_set(&"snow_wind", wind.normalized() if wind.length_squared() > 0.0001 else Vector2(0, -1))
-	live_window = Vector4(wanted.x, wanted.y, window_m, 1.0)
-	RenderingServer.global_shader_parameter_set(&"snow_window", live_window)
+	var settled_wind: Vector2 = field.settled_wind if field.use_baked_baseline else wind
+	RenderingServer.global_shader_parameter_set(&"snow_wind", settled_wind.normalized() if settled_wind.length_squared() > 0.0001 else Vector2(0, -1))
 	_field_tex.set_image(field.image)
 	_surface.set_shader_parameter("origin", wanted)
 	_mesh.global_position = Vector3(wanted.x + half, 0.0, wanted.y + half)
@@ -565,6 +581,9 @@ func _apply_window(old: Vector2, wanted: Vector2, cover: float, wind: Vector2) -
 		Vector3(wanted.x + half, _base_y - 5.0, wanted.y + half)
 	)
 	_contact_quad.set_shader_parameter("base_y", _base_y)
+	## Switch the far-cover hole only after the new local texture and mesh are ready.
+	live_window = Vector4(wanted.x, wanted.y, window_m, 1.0)
+	RenderingServer.global_shader_parameter_set(&"snow_window", live_window)
 
 
 func _build_surface() -> void:
@@ -575,6 +594,8 @@ func _build_surface() -> void:
 	_surface.set_shader_parameter("field", _field_tex)
 	_surface.set_shader_parameter("window_m", window_m)
 	_surface.set_shader_parameter("packed_texel_m", window_m / float(packed_res))
+	_surface.set_shader_parameter("use_baked_baseline", field.use_baked_baseline)
+	_surface.set_shader_parameter("sea_level_m", sea_level_m)
 	_surface.set_shader_parameter("repose_tan", tan(deg_to_rad(crust_wall_deg)))
 	_mesh = MeshInstance3D.new()
 	_mesh.name = "SnowShellMesh"
@@ -989,6 +1010,8 @@ func _sample_ground(at: Vector2) -> Vector2:
 	var ground_y: float = _base_y
 	if _terrain != null:
 		ground_y = _terrain.get_height(at.x, at.y)
+	if _terrain != null and _city != null and bool(_city.call(&"has_snow_obstacle_at", at)):
+		return Vector2(ground_y, 1.0)
 	if not is_inside_tree():
 		return Vector2(ground_y, 0.0)
 	var space: PhysicsDirectSpaceState3D = get_world_3d().direct_space_state
@@ -996,7 +1019,7 @@ func _sample_ground(at: Vector2) -> Vector2:
 		Vector3(at.x, ground_y + 6.0, at.y), Vector3(at.x, ground_y - 4.0, at.y)
 	)
 	query.exclude = _exclude()
-	var hit: Dictionary = space.intersect_ray(query)
+	var hit: Dictionary = _intersect_without_city_collision(space, query)
 	if hit.is_empty():
 		return Vector2(ground_y, 0.0 if _terrain != null else 1.0)
 	var hit_at: Vector3 = hit["position"]
@@ -1013,11 +1036,27 @@ func _sample_ground(at: Vector2) -> Vector2:
 	## A floor, deck or crate top: snow lies on it unless a roof covers it.
 	var up := PhysicsRayQueryParameters3D.create(hit_at + Vector3.UP * 0.2, hit_at + Vector3.UP * 12.0)
 	up.exclude = _exclude()
-	if not space.intersect_ray(up).is_empty():
+	if not _intersect_without_city_collision(space, up).is_empty():
 		return Vector2(hit_at.y, 2.0)
 	if _terrain != null and hit_at.y <= ground_y + 0.3:
 		return Vector2(ground_y, 0.0)
 	return Vector2(hit_at.y, 0.0)
+
+
+## Exact city footprints above own the static obstacle mask. A streamed city
+## collision must not change a cached snow cell when its detail chunk arrives.
+func _intersect_without_city_collision(space: PhysicsDirectSpaceState3D, query: PhysicsRayQueryParameters3D) -> Dictionary:
+	for attempt: int in range(4):
+		var hit: Dictionary = space.intersect_ray(query)
+		if hit.is_empty() or _city == null:
+			return hit
+		var collider: Object = hit.get("collider")
+		if not (collider is CollisionObject3D) or (collider as Node).name != &"CityCollision":
+			return hit
+		var excluded: Array[RID] = query.exclude
+		excluded.append((collider as CollisionObject3D).get_rid())
+		query.exclude = excluded
+	return {}
 
 
 ## True when a raised surface is wide enough to hold snow, not a rail or post top.
@@ -1027,7 +1066,7 @@ func _is_broad(space: PhysicsDirectSpaceState3D, at: Vector3) -> bool:
 			at + offset + Vector3.UP * 0.5, at + offset + Vector3.DOWN * 0.2
 		)
 		query.exclude = _exclude()
-		var hit: Dictionary = space.intersect_ray(query)
+		var hit: Dictionary = _intersect_without_city_collision(space, query)
 		if hit.is_empty() or absf((hit["position"] as Vector3).y - at.y) > 0.05:
 			return false
 	return true
