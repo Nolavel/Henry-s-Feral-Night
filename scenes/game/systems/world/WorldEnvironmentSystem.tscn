@@ -1,4 +1,4 @@
-[gd_scene load_steps=15 format=3 uid="uid://cvv8y27vmgjfi"]
+[gd_scene load_steps=16 format=3 uid="uid://cvv8y27vmgjfi"]
 
 [ext_resource type="Script" uid="uid://naxaityb4qy1" path="res://scripts/systems/world/WorldEnvironmentController.gd" id="1_tiy4q"]
 [ext_resource type="Script" uid="uid://drvu6b4aca7sh" path="res://scripts/systems/world/DayNightManager.gd" id="2_n3v7b"]
@@ -11,6 +11,7 @@
 [ext_resource type="Resource" path="res://resources/environment/color_grading/HFN_ColdAsh_Dusk.tres" id="9_dusk_grade"]
 [ext_resource type="Resource" path="res://resources/environment/color_grading/HFN_ColdAsh_Night.tres" id="10_night_grade"]
 [ext_resource type="Resource" path="res://resources/environment/color_grading/HFN_ColdAsh_Shelter.tres" id="11_shelter_grade"]
+[ext_resource type="Script" path="res://scripts/systems/world/shadow_caster_policy.gd" id="12_shadow_policy"]
 
 [sub_resource type="Environment" id="Environment_himop"]
 background_mode = 2
@@ -36,6 +37,9 @@ world_environment = NodePath("Environment/WorldEnvironment")
 sun_light = NodePath("Lighting/SunLight")
 color_grade_controller = NodePath("ColorGradeController")
 
+[node name="ShadowCasterPolicy" type="Node" parent="."]
+script = ExtResource("12_shadow_policy")
+
 [node name="Lighting" type="Node3D" parent="."]
 
 [node name="SunLight" type="DirectionalLight3D" parent="Lighting"]
@@ -44,9 +48,10 @@ light_bake_mode = 1
 light_angular_distance = 0.0
 shadow_enabled = true
 shadow_blur = 3.3
-directional_shadow_blend_splits = true
-directional_shadow_fade_start = 0.0
-directional_shadow_max_distance = 200.0
+directional_shadow_mode = 1
+directional_shadow_blend_splits = false
+directional_shadow_fade_start = 0.8
+directional_shadow_max_distance = 20.0
 
 [node name="Environment" type="Node3D" parent="."]
 
