@@ -24,6 +24,7 @@ var _last_wall_usec: int = 0
 var _show_panel: bool = true
 var _print_runtime_debug_stats: bool = false
 var _measured_viewports: Array[Viewport] = []
+var _city_debug_source: Node
 
 
 func _ready() -> void:
@@ -134,6 +135,7 @@ func _update_visible_snapshot() -> void:
 
 func _start_console_diagnostics() -> void:
 	_refresh_measured_viewports()
+	_refresh_city_debug_source()
 	_print_console_meta()
 
 
@@ -227,7 +229,109 @@ func _print_console_snapshot() -> void:
 		"viewports": viewport_samples,
 	}
 	print("[PerfJSON] %s" % JSON.stringify(data))
+	_print_city_console_snapshot()
 	_reset_console_window()
+
+
+func _print_city_console_snapshot() -> void:
+	if not is_instance_valid(_city_debug_source):
+		_refresh_city_debug_source()
+	if not is_instance_valid(_city_debug_source):
+		return
+
+	var active_city_chunks: int = 0
+	if _city_debug_source.has_method("get_stream_active_detail_count"):
+		active_city_chunks = int(_city_debug_source.call("get_stream_active_detail_count"))
+
+	var resident_detail_chunks: int = 0
+	var resident_massing_chunks: int = 0
+	var chunks_variant: Variant = _city_debug_source.get("_chunks")
+	if chunks_variant is Dictionary:
+		for state_variant: Variant in (chunks_variant as Dictionary).values():
+			if not state_variant is Dictionary:
+				continue
+			var state := state_variant as Dictionary
+			var detail: Variant = state.get("detail")
+			if detail != null and is_instance_valid(detail):
+				resident_detail_chunks += 1
+			var massing: Variant = state.get("massing")
+			if massing != null and is_instance_valid(massing):
+				resident_massing_chunks += 1
+
+	var render_stats := {
+		"visible_mesh_instance_3d": 0,
+		"visible_multimesh_instances": 0,
+		"occluders": 0,
+		"city_primitives_estimate": 0,
+	}
+	_collect_city_render_stats(_city_debug_source, render_stats)
+
+	var city_data := {
+		"schema": "hoarbound_city_perf_v1",
+		"ticks_msec": Time.get_ticks_msec(),
+		"active_city_chunks": active_city_chunks,
+		"resident_detail_chunks": resident_detail_chunks,
+		"resident_massing_chunks": resident_massing_chunks,
+		"visible_mesh_instance_3d": int(render_stats["visible_mesh_instance_3d"]),
+		"visible_multimesh_instances": int(render_stats["visible_multimesh_instances"]),
+		"occluder_count": int(render_stats["occluders"]),
+		"city_primitives_estimate": int(render_stats["city_primitives_estimate"]),
+	}
+	print("[CityPerfJSON] %s" % JSON.stringify(city_data))
+
+
+func _refresh_city_debug_source() -> void:
+	_city_debug_source = null
+	var scene := get_tree().current_scene
+	if scene != null:
+		_city_debug_source = scene.find_child("KeyWestCity", true, false)
+
+
+func _collect_city_render_stats(node: Node, stats: Dictionary) -> void:
+	if node is MeshInstance3D:
+		var mesh_instance := node as MeshInstance3D
+		if mesh_instance.is_visible_in_tree():
+			stats["visible_mesh_instance_3d"] = int(stats["visible_mesh_instance_3d"]) + 1
+			stats["city_primitives_estimate"] = (
+				int(stats["city_primitives_estimate"])
+				+ _estimate_mesh_triangle_primitives(mesh_instance.mesh)
+			)
+	elif node is MultiMeshInstance3D:
+		var multimesh_instance := node as MultiMeshInstance3D
+		if multimesh_instance.is_visible_in_tree() and multimesh_instance.multimesh != null:
+			var multimesh: MultiMesh = multimesh_instance.multimesh
+			var visible_count: int = multimesh.visible_instance_count
+			if visible_count < 0:
+				visible_count = multimesh.instance_count
+			visible_count = maxi(visible_count, 0)
+			stats["visible_multimesh_instances"] = (
+				int(stats["visible_multimesh_instances"]) + visible_count
+			)
+			stats["city_primitives_estimate"] = (
+				int(stats["city_primitives_estimate"])
+				+ _estimate_mesh_triangle_primitives(multimesh.mesh) * visible_count
+			)
+	elif node is OccluderInstance3D:
+		var occluder := node as OccluderInstance3D
+		if occluder.is_visible_in_tree():
+			stats["occluders"] = int(stats["occluders"]) + 1
+
+	for child: Node in node.get_children():
+		_collect_city_render_stats(child, stats)
+
+
+func _estimate_mesh_triangle_primitives(mesh: Mesh) -> int:
+	if mesh == null:
+		return 0
+	var total: int = 0
+	for surface: int in range(mesh.get_surface_count()):
+		if mesh.surface_get_primitive_type(surface) != Mesh.PRIMITIVE_TRIANGLES:
+			continue
+		var element_count: int = mesh.surface_get_array_index_len(surface)
+		if element_count <= 0:
+			element_count = mesh.surface_get_array_len(surface)
+		total += int(element_count / 3)
+	return total
 
 
 func _refresh_measured_viewports() -> void:
