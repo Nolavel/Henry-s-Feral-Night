@@ -127,27 +127,27 @@ func _enforce_exact_city_residency() -> void:
 		_exact_city_owner = &""
 		for stream_id_variant: Variant in _city._stream_to_chunk:
 			var stream_id := stream_id_variant as StringName
-			if _streaming.get_state(stream_id) != StreamingSystem.CellState.UNLOADED:
+			if int(_streaming.get_state(stream_id)) != int(StreamingSystem.CellState.UNLOADED):
 				_streaming._release(stream_id)
 		return
 
 	_exact_city_owner = owner
-	var owner_state: StreamingSystem.CellState = _streaming.get_state(owner)
-	if owner_state == StreamingSystem.CellState.UNLOADED:
+	var owner_state: int = int(_streaming.get_state(owner))
+	if owner_state == int(StreamingSystem.CellState.UNLOADED):
 		_streaming._request(owner)
-		owner_state = _streaming.get_state(owner)
-	var owner_active: bool = owner_state == StreamingSystem.CellState.ACTIVE
+		owner_state = int(_streaming.get_state(owner))
+	var owner_active: bool = owner_state == int(StreamingSystem.CellState.ACTIVE)
 
 	for stream_id_variant: Variant in _city._stream_to_chunk:
 		var stream_id := stream_id_variant as StringName
 		if stream_id == owner:
 			continue
-		var state: StreamingSystem.CellState = _streaming.get_state(stream_id)
-		if state == StreamingSystem.CellState.UNLOADED:
+		var state: int = int(_streaming.get_state(stream_id))
+		if state == int(StreamingSystem.CellState.UNLOADED):
 			continue
 		## Pending neighbours produced by the generic radius scan are always safe
 		## to cancel. Keep an old ACTIVE owner only while the new one is not live.
-		if state == StreamingSystem.CellState.ACTIVE and not owner_active:
+		if state == int(StreamingSystem.CellState.ACTIVE) and not owner_active:
 			continue
 		_streaming._release(stream_id)
 
