@@ -580,6 +580,7 @@ func _build_surface() -> void:
 	_mesh.name = "SnowShellMesh"
 	_mesh.mesh = _graded_grid()
 	_mesh.material_override = _surface
+	_mesh.cast_shadow = GeometryInstance3D.SHADOW_CASTING_SETTING_OFF
 	_mesh.extra_cull_margin = 400.0
 	add_child(_mesh)
 
