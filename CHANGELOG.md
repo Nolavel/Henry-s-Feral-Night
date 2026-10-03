@@ -29,15 +29,15 @@ Maintained per branch; entries are added by whoever makes the change.
     scripted walks commit; `Player` passes that in.
 - Doorway framing, all derived from the passage:
   - **Pre-compress.** The frame starts closing 1.0 m (plus a speed lead, more on a
-    slanted approach) before Henry's capsule reaches the wall. It stays closed
-    while the boom behind him crosses the frame. It closes at rate 8 and opens at
-    rate 3. A camera leading Henry backwards frames the door before he reaches it.
+	slanted approach) before Henry's capsule reaches the wall. It stays closed
+	while the boom behind him crosses the frame. It closes at rate 8 and opens at
+	rate 3. A camera leading Henry backwards frames the door before he reaches it.
   - **Shoulder.** Kept within half the free opening round the centre line, so it
-    slides inward or across when Henry is off-centre. Your shoulder choice is never
-    changed.
+	slides inward or across when Henry is off-centre. Your shoulder choice is never
+	changed.
   - **Boom.** 1.4 m less any wall depth beyond 0.2 m, at least 1.0 m.
   - **Rise and FOV.** Rise is at most half the room under the lintel. FOV is +5°,
-    capped at 80°.
+	capped at 80°.
   - **Cone.** Yaw room comes from the clear width, Henry's offset and the depth to
     the far wall face; pitch room comes from the lintel and the floor. The cone
     closes at once as Henry walks in, opens at the release rate, and ramps in over
@@ -87,7 +87,7 @@ Maintained per branch; entries are added by whoever makes the change.
 - Doorway framing in `TpsCamera`:
   - boom down to 1.4 m, shoulder to 25 %, +0.15 m rise, +6° FOV;
   - the view stays within ±35° of the passage axis, and the mouse cannot push
-    past it;
+	past it;
   - the frame closes at rate 12 and opens back out at rate 3.
   - The body fade stays only as a fallback.
 - `test_passage_traversal`: a 1.2 m door taken 35° off, the frame closing fast
