@@ -14,7 +14,6 @@ extends Node
 ## visible building silhouette instead of causing false occlusion around edges.
 
 const DETAIL_NODE_NAME: StringName = &"BuildingDetail"
-const MASSING_NODE_NAME: NodePath = ^"Ring0Massing"
 const OCCLUDER_NODE_NAME: StringName = &"BuildingOccluder"
 
 ## CPU occlusion has a fixed cost. Only dense chunks are worth rasterizing.
@@ -26,14 +25,14 @@ const MIN_HEIGHT_M: float = 3.0
 const HORIZONTAL_INSET: float = 0.78
 const VERTICAL_INSET: float = 0.90
 
-const BOX_TRIANGLES := PackedInt32Array([
+const BOX_TRIANGLES: Array[int] = [
 	0, 2, 1, 0, 3, 2,
 	4, 5, 6, 4, 6, 7,
 	0, 4, 7, 0, 7, 3,
 	1, 2, 6, 1, 6, 5,
 	0, 1, 5, 0, 5, 4,
 	3, 7, 6, 3, 6, 2,
-])
+]
 
 
 func _ready() -> void:
@@ -76,12 +75,12 @@ func _on_node_added(node: Node) -> void:
 
 
 func _install_for_detail(detail: Node3D) -> void:
-	if detail.get_node_or_null(NodePath(String(OCCLUDER_NODE_NAME))) != null:
+	if detail.get_node_or_null("BuildingOccluder") != null:
 		return
 	var chunk := detail.get_parent()
 	if chunk == null:
 		return
-	var massing := chunk.get_node_or_null(MASSING_NODE_NAME) as MultiMeshInstance3D
+	var massing := chunk.get_node_or_null("Ring0Massing") as MultiMeshInstance3D
 	if massing == null or massing.multimesh == null:
 		return
 
