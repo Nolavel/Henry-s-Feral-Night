@@ -1,4 +1,4 @@
-[gd_scene load_steps=16 format=3 uid="uid://cvv8y27vmgjfi"]
+[gd_scene load_steps=17 format=3 uid="uid://cvv8y27vmgjfi"]
 
 [ext_resource type="Script" uid="uid://naxaityb4qy1" path="res://scripts/systems/world/WorldEnvironmentController.gd" id="1_tiy4q"]
 [ext_resource type="Script" uid="uid://drvu6b4aca7sh" path="res://scripts/systems/world/DayNightManager.gd" id="2_n3v7b"]
@@ -12,6 +12,7 @@
 [ext_resource type="Resource" path="res://resources/environment/color_grading/HFN_ColdAsh_Night.tres" id="10_night_grade"]
 [ext_resource type="Resource" path="res://resources/environment/color_grading/HFN_ColdAsh_Shelter.tres" id="11_shelter_grade"]
 [ext_resource type="Script" path="res://scripts/systems/world/shadow_caster_policy.gd" id="12_shadow_policy"]
+[ext_resource type="Script" path="res://scripts/systems/world/city/city_occlusion_policy.gd" id="13_city_occlusion"]
 
 [sub_resource type="Environment" id="Environment_himop"]
 background_mode = 2
@@ -39,6 +40,9 @@ color_grade_controller = NodePath("ColorGradeController")
 
 [node name="ShadowCasterPolicy" type="Node" parent="."]
 script = ExtResource("12_shadow_policy")
+
+[node name="CityOcclusionPolicy" type="Node" parent="."]
+script = ExtResource("13_city_occlusion")
 
 [node name="Lighting" type="Node3D" parent="."]
 
