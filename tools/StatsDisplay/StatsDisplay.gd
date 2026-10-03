@@ -323,13 +323,15 @@ func _collect_city_render_stats(node: Node, stats: Dictionary) -> void:
 func _estimate_mesh_triangle_primitives(mesh: Mesh) -> int:
 	if mesh == null:
 		return 0
+	var mesh_rid: RID = mesh.get_rid()
 	var total: int = 0
-	for surface: int in range(mesh.get_surface_count()):
-		if mesh.surface_get_primitive_type(surface) != Mesh.PRIMITIVE_TRIANGLES:
+	for surface: int in range(RenderingServer.mesh_get_surface_count(mesh_rid)):
+		var surface_data: Dictionary = RenderingServer.mesh_get_surface(mesh_rid, surface)
+		if int(surface_data.get("primitive", -1)) != RenderingServer.PRIMITIVE_TRIANGLES:
 			continue
-		var element_count: int = mesh.surface_get_array_index_len(surface)
+		var element_count: int = int(surface_data.get("index_count", 0))
 		if element_count <= 0:
-			element_count = mesh.surface_get_array_len(surface)
+			element_count = int(surface_data.get("vertex_count", 0))
 		total += int(element_count / 3)
 	return total
 
